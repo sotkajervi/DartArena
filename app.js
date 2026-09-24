@@ -1,43 +1,30 @@
-const state={scores:[501,501],legs:[0,0],turn:0,history:[]};
+const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
+const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
-const playerEls=[...document.querySelectorAll(".player")];
+let mode='login',session=null,profile=null;
 
-function name(i){return $("name"+i).value.trim()||`Spiller ${i+1}`}
-function render(msg){
-  state.scores.forEach((s,i)=>{$("score"+i).textContent=s;$("legs"+i).textContent=`${state.legs[i]} legs`});
-  playerEls.forEach((el,i)=>el.classList.toggle("active",i===state.turn));
-  $("message").textContent=msg||`${name(state.turn)} kaster.`;
-  $("scoreInput").value="";
-  $("scoreInput").focus();
-}
-function snapshot(){state.history.push({scores:[...state.scores],legs:[...state.legs],turn:state.turn})}
-function submit(value){
-  const n=Number(value);
-  if(!Number.isInteger(n)||n<0||n>180){render("Ugyldig score. Bruk 0–180.");return}
-  snapshot();
-  const left=state.scores[state.turn]-n;
-  if(left<0||left===1){state.turn=1-state.turn;render("Bust – turen går videre.");return}
-  if(left===0){
-    state.legs[state.turn]++;
-    const winner=state.turn;
-    if(state.legs[winner]>=3){render(`${name(winner)} vinner kampen!`);return}
-    state.scores=[501,501];state.turn=1-state.turn;render(`${name(winner)} vinner leget.`);return
-  }
-  state.scores[state.turn]=left;state.turn=1-state.turn;render();
-}
-$("submitBtn").onclick=()=>submit($("scoreInput").value);
-$("scoreInput").addEventListener("keydown",e=>{if(e.key==="Enter")submit(e.target.value)});
-document.querySelectorAll(".quick button").forEach(b=>b.onclick=()=>submit(b.textContent));
-$("bustBtn").onclick=()=>{snapshot();state.turn=1-state.turn;render("Bust – turen går videre.")};
-$("undoBtn").onclick=()=>{const x=state.history.pop();if(!x)return render("Ingenting å angre.");state.scores=x.scores;state.legs=x.legs;state.turn=x.turn;render("Siste registrering angret.")};
-$("resetBtn").onclick=()=>{state.scores=[501,501];state.legs=[0,0];state.turn=0;state.history=[];render("Ny kamp startet.")};
+function authMode(next){mode=next;const reg=mode==='register';$('loginTab').classList.toggle('active',!reg);$('registerTab').classList.toggle('active',reg);$('usernameLabel').classList.toggle('hidden',!reg);$('username').required=reg;$('password').autocomplete=reg?'new-password':'current-password';$('authSubmit').textContent=reg?'Opprett konto':'Logg inn';setAuthMessage('');}
+function setAuthMessage(text,type=''){$('authMessage').textContent=text;$('authMessage').className='message '+type;}
+$('loginTab').onclick=()=>authMode('login');$('registerTab').onclick=()=>authMode('register');
 
-let stream;
-$("cameraBtn").onclick=async()=>{
-  try{
-    if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;$("video").srcObject=null;$("placeholder").style.display="flex";$("cameraBtn").textContent="Start kamera";return}
-    stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1920},height:{ideal:1080}},audio:false});
-    $("video").srcObject=stream;$("placeholder").style.display="none";$("cameraBtn").textContent="Stopp kamera";
-  }catch(e){$("message").textContent="Kamera kunne ikke startes. Kontroller kameratillatelsen i nettleseren."}
-};
-render();
+$('authForm').addEventListener('submit',async e=>{e.preventDefault();const email=$('email').value.trim();const password=$('password').value;setAuthMessage('Jobber...');try{if(mode==='register'){const username=$('username').value.trim();if(username.length<2)return setAuthMessage('Brukernavnet må ha minst 2 tegn.','error');const {data,error}=await db.auth.signUp({email,password,options:{data:{username}}});if(error)throw error;if(!data.session)return setAuthMessage('Konto opprettet. Sjekk e-posten din for bekreftelse før du logger inn.','ok');}else{const {error}=await db.auth.signInWithPassword({email,password});if(error)throw error;}}catch(err){setAuthMessage(err.message||'Noe gikk galt.','error');}});
+
+$('logoutBtn').onclick=async()=>{if(profile)await db.from('profiles').update({status:'unavailable',last_seen:new Date().toISOString()}).eq('id',profile.id);await db.auth.signOut();};
+$('refreshBtn').onclick=()=>loadLobby();
+$('availabilityBtn').onclick=async()=>{if(!profile)return;const next=profile.status==='available'?'unavailable':'available';const {error}=await db.from('profiles').update({status:next,last_seen:new Date().toISOString()}).eq('id',profile.id);if(!error){profile.status=next;renderAvailability();loadPlayers();}};
+
+function renderAvailability(){const available=profile?.status==='available';$('availabilityBtn').textContent=available?'Available':'Unavailable';$('availabilityBtn').className='availability '+(available?'available':'unavailable');}
+async function enterLobby(){const {data:{session:s}}=await db.auth.getSession();session=s;if(!session){showAuth();return}const {data,error}=await db.from('profiles').select('*').eq('id',session.user.id).single();if(error){showAuth();setAuthMessage('Profilen kunne ikke lastes: '+error.message,'error');return}profile=data;await db.from('profiles').update({last_seen:new Date().toISOString()}).eq('id',profile.id);$('authView').classList.add('hidden');$('lobbyView').classList.remove('hidden');$('welcomeName').textContent=`Hei, ${profile.username}`;$('headerStatus').innerHTML='<i></i> Pålogget';renderAvailability();loadLobby();}
+function showAuth(){session=null;profile=null;$('lobbyView').classList.add('hidden');$('authView').classList.remove('hidden');$('headerStatus').innerHTML='<i></i> Ikke innlogget';}
+async function loadLobby(){await Promise.all([loadPlayers(),loadChallenges()]);}
+async function loadPlayers(){if(!profile)return;const {data,error}=await db.from('profiles').select('id,username,status,last_seen').neq('id',profile.id).order('username');if(error){$('playerList').innerHTML=`<p class="muted">${escapeHtml(error.message)}</p>`;return}const now=Date.now(),online=(data||[]).filter(p=>p.last_seen&&now-new Date(p.last_seen).getTime()<5*60*1000);$('playerList').innerHTML=online.length?online.map(p=>{const can=p.status==='available'&&profile.status==='available';return `<div class="player-row"><div class="player-main"><div class="avatar">${escapeHtml((p.username||'?')[0].toUpperCase())}</div><div><div class="player-name">${escapeHtml(p.username)}</div><div class="status"><span class="dot ${p.status}"></span>${labelStatus(p.status)}</div></div></div><button class="small-btn challenge-btn" data-id="${p.id}" ${can?'':'disabled'}>Utfordre</button></div>`}).join(''):'<p class="muted">Ingen andre spillere er pålogget akkurat nå.</p>';document.querySelectorAll('.challenge-btn').forEach(b=>b.onclick=()=>challenge(b.dataset.id));}
+function labelStatus(s){return s==='available'?'Available':s==='in_game'?'I kamp':'Unavailable'}
+async function challenge(id){if(!profile||profile.status!=='available')return;const {error}=await db.from('challenges').insert({challenger_id:profile.id,challenged_id:id,game:501,legs:5,allow_draw:false});if(error)alert(error.message);else alert('Utfordring sendt!');}
+async function loadChallenges(){if(!profile)return;const {data,error}=await db.from('challenges').select('id,challenger_id,game,legs,status,created_at').eq('challenged_id',profile.id).eq('status','pending').order('created_at',{ascending:false});if(error){$('challengeList').innerHTML=`<p class="muted">${escapeHtml(error.message)}</p>`;return}if(!data?.length){$('challengeList').innerHTML='<p class="muted">Ingen ventende utfordringer.</p>';return}const ids=[...new Set(data.map(c=>c.challenger_id))];const {data:people}=await db.from('profiles').select('id,username').in('id',ids);const names=Object.fromEntries((people||[]).map(p=>[p.id,p.username]));$('challengeList').innerHTML=data.map(c=>`<div class="challenge-row"><div><div class="player-name">${escapeHtml(names[c.challenger_id]||'Spiller')}</div><div class="status">${c.game} • Best of ${c.legs}</div></div><div class="challenge-actions"><button class="small-btn accept" data-action="accepted" data-id="${c.id}">Godta</button><button class="small-btn decline" data-action="declined" data-id="${c.id}">Avslå</button></div></div>`).join('');document.querySelectorAll('.challenge-actions button').forEach(b=>b.onclick=()=>respondChallenge(b.dataset.id,b.dataset.action));}
+async function respondChallenge(id,status){const {error}=await db.from('challenges').update({status}).eq('id',id);if(error)return alert(error.message);if(status==='accepted'){await db.from('profiles').update({status:'in_game'}).eq('id',profile.id);profile.status='in_game';renderAvailability();alert('Utfordringen er godtatt. Kamprommet bygger vi i neste steg.');}loadLobby();}
+function escapeHtml(v=''){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+
+db.auth.onAuthStateChange((_event,s)=>{session=s;if(s)enterLobby();else showAuth();});
+enterLobby();
+setInterval(()=>{if(profile){db.from('profiles').update({last_seen:new Date().toISOString()}).eq('id',profile.id);loadPlayers();loadChallenges();}},30000);
