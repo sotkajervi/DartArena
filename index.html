@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#081113">
+  <title>WebcamDarts</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">WEBCAM<span>DARTS</span></div>
+  <div class="live"><i></i> Lokal prototype</div>
+</header>
+
+<main>
+  <section class="card camera-card">
+    <div class="heading">
+      <div><small>LIVE BOARD</small><h1>Webcam</h1></div>
+      <button id="cameraBtn" class="outline">Start kamera</button>
+    </div>
+    <div class="video">
+      <video id="video" autoplay playsinline muted></video>
+      <div id="placeholder" class="placeholder">
+        <div class="cam">◎</div>
+        <b>Kamera ikke startet</b>
+        <span>Trykk «Start kamera» og gi nettleseren kameratilgang.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card scoring">
+    <div class="heading">
+      <div><small>501 • BEST OF 5</small><h2>Scoring</h2></div>
+      <button id="resetBtn" class="outline">Ny kamp</button>
+    </div>
+
+    <div class="players">
+      <article class="player active" data-i="0">
+        <div class="meta"><span>SPILLER 1</span><strong id="legs0">0 legs</strong></div>
+        <input id="name0" value="Spiller 1">
+        <div class="score" id="score0">501</div>
+      </article>
+      <article class="player" data-i="1">
+        <div class="meta"><span>SPILLER 2</span><strong id="legs1">0 legs</strong></div>
+        <input id="name1" value="Spiller 2">
+        <div class="score" id="score1">501</div>
+      </article>
+    </div>
+
+    <label class="label" for="scoreInput">Score denne runden</label>
+    <div class="entry">
+      <input id="scoreInput" type="number" inputmode="numeric" min="0" max="180" placeholder="0–180">
+      <button id="submitBtn" class="primary">Registrer</button>
+    </div>
+    <p id="message">Spiller 1 kaster.</p>
+
+    <div class="quick">
+      <button>26</button><button>41</button><button>45</button><button>60</button>
+      <button>81</button><button>85</button><button>95</button><button>100</button>
+      <button>121</button><button>125</button><button>140</button><button>180</button>
+    </div>
+
+    <div class="bottom">
+      <button id="undoBtn" class="outline">↶ Angre siste</button>
+      <button id="bustBtn" class="bust">BUST</button>
+    </div>
+  </section>
+</main>
+<footer>WebcamDarts • prototype 0.1</footer>
+<script src="app.js"></script>
+</body>
+</html>
