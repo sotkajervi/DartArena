@@ -1,0 +1,4 @@
+// Opens real tournament matches in a read-only live spectator room.
+document.addEventListener('click',e=>{const row=e.target.closest('.match-row[data-match]:not(.simulation-match)');if(!row)return;const id=row.dataset.match;if(!id)return;window.open(`tournament-match-viewer.html?id=${encodeURIComponent(id)}`,'_blank','noopener')});
+document.addEventListener('keydown',e=>{if(!['Enter',' '].includes(e.key))return;const row=e.target.closest('.match-row[data-match]:not(.simulation-match)');if(!row)return;e.preventDefault();row.click()});
+new MutationObserver(()=>{document.querySelectorAll('.match-row[data-match]:not(.simulation-match)').forEach(r=>{r.setAttribute('role','button');r.setAttribute('tabindex','0');r.style.cursor='pointer';r.title='Åpne kamp'})}).observe(document.documentElement,{subtree:true,childList:true});
