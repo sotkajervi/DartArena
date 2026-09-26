@@ -1,6 +1,16 @@
 const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
 const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
-const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const VIEWER_BUILD='20260926-3';
+
+console.info(`[DartArena spectator ${VIEWER_BUILD}]`,SUPABASE_URL);
+
+const cleanSupabaseUrl=String(SUPABASE_URL).trim();
+const cleanSupabaseKey=String(SUPABASE_KEY).trim();
+if(!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(cleanSupabaseUrl)){
+  throw new Error(`DartArena spectator: ugyldig Supabase URL (${JSON.stringify(cleanSupabaseUrl)})`);
+}
+
+const db=window.supabase.createClient(cleanSupabaseUrl,cleanSupabaseKey);
 const $=(id)=>document.getElementById(id);
 const matchId=new URLSearchParams(location.search).get('id');
 
