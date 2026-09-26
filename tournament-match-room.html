@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071012">
+  <title>DartArena • Turneringskamp</title>
+  <link rel="stylesheet" href="style.css?v=20260926-tmroom1">
+  <link rel="stylesheet" href="dartboard-background.css?v=20260926-2">
+  <style>
+    .ready-panel{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+    .ready-state{border:1px solid var(--border);border-radius:14px;padding:14px;background:rgba(255,255,255,.025)}
+    .ready-state strong{display:block;margin-bottom:5px}
+    .ready-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6e7f83;margin-right:7px}
+    .ready-dot.on{background:var(--cyan);box-shadow:0 0 12px var(--cyan)}
+    .room-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+    @media(max-width:700px){.ready-panel{grid-template-columns:1fr}.video-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">DART<span>ARENA</span></div>
+    <div class="live"><i></i> TURNERINGSKAMP</div>
+  </header>
+
+  <main class="shell">
+    <div class="match-head">
+      <div>
+        <small>VENTEROM</small>
+        <h1 id="roomTitle">Laster kamp…</h1>
+        <p id="roomMeta" class="muted compact"></p>
+        <p id="cameraStatus" class="muted compact">Kobler til…</p>
+      </div>
+      <button id="backBtn" class="outline">Til turnering</button>
+    </div>
+
+    <div class="video-grid waiting-video-grid">
+      <div class="video-card">
+        <video id="localVideo" autoplay playsinline muted></video>
+        <div id="localPlaceholder" class="video-placeholder">Starter kamera…</div>
+        <span id="localVideoName" class="video-name">Deg</span>
+      </div>
+      <div class="video-card">
+        <video id="remoteVideo" autoplay playsinline muted></video>
+        <div id="remotePlaceholder" class="video-placeholder">Venter på motstanderens kamera…</div>
+        <span id="remoteVideoName" class="video-name">Motstander</span>
+      </div>
+    </div>
+
+    <div class="camera-controls">
+      <button id="retryCameraBtn" class="outline hidden">Prøv kamera på nytt</button>
+      <button id="remoteAudioBtn" class="outline hidden">Slå på lyd</button>
+    </div>
+
+    <section class="card" style="margin-top:20px">
+      <small>KLARSTATUS</small>
+      <h2>Kampen starter når begge er klare</h2>
+      <p class="muted">Kampformatet er låst av turneringen. Video kobles via Cloudflare.</p>
+
+      <div class="ready-panel">
+        <div class="ready-state"><strong id="localReadyName">Du</strong><span id="localReadyDot" class="ready-dot"></span><span id="localReadyText">Ikke klar</span></div>
+        <div class="ready-state"><strong id="remoteReadyName">Motstander</strong><span id="remoteReadyDot" class="ready-dot"></span><span id="remoteReadyText">Ikke klar</span></div>
+      </div>
+
+      <div class="room-actions">
+        <button id="readyBtn" class="primary" disabled>Jeg er klar</button>
+      </div>
+      <p id="roomMessage" class="message"></p>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="sfu-config.js?v=20260926-1"></script>
+  <script src="sfu-client.js?v=20260926-1"></script>
+  <script src="tournament-match-room.js?v=20260926-1"></script>
+</body>
+</html>
