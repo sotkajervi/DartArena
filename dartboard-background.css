@@ -7,21 +7,21 @@ body::before{
   left:50% !important;
   top:86px !important;
   transform:translate(-50%,-50%) !important;
-  width:min(1180px,112vw) !important;
-  height:min(1180px,112vw) !important;
+  width:min(1450px,138vw) !important;
+  height:min(1450px,138vw) !important;
   border-radius:50% !important;
-  opacity:.38 !important;
+  opacity:.48 !important;
   background:url('./dartboard-bg.png.png') center/contain no-repeat !important;
-  filter:saturate(.55) brightness(.52) contrast(1.12) !important;
-  -webkit-mask-image:radial-gradient(circle at center,#000 0 20%,rgba(0,0,0,.96) 34%,rgba(0,0,0,.72) 50%,rgba(0,0,0,.28) 68%,transparent 84%) !important;
-  mask-image:radial-gradient(circle at center,#000 0 20%,rgba(0,0,0,.96) 34%,rgba(0,0,0,.72) 50%,rgba(0,0,0,.28) 68%,transparent 84%) !important;
+  filter:saturate(.58) brightness(.58) contrast(1.14) !important;
+  -webkit-mask-image:radial-gradient(circle at center,#000 0 24%,rgba(0,0,0,.98) 42%,rgba(0,0,0,.82) 58%,rgba(0,0,0,.52) 72%,rgba(0,0,0,.18) 88%,transparent 98%) !important;
+  mask-image:radial-gradient(circle at center,#000 0 24%,rgba(0,0,0,.98) 42%,rgba(0,0,0,.82) 58%,rgba(0,0,0,.52) 72%,rgba(0,0,0,.18) 88%,transparent 98%) !important;
 }
 header,.shell,footer{position:relative;z-index:1}
 @media(max-width:800px){
   body::before{
     top:92px !important;
-    width:165vw !important;
-    height:165vw !important;
-    opacity:.30 !important;
+    width:195vw !important;
+    height:195vw !important;
+    opacity:.39 !important;
   }
 }
