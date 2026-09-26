@@ -1,0 +1,29 @@
+/* DartArena background overlay using the uploaded board image. */
+body::before{
+  content:"" !important;
+  position:fixed !important;
+  z-index:0 !important;
+  pointer-events:none !important;
+  left:50% !important;
+  top:72px !important;
+  transform:translate(-50%,-50%) !important;
+  width:min(1050px,110vw) !important;
+  height:min(1050px,110vw) !important;
+  border-radius:50% !important;
+  opacity:.19 !important;
+  background-image:url('dartboard-bg.png.png') !important;
+  background-repeat:no-repeat !important;
+  background-position:center !important;
+  background-size:contain !important;
+  filter:saturate(.45) brightness(.58) contrast(1.08) !important;
+  -webkit-mask-image:radial-gradient(circle at center,#000 0 15%,rgba(0,0,0,.96) 24%,rgba(0,0,0,.72) 43%,rgba(0,0,0,.30) 61%,transparent 76%) !important;
+  mask-image:radial-gradient(circle at center,#000 0 15%,rgba(0,0,0,.96) 24%,rgba(0,0,0,.72) 43%,rgba(0,0,0,.30) 61%,transparent 76%) !important;
+}
+@media(max-width:800px){
+  body::before{
+    top:72px !important;
+    width:150vw !important;
+    height:150vw !important;
+    opacity:.16 !important;
+  }
+}
