@@ -1,4 +1,4 @@
--- DartArena: choose who starts a tournament match
+-- DartArena: tournament waiting-room starter choice + finished-match statistics
 -- Run once in Supabase SQL Editor.
 
 -- Replace the original one-argument function with a starter-aware version.
@@ -107,3 +107,20 @@ $$;
 
 revoke all on function public.start_tournament_match(uuid, uuid) from public;
 grant execute on function public.start_tournament_match(uuid, uuid) to authenticated;
+
+-- Finished tournament matches may expose their throw log for the tournament
+-- statistics and finished-match statistics pages. Live match throws keep the
+-- existing player-only read policy.
+drop policy if exists "finished tournament throws readable" on public.match_throws;
+create policy "finished tournament throws readable"
+on public.match_throws
+for select
+to authenticated
+using (
+  exists (
+    select 1
+      from public.tournament_matches tm
+     where tm.live_match_id = match_id
+       and tm.status in ('finished','wo')
+  )
+);
