@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#071012">
   <title>DartArena • Turneringskamp</title>
-  <link rel="stylesheet" href="style.css?v=20260926-tmroom1">
+  <link rel="stylesheet" href="style.css?v=20260926-tmroom2">
   <link rel="stylesheet" href="dartboard-background.css?v=20260926-2">
   <style>
     .ready-panel{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
@@ -14,7 +14,9 @@
     .ready-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6e7f83;margin-right:7px}
     .ready-dot.on{background:var(--cyan);box-shadow:0 0 12px var(--cyan)}
     .room-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-    @media(max-width:700px){.ready-panel{grid-template-columns:1fr}.video-grid{grid-template-columns:1fr}}
+    .starter-choice{max-width:420px;margin-top:18px}
+    .starter-help{margin-top:7px;font-size:13px}
+    @media(max-width:700px){.ready-panel{grid-template-columns:1fr}.video-grid{grid-template-columns:1fr}.starter-choice{max-width:none}}
   </style>
 </head>
 <body>
@@ -55,7 +57,16 @@
     <section class="card" style="margin-top:20px">
       <small>KLARSTATUS</small>
       <h2>Kampen starter når begge er klare</h2>
-      <p class="muted">Kampformatet er låst av turneringen. Video kobles via Cloudflare.</p>
+      <p class="muted">Kampformatet er låst av turneringen. Velg hvem som begynner før begge markerer seg klare.</p>
+
+      <label class="field starter-choice">Hvem begynner?
+        <select id="starterChoice">
+          <option value="me">Jeg begynner</option>
+          <option value="opponent">Motstander begynner</option>
+          <option value="random" selected>Tilfeldig</option>
+        </select>
+      </label>
+      <p id="starterHelp" class="muted compact starter-help">Begge kan endre valget. Hvis valget endres, nullstilles klarstatusen.</p>
 
       <div class="ready-panel">
         <div class="ready-state"><strong id="localReadyName">Du</strong><span id="localReadyDot" class="ready-dot"></span><span id="localReadyText">Ikke klar</span></div>
@@ -72,6 +83,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="sfu-config.js?v=20260926-1"></script>
   <script src="sfu-client.js?v=20260926-1"></script>
-  <script src="tournament-match-room.js?v=20260926-1"></script>
+  <script src="tournament-match-room.js?v=20260926-2"></script>
 </body>
 </html>
