@@ -18,14 +18,36 @@ let heartbeat=null;
 let localReady=false;
 let remoteReady=false;
 let starting=false;
+let starterChoice='random';
 
 function setStatus(text){$('cameraStatus').textContent=text;}
+function starterValueForLocal(){
+  if(starterChoice==='random')return'random';
+  return starterChoice===me?'me':'opponent';
+}
+function starterText(){
+  if(starterChoice==='random')return'Tilfeldig';
+  return names[starterChoice]||'Spiller';
+}
+function setStarterUi(){
+  const select=$('starterChoice');
+  if(select)select.value=starterValueForLocal();
+}
 function setReadyUi(){
   $('localReadyDot').classList.toggle('on',localReady);
   $('remoteReadyDot').classList.toggle('on',remoteReady);
   $('localReadyText').textContent=localReady?'Klar':'Ikke klar';
   $('remoteReadyText').textContent=remoteReady?'Klar':'Ikke klar';
   $('readyBtn').textContent=localReady?'Ikke klar':'Jeg er klar';
+}
+function resetReadyForStarterChange(message=''){
+  localReady=false;
+  remoteReady=false;
+  setReadyUi();
+  if(message)$('roomMessage').textContent=message;
+}
+function isValidStarterChoice(choice){
+  return choice==='random'||choice===tm?.player1_id||choice===tm?.player2_id;
 }
 function cameraErrorText(e){
   if(e?.name==='NotAllowedError')return'Kamera/mikrofon er blokkert i nettleseren.';
@@ -52,7 +74,7 @@ async function boot(){
 
   if(tm.status==='live'&&tm.live_match_id){goToMatch(tm.live_match_id);return;}
   if(['finished','wo'].includes(tm.status)){
-    location.replace(`tournament-match-viewer.html?id=${encodeURIComponent(tournamentMatchId)}`);
+    location.replace(`tournament-match-stats.html?id=${encodeURIComponent(tournamentMatchId)}`);
     return;
   }
   if(tm.status!=='pending'){
@@ -71,11 +93,13 @@ async function boot(){
   $('localReadyName').textContent=names[me]||'Deg';
   $('remoteReadyName').textContent=names[other]||'Motstander';
   setReadyUi();
+  setStarterUi();
 
   $('backBtn').onclick=()=>history.length>1?history.back():location.href='./';
   $('readyBtn').onclick=toggleReady;
   $('retryCameraBtn').onclick=startCamera;
   $('remoteAudioBtn').onclick=toggleRemoteAudio;
+  $('starterChoice').onchange=changeStarterChoice;
 
   setupChannel();
 }
@@ -92,6 +116,18 @@ function setupChannel(){
       }
       await maybeStart();
     })
+    .on('broadcast',{event:'starter-request'},async({payload})=>{
+      if(me!==tm.player1_id||payload.from!==other||!isValidStarterChoice(payload.choice))return;
+      await applyStarterChoice(payload.choice,true);
+    })
+    .on('broadcast',{event:'starter-choice'},async({payload})=>{
+      if(payload.from!==tm.player1_id||!isValidStarterChoice(payload.choice))return;
+      if(payload.choice===starterChoice){setStarterUi();return;}
+      starterChoice=payload.choice;
+      setStarterUi();
+      resetReadyForStarterChange(`Hvem som begynner er endret til ${starterText()}. Klarstatus er nullstilt.`);
+      await sendState();
+    })
     .on('broadcast',{event:'match-start'},({payload})=>{
       if(payload.liveMatchId)goToMatch(payload.liveMatchId);
     })
@@ -105,6 +141,7 @@ function setupChannel(){
       clearInterval(heartbeat);
       heartbeat=setInterval(sendState,1800);
       await sendState();
+      if(me===tm.player1_id)await broadcastStarterChoice();
     });
 }
 
@@ -182,11 +219,53 @@ async function sendState(){
   });
 }
 
+async function broadcastStarterChoice(){
+  if(!channel||me!==tm.player1_id)return;
+  await channel.send({type:'broadcast',event:'starter-choice',payload:{from:me,choice:starterChoice}});
+}
+
+function selectedStarterActual(){
+  const value=$('starterChoice').value;
+  if(value==='random')return'random';
+  return value==='me'?me:other;
+}
+
+async function changeStarterChoice(){
+  if(starting){setStarterUi();return;}
+  const choice=selectedStarterActual();
+  if(!isValidStarterChoice(choice)){setStarterUi();return;}
+
+  if(me===tm.player1_id){
+    await applyStarterChoice(choice,true);
+    return;
+  }
+
+  $('starterChoice').disabled=true;
+  $('roomMessage').textContent='Oppdaterer hvem som begynner…';
+  try{
+    await channel.send({type:'broadcast',event:'starter-request',payload:{from:me,choice}});
+  }finally{
+    setTimeout(()=>{$('starterChoice').disabled=false;},350);
+  }
+}
+
+async function applyStarterChoice(choice,broadcast=false){
+  if(!isValidStarterChoice(choice))return;
+  const changed=choice!==starterChoice;
+  starterChoice=choice;
+  setStarterUi();
+  if(changed){
+    resetReadyForStarterChange(`Hvem som begynner: ${starterText()}. Klarstatus er nullstilt.`);
+    await sendState();
+  }
+  if(broadcast)await broadcastStarterChoice();
+}
+
 async function toggleReady(){
   if(!publication)return;
   localReady=!localReady;
   setReadyUi();
-  $('roomMessage').textContent=localReady?'Du er klar. Venter på motstanderen.':'';
+  $('roomMessage').textContent=localReady?`Du er klar. Starter: ${starterText()}. Venter på motstanderen.`:'';
   await sendState();
   await maybeStart();
 }
@@ -196,12 +275,17 @@ async function maybeStart(){
   if(me!==tm.player1_id)return;
   starting=true;
   $('readyBtn').disabled=true;
-  $('roomMessage').textContent='Begge er klare. Starter kampen…';
-  const {data,error}=await db.rpc('start_tournament_match',{p_tournament_match_id:tournamentMatchId});
+  $('starterChoice').disabled=true;
+  $('roomMessage').textContent=`Begge er klare. Starter kampen – ${starterText()} begynner…`;
+  const {data,error}=await db.rpc('start_tournament_match',{
+    p_tournament_match_id:tournamentMatchId,
+    p_starter_id:starterChoice==='random'?null:starterChoice
+  });
   if(error){
     console.error(error);
     starting=false;
     $('readyBtn').disabled=false;
+    $('starterChoice').disabled=false;
     $('roomMessage').textContent=`Kunne ikke starte kampen: ${error.message}`;
     return;
   }
