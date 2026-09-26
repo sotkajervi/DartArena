@@ -13,8 +13,8 @@ body::before{
   opacity:.48 !important;
   background:url('./dartboard-bg.png.png') center/contain no-repeat !important;
   filter:saturate(.58) brightness(.58) contrast(1.14) !important;
-  -webkit-mask-image:radial-gradient(circle at center,#000 0 24%,rgba(0,0,0,.98) 42%,rgba(0,0,0,.82) 58%,rgba(0,0,0,.52) 72%,rgba(0,0,0,.18) 88%,transparent 98%) !important;
-  mask-image:radial-gradient(circle at center,#000 0 24%,rgba(0,0,0,.98) 42%,rgba(0,0,0,.82) 58%,rgba(0,0,0,.52) 72%,rgba(0,0,0,.18) 88%,transparent 98%) !important;
+  -webkit-mask-image:radial-gradient(circle at center,#000 0 24%,rgba(0,0,0,.98) 42%,rgba(0,0,0,.82) 58%,rgba(0,0,0,.48) 70%,rgba(0,0,0,.14) 80%,rgba(0,0,0,.04) 88%,transparent 94%) !important;
+  mask-image:radial-gradient(circle at center,#000 0 24%,rgba(0,0,0,.98) 42%,rgba(0,0,0,.82) 58%,rgba(0,0,0,.48) 70%,rgba(0,0,0,.14) 80%,rgba(0,0,0,.04) 88%,transparent 94%) !important;
 }
 header,.shell,footer{position:relative;z-index:1}
 @media(max-width:800px){
