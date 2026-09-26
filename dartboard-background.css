@@ -1,4 +1,4 @@
-/* DartArena background — real uploaded dartboard image */
+/* DartArena background — branded dartboard, bull kept at the top like the original layout */
 body::before{
   content:"" !important;
   position:fixed !important;
@@ -11,7 +11,7 @@ body::before{
   height:min(1450px,138vw) !important;
   border-radius:50% !important;
   opacity:.48 !important;
-  background:url('./dartboard-bg.png.png') center/contain no-repeat !important;
+  background:url('./dartarena-board-bg.jpg') center/contain no-repeat !important;
   filter:saturate(.58) brightness(.58) contrast(1.14) !important;
   -webkit-mask-image:radial-gradient(circle at center,#000 0 24%,rgba(0,0,0,.98) 42%,rgba(0,0,0,.82) 58%,rgba(0,0,0,.48) 70%,rgba(0,0,0,.14) 80%,rgba(0,0,0,.04) 88%,transparent 94%) !important;
   mask-image:radial-gradient(circle at center,#000 0 24%,rgba(0,0,0,.98) 42%,rgba(0,0,0,.82) 58%,rgba(0,0,0,.48) 70%,rgba(0,0,0,.14) 80%,rgba(0,0,0,.04) 88%,transparent 94%) !important;
