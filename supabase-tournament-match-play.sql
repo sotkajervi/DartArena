@@ -47,7 +47,14 @@ using (
   )
 );
 
-create or replace function public.start_tournament_match(p_tournament_match_id uuid)
+-- Starter can be chosen in the waiting room. NULL means random.
+drop function if exists public.start_tournament_match(uuid);
+drop function if exists public.start_tournament_match(uuid, uuid);
+
+create function public.start_tournament_match(
+  p_tournament_match_id uuid,
+  p_starter_id uuid default null
+)
 returns uuid
 language plpgsql
 security definer
@@ -86,7 +93,13 @@ begin
     raise exception 'Tournament match is missing a player';
   end if;
 
-  v_starter := case when random() < 0.5 then tm.player1_id else tm.player2_id end;
+  if p_starter_id is null then
+    v_starter := case when random() < 0.5 then tm.player1_id else tm.player2_id end;
+  elsif p_starter_id = tm.player1_id or p_starter_id = tm.player2_id then
+    v_starter := p_starter_id;
+  else
+    raise exception 'Starter must be one of the players in this tournament match';
+  end if;
 
   insert into public.matches (
     player1_id,
@@ -138,8 +151,8 @@ begin
 end;
 $$;
 
-revoke all on function public.start_tournament_match(uuid) from public;
-grant execute on function public.start_tournament_match(uuid) to authenticated;
+revoke all on function public.start_tournament_match(uuid, uuid) from public;
+grant execute on function public.start_tournament_match(uuid, uuid) to authenticated;
 
 create or replace function public.finish_tournament_match(
   p_tournament_match_id uuid,
