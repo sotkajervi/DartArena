@@ -68,7 +68,9 @@ begin
     raise exception 'Tournament match not found';
   end if;
 
-  if auth.uid() is null or auth.uid() not in (tm.player1_id, tm.player2_id) then
+  if auth.uid() is null
+     or (auth.uid() is distinct from tm.player1_id
+         and auth.uid() is distinct from tm.player2_id) then
     raise exception 'Not a player in this tournament match';
   end if;
 
@@ -162,7 +164,9 @@ begin
     raise exception 'Tournament match not found';
   end if;
 
-  if auth.uid() is null or auth.uid() not in (tm.player1_id, tm.player2_id) then
+  if auth.uid() is null
+     or (auth.uid() is distinct from tm.player1_id
+         and auth.uid() is distinct from tm.player2_id) then
     raise exception 'Not a player in this tournament match';
   end if;
 
@@ -213,18 +217,22 @@ declare
   v_needed integer;
   v_winner uuid;
 begin
-  select tm0.*, t.owner_id
-    into tm, v_owner
-    from public.tournament_matches tm0
-    join public.tournaments t on t.id = tm0.tournament_id
-   where tm0.id = p_tournament_match_id
-   for update of tm0;
+  select *
+    into tm
+    from public.tournament_matches
+   where id = p_tournament_match_id
+   for update;
 
   if not found then
     raise exception 'Tournament match not found';
   end if;
 
-  if auth.uid() is null or auth.uid() <> v_owner then
+  select owner_id
+    into v_owner
+    from public.tournaments
+   where id = tm.tournament_id;
+
+  if auth.uid() is null or auth.uid() is distinct from v_owner then
     raise exception 'Only the tournament leader can correct a finished result';
   end if;
 
