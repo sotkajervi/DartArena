@@ -1,7 +1,8 @@
 // Tournament match routing:
+// - Finished/WO matches open the dedicated statistics page.
 // - A player in a pending match goes to the tournament waiting room.
 // - A player in a live match goes to the normal scoring room.
-// - Everyone else gets the read-only spectator view.
+// - Non-players watching an unfinished match get the read-only spectator view.
 
 const tournamentLinkDb=window.supabase.createClient(
   'https://jqpxlbhwvskhjbqrbidk.supabase.co',
@@ -26,10 +27,15 @@ async function openTournamentMatch(row){
       return;
     }
 
+    if(['finished','wo'].includes(match.status)){
+      window.open(`tournament-match-stats.html?id=${encodeURIComponent(id)}`,'_blank','noopener');
+      return;
+    }
+
     const uid=session?.user?.id;
     const isPlayer=uid&&[match.player1_id,match.player2_id].includes(uid);
 
-    if(!isPlayer||['finished','wo'].includes(match.status)){
+    if(!isPlayer){
       window.open(`tournament-match-viewer.html?id=${encodeURIComponent(id)}`,'_blank','noopener');
       return;
     }
@@ -68,11 +74,15 @@ document.addEventListener('keydown',e=>{
   openTournamentMatch(row);
 });
 
-new MutationObserver(()=>{
+function decorateTournamentMatchRows(){
   document.querySelectorAll('.match-row[data-match]:not(.simulation-match)').forEach(row=>{
     row.setAttribute('role','button');
     row.setAttribute('tabindex','0');
     row.style.cursor='pointer';
-    row.title='Åpne kamp';
+    const state=row.querySelector('.match-state')?.textContent?.trim();
+    row.title=['Ferdig','WO'].includes(state)?'Se kampstatistikk':'Åpne kamp';
   });
-}).observe(document.documentElement,{subtree:true,childList:true});
+}
+
+new MutationObserver(decorateTournamentMatchRows).observe(document.documentElement,{subtree:true,childList:true});
+decorateTournamentMatchRows();
