@@ -3,6 +3,25 @@
   const $=id=>document.getElementById(id);
   const done=m=>['finished','wo'].includes(m.status);
   const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // Keep later cup rounds visually aligned with the bracket tree.
+  // The semifinal column is always the second-to-last round, regardless of bracket size.
+  if(!document.getElementById('dartarenaCupAlignment')){
+    const style=document.createElement('style');
+    style.id='dartarenaCupAlignment';
+    style.textContent=`
+      .cup-round{position:relative;padding-top:34px}
+      .cup-round-title{position:absolute;top:0;left:0;right:0}
+      .cup-round:nth-last-child(2){transform:translateY(-20px)}
+      .cup-round:nth-last-child(2) .cup-match{margin-left:auto;margin-right:auto;width:100%}
+      @media(max-width:850px){
+        .cup-round{padding-top:32px}
+        .cup-round:nth-last-child(2){transform:none}
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   function nextPow2(n){let x=1;while(x<n)x*=2;return x}
 
   // Standard bracket order. For 16 players this is:
