@@ -7,7 +7,7 @@
   <title>DartArena • Cricket</title>
   <link rel="stylesheet" href="style.css?v=20260927-cricket1">
   <link rel="stylesheet" href="match-controls.css?v=20260925-audio-v2">
-  <link rel="stylesheet" href="cricket-desktop.css?v=20260928-vertical1">
+  <link rel="stylesheet" href="cricket-desktop.css?v=20260928-keyboard2">
   <style>
     .viewer-count{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border:1px solid rgba(255,255,255,.1);border-radius:999px;color:var(--muted);font-size:13px;font-weight:700;background:rgba(7,16,18,.65)}
     .viewer-count b{color:var(--text)}.viewer-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
@@ -29,7 +29,6 @@
     .cricket-hit{padding:8px 5px;font-weight:900}.cricket-hit:disabled{opacity:.35}
     .cricket-entry-actions{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:7px;margin-top:9px}.cricket-entry-actions button{min-width:0}
     .cricket-help{font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.35}
-    @media(max-width:850px){.cricket-play-grid{grid-template-columns:1fr}.cricket-summary{gap:7px}.cricket-player{padding:9px}.cricket-points{font-size:24px}.cricket-row{min-height:38px}.cricket-mark{font-size:21px}.cricket-key-row{grid-template-columns:44px repeat(3,1fr)}.cricket-key-row.bull{grid-template-columns:44px repeat(2,1fr)}}
   </style>
 </head>
 <body class="match-page">
@@ -52,13 +51,22 @@
           <div id="cricketBoard" class="cricket-board"></div>
         </div>
         <div class="cricket-entry-card">
-          <small>DITT KAST</small>
+          <small id="cricketEntryTitle">DITT KAST</small>
           <p id="turnText" class="turn-text" style="margin:5px 0 0">Venter…</p>
           <div id="cricketDarts" class="cricket-darts"></div>
           <div id="cricketKeypad" class="cricket-keypad"></div>
-          <div class="cricket-entry-actions"><button id="cricketMissBtn" class="outline" type="button">Miss</button><button id="cricketUndoBtn" class="outline" type="button">Angre</button><button id="cricketSubmitBtn" class="primary" type="button">Registrer kast</button></div>
-          <p class="cricket-help">S = single, D = double, T = triple. Tre treff lukker et felt. Ekstra treff gir poeng så lenge motstanderen ikke har lukket feltet.</p>
+          <div class="cricket-entry-actions">
+            <button id="cricketMissBtn" class="outline" type="button">Miss</button>
+            <button id="cricketUndoBtn" class="outline" type="button">Angre</button>
+            <button id="cricketCancelEditBtn" class="outline hidden" type="button">Avbryt korrigering</button>
+            <button id="cricketSubmitBtn" class="primary" type="button">Registrer kast</button>
+          </div>
+          <p class="cricket-help"><kbd>0</kbd>=20 <kbd>9</kbd>=19 <kbd>8</kbd>=18 <kbd>7</kbd>=17 <kbd>6</kbd>=16 <kbd>5</kbd>=15 <kbd>B</kbd>=Bull · <kbd>Space</kbd>=miss · <kbd>Backspace</kbd>=angre · <kbd>Enter</kbd>=registrer</p>
         </div>
+      </div>
+      <div class="cricket-history">
+        <div class="cricket-history-head"><strong>KASTLOGG</strong><span>Alle visits i kampen • siste aktive visit kan korrigeres av spilleren som kastet</span></div>
+        <div id="cricketVisitLog" class="cricket-history-list"><div class="cricket-history-empty">Ingen kast registrert ennå.</div></div>
       </div>
       <p id="matchMessage" class="message"></p>
     </section>
@@ -69,7 +77,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="sfu-config.js?v=20260927-1"></script>
 <script src="sfu-client.js?v=20260927-1"></script>
-<script src="cricket.js?v=20260927-1"></script>
+<script src="cricket.js?v=20260928-keyboard2"></script>
 <script src="match-controls.js?v=20260925-audio-v2"></script>
 <script src="spectator-presence.js?v=20260926-1"></script>
 <script src="match-spectator-broadcast.js?v=20260927-1"></script>
