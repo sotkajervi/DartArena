@@ -12,6 +12,15 @@
     if(b&&b.textContent!=='Steng påmelding')b.textContent='Steng påmelding';
   }
 
+  function syncByeLabels(){
+    document.querySelectorAll('#cupBracket .cup-match').forEach(card=>{
+      if(!card.querySelector('.cup-bye'))return;
+      const score=card.querySelector('.cup-score');
+      if(score&&score.textContent.trim()!=='BYE')score.textContent='BYE';
+      card.dataset.bye='1';
+    });
+  }
+
   function setupKey(){
     try{
       if(!isPureCupSetup())return'';
@@ -22,6 +31,7 @@
 
   function sync(){
     syncRegistrationLabel();
+    syncByeLabels();
     try{window.dartArenaSyncSimulationControl?.()}catch{}
 
     if(!isPureCupSetup()){
