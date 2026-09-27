@@ -5,8 +5,54 @@ const $=id=>document.getElementById(id),tournamentMatchId=new URLSearchParams(lo
 let tm=null,live=null,names={},mediaChannel=null,presence=null,liveChannel=null,mediaRequestTimer=null,tournamentChannel=null,tournamentId=null;
 const subscriptions=new Map();
 
+
+let statsMatchId=null,statsChannel=null,statsTimer=null,statsRequest=0,statsRows=null,statsError=false;
+const dartsFor=t=>Number(t.is_checkout?t.darts_used:3)||3;
+const statsEsc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function statsFor(all,pid){const pt=all.filter(t=>t.player_id===pid),score=pt.reduce((s,t)=>s+Number(t.score||0),0),darts=pt.reduce((s,t)=>s+dartsFor(t),0),cos=pt.filter(t=>t.is_checkout);let fast=null,high=0;for(const co of cos){high=Math.max(high,Number(co.score||0));const leg=pt.filter(t=>Number(t.set_no||1)===Number(co.set_no||1)&&Number(t.leg_no||1)===Number(co.leg_no||1)),used=leg.reduce((s,t)=>s+dartsFor(t),0);if(used>0&&(fast===null||used<fast))fast=used}return{avg:darts?score/darts*3:0,fast,high,c100:pt.filter(t=>+t.score>=100&&+t.score<=139).length,c140:pt.filter(t=>+t.score>=140&&+t.score<=169).length,c170:pt.filter(t=>+t.score>=170&&+t.score<=179).length,c180:pt.filter(t=>+t.score===180).length}}
+
+function renderViewerStats(){
+  const host=$('spectatorStats');if(!host||!tm)return;
+  $('spectatorStatsState').textContent=tm.status==='finished'||live?.status==='finished'?'SLUTTSTATISTIKK':'HELE KAMPEN';
+  if(!tm.live_match_id){host.innerHTML='<p class="muted">Statistikken vises når kampen starter.</p>';return}
+  if(statsError){host.innerHTML='<p class="muted">Kunne ikke hente kampstatistikken. Prøver igjen…</p>';return}
+  if(statsRows===null){host.innerHTML='<p class="muted">Laster kampstatistikk…</p>';return}
+  if(!statsRows.length){host.innerHTML='<p class="muted">Ingen registrerte kast tilgjengelig ennå.</p>';return}
+  const a=statsFor(statsRows,tm.player1_id),b=statsFor(statsRows,tm.player2_id);
+  const rows=[['3-dart snitt',a.avg.toFixed(2),b.avg.toFixed(2)],['Høyeste checkout',a.high||'–',b.high||'–'],['Raskeste leg',a.fast?a.fast+' piler':'–',b.fast?b.fast+' piler':'–'],['100+',a.c100,b.c100],['140+',a.c140,b.c140],['170+',a.c170,b.c170],['180',a.c180,b.c180]];
+  host.innerHTML='<table class="spectator-stats-table"><thead><tr><th scope="col">Statistikk</th><th scope="col">'+statsEsc(names[tm.player1_id]||'Spiller 1')+'</th><th scope="col">'+statsEsc(names[tm.player2_id]||'Spiller 2')+'</th></tr></thead><tbody>'+rows.map(r=>'<tr><th scope="row">'+r[0]+'</th><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>').join('')+'</tbody></table>';
+}
+async function loadViewerStats(){
+  const matchId=statsMatchId;if(!matchId)return;
+  const request=++statsRequest;
+  try{
+    const {data,error}=await db.from('match_throws').select('*').eq('match_id',matchId).order('created_at',{ascending:true});
+    if(request!==statsRequest||matchId!==statsMatchId)return;
+    if(error)throw error;
+    statsRows=data||[];statsError=false;
+  }catch(error){if(request!==statsRequest||matchId!==statsMatchId)return;statsError=true;console.error('Spectator statistics failed',error)}
+  renderViewerStats();
+}
+function syncViewerStats(){
+  const next=tm?.live_match_id||null;
+  if(next!==statsMatchId){
+    ++statsRequest;
+    if(statsChannel)db.removeChannel(statsChannel);
+    clearInterval(statsTimer);statsChannel=null;statsTimer=null;
+    statsMatchId=next;statsRows=null;statsError=false;
+    if(next){
+      statsChannel=db.channel('spectator-stats-'+next).on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:'match_id=eq.'+next},loadViewerStats).subscribe(status=>{if(status==='SUBSCRIBED')loadViewerStats()});
+      // Re-fetch also covers missed reconnect events and deleted throws.
+      statsTimer=setInterval(()=>{if(document.visibilityState!=='hidden')loadViewerStats()},5000);
+      loadViewerStats();
+    }
+  }
+  renderViewerStats();
+}
+
 function render(){
   if(!tm)return;
+  syncViewerStats();
   const n1=names[tm.player1_id]||'Spiller 1',n2=names[tm.player2_id]||'Spiller 2';
   $('title').textContent=`${n1} vs ${n2}`;$('meta').textContent=`Best av ${tm.best_of} • ${tm.stage==='group'?'Puljespill':'Cup'}`;
   $('p1').textContent=n1;$('p2').textContent=n2;$('p1VideoName').textContent=n1;$('p2VideoName').textContent=n2;
@@ -42,17 +88,17 @@ async function loadLive(){
   if(!tm?.live_match_id)return;
   const {data,error}=await db.from('matches').select('*').eq('id',tm.live_match_id).single();
   if(!error&&data){live=data;render()}else console.error('Could not read live match for spectator',error);
-  liveChannel=db.channel(`spectator-live-${tm.live_match_id}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${tm.live_match_id}`},p=>{live=p.new;render()}).subscribe();
+  liveChannel=db.channel(`spectator-live-${tm.live_match_id}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${tm.live_match_id}`},p=>{live=p.new;render();loadViewerStats()}).subscribe();
 }
 async function boot(){
   const {data:{session}}=await db.auth.getSession();if(!session||!tournamentMatchId)return location.replace('./');
   const {data,error}=await db.from('tournament_matches').select('*').eq('id',tournamentMatchId).single();if(error||!data)return location.replace('./');tm=data;tournamentId=tm.tournament_id;
   const {data:profiles}=await db.from('profiles').select('id,username').in('id',[tm.player1_id,tm.player2_id].filter(Boolean));names=Object.fromEntries((profiles||[]).map(p=>[p.id,p.username]));render();
   if(tm.status==='live'&&tm.live_match_id){await loadLive();await setupMedia(session)}
-  tournamentChannel=db.channel(`spectator-tm-${tournamentMatchId}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'tournament_matches',filter:`id=eq.${tournamentMatchId}`},p=>{tm=p.new;render()}).subscribe();
+  tournamentChannel=db.channel(`spectator-tm-${tournamentMatchId}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'tournament_matches',filter:`id=eq.${tournamentMatchId}`},p=>{tm=p.new;render();loadViewerStats()}).subscribe();
 }
 function closeViewer(){try{window.opener?.focus()}catch{};window.close();setTimeout(()=>{if(!window.closed&&tournamentId)location.href=`tournament.html?id=${encodeURIComponent(tournamentId)}`},120)}
 $('closeBtn').onclick=closeViewer;
-function cleanup(){clearInterval(mediaRequestTimer);try{presence?.untrack()}catch{};for(const x of subscriptions.values()){try{x.client.close()}catch{}}subscriptions.clear();for(const ch of [mediaChannel,presence,liveChannel,tournamentChannel]){try{if(ch)db.removeChannel(ch)}catch{}}}
+function cleanup(){++statsRequest;clearInterval(statsTimer);if(statsChannel){db.removeChannel(statsChannel);statsChannel=null}clearInterval(mediaRequestTimer);try{presence?.untrack()}catch{};for(const x of subscriptions.values()){try{x.client.close()}catch{}}subscriptions.clear();for(const ch of [mediaChannel,presence,liveChannel,tournamentChannel]){try{if(ch)db.removeChannel(ch)}catch{}}}
 window.addEventListener('pagehide',cleanup);
 boot().catch(e=>{console.error('Tilskuervisningen kunne ikke starte:',e);$('status').textContent='Kunne ikke starte tilskuervisningen.'});
