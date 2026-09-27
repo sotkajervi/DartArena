@@ -35,18 +35,19 @@
 
   function cupRoundName(round,total){const left=total/(2**(round-1));if(left===2)return 'Finale';if(left===4)return 'Semifinale';if(left===8)return 'Kvartfinale';if(left===16)return 'Åttedelsfinale';if(left===32)return '1/16-finale';return `Runde ${round}`}
   function cupFormatDefaults(rounds){const out={};for(let r=1;r<=rounds;r++)out[r]=r===rounds?7:5;return out}
-  function loadCupFormat(rounds){const defaults=cupFormatDefaults(rounds);try{const saved=JSON.parse(localStorage.getItem(CUP_FORMAT_KEY)||'{}');for(let r=1;r<=rounds;r++){const n=Number(saved[r]);if(Number.isInteger(n)&&n>0&&n%2===1)defaults[r]=n}}catch{}return defaults}
+  function validBestOf(n){n=Number(n);return Number.isInteger(n)&&n>=3&&n<=21&&n%2===1}
+  function loadCupFormat(rounds){const defaults=cupFormatDefaults(rounds);try{const saved=JSON.parse(localStorage.getItem(CUP_FORMAT_KEY)||'{}');for(let r=1;r<=rounds;r++){const n=Number(saved[r]);if(validBestOf(n))defaults[r]=n}}catch{}return defaults}
   function saveCupFormat(){const values={};document.querySelectorAll('#cupFormatSettings select[data-cup-round]').forEach(s=>values[s.dataset.cupRound]=Number(s.value));try{localStorage.setItem(CUP_FORMAT_KEY,JSON.stringify(values))}catch{}}
-  function formatOptions(selected){return Array.from({length:11},(_,i)=>i*2+1).map(n=>`<option value="${n}" ${n===selected?'selected':''}>Bo${n}</option>`).join('')}
+  function formatOptions(selected){return Array.from({length:10},(_,i)=>i*2+3).map(n=>`<option value="${n}" ${n===selected?'selected':''}>Bo${n}</option>`).join('')}
   function renderCupFormat(q){
     const btn=$('buildCupBtn');if(!btn)return;let box=$('cupFormatSettings');
     if(tournament?.owner_id!==me){box?.remove();return}
     const size=nextPow2(q.length),rounds=Math.log2(size),format=loadCupFormat(rounds);
     if(!box){box=document.createElement('div');box.id='cupFormatSettings';box.style.margin='18px 0';btn.insertAdjacentElement('beforebegin',box)}
-    box.innerHTML=`<div style="margin-bottom:10px"><small>KAMPFORMAT</small><h3 style="margin:3px 0 0">Antall legs per cuprunde</h3><p class="muted compact">Velg Best of for hver runde før cupen opprettes.</p></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">${Array.from({length:rounds},(_,i)=>i+1).map(r=>`<label class="field"><strong style="display:block;margin-bottom:6px">${cupRoundName(r,size)}</strong><select data-cup-round="${r}">${formatOptions(format[r])}</select></label>`).join('')}</div>`;
+    box.innerHTML=`<div style="margin-bottom:10px"><small>KAMPFORMAT</small><h3 style="margin:3px 0 0">Antall legs per cuprunde</h3><p class="muted compact">Velg Best of for hver runde før cupen opprettes. Maks Bo21.</p></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">${Array.from({length:rounds},(_,i)=>i+1).map(r=>`<label class="field"><strong style="display:block;margin-bottom:6px">${cupRoundName(r,size)}</strong><select data-cup-round="${r}">${formatOptions(format[r])}</select></label>`).join('')}</div>`;
     box.querySelectorAll('select[data-cup-round]').forEach(s=>s.addEventListener('change',saveCupFormat));
   }
-  function selectedCupFormats(rounds){const defaults=loadCupFormat(rounds);document.querySelectorAll('#cupFormatSettings select[data-cup-round]').forEach(s=>{const r=Number(s.dataset.cupRound),n=Number(s.value);if(r&&n>0&&n%2===1)defaults[r]=n});return defaults}
+  function selectedCupFormats(rounds){const defaults=loadCupFormat(rounds);document.querySelectorAll('#cupFormatSettings select[data-cup-round]').forEach(s=>{const r=Number(s.dataset.cupRound),n=Number(s.value);if(r&&validBestOf(n))defaults[r]=n});return defaults}
   async function data(){
     const [{data:groups},{data:players},{data:gm},{data:cm}]=await Promise.all([
       db.from('tournament_groups').select('*').eq('tournament_id',id).order('group_no'),
