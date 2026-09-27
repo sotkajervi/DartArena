@@ -1,4 +1,4 @@
-// Local simulation sizes for tournament testing. Never writes test players to Supabase.
+// Compact local simulation-size selector. Never writes test players to Supabase.
 (()=>{
   let target=8;
   const SIZES=[5,7,8,16];
@@ -18,90 +18,98 @@
     return true;
   }
 
-  function setText(el,text){if(el&&el.textContent!==text)el.textContent=text}
-  function setHidden(el,hidden){if(el&&el.classList.contains('hidden')!==hidden)el.classList.toggle('hidden',hidden)}
+  function ownerCanSimulate(){
+    try{
+      return !!tournament&&tournament.owner_id===me&&['registration','groups_setup','cup_setup'].includes(tournament.status);
+    }catch{return false}
+  }
 
   function resetSetupState(){
-    if(typeof drawnGroups!=='undefined')drawnGroups=null;
+    try{if(typeof drawnGroups!=='undefined')drawnGroups=null}catch{}
     const g=document.getElementById('groupCount');if(g)g.innerHTML='';
   }
 
-  function announceChange(){
+  function notifyModules(){
     setTimeout(()=>{
       sync();
       try{window.dispatchEvent(new Event('dartarena:tournament-loaded'))}catch{}
     },0);
   }
 
-  function chooseSize(size,event){
-    event?.preventDefault();
-    event?.stopImmediatePropagation();
+  function setSimulationSize(value){
     if(typeof simulation==='undefined')return;
-
-    if(simulation&&target===size){
+    if(value==='off'){
       simulation=false;
       target=8;
     }else{
+      const size=Number(value);
+      if(!SIZES.includes(size))return;
       target=size;
       simulation=true;
     }
-
     resetSetupState();
     if(typeof renderPage==='function')renderPage();
-    announceChange();
+    notifyModules();
   }
 
-  function makeButton(size,b8){
-    if(size===8)return b8;
-    let btn=document.getElementById(`simulate${size}Btn`);
-    if(btn)return btn;
-    btn=document.createElement('button');
-    btn.id=`simulate${size}Btn`;
-    btn.className='small-btn hidden';
-    btn.type='button';
-    btn.dataset.simSize=String(size);
-    if(size<8)b8.insertAdjacentElement('beforebegin',btn);
-    else b8.insertAdjacentElement('afterend',btn);
-    return btn;
-  }
+  function ensureControl(){
+    const oldButton=document.getElementById('simulate8Btn');
+    if(!oldButton)return false;
 
-  function bindButton(btn,size){
-    if(!btn||btn.dataset.simSizeBound==='1')return;
-    btn.dataset.simSizeBound='1';
-    btn.dataset.simSize=String(size);
-    // Capture + stopImmediatePropagation intentionally replaces tournament.js' old
-    // simulate8 onclick, so switching size never toggles simulation off by mistake.
-    btn.addEventListener('click',event=>chooseSize(size,event),true);
-  }
+    // tournament.js still owns this legacy button. Keep it in the DOM for compatibility,
+    // but remove it from the UI so the dropdown is the only simulation control.
+    oldButton.style.display='none';
+    ['simulate5Btn','simulate7Btn','simulate16Btn'].forEach(id=>document.getElementById(id)?.remove());
 
-  function ensureButtons(){
-    const b8=document.getElementById('simulate8Btn');if(!b8)return false;
-    SIZES.forEach(size=>bindButton(makeButton(size,b8),size));
+    let wrap=document.getElementById('simulationSizeControl');
+    if(!wrap){
+      wrap=document.createElement('label');
+      wrap.id='simulationSizeControl';
+      wrap.className='simulation-size-control hidden';
+      wrap.style.cssText='display:flex;align-items:center;gap:8px;min-width:190px';
+      wrap.innerHTML=`<span class="status" style="white-space:nowrap">Testspillere</span><select id="simulationSizeSelect" style="margin:0;padding:8px 10px;min-width:128px"><option value="">Velg antall</option>${SIZES.map(n=>`<option value="${n}">${n} spillere</option>`).join('')}</select>`;
+      oldButton.insertAdjacentElement('afterend',wrap);
+      wrap.querySelector('select').addEventListener('change',event=>{
+        const value=event.target.value;
+        if(!value)return;
+        setSimulationSize(value);
+      });
+    }
     return true;
   }
 
   function sync(){
-    const b8=document.getElementById('simulate8Btn');if(!b8)return;
-    const active=typeof simulation!=='undefined'&&simulation;
-    const baseHidden=b8.classList.contains('hidden');
+    const wrap=document.getElementById('simulationSizeControl'),select=document.getElementById('simulationSizeSelect');
+    if(!wrap||!select)return;
 
-    for(const size of SIZES){
-      const btn=document.getElementById(`simulate${size}Btn`);if(!btn)continue;
-      if(size!==8)setHidden(btn,baseHidden);
-      if(active&&target===size)setText(btn,`Avslutt ${size}-simulering`);
-      else if(active)setText(btn,`Bytt til ${size} spillere`);
-      else setText(btn,`Simuler ${size} spillere`);
+    const visible=ownerCanSimulate();
+    wrap.classList.toggle('hidden',!visible);
+    wrap.style.display=visible?'flex':'none';
+
+    const active=typeof simulation!=='undefined'&&simulation;
+    const current=String(target);
+    let off=select.querySelector('option[value="off"]');
+    if(active&&!off){
+      off=document.createElement('option');
+      off.value='off';
+      off.textContent='Avslutt simulering';
+      select.appendChild(off);
+    }else if(!active&&off){
+      off.remove();
     }
+
+    select.value=active?current:'';
+    select.title=active?`Simulerer med ${target} spillere`:'Velg antall fiktive spillere';
   }
 
-  // Expose the current local size for pure-cup helpers/debugging without storing it.
   window.dartArenaSimulationSize=()=>target;
+  window.dartArenaSyncSimulationControl=sync;
 
   const installTimer=setInterval(()=>{
-    if(installGenerator()&&ensureButtons()){
+    if(installGenerator()&&ensureControl()){
       clearInterval(installTimer);
       sync();
-      setInterval(()=>{ensureButtons();sync()},300);
+      setInterval(()=>{ensureControl();sync()},300);
     }
   },100);
 })();
