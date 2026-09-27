@@ -92,7 +92,8 @@
     }catch(error){
       const message=String(error?.message||'Kunne ikke endre resultatet.')
         .replace('Cannot change cup winner because the next match has already started','Kan ikke bytte vinner fordi neste cupkamp allerede har startet.')
-        .replace('Next-round bracket slot no longer matches the old winner','Neste cuprunde er allerede endret og kan ikke overskrives automatisk.');
+        .replace('Next-round bracket slot no longer matches the old winner','Neste cuprunde er allerede endret og kan ikke overskrives automatisk.')
+        .replace('Group results are locked after the cup has been created','Puljeresultater kan ikke endres etter at cupen er opprettet.');
       alert(message);
     }finally{
       button.disabled=false;
