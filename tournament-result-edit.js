@@ -126,10 +126,10 @@
       const undecorated=rows.filter(r=>!r.querySelector(':scope > .edit-result-btn'));
       if(!undecorated.length)return;
       const ids=[...new Set(undecorated.map(r=>r.dataset.match).filter(Boolean))];
-      const {data,error}=await client.from('tournament_matches').select('id,status').in('id',ids);
+      const {data,error}=await client.from('tournament_matches').select('id,status,player1_id,player2_id').in('id',ids);
       if(error)return console.error('Could not inspect finished matches for admin edit',error);
-      const finished=new Set((data||[]).filter(m=>['finished','wo'].includes(m.status)).map(m=>m.id));
-      undecorated.forEach(row=>{if(finished.has(row.dataset.match))attachButton(row)});
+      const editable=new Set((data||[]).filter(m=>['finished','wo'].includes(m.status)&&m.player1_id&&m.player2_id).map(m=>m.id));
+      undecorated.forEach(row=>{if(editable.has(row.dataset.match))attachButton(row)});
     }finally{decorating=false}
   }
 
