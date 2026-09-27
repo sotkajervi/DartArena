@@ -1,10 +1,11 @@
 // Keep automatic free rounds visually distinct from a real walkover (WO).
+// A BYE is rendered like a normal matchup: "Player vs BYE".
 (()=>{
   function syncByeLabels(){
     document.querySelectorAll('#cupBracket .cup-match').forEach(card=>{
       const bye=card.querySelector('.cup-bye');
       const score=card.querySelector('.cup-score');
-      if(bye&&score&&score.textContent.trim()!=='BYE')score.textContent='BYE';
+      if(bye&&score&&score.textContent.trim().toLowerCase()!=='vs')score.textContent='vs';
     });
   }
 
