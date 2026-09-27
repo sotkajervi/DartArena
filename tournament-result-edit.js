@@ -7,7 +7,7 @@
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
   );
 
-  let isOwner=false,decorating=false;
+  let isOwner=false,isAdmin=false,decorating=false;
   const nameCache={};
 
   function ensureStyles(){
@@ -107,7 +107,7 @@
     button.type='button';
     button.className='small-btn edit-result-btn';
     button.textContent='Rediger resultat';
-    button.title='Turneringsleder: korriger ferdig kamp';
+    button.title=isAdmin?'Admin: korriger ferdig kamp':'Turneringsleder: korriger ferdig kamp';
     button.addEventListener('click',event=>{
       event.preventDefault();
       event.stopPropagation();
@@ -118,7 +118,7 @@
   }
 
   async function decorateFinishedRows(){
-    if(!isOwner||decorating)return;
+    if((!isOwner&&!isAdmin)||decorating)return;
     decorating=true;
     try{
       ensureStyles();
@@ -136,9 +136,13 @@
   async function boot(){
     const {data:{session}}=await client.auth.getSession();
     if(!session)return;
-    const {data:tournament}=await client.from('tournaments').select('owner_id').eq('id',tournamentId).single();
+    const [{data:tournament},{data:adminFlag}]=await Promise.all([
+      client.from('tournaments').select('owner_id').eq('id',tournamentId).single(),
+      client.rpc('is_admin')
+    ]);
     isOwner=tournament?.owner_id===session.user.id;
-    if(!isOwner)return;
+    isAdmin=adminFlag===true;
+    if(!isOwner&&!isAdmin)return;
 
     await decorateFinishedRows();
     let timer=null;
