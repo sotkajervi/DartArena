@@ -8,21 +8,24 @@
   const matchInfo=document.querySelector('.match-info');
   if(!grid)return;
 
-  function dockLocal(active){
-    if(!localCard||!remoteCard||!matchInfo)return;
-    if(active){
-      if(localCard.parentElement!==matchInfo)matchInfo.appendChild(localCard);
-      localCard.classList.add('focus-local-docked');
-    }else{
-      localCard.classList.remove('focus-local-docked');
-      if(localCard.parentElement!==grid)grid.insertBefore(localCard,remoteCard);
-    }
+  function dockLocal(){
+    if(!localCard||!matchInfo)return;
+    if(localCard.parentElement!==matchInfo)matchInfo.appendChild(localCard);
+    localCard.classList.add('focus-local-docked');
+  }
+
+  function restoreLocal(){
+    if(!localCard||!remoteCard)return;
+    localCard.classList.remove('focus-local-docked');
+    if(localCard.parentElement!==grid)grid.insertBefore(localCard,remoteCard);
   }
 
   function sync(){
-    const active=grid.classList.contains('opponent-throwing');
-    document.body.classList.toggle('opponent-focus',active);
-    dockLocal(active);
+    const opponentThrowing=grid.classList.contains('opponent-throwing');
+    document.body.classList.add('match-tv-layout');
+    document.body.classList.toggle('opponent-focus',opponentThrowing);
+    document.body.classList.toggle('own-turn-focus',!opponentThrowing);
+    dockLocal();
   }
 
   const observer=new MutationObserver(sync);
@@ -31,7 +34,7 @@
 
   window.addEventListener('pagehide',()=>{
     observer.disconnect();
-    document.body.classList.remove('opponent-focus');
-    dockLocal(false);
+    document.body.classList.remove('match-tv-layout','opponent-focus','own-turn-focus');
+    restoreLocal();
   });
 })();
