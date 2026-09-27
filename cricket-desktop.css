@@ -1,0 +1,175 @@
+/* DartArena Cricket desktop layout — webcam/PC first */
+body.match-page:has(#cricketBoard) .video-grid{
+  height:clamp(270px,40vh,450px);
+  min-height:270px;
+}
+body.match-page:has(#cricketBoard) .score-card{
+  display:block;
+}
+body.match-page:has(#cricketBoard) .match-grid{
+  grid-template-columns:minmax(0,1fr) 150px;
+  gap:9px;
+}
+body.match-page:has(#cricketBoard) .match-info{
+  padding:9px;
+}
+
+body.match-page .cricket-play-grid{
+  display:grid;
+  grid-template-columns:minmax(400px,.82fr) minmax(540px,1.18fr);
+  grid-template-areas:
+    "summary summary"
+    "board entry";
+  gap:8px 12px;
+  width:100%;
+  align-items:stretch;
+}
+body.match-page .cricket-play-grid>div:first-child{
+  display:contents;
+}
+
+body.match-page .cricket-summary{
+  grid-area:summary;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin:0;
+}
+body.match-page .cricket-player{
+  padding:6px 10px;
+  border-radius:9px;
+}
+body.match-page .cricket-player-stats{
+  margin-top:2px;
+}
+body.match-page .cricket-points{
+  font-size:23px;
+  line-height:1;
+}
+body.match-page .cricket-legs{
+  font-size:11px;
+}
+
+/* Vertical Cricket score table */
+body.match-page .cricket-board{
+  grid-area:board;
+  display:block;
+  width:100%;
+  border-radius:10px;
+  overflow:hidden;
+}
+body.match-page .cricket-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 66px minmax(0,1fr);
+  grid-template-rows:1fr;
+  align-items:center;
+  min-height:34px;
+  border-left:0;
+  border-top:1px solid rgba(255,255,255,.065);
+}
+body.match-page .cricket-row:first-child{
+  border-top:0;
+}
+body.match-page .cricket-target{
+  display:grid;
+  place-items:center;
+  height:100%;
+  font-size:14px;
+  font-weight:950;
+  background:rgba(255,255,255,.035);
+  border-left:1px solid rgba(255,255,255,.05);
+  border-right:1px solid rgba(255,255,255,.05);
+  border-top:0;
+  border-bottom:0;
+}
+body.match-page .cricket-mark{
+  display:grid;
+  place-items:center;
+  font-size:20px;
+  min-width:0;
+}
+
+/* Compact entry area beside the table */
+body.match-page .cricket-entry-card{
+  grid-area:entry;
+  display:grid;
+  grid-template-columns:auto auto minmax(180px,1fr) auto;
+  grid-template-areas:
+    "title turn darts actions"
+    "keypad keypad keypad keypad"
+    "help help help help";
+  align-content:start;
+  align-items:center;
+  gap:7px 9px;
+  padding:9px 10px;
+}
+body.match-page .cricket-entry-card>small{
+  grid-area:title;
+  white-space:nowrap;
+}
+body.match-page .cricket-entry-card #turnText{
+  grid-area:turn;
+  margin:0!important;
+  text-align:left;
+  white-space:nowrap;
+  font-size:12px;
+}
+body.match-page .cricket-darts{
+  grid-area:darts;
+  margin:0;
+  min-height:29px;
+  align-items:center;
+}
+body.match-page .cricket-dart{
+  padding:5px 8px;
+  font-size:11px;
+}
+body.match-page .cricket-entry-actions{
+  grid-area:actions;
+  display:flex;
+  gap:5px;
+  margin:0;
+}
+body.match-page .cricket-entry-actions button{
+  padding:6px 9px;
+  white-space:nowrap;
+  min-width:0;
+}
+
+/* Targets stay vertical, but use two tidy columns instead of one long stack. */
+body.match-page .cricket-keypad{
+  grid-area:keypad;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:5px 7px;
+}
+body.match-page .cricket-key-row,
+body.match-page .cricket-key-row.bull{
+  display:grid;
+  grid-template-columns:44px repeat(3,minmax(0,1fr));
+  gap:4px;
+}
+body.match-page .cricket-key-row.bull{
+  grid-template-columns:44px repeat(2,minmax(0,1fr));
+}
+body.match-page .cricket-key-label{
+  min-height:31px;
+  font-size:12px;
+}
+body.match-page .cricket-hit{
+  min-height:31px;
+  padding:5px 3px;
+}
+body.match-page .cricket-help{
+  grid-area:help;
+  margin:0;
+  font-size:10px;
+  line-height:1.25;
+}
+
+/* This screen is intentionally desktop-only. */
+@media(max-width:1050px){
+  body.match-page .cricket-play-grid{
+    grid-template-columns:minmax(350px,.75fr) minmax(470px,1.25fr);
+  }
+}
