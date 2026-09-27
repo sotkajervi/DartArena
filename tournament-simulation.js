@@ -11,8 +11,15 @@
   function snapshotGroups(){if(!Array.isArray(drawnGroups))return[];return drawnGroups.map(group=>group.map(player=>({id:player.user_id,name:names[player.user_id]||'Testspiller'})))}
   function targetWins(best){return Math.floor(Number(best||5)/2)+1}
   function nextPow2(n){let x=1;while(x<n)x*=2;return x}
+
+  // Standard seeded bracket order, matching the normal 16-player sheet:
+  // 1-16, 9-8, 5-12, 13-4, 3-14, 11-6, 7-10, 15-2.
   function seedOrder(size){let a=[1,2];while(a.length<size){const n=a.length*2,out=[];for(const x of a)out.push(x,n+1-x);a=out}return a.slice(0,size)}
-  function seededSlots(q,size){const seeded=[...q].sort((a,b)=>a.pos-b.pos||a.group-b.group),bySeed=new Map(seeded.map((p,i)=>[i+1,p]));return seedOrder(size).map(seed=>bySeed.get(seed)||null)}
+  function seededSlots(q,size){
+    const seeded=[...q].sort((a,b)=>a.pos-b.pos||a.group-b.group).map((p,i)=>({...p,seedNo:i+1,seedLabel:`${p.pos}P${p.group}`}));
+    const bySeed=new Map(seeded.map(p=>[p.seedNo,p]));
+    return seedOrder(size).map(seed=>bySeed.get(seed)||null);
+  }
   function roundName(round,totalRounds){const players=2**(totalRounds-round+1);if(players===2)return'Finale';if(players===4)return'Semifinale';if(players===8)return'Kvartfinale';if(players===16)return'Åttedelsfinale';return`Runde ${round}`}
 
   function buildState(){
@@ -42,7 +49,7 @@
 
   function qualifiers(){
     const out=[];
-    simState.groups.forEach((players,gi)=>{const table=standings(gi),n=simState.adv==='all'?table.length:Math.min(table.length,Number(simState.adv||0));table.slice(0,n).forEach((p,i)=>out.push({...p,group:gi+1,pos:i+1}))});
+    simState.groups.forEach((players,gi)=>{const table=standings(gi),n=simState.adv==='all'?table.length:Math.min(table.length,Number(simState.adv||0));table.slice(0,n).forEach((p,i)=>out.push({...p,group:gi+1,pos:i+1,seedLabel:`${i+1}P${gi+1}`}))});
     return out;
   }
 
@@ -70,13 +77,17 @@
 
   function cupDoneCount(){return simState?.cup?.matches.filter(m=>m.status==='finished').length||0}
   function finalMatch(){const c=simState?.cup;return c?c.matches.find(m=>m.round===c.totalRounds):null}
+  function cupPlayerHtml(p,{winner=false,bye=false}={}){
+    if(!p)return bye?'<span class="cup-bye">BYE</span>':'<span class="cup-name muted">Venter</span>';
+    return `<span class="cup-seed">${escLocal(p.seedLabel||`${p.pos||''}P${p.group||''}`)}</span><span class="cup-name">${escLocal(p.name)}</span>`;
+  }
 
   function renderCup(scroll=false){
     const c=simState?.cup;if(!c)return;
     advanceCup();$('cupSetup')?.classList.add('hidden');$('cupLobby')?.classList.remove('hidden');
     const final=finalMatch();$('cupProgress').textContent=final?.winner?`Vinner: ${final.winner.name}`:`${cupDoneCount()} / ${c.matches.length} cupkamper ferdig • TESTMODUS`;
     let controls=$('cupSimulationControls');if(!controls){controls=document.createElement('div');controls.id='cupSimulationControls';controls.style.cssText='display:flex;gap:10px;flex-wrap:wrap;margin:12px 0';controls.innerHTML='<button id="simulateRemainingCupBtn" class="primary">Simuler resterende cup</button><button id="resetCupSimulationBtn" class="outline">Nullstill cup</button><span class="status" style="align-self:center">Kun lokal test</span>';$('cupBracket')?.insertAdjacentElement('beforebegin',controls)}
-    $('cupBracket').innerHTML=Array.from({length:c.totalRounds},(_,i)=>i+1).map(r=>`<div class="cup-round"><div class="cup-round-title">${roundName(r,c.totalRounds)}</div>${c.matches.filter(m=>m.round===r).sort((a,b)=>a.index-b.index).map(m=>{const a=m.a?escLocal(m.a.name):'Venter',b=m.b?escLocal(m.b.name):'Venter',score=m.wo?'WO':m.status==='finished'?`${m.p1}–${m.p2}`:'vs';return `<div class="cup-match simulation-cup-match" role="button" tabindex="0" data-sim-cup-id="${m.id}"><div class="cup-player ${m.winner&&m.a&&m.winner.id===m.a.id?'winner':''}">${a}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner&&m.b&&m.winner.id===m.b.id?'winner':''}">${b}</div></div>`}).join('')}</div>`).join('');
+    $('cupBracket').innerHTML=Array.from({length:c.totalRounds},(_,i)=>i+1).map(r=>`<div class="cup-round"><div class="cup-round-title">${roundName(r,c.totalRounds)}</div>${c.matches.filter(m=>m.round===r).sort((a,b)=>a.index-b.index).map(m=>{const score=m.wo?'WO':m.status==='finished'?`${m.p1}–${m.p2}`:'vs',aBye=m.round===1&&m.wo&&!m.a,bBye=m.round===1&&m.wo&&!m.b;return `<div class="cup-match simulation-cup-match" role="button" tabindex="0" data-sim-cup-id="${m.id}"><div class="cup-player ${m.winner&&m.a&&m.winner.id===m.a.id?'winner':''}">${cupPlayerHtml(m.a,{winner:m.winner===m.a,bye:aBye})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner&&m.b&&m.winner.id===m.b.id?'winner':''}">${cupPlayerHtml(m.b,{winner:m.winner===m.b,bye:bBye})}</div></div>`}).join('')}</div>`).join('');
     if(scroll)$('cupLobby')?.scrollIntoView({behavior:'smooth',block:'start'});
   }
 
