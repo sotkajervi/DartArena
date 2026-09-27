@@ -35,6 +35,7 @@ as $$
 $$;
 
 revoke all on function public.is_admin() from public;
+revoke execute on function public.is_admin() from anon;
 grant execute on function public.is_admin() to authenticated;
 
 create or replace function public.admin_delete_chat_message(p_message_id uuid)
@@ -56,6 +57,7 @@ end;
 $$;
 
 revoke all on function public.admin_delete_chat_message(uuid) from public;
+revoke execute on function public.admin_delete_chat_message(uuid) from anon;
 grant execute on function public.admin_delete_chat_message(uuid) to authenticated;
 
 create or replace function public.admin_delete_tournament(p_tournament_id uuid)
@@ -98,6 +100,7 @@ end;
 $$;
 
 revoke all on function public.admin_delete_tournament(uuid) from public;
+revoke execute on function public.admin_delete_tournament(uuid) from anon;
 grant execute on function public.admin_delete_tournament(uuid) to authenticated;
 
 create or replace function public.correct_finished_tournament_result(
@@ -227,4 +230,5 @@ end;
 $$;
 
 revoke all on function public.correct_finished_tournament_result(uuid, integer, integer) from public;
+revoke execute on function public.correct_finished_tournament_result(uuid, integer, integer) from anon;
 grant execute on function public.correct_finished_tournament_result(uuid, integer, integer) to authenticated;
