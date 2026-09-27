@@ -6,15 +6,13 @@
   function installGenerator(){
     if(typeof members==='undefined'||typeof names==='undefined'||typeof simulatedPlayers!=='function')return false;
     simulatedPlayers=function(){
-      const real=members.filter(x=>x.role==='participant').map(x=>({...x,test:false})),out=[...real];
-      let i=0;
-      while(out.length<target){
+      const out=[];
+      for(let i=0;i<target;i++){
         const uid=`test-${i+1}`;
-        if(!out.some(x=>x.user_id===uid))out.push({user_id:uid,role:'participant',test:true});
         names[uid]=EXTRA_NAMES[i]||`Testspiller ${i+1}`;
-        i++;
+        out.push({user_id:uid,role:'participant',test:true});
       }
-      return out.slice(0,target);
+      return out;
     };
     return true;
   }
@@ -57,7 +55,6 @@
     if(installGenerator()&&ensureButton()){
       clearInterval(installTimer);
       sync();
-      // Lightweight polling avoids a MutationObserver feedback loop that can lock the page.
       setInterval(sync,500);
     }
   },100);
