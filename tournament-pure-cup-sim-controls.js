@@ -1,7 +1,6 @@
-// Keep 8/16-player local simulation available after a pure cup has entered cup_setup.
+// Keep the compact local simulation selector active after a pure cup enters cup_setup.
 // Also notifies the pure-cup module whenever status/simulation state changes.
 (()=>{
-  const $=id=>document.getElementById(id);
   let lastSetupKey='';
 
   function isPureCupSetup(){
@@ -9,7 +8,7 @@
   }
 
   function syncRegistrationLabel(){
-    const b=$('closeRegistrationBtn');
+    const b=document.getElementById('closeRegistrationBtn');
     if(b&&b.textContent!=='Steng påmelding')b.textContent='Steng påmelding';
   }
 
@@ -23,14 +22,12 @@
 
   function sync(){
     syncRegistrationLabel();
+    try{window.dartArenaSyncSimulationControl?.()}catch{}
 
     if(!isPureCupSetup()){
       lastSetupKey='';
       return;
     }
-
-    const b8=$('simulate8Btn');if(b8)b8.classList.remove('hidden');
-    const b16=$('simulate16Btn');if(b16)b16.classList.remove('hidden');
 
     const key=setupKey();
     if(key&&key!==lastSetupKey){
@@ -39,8 +36,8 @@
     }
   }
 
-  document.addEventListener('click',e=>{
-    if(e.target.closest?.('#simulate8Btn,#simulate16Btn'))setTimeout(sync,0);
+  document.addEventListener('change',event=>{
+    if(event.target?.id==='simulationSizeSelect')setTimeout(sync,0);
   },true);
 
   new MutationObserver(()=>setTimeout(sync,0)).observe(document.documentElement,{
