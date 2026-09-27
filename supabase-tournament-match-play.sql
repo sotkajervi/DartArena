@@ -214,6 +214,14 @@ $$;
 revoke all on function public.finish_tournament_match(uuid, uuid) from public;
 grant execute on function public.finish_tournament_match(uuid, uuid) to authenticated;
 
+-- Keep the safe result-correction definition here as well so rerunning this base
+-- migration can never downgrade the stricter admin correction installed later.
+alter table public.tournament_matches
+  add column if not exists result_corrected_at timestamptz;
+
+alter table public.tournament_matches
+  add column if not exists result_corrected_by uuid references auth.users(id) on delete set null;
+
 create or replace function public.correct_finished_tournament_result(
   p_tournament_match_id uuid,
   p_player1_legs integer,
@@ -226,9 +234,11 @@ set search_path = public
 as $$
 declare
   tm public.tournament_matches%rowtype;
+  nxt public.tournament_matches%rowtype;
   v_owner uuid;
   v_needed integer;
   v_winner uuid;
+  v_winner_changed boolean;
 begin
   select *
     into tm
@@ -249,8 +259,21 @@ begin
     raise exception 'Only the tournament leader can correct a finished result';
   end if;
 
-  if tm.status not in ('finished', 'wo') then
+  if tm.status not in ('finished','wo') then
     raise exception 'Only finished results can be corrected';
+  end if;
+
+  if tm.stage = 'group' and exists (
+    select 1
+      from public.tournament_matches
+     where tournament_id = tm.tournament_id
+       and stage = 'cup'
+  ) then
+    raise exception 'Group results are locked after the cup has been created';
+  end if;
+
+  if tm.player1_id is null or tm.player2_id is null then
+    raise exception 'A BYE/WO without two players cannot be converted to a normal result';
   end if;
 
   if p_player1_legs < 0 or p_player2_legs < 0 then
@@ -267,14 +290,65 @@ begin
     raise exception 'Result must have exactly one winner at % legs', v_needed;
   end if;
 
+  v_winner_changed := v_winner is distinct from tm.winner_id;
+
+  if tm.stage = 'cup' and v_winner_changed then
+    select *
+      into nxt
+      from public.tournament_matches
+     where tournament_id = tm.tournament_id
+       and stage = 'cup'
+       and round_no = tm.round_no + 1
+       and match_no = (tm.match_no + 1) / 2
+     for update;
+
+    if found then
+      if nxt.status <> 'pending' or nxt.live_match_id is not null then
+        raise exception 'Cannot change cup winner because the next match has already started';
+      end if;
+
+      if mod(tm.match_no,2)=1 then
+        if nxt.player1_id is not null and nxt.player1_id is distinct from tm.winner_id then
+          raise exception 'Next-round bracket slot no longer matches the old winner';
+        end if;
+      else
+        if nxt.player2_id is not null and nxt.player2_id is distinct from tm.winner_id then
+          raise exception 'Next-round bracket slot no longer matches the old winner';
+        end if;
+      end if;
+    end if;
+  end if;
+
   update public.tournament_matches
      set player1_legs = p_player1_legs,
          player2_legs = p_player2_legs,
          winner_id = v_winner,
          status = 'finished',
          is_wo = false,
+         result_corrected_at = now(),
+         result_corrected_by = auth.uid(),
          updated_at = now()
    where id = tm.id;
+
+  if tm.stage = 'cup' and v_winner_changed and nxt.id is not null then
+    if mod(tm.match_no,2)=1 then
+      update public.tournament_matches
+         set player1_id = v_winner,
+             updated_at = now()
+       where id = nxt.id
+         and status = 'pending'
+         and live_match_id is null
+         and (player1_id is null or player1_id = tm.winner_id);
+    else
+      update public.tournament_matches
+         set player2_id = v_winner,
+             updated_at = now()
+       where id = nxt.id
+         and status = 'pending'
+         and live_match_id is null
+         and (player2_id is null or player2_id = tm.winner_id);
+    end if;
+  end if;
 end;
 $$;
 
