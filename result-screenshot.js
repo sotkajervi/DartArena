@@ -1,4 +1,7 @@
 (()=>{
+  if(new URLSearchParams(location.search).get('simulation')==='1'&&!document.querySelector('script[data-bye-sim-fix]')){
+    const s=document.createElement('script');s.src='result-bye-simulation-fix.js?v=20260927-1';s.dataset.byeSimFix='1';document.head.appendChild(s);
+  }
   const main=document.querySelector('main');if(!main)return;
   const css=document.createElement('style');
   css.textContent=`
