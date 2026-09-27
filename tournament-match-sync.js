@@ -44,6 +44,16 @@
     cancelBtn.onclick=cancelTournamentMatch;
   }
 
+  async function advanceCupIfNeeded(){
+    if(!tournamentId)return;
+    try{
+      const {data:t}=await client.from('tournaments').select('status').eq('id',tournamentId).single();
+      if(t?.status!=='cup')return;
+      const {error}=await client.rpc('advance_tournament_cup',{p_tournament_id:tournamentId});
+      if(error)console.warn('Cup winner advancement failed after match sync',error);
+    }catch(error){console.warn('Cup winner advancement failed after match sync',error)}
+  }
+
   async function syncIfFinished(row){
     if(synced||!row||row.status!=='finished')return;
     const {error}=await client.rpc('finish_tournament_match',{
@@ -56,6 +66,7 @@
       return;
     }
     synced=true;
+    await advanceCupIfNeeded();
     try{window.opener?.postMessage({type:'dartarena-tournament-match-finished',id:tournamentMatchId},location.origin)}catch{}
   }
 
