@@ -86,7 +86,12 @@
     }catch(error){console.error('Cup advancement failed',error);return true}
   }
   function cupPlayerHtml(playerId,seedById,{bye=false}={}){if(!playerId)return bye?'<span class="cup-bye">BYE</span>':'<span class="cup-name muted">Venter</span>';const seed=seedById.get(playerId)||'';return `${seed?`<span class="cup-seed">${esc(seed)}</span>`:''}<span class="cup-name">${esc(names[playerId]||'Spiller')}</span>`}
-  async function finishTournamentIfNeeded(final){if(!final?.winner_id||tournament?.status!=='cup'||tournament?.owner_id!==me)return;const {error}=await db.from('tournaments').update({status:'finished',updated_at:new Date().toISOString()}).eq('id',id).eq('owner_id',me).eq('status','cup');if(error){console.error('Could not archive completed tournament',error);return}tournament.status='finished';setTimeout(()=>{try{if(typeof load==='function')load()}catch{}},80)}
+  async function finishTournamentIfNeeded(final,matches){
+    if(!final?.winner_id||tournament?.status!=='cup'||tournament?.owner_id!==me)return;
+    const max=Math.max(...matches.map(m=>Number(m.round_no||0))),last=matches.filter(m=>Number(m.round_no||0)===max);
+    if(last.length!==1||last[0].id!==final.id||Number(final.match_no)!==1)return;
+    const {error}=await db.from('tournaments').update({status:'finished',updated_at:new Date().toISOString()}).eq('id',id).eq('owner_id',me).eq('status','cup');if(error){console.error('Could not archive completed tournament',error);return}tournament.status='finished';setTimeout(()=>{try{if(typeof load==='function')load()}catch{}},80)
+  }
   async function loadCup(){
     if(!tournament||!['cup_setup','cup','finished'].includes(tournament.status))return;
     if(tournament.tournament_type==='cup'&&tournament.status==='cup_setup')return;
@@ -95,10 +100,14 @@
     if(tournament.status==='cup_setup'){const allDone=d.gm.length&&d.gm.every(done),q=allDone?qualifiers(d):[];$('cupSetupInfo').textContent=allDone?`${q.length} spillere er klare for sluttspillet. Cupen bruker NDF-oppsett der dette er definert, og viser puljeplassering som 1P1, 2P1 osv.`:'Cupen kan opprettes når alle puljekampene er ferdige.';$('buildCupBtn').disabled=!allDone;if(allDone&&q.length>=2)renderCupFormat(q);return}
     if(!d.cm.length)return;const advancementBlocked=await advanceWinners(d.cm);const ids=[...new Set(d.cm.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))],missing=ids.filter(x=>!names[x]);if(missing.length){const {data:p}=await db.from('profiles').select('id,username').in('id',missing);Object.assign(names,Object.fromEntries((p||[]).map(x=>[x.id,x.username])))}
     const seedById=new Map(qualifiers(d).map(p=>[p.id,p.seedLabel]));
-    const max=Math.max(...d.cm.map(m=>m.round_no));$('cupBracket').innerHTML=Array.from({length:max},(_,i)=>i+1).map(r=>{const rm=d.cm.filter(m=>m.round_no===r),bo=rm[0]?.best_of;return `<div class="cup-round"><div class="cup-round-title">${cupRoundName(r,2**max)}${bo?` • Bo${bo}`:''}</div>${rm.map(m=>{const score=done(m)&&!m.is_wo?`${m.player1_legs||0}–${m.player2_legs||0}`:m.is_wo?'WO':'vs',aBye=r===1&&m.is_wo&&!m.player1_id,bBye=r===1&&m.is_wo&&!m.player2_id;return `<div class="cup-match" data-match="${m.id}"><div class="cup-player ${m.winner_id===m.player1_id&&m.player1_id?'winner':''}">${cupPlayerHtml(m.player1_id,seedById,{bye:aBye})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner_id===m.player2_id&&m.player2_id?'winner':''}">${cupPlayerHtml(m.player2_id,seedById,{bye:bBye})}</div></div>`}).join('')}</div>`}).join('');
-    const final=d.cm.find(m=>m.round_no===max);$('cupProgress').textContent=final?.winner_id?`Vinner: ${names[final.winner_id]||'Spiller'}`:`${d.cm.filter(done).length} / ${d.cm.length} kamper ferdig`;
+    const max=Math.max(...d.cm.map(m=>m.round_no));
+    const finalRound=d.cm.filter(m=>Number(m.round_no)===Number(max));
+    const final=finalRound.length===1?finalRound[0]:null;
+    $('cupBracket').innerHTML=Array.from({length:max},(_,i)=>i+1).map(r=>{const rm=d.cm.filter(m=>m.round_no===r),bo=rm[0]?.best_of;return `<div class="cup-round"><div class="cup-round-title">${cupRoundName(r,2**max)}${bo?` • Bo${bo}`:''}</div>${rm.map(m=>{const score=done(m)&&!m.is_wo?`${m.player1_legs||0}–${m.player2_legs||0}`:m.is_wo?'WO':'vs',aBye=r===1&&m.is_wo&&!m.player1_id,bBye=r===1&&m.is_wo&&!m.player2_id;return `<div class="cup-match" data-match="${m.id}"><div class="cup-player ${m.winner_id===m.player1_id&&m.player1_id?'winner':''}">${cupPlayerHtml(m.player1_id,seedById,{bye:aBye})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner_id===m.player2_id&&m.player2_id?'winner':''}">${cupPlayerHtml(m.player2_id,seedById,{bye:bBye})}</div></div>`}).join('')}</div>`}).join('');
+    if(finalRound.length!==1){$('cupProgress').textContent='Cupoppsettet må kontrolleres: ugyldig finalerunde';return}
+    $('cupProgress').textContent=final?.winner_id?`Vinner: ${names[final.winner_id]||'Spiller'}`:`${d.cm.filter(done).length} / ${d.cm.length} kamper ferdig`;
     if(advancementBlocked)$('cupProgress').textContent+=' • Vinner venter på overføring til neste runde';
-    await finishTournamentIfNeeded(final);
+    await finishTournamentIfNeeded(final,d.cm);
   }
   document.addEventListener('click',e=>{if(tournament?.tournament_type==='groups_cup'&&e.target.closest('#buildCupBtn'))buildCup()});
   window.addEventListener('dartarena:tournament-loaded',loadCup);window.dartArenaLoadCup=loadCup;
