@@ -6,20 +6,6 @@
     document.head.appendChild(roleScript);
   }
 
-  if(!document.querySelector('link[data-dartarena-opponent-focus]')){
-    const focusStyle=document.createElement('link');
-    focusStyle.rel='stylesheet';
-    focusStyle.href='opponent-focus.css?v=20260928-1';
-    focusStyle.dataset.dartarenaOpponentFocus='1';
-    document.head.appendChild(focusStyle);
-  }
-  if(!document.querySelector('script[data-dartarena-opponent-focus]')){
-    const focusScript=document.createElement('script');
-    focusScript.src='opponent-focus.js?v=20260928-1';
-    focusScript.dataset.dartarenaOpponentFocus='1';
-    document.head.appendChild(focusScript);
-  }
-
   const mic=document.getElementById('micBtn');
   const remoteAudio=document.getElementById('remoteAudioBtn');
   const remoteVideo=document.getElementById('remoteVideo');
