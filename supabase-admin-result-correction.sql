@@ -1,6 +1,7 @@
 -- DartArena: safe admin correction of finished tournament matches.
 -- Run once in Supabase SQL Editor.
 -- Allows score corrections on finished group/cup matches.
+-- Group results lock once a cup bracket exists.
 -- If the winner changes in a cup match, the next bracket slot is changed only
 -- when the next match is still pending and has never started.
 
@@ -51,6 +52,17 @@ begin
 
   if tm.status not in ('finished','wo') then
     raise exception 'Only finished results can be corrected';
+  end if;
+
+  -- Once knockout matches exist, changing group standings could invalidate the
+  -- bracket. Group corrections must therefore be done before cup creation.
+  if tm.stage = 'group' and exists (
+    select 1
+      from public.tournament_matches
+     where tournament_id = tm.tournament_id
+       and stage = 'cup'
+  ) then
+    raise exception 'Group results are locked after the cup has been created';
   end if;
 
   if tm.player1_id is null or tm.player2_id is null then
