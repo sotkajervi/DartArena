@@ -43,11 +43,18 @@ create table if not exists public.tournament_matches (
   unique(tournament_id, stage, group_id, match_no)
 );
 
+-- Cup positions must be unique even though group_id is NULL for cup matches.
+-- PostgreSQL UNIQUE constraints allow multiple NULL values, so the table-level
+-- constraint above is not sufficient for the knockout bracket.
+create unique index if not exists tournament_matches_cup_position_uidx
+  on public.tournament_matches(tournament_id, round_no, match_no)
+  where stage='cup';
+
 alter table public.tournament_groups enable row level security;
 alter table public.tournament_group_players enable row level security;
 alter table public.tournament_matches enable row level security;
 
--- Alle innloggede kan lese turneringsdata. Dette trengs senere for spectators/live-visning.
+-- Alle innloggede kan lese turneringsdata. Dette trengs for spectators/live-visning.
 drop policy if exists "tournament groups readable" on public.tournament_groups;
 create policy "tournament groups readable" on public.tournament_groups for select to authenticated using (true);
 drop policy if exists "tournament group players readable" on public.tournament_group_players;
@@ -55,13 +62,35 @@ create policy "tournament group players readable" on public.tournament_group_pla
 drop policy if exists "tournament matches readable" on public.tournament_matches;
 create policy "tournament matches readable" on public.tournament_matches for select to authenticated using (true);
 
--- Bare turneringsleder kan opprette/endre/slette oppsett og kamper.
+-- Turneringsleder kan administrere selve puljeoppsettet.
 drop policy if exists "owner manages tournament groups" on public.tournament_groups;
 create policy "owner manages tournament groups" on public.tournament_groups for all to authenticated using (exists(select 1 from public.tournaments t where t.id=tournament_id and t.owner_id=auth.uid())) with check (exists(select 1 from public.tournaments t where t.id=tournament_id and t.owner_id=auth.uid()));
 drop policy if exists "owner manages tournament group players" on public.tournament_group_players;
 create policy "owner manages tournament group players" on public.tournament_group_players for all to authenticated using (exists(select 1 from public.tournaments t where t.id=tournament_id and t.owner_id=auth.uid())) with check (exists(select 1 from public.tournaments t where t.id=tournament_id and t.owner_id=auth.uid()));
+
+-- Kampresultater skal ikke kunne overskrives direkte av turneringsleder. Nye
+-- kamper kan opprettes, og kun ventende kamper kan slettes. Start, sluttføring,
+-- avansement og resultatkorreksjon går gjennom de begrensede RPC-funksjonene.
 drop policy if exists "owner manages tournament matches" on public.tournament_matches;
-create policy "owner manages tournament matches" on public.tournament_matches for all to authenticated using (exists(select 1 from public.tournaments t where t.id=tournament_id and t.owner_id=auth.uid())) with check (exists(select 1 from public.tournaments t where t.id=tournament_id and t.owner_id=auth.uid()));
+drop policy if exists "owner inserts tournament matches" on public.tournament_matches;
+drop policy if exists "owner deletes pending tournament matches" on public.tournament_matches;
+
+create policy "owner inserts tournament matches"
+on public.tournament_matches
+for insert
+to authenticated
+with check (
+  exists(select 1 from public.tournaments t where t.id=tournament_id and t.owner_id=auth.uid())
+);
+
+create policy "owner deletes pending tournament matches"
+on public.tournament_matches
+for delete
+to authenticated
+using (
+  status='pending'
+  and exists(select 1 from public.tournaments t where t.id=tournament_id and t.owner_id=auth.uid())
+);
 
 create index if not exists tournament_groups_tid_idx on public.tournament_groups(tournament_id);
 create index if not exists tournament_group_players_tid_idx on public.tournament_group_players(tournament_id);
