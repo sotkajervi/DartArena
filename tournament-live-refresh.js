@@ -7,13 +7,12 @@
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
   );
 
-  let refreshTimer=null;
-  let reconcileTimer=null;
+  let syncTimer=null;
   let snapshot=null;
   let hiddenDirty=false;
-  let refreshing=false;
-  let reconciling=false;
-  let reconcileAgain=false;
+  let syncing=false;
+  let syncAgain=false;
+  let nextSyncKnownChange=false;
 
   const stableRows=(rows,fields)=>(rows||[])
     .map(row=>fields.map(field=>row?.[field]??null))
@@ -62,52 +61,56 @@
   async function refreshWholeTournament(){
     if(window.dartArenaSimulationViewActive)return;
     if(typeof window.load==='function'){
-      try{await window.load();return}catch(err){console.error('Tournament full refresh failed',err)}
+      try{
+        await window.load();
+        return;
+      }catch(err){
+        console.error('Tournament full refresh failed',err);
+      }
     }
     await refreshMatchViews();
   }
 
-  async function updateSnapshotAfterRefresh(){
-    try{snapshot=await readSnapshot()}catch(err){console.warn('Tournament refresh snapshot failed',err)}
+  async function captureSnapshot(fallback=null){
+    try{return await readSnapshot()}
+    catch(err){
+      console.warn('Tournament refresh snapshot failed',err);
+      return fallback;
+    }
   }
 
-  function scheduleRefresh(){
-    if(window.dartArenaSimulationViewActive)return;
-    if(document.visibilityState==='hidden'){
-      hiddenDirty=true;
+  async function syncFromDatabase(knownChange=false){
+    if(window.dartArenaSimulationViewActive||document.visibilityState==='hidden')return;
+
+    if(syncing){
+      syncAgain=true;
+      nextSyncKnownChange=nextSyncKnownChange||knownChange;
       return;
     }
 
-    clearTimeout(refreshTimer);
-    refreshTimer=setTimeout(async()=>{
-      if(refreshing||window.dartArenaSimulationViewActive)return;
-      refreshing=true;
-      try{
-        await refreshMatchViews();
-        await updateSnapshotAfterRefresh();
-        hiddenDirty=false;
-      }finally{
-        refreshing=false;
-      }
-    },120);
-  }
-
-  async function reconcileAfterFocus(){
-    if(window.dartArenaSimulationViewActive||document.visibilityState==='hidden')return;
-    if(reconciling){reconcileAgain=true;return}
-    reconciling=true;
-
+    syncing=true;
     try{
-      if(hiddenDirty){
-        hiddenDirty=false;
-        await refreshMatchViews();
-        await updateSnapshotAfterRefresh();
+      let current;
+      try{
+        current=await readSnapshot();
+      }catch(err){
+        console.warn('Tournament reconciliation check failed',err);
+        // A confirmed realtime/message change must still be reflected even if
+        // the lightweight safety query temporarily fails.
+        if(knownChange){
+          await refreshWholeTournament();
+          snapshot=await captureSnapshot(snapshot);
+        }
         return;
       }
 
-      const current=await readSnapshot();
       if(!snapshot){
-        snapshot=current;
+        if(knownChange){
+          await refreshWholeTournament();
+          snapshot=await captureSnapshot(current);
+        }else{
+          snapshot=current;
+        }
         return;
       }
 
@@ -115,38 +118,59 @@
       const membersChanged=current.members!==snapshot.members;
       const matchesChanged=current.matches!==snapshot.matches;
 
+      // Normal Alt-Tab/focus with unchanged data ends here: no DOM redraw.
       if(!tournamentChanged&&!membersChanged&&!matchesChanged)return;
 
+      // Tournament/member changes can affect status, controls and participant
+      // lists, so use the authoritative full loader. Match-only changes redraw
+      // only groups/cup to minimize DOM churn.
       if(tournamentChanged||membersChanged)await refreshWholeTournament();
-      else if(matchesChanged)await refreshMatchViews();
+      else await refreshMatchViews();
 
-      await updateSnapshotAfterRefresh();
-    }catch(err){
-      // A failed safety check must never blank/redraw a healthy bracket.
-      console.warn('Tournament focus reconciliation failed',err);
+      // Re-read after rendering because cup advancement/finalization can update
+      // additional rows while the refresh is running.
+      snapshot=await captureSnapshot(current);
     }finally{
-      reconciling=false;
-      if(reconcileAgain){
-        reconcileAgain=false;
-        setTimeout(reconcileAfterFocus,0);
+      syncing=false;
+      if(syncAgain){
+        const rerunKnownChange=nextSyncKnownChange;
+        syncAgain=false;
+        nextSyncKnownChange=false;
+        setTimeout(()=>syncFromDatabase(rerunKnownChange),0);
       }
     }
   }
 
-  function scheduleReconcile(){
-    if(window.dartArenaSimulationViewActive||document.visibilityState==='hidden')return;
-    clearTimeout(reconcileTimer);
-    reconcileTimer=setTimeout(reconcileAfterFocus,100);
+  function scheduleSync(knownChange=false){
+    if(window.dartArenaSimulationViewActive)return;
+    if(document.visibilityState==='hidden'){
+      if(knownChange)hiddenDirty=true;
+      return;
+    }
+
+    nextSyncKnownChange=nextSyncKnownChange||knownChange;
+    clearTimeout(syncTimer);
+    syncTimer=setTimeout(()=>{
+      const runKnownChange=nextSyncKnownChange;
+      nextSyncKnownChange=false;
+      syncFromDatabase(runKnownChange);
+    },100);
   }
 
   window.addEventListener('message',event=>{
     if(event.origin!==location.origin)return;
-    if(event.data?.type==='dartarena-tournament-match-finished'||event.data?.type==='dartarena-tournament-match-cancelled')scheduleRefresh();
+    if(
+      event.data?.type==='dartarena-tournament-match-finished'||
+      event.data?.type==='dartarena-tournament-match-cancelled'
+    )scheduleSync(true);
   });
 
-  window.addEventListener('focus',scheduleReconcile);
+  window.addEventListener('focus',()=>scheduleSync(hiddenDirty));
   document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='visible')scheduleReconcile();
+    if(document.visibilityState!=='visible')return;
+    const hadHiddenChange=hiddenDirty;
+    hiddenDirty=false;
+    scheduleSync(hadHiddenChange);
   });
 
   client.channel(`tournament-live-refresh-${tournamentId}`)
@@ -154,12 +178,13 @@
       event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${tournamentId}`
     },()=>{
       if(document.visibilityState==='hidden')hiddenDirty=true;
-      else scheduleRefresh();
+      else scheduleSync(true);
     })
     .subscribe();
 
-  // Baseline only: no redraw. This makes ordinary Alt-Tab a no-op when data is unchanged.
+  // Baseline only. It never redraws the page.
   setTimeout(async()=>{
-    try{snapshot=await readSnapshot()}catch(err){console.warn('Tournament refresh baseline failed',err)}
+    try{snapshot=await readSnapshot()}
+    catch(err){console.warn('Tournament refresh baseline failed',err)}
   },500);
 })();
