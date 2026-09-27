@@ -35,7 +35,6 @@ async function openTournamentMatch(row){
       else window.open(`tournament-match-viewer.html?id=${encodeURIComponent(id)}`,'_blank','noopener');
       return;
     }
-    // A pending tournament match can only be opened by one of its two players.
     if(match.status==='pending'&&isPlayer&&match.player1_id&&match.player2_id){window.open(`tournament-match-room.html?id=${encodeURIComponent(id)}`,'_blank');return}
   }finally{row.style.pointerEvents=''}
 }
@@ -51,16 +50,16 @@ function setCupAccessLabel(row,text){
 }
 function setGroupAccessLabel(row,text){const el=row.querySelector('.match-state');if(el&&el.textContent!==text)el.textContent=text}
 function applyMatchAccess(row,match,uid){
-  const isPlayer=!!uid&&[match.player1_id,match.player2_id].includes(uid),finished=['finished','wo'].includes(match.status),live=match.status==='live',pending=match.status==='pending';
+  const isPlayer=!!uid&&[match.player1_id,match.player2_id].includes(uid),finished=['finished','wo'].includes(match.status),live=match.status==='live',pending=match.status==='pending',ready=!!(match.player1_id&&match.player2_id);
   row.classList.toggle('my-tournament-match',isPlayer);
-  const locked=pending&&!isPlayer;
-  row.classList.toggle('match-locked',locked);
   let label,title,clickable=true;
   if(finished){label='Se statistikk';title='Åpne kampstatistikk'}
   else if(live&&isPlayer){label='Gå til kamp';title='Gå tilbake til din kamp'}
   else if(live){label='Se kamp';title='Se kampen live'}
-  else if(pending&&isPlayer){label='Min kamp';title='Åpne venterom for din kamp'}
+  else if(pending&&isPlayer&&ready){label='Min kamp';title='Åpne venterom for din kamp'}
+  else if(pending&&isPlayer){label='Venter på motstander';title='Kampen er ikke klar ennå';clickable=false}
   else{label='Ikke startet';title='Kampen kan sees når den har startet';clickable=false}
+  row.classList.toggle('match-locked',!clickable);
   row.setAttribute('aria-disabled',clickable?'false':'true');
   if(clickable){row.setAttribute('role','button');row.setAttribute('tabindex','0');row.style.cursor='pointer'}
   else{row.removeAttribute('role');row.removeAttribute('tabindex');row.style.cursor='default'}
