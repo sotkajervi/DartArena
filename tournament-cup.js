@@ -65,30 +65,24 @@
     const {error}=await db.from('tournament_matches').insert(rows);if(error)return alert('Kunne ikke opprette cup: '+error.message);const {error:te}=await db.from('tournaments').update({status:'cup',updated_at:new Date().toISOString()}).eq('id',id).eq('owner_id',me);if(te)return alert(te.message);await load();await loadCup();
   }
   async function advanceWinners(matches){
-    const rounds=[...new Set(matches.map(m=>m.round_no))].sort((a,b)=>a-b);
-    let blocked=false;
-    for(const r of rounds.slice(0,-1)){
-      const cur=matches.filter(m=>m.round_no===r).sort((a,b)=>a.match_no-b.match_no);
-      const next=matches.filter(m=>m.round_no===r+1).sort((a,b)=>a.match_no-b.match_no);
-      for(let i=0;i<cur.length;i++){
-        const w=cur[i].winner_id;
-        if(!done(cur[i])||!w)continue;
-        const target=next[Math.floor(i/2)],field=i%2===0?'player1_id':'player2_id';
-        if(!target||target[field])continue;
-        if(tournament?.owner_id!==me){blocked=true;continue}
-        try{
-          const {data:saved,error}=await db.from('tournament_matches')
-            .update({[field]:w}).eq('id',target.id).is(field,null).select('id,'+field);
-          if(error||!saved?.some(row=>row.id===target.id&&row[field]===w)){
-            blocked=true;
-            console.warn('Cup advancement was not confirmed',error||{matchId:target.id,field});
-            continue;
-          }
-          target[field]=w;
-        }catch(error){blocked=true;console.error('Cup advancement failed',error)}
+    const needsAdvance=()=>matches.some(source=>{
+      if(!done(source)||!source.winner_id)return false;
+      const target=matches.find(m=>Number(m.round_no)===Number(source.round_no)+1&&Number(m.match_no)===Math.ceil(Number(source.match_no)/2));
+      const field=Number(source.match_no)%2===1?'player1_id':'player2_id';
+      return target&&!target[field];
+    });
+    if(!needsAdvance())return false;
+    if(tournament?.status!=='cup')return true;
+    try{
+      const {data:saved,error}=await db.rpc('advance_tournament_cup',{p_tournament_id:id});
+      if(error){console.warn('Cup advancement failed',error);return true}
+      if(!Array.isArray(saved))return true;
+      for(const row of saved){
+        const existing=matches.find(m=>m.id===row.id);
+        if(existing)Object.assign(existing,row);
       }
-    }
-    return blocked;
+      return needsAdvance();
+    }catch(error){console.error('Cup advancement failed',error);return true}
   }
   function cupPlayerHtml(playerId,seedById,{bye=false}={}){if(!playerId)return bye?'<span class="cup-bye">BYE</span>':'<span class="cup-name muted">Venter</span>';const seed=seedById.get(playerId)||'';return `${seed?`<span class="cup-seed">${esc(seed)}</span>`:''}<span class="cup-name">${esc(names[playerId]||'Spiller')}</span>`}
   async function finishTournamentIfNeeded(final){if(!final?.winner_id||tournament?.status!=='cup'||tournament?.owner_id!==me)return;const {error}=await db.from('tournaments').update({status:'finished',updated_at:new Date().toISOString()}).eq('id',id).eq('owner_id',me).eq('status','cup');if(error){console.error('Could not archive completed tournament',error);return}tournament.status='finished';setTimeout(()=>{try{if(typeof load==='function')load()}catch{}},80)}
