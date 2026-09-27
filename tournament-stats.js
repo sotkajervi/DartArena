@@ -7,7 +7,8 @@
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
   );
 
-  const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+  const isBye=m=>m?.stage==='cup'&&!!m.player1_id!==!!m.player2_id&&['finished','wo'].includes(m.status);
   let loading=false;
 
   function ensureSection(){
@@ -23,7 +24,7 @@
         <div><small>STATISTIKK</small><h2>Turneringsstatistikk</h2></div>
         <div id="tournamentStatsMeta" class="status">Laster…</div>
       </div>
-      <p class="muted compact">Snitt beregnes fra alle registrerte kast i ferdigspilte kamper. WO påvirker kampseire, men ikke kastsnitt.</p>
+      <p class="muted compact">Snitt beregnes fra alle registrerte kast i ferdigspilte kamper. WO påvirker kampseire, mens BYE/frirunde ikke teller som kamp.</p>
       <div class="tournament-stats-scroll"><div id="tournamentStatsBody"></div></div>`;
 
     const style=document.createElement('style');
@@ -74,19 +75,20 @@
     try{
       const {data:matches,error:matchError}=await db
         .from('tournament_matches')
-        .select('id,player1_id,player2_id,winner_id,status,player1_legs,player2_legs,live_match_id')
+        .select('id,stage,player1_id,player2_id,winner_id,status,player1_legs,player2_legs,live_match_id')
         .eq('tournament_id',tournamentId)
         .in('status',['finished','wo']);
       if(matchError)throw matchError;
 
-      if(!matches?.length){
+      const playedMatches=(matches||[]).filter(m=>!isBye(m));
+      if(!playedMatches.length){
         meta.textContent='Ingen ferdige kamper';
-        body.innerHTML='<div class="stats-empty">Statistikk vises når første kamp er ferdig.</div>';
+        body.innerHTML='<div class="stats-empty">Statistikk vises når første kamp er ferdig. BYE/frirunde teller ikke som kamp.</div>';
         return;
       }
 
-      const playerIds=[...new Set(matches.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))];
-      const liveIds=[...new Set(matches.map(m=>m.live_match_id).filter(Boolean))];
+      const playerIds=[...new Set(playedMatches.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))];
+      const liveIds=[...new Set(playedMatches.map(m=>m.live_match_id).filter(Boolean))];
       const [{data:profiles,error:profileError},{data:throws,error:throwError}]=await Promise.all([
         playerIds.length?db.from('profiles').select('id,username').in('id',playerIds):Promise.resolve({data:[]}),
         liveIds.length?db.from('match_throws').select('*').in('match_id',liveIds).order('created_at',{ascending:true}):Promise.resolve({data:[]})
@@ -96,9 +98,9 @@
 
       const names=Object.fromEntries((profiles||[]).map(p=>[p.id,p.username]));
       const allThrows=throws||[];
-      const matchByLive=Object.fromEntries(matches.filter(m=>m.live_match_id).map(m=>[m.live_match_id,m]));
+      const matchByLive=Object.fromEntries(playedMatches.filter(m=>m.live_match_id).map(m=>[m.live_match_id,m]));
       const rows=playerIds.map(pid=>{
-        const pm=matches.filter(m=>m.player1_id===pid||m.player2_id===pid);
+        const pm=playedMatches.filter(m=>m.player1_id===pid||m.player2_id===pid);
         const wins=pm.filter(m=>m.winner_id===pid).length;
         const pt=allThrows.filter(t=>t.player_id===pid&&matchByLive[t.match_id]);
         const byMatch={};
@@ -119,7 +121,7 @@
         };
       }).sort((a,b)=>b.wins-a.wins||b.avg-a.avg||a.name.localeCompare(b.name,'nb'));
 
-      meta.textContent=`${matches.length} ferdige kamper`;
+      meta.textContent=`${playedMatches.length} ferdige kamper`;
       body.innerHTML=`<table class="tournament-stats-table"><thead><tr><th>#</th><th>Spiller</th><th>Kamper</th><th>V</th><th>Snitt</th><th>Beste kampsnitt</th><th>100+</th><th>140+</th><th>170+</th><th>180</th><th>Raskeste leg</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td class="stats-rank">${i+1}</td><td class="stats-player">${esc(r.name)}</td><td>${r.matches}</td><td>${r.wins}</td><td>${r.avg?r.avg.toFixed(2):'–'}</td><td>${r.bestAvg?r.bestAvg.toFixed(2):'–'}</td><td>${r.c100}</td><td>${r.c140}</td><td>${r.c170}</td><td>${r.c180}</td><td>${r.fast?`${r.fast} piler`:'–'}</td></tr>`).join('')}</tbody></table>`;
     }catch(error){
       console.error('Tournament stats failed',error);
