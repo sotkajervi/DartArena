@@ -1,4 +1,11 @@
 (()=>{
+  if(!document.querySelector('script[data-dartarena-role-visuals]')){
+    const roleScript=document.createElement('script');
+    roleScript.src='role-visuals.js?v=20260928-roles1';
+    roleScript.dataset.dartarenaRoleVisuals='1';
+    document.head.appendChild(roleScript);
+  }
+
   const mic=document.getElementById('micBtn');
   const remoteAudio=document.getElementById('remoteAudioBtn');
   const remoteVideo=document.getElementById('remoteVideo');
