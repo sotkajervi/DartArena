@@ -63,9 +63,9 @@
     while((n=walker.nextNode()))nodes.push(n);
     nodes.forEach(decorateText);
   }
-  function scheduleScan(root=document.body){
+  function scheduleScan(){
     clearTimeout(scanTimer);
-    scanTimer=setTimeout(()=>scan(root),50);
+    scanTimer=setTimeout(()=>scan(document.body),50);
   }
 
   async function loadRoles(){
@@ -94,15 +94,8 @@
     ensureTheme();
     await loadRoles();
     scan();
-    observer=new MutationObserver(records=>{
-      for(const record of records){
-        for(const node of record.addedNodes){
-          if(node.nodeType===Node.TEXT_NODE)decorateText(node);
-          else if(node.nodeType===Node.ELEMENT_NODE)scheduleScan(node);
-        }
-      }
-    });
-    observer.observe(document.body,{childList:true,subtree:true});
+    observer=new MutationObserver(()=>scheduleScan());
+    observer.observe(document.body,{childList:true,subtree:true,characterData:true});
   }
 
   boot().catch(e=>console.warn('Role visuals init failed',e));
