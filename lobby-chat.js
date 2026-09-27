@@ -21,17 +21,31 @@
     if(document.querySelector('link[data-dartarena-chat-style]'))return;
     const link=document.createElement('link');
     link.rel='stylesheet';
-    link.href='lobby-chat.css?v=20260927-1';
+    link.href='lobby-chat.css?v=20260927-layout2';
     link.dataset.dartarenaChatStyle='1';
     document.head.appendChild(link);
   }
 
+  function ensureMainLobbyDashboard(){
+    if(tournamentPage)return null;
+    const lobby=document.getElementById('lobbyView');
+    const topGrid=document.querySelector('#lobbyView > .lobby-grid');
+    const tournamentSection=document.getElementById('tournamentList')?.closest('.tournament-section');
+    if(!lobby||!topGrid||!tournamentSection)return null;
+
+    let dashboard=document.getElementById('lobbyMainGrid');
+    if(!dashboard){
+      dashboard=document.createElement('div');
+      dashboard.id='lobbyMainGrid';
+      dashboard.className='lobby-main-grid';
+      topGrid.insertAdjacentElement('afterend',dashboard);
+    }
+    if(tournamentSection.parentElement!==dashboard)dashboard.appendChild(tournamentSection);
+    return dashboard;
+  }
+
   function mount(){
     if(document.getElementById('dartArenaChat'))return document.getElementById('dartArenaChat');
-    const anchor=tournamentPage
-      ? document.querySelector('main.shell > .lobby-grid')
-      : document.querySelector('#lobbyView > .lobby-grid');
-    if(!anchor)return null;
 
     const section=document.createElement('section');
     section.id='dartArenaChat';
@@ -49,7 +63,16 @@
           <button id="dartChatSend" class="primary" type="submit">Send</button>
         </div>
       </form>`;
-    anchor.insertAdjacentElement('afterend',section);
+
+    if(tournamentPage){
+      const anchor=document.querySelector('main.shell > .lobby-grid');
+      if(!anchor)return null;
+      anchor.insertAdjacentElement('afterend',section);
+    }else{
+      const dashboard=ensureMainLobbyDashboard();
+      if(!dashboard)return null;
+      dashboard.appendChild(section);
+    }
 
     const input=document.getElementById('dartChatInput');
     input.addEventListener('input',()=>document.getElementById('dartChatCount').textContent=`${input.value.length} / 500`);
