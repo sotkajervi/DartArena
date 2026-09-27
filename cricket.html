@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071012">
+  <title>DartArena • Cricket</title>
+  <link rel="stylesheet" href="style.css?v=20260927-cricket1">
+  <link rel="stylesheet" href="match-controls.css?v=20260925-audio-v2">
+  <style>
+    .viewer-count{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border:1px solid rgba(255,255,255,.1);border-radius:999px;color:var(--muted);font-size:13px;font-weight:700;background:rgba(7,16,18,.65)}
+    .viewer-count b{color:var(--text)}.viewer-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+    .cricket-play-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(300px,.95fr);gap:18px;align-items:start}
+    .cricket-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+    .cricket-player{border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:10px 12px;background:rgba(255,255,255,.025);min-width:0}
+    .cricket-player.active{border-color:rgba(43,215,204,.6);box-shadow:0 0 0 1px rgba(43,215,204,.08) inset;background:rgba(43,215,204,.055)}
+    .cricket-player-name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .cricket-player-stats{display:flex;gap:12px;align-items:baseline;margin-top:5px}.cricket-points{font-size:28px;font-weight:950;color:var(--cyan)}.cricket-legs{font-size:12px;color:var(--muted);font-weight:800}
+    .cricket-board{border:1px solid rgba(255,255,255,.09);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.018)}
+    .cricket-row{display:grid;grid-template-columns:1fr 70px 1fr;align-items:center;min-height:43px;border-top:1px solid rgba(255,255,255,.065)}
+    .cricket-row:first-child{border-top:0}.cricket-target{text-align:center;font-size:16px;font-weight:950;color:var(--text)}
+    .cricket-mark{text-align:center;font-size:24px;font-weight:950;line-height:1;color:var(--cyan)}
+    .cricket-mark.closed{color:var(--amber)}.cricket-row.both-closed{opacity:.54}
+    .cricket-entry-card{border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:12px;background:rgba(255,255,255,.018)}
+    .cricket-darts{display:flex;gap:7px;min-height:34px;margin:8px 0 12px;flex-wrap:wrap}.cricket-dart{padding:6px 9px;border-radius:999px;border:1px solid rgba(43,215,204,.35);background:rgba(43,215,204,.08);font-weight:900;font-size:12px}.cricket-dart.empty{color:var(--muted);border-style:dashed;background:transparent}
+    .cricket-keypad{display:grid;gap:6px}.cricket-key-row{display:grid;grid-template-columns:48px repeat(3,1fr);gap:6px}.cricket-key-row.bull{grid-template-columns:48px repeat(2,1fr)}
+    .cricket-key-label{display:grid;place-items:center;border-radius:8px;background:rgba(255,255,255,.035);font-weight:950;color:var(--text)}
+    .cricket-hit{padding:8px 5px;font-weight:900}.cricket-hit:disabled{opacity:.35}
+    .cricket-entry-actions{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:7px;margin-top:9px}.cricket-entry-actions button{min-width:0}
+    .cricket-help{font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.35}
+    @media(max-width:850px){.cricket-play-grid{grid-template-columns:1fr}.cricket-summary{gap:7px}.cricket-player{padding:9px}.cricket-points{font-size:24px}.cricket-row{min-height:38px}.cricket-mark{font-size:21px}.cricket-key-row{grid-template-columns:44px repeat(3,1fr)}.cricket-key-row.bull{grid-template-columns:44px repeat(2,1fr)}}
+  </style>
+</head>
+<body class="match-page">
+<header><div class="brand">DART<span>ARENA</span></div><div style="display:flex;align-items:center;gap:10px"><div id="viewerCount" class="viewer-count" title="Tilskuere i kamprommet"><span class="viewer-dot"></span><b id="viewerCountNumber">0</b> ser på</div><div id="headerStatus" class="live"><i></i> Cricket</div></div></header>
+<main class="shell">
+<section id="matchView">
+  <div class="match-head"><div><small id="matchFormat">CRICKET</small><h1 id="matchTitle">Kamprom</h1></div><div class="top-actions"><button id="cancelMatchBtn" class="danger">Avbryt kamp</button><button id="closeMatchBtn" class="outline">Lukk kampfane</button></div></div>
+  <div id="videoGrid" class="video-grid">
+    <div id="localVideoCard" class="video-card local-card"><video id="localVideo" autoplay playsinline muted></video><div id="localPlaceholder" class="video-placeholder">Ditt kamera</div><span id="localVideoName" class="video-name">Deg</span><button id="micBtn" class="outline">Mikrofon på</button></div>
+    <div id="remoteVideoCard" class="video-card remote-card"><video id="remoteVideo" autoplay playsinline></video><div id="remotePlaceholder" class="video-placeholder">Venter på motstanderens kamera…</div><span id="remoteVideoName" class="video-name">Motstander</span><button id="remoteAudioBtn" class="outline hidden">Slå på lyd</button></div>
+  </div>
+  <div class="match-grid">
+    <section class="card score-card">
+      <div class="cricket-play-grid">
+        <div>
+          <div class="cricket-summary">
+            <article id="cricketP1" class="cricket-player"><div id="cricketName1" class="cricket-player-name">Spiller 1</div><div class="cricket-player-stats"><span id="cricketPoints1" class="cricket-points">0</span><span id="cricketLegs1" class="cricket-legs">0 legs</span></div></article>
+            <article id="cricketP2" class="cricket-player"><div id="cricketName2" class="cricket-player-name">Spiller 2</div><div class="cricket-player-stats"><span id="cricketPoints2" class="cricket-points">0</span><span id="cricketLegs2" class="cricket-legs">0 legs</span></div></article>
+          </div>
+          <div id="cricketBoard" class="cricket-board"></div>
+        </div>
+        <div class="cricket-entry-card">
+          <small>DITT KAST</small>
+          <p id="turnText" class="turn-text" style="margin:5px 0 0">Venter…</p>
+          <div id="cricketDarts" class="cricket-darts"></div>
+          <div id="cricketKeypad" class="cricket-keypad"></div>
+          <div class="cricket-entry-actions"><button id="cricketMissBtn" class="outline" type="button">Miss</button><button id="cricketUndoBtn" class="outline" type="button">Angre</button><button id="cricketSubmitBtn" class="primary" type="button">Registrer kast</button></div>
+          <p class="cricket-help">S = single, D = double, T = triple. Tre treff lukker et felt. Ekstra treff gir poeng så lenge motstanderen ikke har lukket feltet.</p>
+        </div>
+      </div>
+      <p id="matchMessage" class="message"></p>
+    </section>
+    <aside class="card match-info"><small>KAMPSTATUS</small><h2 id="matchStatus">Pågår</h2><button id="cameraBtn" class="outline wide">Start kamera</button></aside>
+  </div>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="sfu-config.js?v=20260927-1"></script>
+<script src="sfu-client.js?v=20260927-1"></script>
+<script src="cricket.js?v=20260927-1"></script>
+<script src="match-controls.js?v=20260925-audio-v2"></script>
+<script src="spectator-presence.js?v=20260926-1"></script>
+<script src="match-spectator-broadcast.js?v=20260927-1"></script>
+</body>
+</html>
