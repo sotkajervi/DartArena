@@ -3,8 +3,6 @@
   let target=8;
   const EXTRA_NAMES=['Anders','Marius','Henrik','Thomas','Jonas','Kristian','Espen','Daniel','Martin','Stian','Rune','Aleksander','Kenneth','Tommy','Fredrik','Jørgen'];
 
-  // tournament.js exposes these bindings in the page's classic-script global scope.
-  // Replace only the player generator; the existing draw/group/cup simulation stays unchanged.
   function installGenerator(){
     if(typeof members==='undefined'||typeof names==='undefined'||typeof simulatedPlayers!=='function')return false;
     simulatedPlayers=function(){
@@ -21,11 +19,17 @@
     return true;
   }
 
+  function setText(el,text){if(el&&el.textContent!==text)el.textContent=text}
+  function setHidden(el,hidden){if(el&&el.classList.contains('hidden')!==hidden)el.classList.toggle('hidden',hidden)}
+
   function ensureButton(){
-    const b8=document.getElementById('simulate8Btn');if(!b8)return;
+    const b8=document.getElementById('simulate8Btn');if(!b8)return false;
     let b16=document.getElementById('simulate16Btn');
     if(!b16){
-      b16=document.createElement('button');b16.id='simulate16Btn';b16.className='small-btn';b8.insertAdjacentElement('afterend',b16);
+      b16=document.createElement('button');
+      b16.id='simulate16Btn';
+      b16.className='small-btn hidden';
+      b8.insertAdjacentElement('afterend',b16);
       b16.addEventListener('click',e=>{
         e.preventDefault();e.stopPropagation();
         if(typeof simulation==='undefined')return;
@@ -37,18 +41,24 @@
       });
       b8.addEventListener('click',()=>{target=8;setTimeout(sync,0)},true);
     }
-    sync();
+    return true;
   }
 
   function sync(){
     const b8=document.getElementById('simulate8Btn'),b16=document.getElementById('simulate16Btn');if(!b8||!b16)return;
-    const canShow=!b8.classList.contains('hidden');b16.classList.toggle('hidden',!canShow);
+    setHidden(b16,b8.classList.contains('hidden'));
     const active=typeof simulation!=='undefined'&&simulation;
-    if(active&&target===16){b8.textContent='Bytt til 8 spillere';b16.textContent='Avslutt 16-simulering'}
-    else if(active&&target===8){b8.textContent='Avslutt 8-simulering';b16.textContent='Bytt til 16 spillere'}
-    else{b8.textContent='Simuler 8 spillere';b16.textContent='Simuler 16 spillere'}
+    if(active&&target===16){setText(b8,'Bytt til 8 spillere');setText(b16,'Avslutt 16-simulering')}
+    else if(active&&target===8){setText(b8,'Avslutt 8-simulering');setText(b16,'Bytt til 16 spillere')}
+    else{setText(b8,'Simuler 8 spillere');setText(b16,'Simuler 16 spillere')}
   }
 
-  const timer=setInterval(()=>{if(installGenerator()){ensureButton();clearInterval(timer)}},100);
-  new MutationObserver(()=>{ensureButton();sync()}).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+  const installTimer=setInterval(()=>{
+    if(installGenerator()&&ensureButton()){
+      clearInterval(installTimer);
+      sync();
+      // Lightweight polling avoids a MutationObserver feedback loop that can lock the page.
+      setInterval(sync,500);
+    }
+  },100);
 })();
