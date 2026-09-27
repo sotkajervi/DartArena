@@ -1,6 +1,6 @@
 // Tournament match routing and access states for group rows and cup bracket cards.
 const tournamentLinkDb=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
-let tournamentLinkUid=null,tournamentDecorateTimer=null,tournamentDecorating=false;
+let tournamentLinkUid=null,tournamentDecorateTimer=null,tournamentDecorating=false,tournamentCupHealTimer=null;
 
 function ensureTournamentMatchStyles(){
   if(document.getElementById('tournament-match-access-styles'))return;
@@ -67,14 +67,32 @@ function applyMatchAccess(row,match,uid){
   if(row.classList.contains('match-row'))setGroupAccessLabel(row,label);else setCupAccessLabel(row,label);
 }
 
+function healStaleCupSoon(){
+  clearTimeout(tournamentCupHealTimer);
+  tournamentCupHealTimer=setTimeout(()=>{
+    if(window.dartArenaSimulationViewActive)return;
+    if(typeof window.dartArenaLoadCup==='function')window.dartArenaLoadCup().catch(err=>console.error('Cup self-heal refresh failed',err));
+  },60);
+}
+
 async function decorateTournamentMatches(){
   if(tournamentDecorating)return;tournamentDecorating=true;
   try{
     ensureTournamentMatchStyles();
     const rows=[...document.querySelectorAll('.match-row[data-match]:not(.simulation-match),.cup-match[data-match]')];if(!rows.length)return;
     const uid=await getTournamentLinkUid(),ids=[...new Set(rows.map(r=>r.dataset.match).filter(Boolean))];if(!ids.length)return;
-    const {data,error}=await tournamentLinkDb.from('tournament_matches').select('id,player1_id,player2_id,status,live_match_id').in('id',ids);if(error)return console.error('Tournament match access failed',error);
-    const byId=new Map((data||[]).map(m=>[m.id,m]));rows.forEach(row=>{const m=byId.get(row.dataset.match);if(m)applyMatchAccess(row,m,uid)});
+    const {data,error}=await tournamentLinkDb.from('tournament_matches').select('id,player1_id,player2_id,status,live_match_id,player1_legs,player2_legs,winner_id').in('id',ids);if(error)return console.error('Tournament match access failed',error);
+    const byId=new Map((data||[]).map(m=>[m.id,m]));let staleCup=false;
+    rows.forEach(row=>{
+      const m=byId.get(row.dataset.match);if(!m)return;
+      applyMatchAccess(row,m,uid);
+      if(row.classList.contains('cup-match')&&['finished','wo'].includes(m.status)){
+        const score=(row.querySelector('.cup-score')?.textContent||'').trim().toLowerCase();
+        const shouldBeScore=m.status==='wo'?'wo':`${Number(m.player1_legs||0)}–${Number(m.player2_legs||0)}`;
+        if(score==='vs'||score!==shouldBeScore.toLowerCase())staleCup=true;
+      }
+    });
+    if(staleCup)healStaleCupSoon();
   }finally{tournamentDecorating=false}
 }
 function scheduleTournamentDecorate(){clearTimeout(tournamentDecorateTimer);tournamentDecorateTimer=setTimeout(decorateTournamentMatches,80)}
