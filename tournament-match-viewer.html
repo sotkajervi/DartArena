@@ -5,59 +5,35 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#071012">
   <title>DartArena • Live kamp</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="dartboard-background.css">
+  <link rel="stylesheet" href="style.css?v=20260927-spectator1">
+  <link rel="stylesheet" href="dartboard-background.css?v=20260927-3">
   <style>
-    .viewer-head{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:20px}
-    .viewer-pill{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid rgba(255,255,255,.1);border-radius:999px;color:var(--muted);font-size:13px;font-weight:700}
-    .viewer-pill i{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
-    .spectator-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:18px;padding:30px 18px}
-    .spectator-player{text-align:center}
-    .spectator-name{font-size:clamp(20px,4vw,34px);font-weight:900}
-    .spectator-legs{font-size:clamp(48px,10vw,92px);font-weight:900;line-height:1;margin-top:12px}
-    .spectator-vs{color:var(--muted);font-weight:800}
-    .spectator-note{text-align:center;margin-top:16px}
-    @media(max-width:600px){.viewer-head{align-items:flex-start;flex-direction:column}.spectator-score{gap:8px;padding:24px 8px}}
+    .viewer-head{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:20px}.viewer-pill{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid rgba(255,255,255,.1);border-radius:999px;color:var(--muted);font-size:13px;font-weight:700}.viewer-pill i{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}.spectator-videos{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}.spectator-video-card{aspect-ratio:16/9;background:#030708;border:1px solid var(--line);border-radius:16px;overflow:hidden;position:relative}.spectator-video-card video{width:100%;height:100%;object-fit:contain;background:#030708}.spectator-placeholder{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);text-align:center;padding:20px}.spectator-video-name{position:absolute;left:12px;bottom:10px;background:#061012d9;border:1px solid var(--line);padding:6px 10px;border-radius:8px;font-weight:800}.spectator-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:18px;padding:22px 18px}.spectator-player{text-align:center}.spectator-name{font-size:clamp(18px,3vw,28px);font-weight:900}.spectator-points{font-size:clamp(40px,8vw,72px);font-weight:950;line-height:1;margin-top:8px}.spectator-legs{color:var(--cyan);font-size:14px;font-weight:900;margin-top:5px}.spectator-vs{color:var(--muted);font-weight:800}.spectator-note{text-align:center;margin-top:14px}@media(max-width:700px){.viewer-head{align-items:flex-start;flex-direction:column}.spectator-videos{grid-template-columns:1fr}.spectator-score{gap:8px;padding:18px 6px}}
   </style>
 </head>
 <body>
-  <header>
-    <div class="brand">DART<span>ARENA</span></div>
-    <div class="live"><i></i> LIVE KAMP</div>
-  </header>
-
+  <header><div class="brand">DART<span>ARENA</span></div><div class="live"><i></i> LIVE KAMP</div></header>
   <main class="shell">
     <div class="viewer-head">
-      <div>
-        <small>TILSKUERMODUS</small>
-        <h1 id="title">Laster kamp…</h1>
-        <p id="meta" class="muted compact"></p>
-      </div>
-      <div class="top-actions">
-        <div class="viewer-pill"><i></i><b id="viewerCount">0</b> ser på</div>
-        <button id="closeBtn" class="outline">Tilbake</button>
-      </div>
+      <div><small>TILSKUERMODUS</small><h1 id="title">Laster kamp…</h1><p id="meta" class="muted compact"></p></div>
+      <div class="top-actions"><div class="viewer-pill"><i></i><b id="viewerCount">0</b> ser på</div><button id="closeBtn" class="outline">Lukk tilskuervisning</button></div>
     </div>
-
+    <div class="spectator-videos">
+      <div class="spectator-video-card"><video id="p1Video" autoplay playsinline muted></video><div id="p1Placeholder" class="spectator-placeholder">Venter på kamera…</div><span id="p1VideoName" class="spectator-video-name">Spiller 1</span></div>
+      <div class="spectator-video-card"><video id="p2Video" autoplay playsinline muted></video><div id="p2Placeholder" class="spectator-placeholder">Venter på kamera…</div><span id="p2VideoName" class="spectator-video-name">Spiller 2</span></div>
+    </div>
     <section class="card">
       <div class="spectator-score">
-        <div class="spectator-player">
-          <div id="p1" class="spectator-name">Spiller 1</div>
-          <div id="l1" class="spectator-legs">0</div>
-        </div>
-        <div class="spectator-vs">LEGS</div>
-        <div class="spectator-player">
-          <div id="p2" class="spectator-name">Spiller 2</div>
-          <div id="l2" class="spectator-legs">0</div>
-        </div>
+        <div class="spectator-player"><div id="p1" class="spectator-name">Spiller 1</div><div id="s1" class="spectator-points">501</div><div id="l1" class="spectator-legs">0 legs</div></div>
+        <div class="spectator-vs">VS</div>
+        <div class="spectator-player"><div id="p2" class="spectator-name">Spiller 2</div><div id="s2" class="spectator-points">501</div><div id="l2" class="spectator-legs">0 legs</div></div>
       </div>
-      <div id="status" class="spectator-note muted">Venter…</div>
+      <div id="status" class="spectator-note muted">Kobler til livekamp…</div>
     </section>
-
-    <p class="muted spectator-note">Live video for tilskuere kobles på separat. Denne visningen følger kampstatus og leg-resultat i sanntid.</p>
   </main>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="tournament-match-viewer.js?v=20260926-3"></script>
+  <script src="sfu-config.js?v=20260927-1"></script>
+  <script src="sfu-client.js?v=20260927-1"></script>
+  <script src="tournament-match-viewer.js?v=20260927-4"></script>
 </body>
 </html>
