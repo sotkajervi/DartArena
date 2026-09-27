@@ -24,7 +24,7 @@
     style.id='dartarena-role-visuals-style';
     style.textContent=`
       .da-role-name{font-weight:850}
-      .da-role-admin-name,.role-admin{color:${ADMIN}!important}
+      .da-role-admin-name{color:${ADMIN}!important}
       .da-role-leader-name,.role-leader,.role-leader-label{color:${LEADER}!important}
       .admin-badge{color:${ADMIN}!important;border-color:rgba(255,159,67,.5)!important;background:rgba(255,159,67,.1)!important}
     `;
@@ -55,8 +55,19 @@
     }
     node.replaceWith(frag);
   }
+  function markTournamentLeaderLabels(){
+    if(!document.getElementById('tName'))return;
+    document.querySelectorAll('#participantList .player-name.role-admin').forEach(name=>{
+      name.classList.remove('role-admin');
+      name.classList.add('role-leader');
+      const status=name.parentElement?.querySelector('.status');
+      if(status?.textContent.includes('Turneringsleder'))status.classList.add('role-leader-label');
+    });
+  }
   function scan(root=document.body){
-    if(!root||!roleMap.size)return;
+    if(!root)return;
+    markTournamentLeaderLabels();
+    if(!roleMap.size)return;
     if(root.nodeType===Node.TEXT_NODE){decorateText(root);return}
     const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
     const nodes=[];let n;
