@@ -86,6 +86,7 @@ declare
   v_target_id uuid;
   v_target_status text;
   v_target_live uuid;
+  v_old_winner uuid;
 begin
   if new.stage <> 'cup'
      or new.status not in ('finished','wo')
@@ -96,6 +97,12 @@ begin
   if new.winner_id is distinct from new.player1_id
      and new.winner_id is distinct from new.player2_id then
     raise exception 'Winner is not a player in the source cup match';
+  end if;
+
+  if tg_op='UPDATE' then
+    v_old_winner := old.winner_id;
+  else
+    v_old_winner := null;
   end if;
 
   select id,status,live_match_id
@@ -118,17 +125,33 @@ begin
   end if;
 
   if mod(new.match_no,2)=1 then
-    update public.tournament_matches
-       set player1_id = new.winner_id,
-           updated_at = now()
-     where id = v_target_id
-       and (player1_id is null or (tg_op='UPDATE' and player1_id = old.winner_id));
+    if v_old_winner is not null and v_old_winner is distinct from new.winner_id then
+      update public.tournament_matches
+         set player1_id = new.winner_id,
+             updated_at = now()
+       where id = v_target_id
+         and (player1_id is null or player1_id = v_old_winner);
+    else
+      update public.tournament_matches
+         set player1_id = new.winner_id,
+             updated_at = now()
+       where id = v_target_id
+         and player1_id is null;
+    end if;
   else
-    update public.tournament_matches
-       set player2_id = new.winner_id,
-           updated_at = now()
-     where id = v_target_id
-       and (player2_id is null or (tg_op='UPDATE' and player2_id = old.winner_id));
+    if v_old_winner is not null and v_old_winner is distinct from new.winner_id then
+      update public.tournament_matches
+         set player2_id = new.winner_id,
+             updated_at = now()
+       where id = v_target_id
+         and (player2_id is null or player2_id = v_old_winner);
+    else
+      update public.tournament_matches
+         set player2_id = new.winner_id,
+             updated_at = now()
+       where id = v_target_id
+         and player2_id is null;
+    end if;
   end if;
 
   return new;
