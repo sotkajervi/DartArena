@@ -4,7 +4,7 @@
   let lastSetupKey='';
 
   function isPureCupSetup(){
-    try{return !!tournament&&tournament.tournament_type==='cup'&&tournament.status==='cup_setup'&&tournament.owner_id===me}catch{return false}
+    try{return !!tournament&&tournament.tournament_type==='cup'&&tournament.status==='cup_setup'&&tournament.owner_id===me}catch{return false}}
   }
 
   function syncRegistrationLabel(){
@@ -13,12 +13,24 @@
   }
 
   function syncByeLabels(){
-    document.querySelectorAll('#cupBracket .cup-match').forEach(card=>{
+    const cards=[...document.querySelectorAll('#cupBracket .cup-match')];
+    cards.forEach(card=>{
       if(!card.querySelector('.cup-bye'))return;
       const score=card.querySelector('.cup-score');
       if(score&&score.textContent.trim()!=='BYE')score.textContent='BYE';
       card.dataset.bye='1';
     });
+
+    const byeCards=cards.filter(card=>card.dataset.bye==='1');
+    const progress=document.getElementById('cupProgress');
+    if(!progress||!byeCards.length||progress.textContent.trim().startsWith('Vinner:'))return;
+    const realCards=cards.filter(card=>card.dataset.bye!=='1');
+    const finished=realCards.filter(card=>{
+      const score=card.querySelector('.cup-score')?.textContent.trim().toLowerCase()||'';
+      return score&&score!=='vs';
+    }).length;
+    const test=progress.textContent.includes('TESTMODUS')?' • TESTMODUS':'';
+    progress.textContent=`${finished} / ${realCards.length} spilte kamper • ${byeCards.length} BYE${test}`;
   }
 
   function setupKey(){
