@@ -41,8 +41,9 @@
     return`Runde ${round}`;
   }
 
+  const BEST_OF_OPTIONS=Array.from({length:10},(_,i)=>i*2+3);
   function defaultCupFormats(totalRounds){const formats={};for(let r=1;r<=totalRounds;r++)formats[r]=r===totalRounds?7:5;return formats}
-  function validBestOf(value){const n=Number(value);return[3,5,7,9].includes(n)?n:null}
+  function validBestOf(value){const n=Number(value);return BEST_OF_OPTIONS.includes(n)?n:null}
 
   function buildState(){
     const groups=snapshotGroups();if(!groups.length||groups.some(g=>!g.length))return null;
@@ -61,7 +62,7 @@
   function ensureControls(){
     let bar=$('simulationControls');if(bar)return bar;
     bar=document.createElement('div');bar.id='simulationControls';bar.style.cssText='display:flex;gap:10px;flex-wrap:wrap;margin:16px 0';
-    bar.innerHTML='<button id="simulateAllMatchesBtn" class="primary">Simuler alle puljekamper</button><button id="resetSimulationBtn" class="outline">Nullstill resultater</button><button id="startCupSimulationBtn" class="primary hidden">Test cup</button><span class="status" style="align-self:center">Testdata lagres ikke</span>';
+    bar.innerHTML='<button id="simulateAllMatchesBtn" class="primary">Simuler alle puljekamper</button><button id="resetSimulationBtn" class="outline">Nullstill resultater</button><span class="status" style="align-self:center">Testdata lagres ikke</span>';
     $('liveGroups')?.insertAdjacentElement('beforebegin',bar);return bar;
   }
 
@@ -77,8 +78,8 @@
     const shape=getCupShape();if(!shape)return;
     if(!simState.cupFormats)simState.cupFormats=defaultCupFormats(shape.totalRounds);
     for(let r=1;r<=shape.totalRounds;r++){if(!validBestOf(simState.cupFormats[r]))simState.cupFormats[r]=r===shape.totalRounds?7:5}
-    if(!box){box=document.createElement('div');box.id='simCupFormatSettings';box.style.cssText='margin:0 0 18px;padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(9,20,22,.78)';$('simulationControls')?.insertAdjacentElement('afterend',box)}
-    box.innerHTML=`<div style="margin-bottom:10px"><small>SLUTTSPILL • TESTMODUS</small><h3 style="margin:4px 0 0">Best of per cuprunde</h3><p class="muted compact" style="margin-bottom:0">Velg kampformat før du trykker Test cup.</p></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px">${Array.from({length:shape.totalRounds},(_,i)=>i+1).map(r=>`<label class="field" style="margin:0"><strong style="display:block;margin-bottom:6px">${roundName(r,shape.totalRounds)}</strong><select data-sim-cup-round="${r}">${[3,5,7,9].map(n=>`<option value="${n}" ${Number(simState.cupFormats[r])===n?'selected':''}>Best av ${n}</option>`).join('')}</select></label>`).join('')}</div>`;
+    if(!box){box=document.createElement('div');box.id='simCupFormatSettings';box.style.cssText='margin:16px 0 18px;padding:16px;border:1px solid rgba(35,226,209,.35);border-radius:14px;background:rgba(9,20,22,.92)';$('simulationControls')?.insertAdjacentElement('afterend',box)}
+    box.innerHTML=`<div style="margin-bottom:12px"><small>SLUTTSPILL • TESTMODUS</small><h3 style="margin:4px 0 0">Velg Best of per cuprunde</h3><p class="muted compact" style="margin:6px 0 0">Velg format for hver runde. Maks Bo21.</p></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px">${Array.from({length:shape.totalRounds},(_,i)=>i+1).map(r=>`<label class="field" style="margin:0"><strong style="display:block;margin-bottom:6px">${roundName(r,shape.totalRounds)}</strong><select data-sim-cup-round="${r}">${BEST_OF_OPTIONS.map(n=>`<option value="${n}" ${Number(simState.cupFormats[r])===n?'selected':''}>Best av ${n}</option>`).join('')}</select></label>`).join('')}</div><button id="startCupSimulationBtn" class="primary wide" style="margin-top:14px">Opprett testcup</button>`;
     box.querySelectorAll('select[data-sim-cup-round]').forEach(select=>select.addEventListener('change',()=>{const r=Number(select.dataset.simCupRound),n=validBestOf(select.value);if(r&&n)simState.cupFormats[r]=n}));
   }
 
@@ -106,8 +107,8 @@
 
   function paint(scroll=false){
     if(!simState)return;restoring=true;$('groupSetup')?.classList.add('hidden');$('groupLobby')?.classList.remove('hidden');ensureControls();const done=simState.matches.filter(m=>m.status==='finished').length,total=simState.matches.length;
-    $('groupProgress').textContent=`${done} / ${total} kamper ferdig • TESTMODUS`;$('tStatus').textContent='Puljespill (simulering)';$('tInfo').textContent=done===total?'TESTMODUS: Alle puljekamper er ferdige. Velg Best of per cuprunde og test cupen.':'TESTMODUS: Klikk en kamp for å legge inn resultat, eller simuler alle puljekampene.';$('liveGroups').innerHTML=renderGroupHtml();
-    const cupBtn=$('startCupSimulationBtn');if(cupBtn)cupBtn.classList.toggle('hidden',done!==total);ensureCupFormatSettings(done===total&&!simState.cup);restoring=false;if(scroll)$('groupLobby')?.scrollIntoView({behavior:'smooth',block:'start'});if(simState.cup)renderCup(false);
+    $('groupProgress').textContent=`${done} / ${total} kamper ferdig • TESTMODUS`;$('tStatus').textContent='Puljespill (simulering)';$('tInfo').textContent=done===total?'TESTMODUS: Alle puljekampene er ferdige. Velg Best of per cuprunde nedenfor.':'TESTMODUS: Klikk en kamp for å legge inn resultat, eller simuler alle puljekampene.';$('liveGroups').innerHTML=renderGroupHtml();
+    ensureCupFormatSettings(done===total&&!simState.cup);restoring=false;if(scroll)$('groupLobby')?.scrollIntoView({behavior:'smooth',block:'start'});if(simState.cup)renderCup(false);
   }
 
   function render(){simState=buildState();if(!simState){alert('Kunne ikke lese den simulerte trekningen. Trekk puljene på nytt.');return}simViewActive=true;window.dartArenaSimulationViewActive=true;paint(true)}
