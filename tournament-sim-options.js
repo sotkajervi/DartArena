@@ -1,6 +1,7 @@
-// Extra local simulation sizes for tournament testing. Never writes test players to Supabase.
+// Local simulation sizes for tournament testing. Never writes test players to Supabase.
 (()=>{
   let target=8;
+  const SIZES=[5,7,8,16];
   const EXTRA_NAMES=['Anders','Marius','Henrik','Thomas','Jonas','Kristian','Espen','Daniel','Martin','Stian','Rune','Aleksander','Kenneth','Tommy','Fredrik','Jørgen'];
 
   function installGenerator(){
@@ -20,42 +21,87 @@
   function setText(el,text){if(el&&el.textContent!==text)el.textContent=text}
   function setHidden(el,hidden){if(el&&el.classList.contains('hidden')!==hidden)el.classList.toggle('hidden',hidden)}
 
-  function ensureButton(){
-    const b8=document.getElementById('simulate8Btn');if(!b8)return false;
-    let b16=document.getElementById('simulate16Btn');
-    if(!b16){
-      b16=document.createElement('button');
-      b16.id='simulate16Btn';
-      b16.className='small-btn hidden';
-      b8.insertAdjacentElement('afterend',b16);
-      b16.addEventListener('click',e=>{
-        e.preventDefault();e.stopPropagation();
-        if(typeof simulation==='undefined')return;
-        if(simulation&&target===16){simulation=false;target=8}else{target=16;simulation=true}
-        if(typeof drawnGroups!=='undefined')drawnGroups=null;
-        const g=document.getElementById('groupCount');if(g)g.innerHTML='';
-        if(typeof renderPage==='function')renderPage();
-        sync();
-      });
-      b8.addEventListener('click',()=>{target=8;setTimeout(sync,0)},true);
+  function resetSetupState(){
+    if(typeof drawnGroups!=='undefined')drawnGroups=null;
+    const g=document.getElementById('groupCount');if(g)g.innerHTML='';
+  }
+
+  function announceChange(){
+    setTimeout(()=>{
+      sync();
+      try{window.dispatchEvent(new Event('dartarena:tournament-loaded'))}catch{}
+    },0);
+  }
+
+  function chooseSize(size,event){
+    event?.preventDefault();
+    event?.stopImmediatePropagation();
+    if(typeof simulation==='undefined')return;
+
+    if(simulation&&target===size){
+      simulation=false;
+      target=8;
+    }else{
+      target=size;
+      simulation=true;
     }
+
+    resetSetupState();
+    if(typeof renderPage==='function')renderPage();
+    announceChange();
+  }
+
+  function makeButton(size,b8){
+    if(size===8)return b8;
+    let btn=document.getElementById(`simulate${size}Btn`);
+    if(btn)return btn;
+    btn=document.createElement('button');
+    btn.id=`simulate${size}Btn`;
+    btn.className='small-btn hidden';
+    btn.type='button';
+    btn.dataset.simSize=String(size);
+    if(size<8)b8.insertAdjacentElement('beforebegin',btn);
+    else b8.insertAdjacentElement('afterend',btn);
+    return btn;
+  }
+
+  function bindButton(btn,size){
+    if(!btn||btn.dataset.simSizeBound==='1')return;
+    btn.dataset.simSizeBound='1';
+    btn.dataset.simSize=String(size);
+    // Capture + stopImmediatePropagation intentionally replaces tournament.js' old
+    // simulate8 onclick, so switching size never toggles simulation off by mistake.
+    btn.addEventListener('click',event=>chooseSize(size,event),true);
+  }
+
+  function ensureButtons(){
+    const b8=document.getElementById('simulate8Btn');if(!b8)return false;
+    SIZES.forEach(size=>bindButton(makeButton(size,b8),size));
     return true;
   }
 
   function sync(){
-    const b8=document.getElementById('simulate8Btn'),b16=document.getElementById('simulate16Btn');if(!b8||!b16)return;
-    setHidden(b16,b8.classList.contains('hidden'));
+    const b8=document.getElementById('simulate8Btn');if(!b8)return;
     const active=typeof simulation!=='undefined'&&simulation;
-    if(active&&target===16){setText(b8,'Bytt til 8 spillere');setText(b16,'Avslutt 16-simulering')}
-    else if(active&&target===8){setText(b8,'Avslutt 8-simulering');setText(b16,'Bytt til 16 spillere')}
-    else{setText(b8,'Simuler 8 spillere');setText(b16,'Simuler 16 spillere')}
+    const baseHidden=b8.classList.contains('hidden');
+
+    for(const size of SIZES){
+      const btn=document.getElementById(`simulate${size}Btn`);if(!btn)continue;
+      if(size!==8)setHidden(btn,baseHidden);
+      if(active&&target===size)setText(btn,`Avslutt ${size}-simulering`);
+      else if(active)setText(btn,`Bytt til ${size} spillere`);
+      else setText(btn,`Simuler ${size} spillere`);
+    }
   }
 
+  // Expose the current local size for pure-cup helpers/debugging without storing it.
+  window.dartArenaSimulationSize=()=>target;
+
   const installTimer=setInterval(()=>{
-    if(installGenerator()&&ensureButton()){
+    if(installGenerator()&&ensureButtons()){
       clearInterval(installTimer);
       sync();
-      setInterval(sync,500);
+      setInterval(()=>{ensureButtons();sync()},300);
     }
   },100);
 })();
