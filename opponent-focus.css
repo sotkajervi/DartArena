@@ -1,0 +1,197 @@
+/* DartArena opponent-focus layout: desktop webcam match view */
+body.match-page.opponent-focus .shell{
+  width:min(1580px,98vw);
+  margin:0 auto;
+  padding:8px 0 18px;
+}
+body.match-page.opponent-focus #matchView{
+  display:grid;
+  grid-template-columns:320px minmax(0,1fr);
+  grid-template-rows:auto minmax(0,1fr);
+  grid-template-areas:
+    "head head"
+    "score video";
+  gap:10px 12px;
+  min-height:calc(100vh - 68px);
+}
+body.match-page.opponent-focus .match-head{
+  grid-area:head;
+  margin:0;
+}
+body.match-page.opponent-focus #videoGrid{
+  grid-area:video;
+  display:block!important;
+  position:relative;
+  height:calc(100vh - 128px)!important;
+  min-height:620px!important;
+  margin:0!important;
+  overflow:hidden;
+  border-radius:14px;
+}
+body.match-page.opponent-focus #videoGrid .video-card{
+  transition:all .2s ease;
+}
+body.match-page.opponent-focus #videoGrid .remote-card{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:1;
+  border-color:var(--cyan);
+  box-shadow:0 0 0 1px rgba(35,226,209,.28),0 18px 55px rgba(0,0,0,.38);
+  opacity:1;
+}
+body.match-page.opponent-focus #videoGrid .remote-card video{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  background:#020607;
+}
+body.match-page.opponent-focus #videoGrid .local-card{
+  position:absolute;
+  right:14px;
+  bottom:14px;
+  width:220px;
+  height:124px;
+  min-height:0;
+  z-index:5;
+  opacity:.94;
+  border:1px solid rgba(255,255,255,.2);
+  box-shadow:0 10px 28px rgba(0,0,0,.55);
+}
+body.match-page.opponent-focus #videoGrid .local-card video{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+body.match-page.opponent-focus #videoGrid .local-card .video-name{
+  left:7px;
+  bottom:6px;
+  padding:4px 7px;
+  font-size:10px;
+}
+body.match-page.opponent-focus #videoGrid .local-card #micBtn{
+  right:6px;
+  bottom:6px;
+  padding:4px 6px;
+  font-size:9px;
+}
+body.match-page.opponent-focus #videoGrid .remote-card .video-name{
+  font-size:13px;
+}
+body.match-page.opponent-focus .match-grid{
+  grid-area:score;
+  display:block!important;
+  min-width:0;
+}
+body.match-page.opponent-focus .match-grid>.card{
+  width:100%;
+}
+body.match-page.opponent-focus .score-card{
+  display:block!important;
+  padding:10px!important;
+}
+body.match-page.opponent-focus .match-info{
+  margin-top:8px;
+  padding:10px!important;
+}
+body.match-page.opponent-focus .match-info h2{
+  margin:3px 0 8px;
+  font-size:17px;
+}
+body.match-page.opponent-focus .match-info .wide{
+  margin-top:3px;
+  padding:7px 9px;
+  font-size:11px;
+}
+
+/* 501 / 301 scoreboard while opponent throws */
+body.match-page.opponent-focus:not(:has(#cricketBoard)) .match-players{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:7px!important;
+}
+body.match-page.opponent-focus:not(:has(#cricketBoard)) .match-player{
+  padding:10px 12px!important;
+}
+body.match-page.opponent-focus:not(:has(#cricketBoard)) .match-name{
+  font-size:13px!important;
+}
+body.match-page.opponent-focus:not(:has(#cricketBoard)) .match-score{
+  font-size:58px!important;
+  line-height:.95;
+  margin:4px 0!important;
+}
+body.match-page.opponent-focus:not(:has(#cricketBoard)) .match-sets{
+  font-size:14px!important;
+}
+body.match-page.opponent-focus:not(:has(#cricketBoard)) .match-legs{
+  font-size:12px!important;
+}
+body.match-page.opponent-focus:not(:has(#cricketBoard)) .turn-text{
+  margin:10px 0 4px!important;
+  font-size:13px!important;
+  text-align:left!important;
+}
+body.match-page.opponent-focus:not(:has(#cricketBoard)) .score-entry,
+body.match-page.opponent-focus:not(:has(#cricketBoard)) .quick,
+body.match-page.opponent-focus:not(:has(#cricketBoard)) .throw-log{
+  display:none!important;
+}
+body.match-page.opponent-focus:not(:has(#cricketBoard)) #matchMessage{
+  margin:4px 0 0;
+  min-height:0;
+}
+
+/* Cricket scoreboard while opponent throws */
+body.match-page.opponent-focus:has(#cricketBoard) .cricket-play-grid{
+  display:block!important;
+  width:100%;
+}
+body.match-page.opponent-focus:has(#cricketBoard) .cricket-play-grid>div:first-child{
+  display:block!important;
+}
+body.match-page.opponent-focus:has(#cricketBoard) .cricket-summary{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:6px!important;
+  margin:0 0 7px!important;
+}
+body.match-page.opponent-focus:has(#cricketBoard) .cricket-player{
+  padding:7px 9px!important;
+}
+body.match-page.opponent-focus:has(#cricketBoard) .cricket-player-stats{
+  margin-top:2px!important;
+}
+body.match-page.opponent-focus:has(#cricketBoard) .cricket-points{
+  font-size:27px!important;
+}
+body.match-page.opponent-focus:has(#cricketBoard) .cricket-board{
+  width:100%!important;
+}
+body.match-page.opponent-focus:has(#cricketBoard) .cricket-row{
+  min-height:38px!important;
+  grid-template-columns:1fr 58px 1fr!important;
+}
+body.match-page.opponent-focus:has(#cricketBoard) .cricket-target{
+  font-size:13px!important;
+}
+body.match-page.opponent-focus:has(#cricketBoard) .cricket-mark{
+  font-size:21px!important;
+}
+body.match-page.opponent-focus:has(#cricketBoard) .cricket-entry-card,
+body.match-page.opponent-focus:has(#cricketBoard) .cricket-history,
+body.match-page.opponent-focus:has(#cricketBoard) #matchMessage{
+  display:none!important;
+}
+
+@media(max-height:820px){
+  body.match-page.opponent-focus #videoGrid{
+    height:calc(100vh - 112px)!important;
+    min-height:540px!important;
+  }
+  body.match-page.opponent-focus #matchView{grid-template-columns:300px minmax(0,1fr)}
+  body.match-page.opponent-focus #videoGrid .local-card{width:190px;height:107px}
+  body.match-page.opponent-focus:has(#cricketBoard) .cricket-row{min-height:34px!important}
+  body.match-page.opponent-focus:not(:has(#cricketBoard)) .match-score{font-size:50px!important}
+}
