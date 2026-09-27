@@ -31,12 +31,16 @@ body.match-page:has(#cricketBoard) .video-grid{
   height:clamp(280px,42vh,470px);
   min-height:280px;
 }
+body.match-page:has(#cricketBoard) .score-card{
+  display:block;
+}
 body.match-page .cricket-play-grid{
   display:grid;
   grid-template-columns:1fr;
   grid-template-areas:"summary" "board" "entry";
   gap:8px;
   align-items:start;
+  width:100%;
 }
 body.match-page .cricket-play-grid>div:first-child{display:contents;}
 body.match-page .cricket-summary{
@@ -53,6 +57,7 @@ body.match-page .cricket-board{
   grid-template-columns:repeat(7,minmax(0,1fr));
   border-radius:10px;
   overflow:hidden;
+  width:100%;
 }
 body.match-page .cricket-row{
   display:grid;
