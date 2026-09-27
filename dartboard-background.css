@@ -18,39 +18,6 @@ body::before{
 }
 header,.shell,footer{position:relative;z-index:1}
 
-/* Cup layout */
-@media(min-width:851px){
-  .cup-bracket{align-items:stretch !important;}
-  .cup-round{
-    position:relative !important;
-    padding-top:38px !important;
-    justify-content:space-around !important;
-  }
-  .cup-round-title{
-    position:absolute !important;
-    top:0 !important;
-    left:0 !important;
-    right:0 !important;
-    height:24px !important;
-    display:flex !important;
-    align-items:center !important;
-    justify-content:center !important;
-  }
-
-  /* Semifinal is always the second-last column, final is always the last.
-     Nudge these relative to the bracket so the cards sit visually between
-     the feeder matches regardless of how many rounds the cup has. */
-  #cupBracket .cup-round:nth-last-child(2) .cup-round-title{
-    top:24px !important;
-  }
-  #cupBracket .cup-round:nth-last-child(2) .cup-match{
-    transform:translateY(22px) !important;
-  }
-  #cupBracket .cup-round:last-child .cup-match{
-    transform:translateY(-22px) !important;
-  }
-}
-
 @media(max-width:800px){
   body::before{
     top:92px !important;
@@ -58,6 +25,4 @@ header,.shell,footer{position:relative;z-index:1}
     height:195vw !important;
     opacity:.39 !important;
   }
-  #cupBracket .cup-round-title,
-  #cupBracket .cup-match{transform:none !important;}
 }
