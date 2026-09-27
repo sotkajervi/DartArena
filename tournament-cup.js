@@ -58,7 +58,7 @@
   }
   function qualifiers(d){const out=[];for(const g of d.groups){const gp=d.players.filter(p=>p.group_id===g.id),matches=d.gm.filter(m=>m.group_id===g.id),table=standings(gp,matches),n=g.advance_mode==='all'?table.length:Number(g.advance_count||0);table.slice(0,n).forEach((p,i)=>out.push({id:p.id,group:g.group_no,pos:i+1,seedLabel:`${i+1}P${g.group_no}`}))}return out}
   async function buildCup(){
-    if(tournament.owner_id!==me)return;const d=await data();if(d.cm.length)return alert('Cupen er allerede opprettet.');if(!d.gm.length||d.gm.some(m=>!done(m)))return alert('Alle puljekampene må være ferdige før cupen kan opprettes.');
+    if(tournament?.tournament_type!=='groups_cup'||tournament.owner_id!==me)return;const d=await data();if(d.cm.length)return alert('Cupen er allerede opprettet.');if(!d.gm.length||d.gm.some(m=>!done(m)))return alert('Alle puljekampene må være ferdige før cupen kan opprettes.');
     const q=qualifiers(d);if(q.length<2)return alert('Minst to spillere må gå videre til cup.');
     const size=nextPow2(q.length),rounds=Math.log2(size),slots=seededSlots(q,size),roundFormats=selectedCupFormats(rounds);
     const rows=[];let matchNo=1;for(let i=0;i<size/2;i++){const a=slots[i*2],b=slots[i*2+1];rows.push({tournament_id:id,stage:'cup',round_no:1,match_no:matchNo++,player1_id:a?.id||null,player2_id:b?.id||null,best_of:roundFormats[1],status:a&&b?'pending':a||b?'wo':'pending',winner_id:a&&!b?a.id:!a&&b?b.id:null,is_wo:!!(a&&!b||!a&&b)})}
@@ -88,7 +88,9 @@
   function cupPlayerHtml(playerId,seedById,{bye=false}={}){if(!playerId)return bye?'<span class="cup-bye">BYE</span>':'<span class="cup-name muted">Venter</span>';const seed=seedById.get(playerId)||'';return `${seed?`<span class="cup-seed">${esc(seed)}</span>`:''}<span class="cup-name">${esc(names[playerId]||'Spiller')}</span>`}
   async function finishTournamentIfNeeded(final){if(!final?.winner_id||tournament?.status!=='cup'||tournament?.owner_id!==me)return;const {error}=await db.from('tournaments').update({status:'finished',updated_at:new Date().toISOString()}).eq('id',id).eq('owner_id',me).eq('status','cup');if(error){console.error('Could not archive completed tournament',error);return}tournament.status='finished';setTimeout(()=>{try{if(typeof load==='function')load()}catch{}},80)}
   async function loadCup(){
-    if(!tournament||!['cup_setup','cup','finished'].includes(tournament.status))return;const d=await data();const setup=$('cupSetup'),lobby=$('cupLobby');if(!setup||!lobby)return;
+    if(!tournament||!['cup_setup','cup','finished'].includes(tournament.status))return;
+    if(tournament.tournament_type==='cup'&&tournament.status==='cup_setup')return;
+    const d=await data();const setup=$('cupSetup'),lobby=$('cupLobby');if(!setup||!lobby)return;
     setup.classList.toggle('hidden',tournament.status!=='cup_setup');lobby.classList.toggle('hidden',!['cup','finished'].includes(tournament.status));
     if(tournament.status==='cup_setup'){const allDone=d.gm.length&&d.gm.every(done),q=allDone?qualifiers(d):[];$('cupSetupInfo').textContent=allDone?`${q.length} spillere er klare for sluttspillet. Cupen bruker NDF-oppsett der dette er definert, og viser puljeplassering som 1P1, 2P1 osv.`:'Cupen kan opprettes når alle puljekampene er ferdige.';$('buildCupBtn').disabled=!allDone;if(allDone&&q.length>=2)renderCupFormat(q);return}
     if(!d.cm.length)return;const advancementBlocked=await advanceWinners(d.cm);const ids=[...new Set(d.cm.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))],missing=ids.filter(x=>!names[x]);if(missing.length){const {data:p}=await db.from('profiles').select('id,username').in('id',missing);Object.assign(names,Object.fromEntries((p||[]).map(x=>[x.id,x.username])))}
@@ -98,7 +100,7 @@
     if(advancementBlocked)$('cupProgress').textContent+=' • Vinner venter på overføring til neste runde';
     await finishTournamentIfNeeded(final);
   }
-  document.addEventListener('click',e=>{if(e.target.closest('#buildCupBtn'))buildCup()});
+  document.addEventListener('click',e=>{if(tournament?.tournament_type==='groups_cup'&&e.target.closest('#buildCupBtn'))buildCup()});
   window.addEventListener('dartarena:tournament-loaded',loadCup);window.dartArenaLoadCup=loadCup;
   setTimeout(()=>{if(typeof tournament!=='undefined'&&tournament)loadCup()},700);
 })();
