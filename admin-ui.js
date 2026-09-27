@@ -9,6 +9,7 @@
   let isAdmin=false;
   let observer=null;
   let deleteChannel=null;
+  const deleteModeCache=new Map();
 
   function ensureStyles(){
     if(document.getElementById('dartarena-admin-styles'))return;
@@ -17,6 +18,7 @@
     style.textContent=`
       .admin-badge{display:inline-flex;align-items:center;margin-left:9px;padding:3px 7px;border:1px solid rgba(244,196,93,.45);border-radius:999px;background:rgba(244,196,93,.09);color:var(--amber);font-size:10px;font-weight:950;letter-spacing:.1em;vertical-align:middle}
       .admin-delete-tournament{color:#ff9ba1!important;border-color:#743139!important;background:#35171a!important}
+      .admin-delete-tournament.admin-force-delete{font-weight:900;border-color:#a33f49!important;background:#491b20!important}
       .dart-chat-delete{margin-left:auto;border:0;background:transparent;color:#ff8f96;padding:0 2px;font-size:15px;line-height:1;cursor:pointer;opacity:.78}
       .dart-chat-delete:hover{opacity:1}
       .dart-chat-delete:disabled{opacity:.3;cursor:default}
@@ -33,26 +35,93 @@
     title.appendChild(badge);
   }
 
-  async function deleteTournament(id,button){
-    const row=button.closest('.tournament-row');
-    const name=row?.querySelector('.player-name')?.textContent?.trim()||'denne turneringen';
-    if(!confirm(`Slette ${name}?\n\nDette kan ikke angres. Ferdige turneringer og turneringer der en kamp har startet er beskyttet.`))return;
+  async function inspectTournament(id,{fresh=false}={}){
+    if(!fresh&&deleteModeCache.has(id))return deleteModeCache.get(id);
 
+    const [tResult,mResult]=await Promise.all([
+      db.from('tournaments').select('id,name,status').eq('id',id).single(),
+      db.from('tournament_matches').select('status,live_match_id').eq('tournament_id',id)
+    ]);
+    if(tResult.error)throw tResult.error;
+    if(mResult.error)throw mResult.error;
+
+    const matches=mResult.data||[];
+    const hasPlayed=matches.some(m=>m.live_match_id||['live','finished','wo'].includes(m.status));
+    const info={
+      id,
+      name:tResult.data.name,
+      status:tResult.data.status,
+      force:tResult.data.status==='finished'||hasPlayed
+    };
+    deleteModeCache.set(id,info);
+    return info;
+  }
+
+  async function setDeleteButtonMode(button,id){
+    try{
+      const info=await inspectTournament(id);
+      button.textContent=info.force?'Tvangsslett':'Slett';
+      button.classList.toggle('admin-force-delete',info.force);
+      button.title=info.force
+        ?'Admin: tvangsslett turnering og tilknyttet kampdata'
+        :'Admin: slett oppsatt turnering';
+    }catch(error){
+      console.warn('Could not inspect tournament delete mode',error);
+    }
+  }
+
+  async function deleteTournament(id,button,row=null,afterDelete=null){
     const old=button.textContent;
     button.disabled=true;
-    button.textContent='Sletter…';
     try{
-      const {error}=await db.rpc('admin_delete_tournament',{p_tournament_id:id});
-      if(error)throw error;
+      const info=await inspectTournament(id,{fresh:true});
+      button.textContent=info.force?'Tvangssletter…':'Sletter…';
+
+      if(info.force){
+        const typed=prompt(
+          `TVANGSSLETT TURNERING\n\nDette sletter ${info.name} permanent, inkludert turneringsdata og tilknyttede live-kamper/statistikk.\n\nSkriv turneringsnavnet nøyaktig for å bekrefte:\n${info.name}`,
+          ''
+        );
+        if(typed===null)return;
+        if(typed!==info.name){
+          alert('Navnet stemmer ikke. Turneringen ble ikke slettet.');
+          return;
+        }
+
+        const {error}=await db.rpc('admin_force_delete_tournament',{
+          p_tournament_id:id,
+          p_confirm_name:typed
+        });
+        if(error)throw error;
+      }else{
+        if(!confirm(`Slette ${info.name}?\n\nDette kan ikke angres.`))return;
+        const {error}=await db.rpc('admin_delete_tournament',{p_tournament_id:id});
+        if(error){
+          if(String(error.message||'').includes('Tournament requires force delete')){
+            deleteModeCache.delete(id);
+            button.disabled=false;
+            button.textContent=old;
+            return deleteTournament(id,button,row,afterDelete);
+          }
+          throw error;
+        }
+      }
+
+      deleteModeCache.delete(id);
       row?.remove();
+      if(typeof afterDelete==='function')afterDelete();
     }catch(error){
       const msg=String(error?.message||'Kunne ikke slette turneringen.')
-        .replace('Finished tournaments cannot be deleted','Ferdige turneringer kan ikke slettes.')
-        .replace('Tournament cannot be deleted after a match has started','Turneringen kan ikke slettes etter at en kamp har startet.')
+        .replace('Tournament requires force delete','Turneringen inneholder kampdata og må tvangsslettes.')
+        .replace('Tournament name confirmation does not match','Turneringsnavnet stemmer ikke.')
+        .replace('Tournament not found','Turneringen finnes ikke lenger.')
         .replace('Admin access required','Adminrettigheter kreves.');
       alert(msg);
-      button.disabled=false;
-      button.textContent=old;
+    }finally{
+      if(document.body.contains(button)){
+        button.disabled=false;
+        setDeleteButtonMode(button,id);
+      }
     }
   }
 
@@ -60,18 +129,42 @@
     if(!isAdmin)return;
     document.querySelectorAll('.tournament-row').forEach(row=>{
       if(row.querySelector('.admin-delete-tournament'))return;
-      const open=row.querySelector('[data-open]');
-      if(!open?.dataset.open)return;
+      const open=row.querySelector('[data-open],[data-history-open]');
+      const id=open?.dataset.open||open?.dataset.historyOpen;
+      if(!id)return;
       const actions=open.closest('.challenge-actions');
       if(!actions)return;
+
       const button=document.createElement('button');
       button.type='button';
       button.className='small-btn admin-delete-tournament';
       button.textContent='Slett';
-      button.title='Admin: slett oppsatt turnering';
-      button.addEventListener('click',()=>deleteTournament(open.dataset.open,button));
+      button.title='Admin: slett turnering';
+      button.addEventListener('click',event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        deleteTournament(id,button,row);
+      });
       actions.appendChild(button);
+      setDeleteButtonMode(button,id);
     });
+  }
+
+  function decorateCurrentTournament(){
+    if(!isAdmin||!document.getElementById('tName'))return;
+    if(document.getElementById('adminDeleteCurrentTournament'))return;
+    const id=new URLSearchParams(location.search).get('id');
+    const actions=document.querySelector('.lobby-top .top-actions');
+    if(!id||!actions)return;
+
+    const button=document.createElement('button');
+    button.id='adminDeleteCurrentTournament';
+    button.type='button';
+    button.className='outline admin-delete-tournament';
+    button.textContent='Slett';
+    button.addEventListener('click',()=>deleteTournament(id,button,null,()=>location.href='index.html'));
+    actions.insertBefore(button,actions.firstChild);
+    setDeleteButtonMode(button,id);
   }
 
   function ensureChatEmpty(){
@@ -135,16 +228,19 @@
       .subscribe();
   }
 
+  function decorate(){
+    addBadge();
+    decorateTournamentRows();
+    decorateCurrentTournament();
+    decorateChat();
+  }
+
   function observe(){
     if(observer)return;
     let timer=null;
     observer=new MutationObserver(()=>{
       clearTimeout(timer);
-      timer=setTimeout(()=>{
-        addBadge();
-        decorateTournamentRows();
-        decorateChat();
-      },60);
+      timer=setTimeout(decorate,60);
     });
     observer.observe(document.body,{childList:true,subtree:true});
   }
@@ -153,16 +249,14 @@
     const {data:{session}}=await db.auth.getSession();
     if(!session?.user)return;
 
-    subscribeChatDeletes();
     const {data,error}=await db.rpc('is_admin');
     if(error){console.warn('Admin role check failed',error);return;}
     isAdmin=data===true;
     if(!isAdmin)return;
 
     ensureStyles();
-    addBadge();
-    decorateTournamentRows();
-    decorateChat();
+    subscribeChatDeletes();
+    decorate();
     observe();
   }
 
