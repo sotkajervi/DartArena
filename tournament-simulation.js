@@ -1,125 +1,23 @@
-// DartArena test-only group lobby. Simulated players/matches stay local and are never written to Supabase.
+// DartArena local tournament simulation. Never writes simulated players, matches or results to Supabase.
 (function(){
   const $=id=>document.getElementById(id);
-  const escLocal=v=>String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
-  let simViewActive=false;
-  let simSnapshot=null;
-  let restoring=false;
+  const escLocal=v=>String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let simViewActive=false,simState=null,restoring=false;
 
-  const realLoad=typeof window.load==='function'?window.load:null;
   const realLoadGroupLobby=typeof window.loadGroupLobby==='function'?window.loadGroupLobby:null;
+  if(realLoadGroupLobby){window.loadGroupLobby=async function(...args){if(simViewActive)return;return realLoadGroupLobby.apply(this,args)}}
 
-  // Supabase/realtime refreshes must not replace the local simulation with an empty DB view.
-  if(realLoad){
-    window.load=async function(...args){
-      if(simViewActive)return;
-      return realLoad.apply(this,args);
-    };
-  }
-  if(realLoadGroupLobby){
-    window.loadGroupLobby=async function(...args){
-      if(simViewActive)return;
-      return realLoadGroupLobby.apply(this,args);
-    };
-  }
-
-  function rr(players){
-    let a=[...players];
-    if(a.length%2)a.push(null);
-    const rounds=[];
-    for(let r=0;r<a.length-1;r++){
-      const games=[];
-      for(let i=0;i<a.length/2;i++){
-        const p1=a[i],p2=a[a.length-1-i];
-        if(p1&&p2)games.push([p1,p2]);
-      }
-      rounds.push(games);
-      a=[a[0],a[a.length-1],...a.slice(1,-1)];
-    }
-    return rounds;
-  }
-
-  function snapshotGroups(){
-    if(!Array.isArray(drawnGroups))return [];
-    return drawnGroups.map(group=>group.map(player=>({
-      id:player.user_id,
-      name:names[player.user_id]||'Testspiller'
-    })));
-  }
-
-  function buildSnapshot(){
-    const groups=snapshotGroups();
-    if(!groups.length||groups.some(g=>!g.length))return null;
-    const best=Number($('groupBestOf').value||5);
-    const adv=$('advanceCount').value;
-    const total=groups.reduce((n,g)=>n+(g.length*(g.length-1))/2,0);
-    const html=groups.map((players,gi)=>{
-      const qualify=adv==='all'?players.length:Math.min(players.length,Number(adv||0));
-      const rounds=rr(players);
-      return `<div class="group-card simulation-group" data-sim-group="${gi}">
-        <div class="heading"><div><small>PULJE ${gi+1}</small><h2>${players.length} spillere</h2></div><div class="status">Best av ${best}</div></div>
-        <table class="standings"><thead><tr><th>#</th><th>Spiller</th><th>V</th><th>+/-</th><th>Legs</th></tr></thead><tbody>
-          ${players.map((p,i)=>`<tr class="${i<qualify?'qualify':''}"><td>${i+1}</td><td>${escLocal(p.name)}</td><td>0</td><td>0</td><td>0</td></tr>`).join('')}
-        </tbody></table>
-        ${rounds.map((round,ri)=>`<div class="round-block"><div class="round-title">Runde ${ri+1}</div>${round.map(([a,b],mi)=>`<div class="match-row simulation-match" role="button" tabindex="0" data-group="${gi}" data-round="${ri}" data-match="${mi}" data-player-a="${escLocal(a.name)}" data-player-b="${escLocal(b.name)}"><div class="match-players"><strong>${escLocal(a.name)}</strong><span class="muted">vs</span><strong>${escLocal(b.name)}</strong><span class="match-state">Klar</span></div><div class="match-score">vs</div></div>`).join('')}</div>`).join('')}
-      </div>`;
-    }).join('');
-    return {groups,best,adv,total,html};
-  }
-
-  function paint(scroll=false){
-    if(!simSnapshot)return;
-    restoring=true;
-    $('groupSetup')?.classList.add('hidden');
-    $('groupLobby')?.classList.remove('hidden');
-    if($('groupProgress'))$('groupProgress').textContent=`0 / ${simSnapshot.total} kamper ferdig • TESTMODUS`;
-    if($('tStatus'))$('tStatus').textContent='Puljespill (simulering)';
-    if($('tInfo'))$('tInfo').textContent='TESTMODUS: Puljer, tabeller og kamper simuleres lokalt. Ingenting lagres i Supabase.';
-    if($('liveGroups')&&$('liveGroups').innerHTML!==simSnapshot.html)$('liveGroups').innerHTML=simSnapshot.html;
-    restoring=false;
-    if(scroll)$('groupLobby')?.scrollIntoView({behavior:'smooth',block:'start'});
-  }
-
-  function render(){
-    simSnapshot=buildSnapshot();
-    if(!simSnapshot){
-      alert('Kunne ikke lese den simulerte trekningen. Trekk puljene på nytt.');
-      return;
-    }
-    simViewActive=true;
-    window.dartArenaSimulationViewActive=true;
-    paint(true);
-  }
-
-  // Extra guard: if another script changes/hides the simulation DOM, restore it immediately.
-  const observer=new MutationObserver(()=>{
-    if(!simViewActive||restoring||!simSnapshot)return;
-    const lobby=$('groupLobby'),live=$('liveGroups');
-    if(!lobby||!live)return;
-    if(lobby.classList.contains('hidden')||!live.querySelector('.simulation-group'))paint(false);
-  });
-  observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
-
-  document.addEventListener('click',e=>{
-    const start=e.target.closest('#startGroupsBtn');
-    if(start&&simulation){
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      render();
-      return;
-    }
-
-    const simToggle=e.target.closest('#simulate8Btn');
-    if(simToggle&&simViewActive){
-      simViewActive=false;
-      window.dartArenaSimulationViewActive=false;
-      simSnapshot=null;
-    }
-
-    const match=e.target.closest('.simulation-match');
-    if(match){
-      e.preventDefault();
-      alert(`${match.dataset.playerA} vs ${match.dataset.playerB}\n\nTestkamp. Simuleringen kontrollerer nå puljeoppsett og kampplan. Ingen data lagres.`);
-    }
-  },true);
+  function rr(players){let a=[...players];if(a.length%2)a.push(null);const rounds=[];for(let r=0;r<a.length-1;r++){const games=[];for(let i=0;i<a.length/2;i++){const p1=a[i],p2=a[a.length-1-i];if(p1&&p2)games.push([p1,p2])}rounds.push(games);a=[a[0],a[a.length-1],...a.slice(1,-1)]}return rounds}
+  function snapshotGroups(){if(!Array.isArray(drawnGroups))return[];return drawnGroups.map(group=>group.map(player=>({id:player.user_id,name:names[player.user_id]||'Testspiller'})))}
+  function targetWins(){return Math.floor(Number(simState?.best||5)/2)+1}
+  function buildState(){const groups=snapshotGroups();if(!groups.length||groups.some(g=>!g.length))return null;const best=Number($('groupBestOf').value||5),adv=$('advanceCount').value,matches=[];groups.forEach((players,gi)=>rr(players).forEach((round,ri)=>round.forEach(([a,b],mi)=>matches.push({id:`g${gi}-r${ri}-m${mi}`,group:gi,round:ri,a,b,p1:null,p2:null,status:'pending'}))));return{groups,best,adv,matches}}
+  function standings(gi){const players=simState.groups[gi],rows=Object.fromEntries(players.map(p=>[p.id,{...p,w:0,lf:0,la:0,d:0}]));simState.matches.filter(m=>m.group===gi&&m.status==='finished').forEach(m=>{rows[m.a.id].lf+=m.p1;rows[m.a.id].la+=m.p2;rows[m.b.id].lf+=m.p2;rows[m.b.id].la+=m.p1;if(m.p1>m.p2)rows[m.a.id].w++;else rows[m.b.id].w++});Object.values(rows).forEach(x=>x.d=x.lf-x.la);return Object.values(rows).sort((a,b)=>b.w-a.w||b.d-a.d||b.lf-a.lf||a.name.localeCompare(b.name,'nb'))}
+  function ensureControls(){let bar=$('simulationControls');if(bar)return bar;bar=document.createElement('div');bar.id='simulationControls';bar.style.cssText='display:flex;gap:10px;flex-wrap:wrap;margin:16px 0';bar.innerHTML='<button id="simulateAllMatchesBtn" class="primary">Simuler alle puljekamper</button><button id="resetSimulationBtn" class="outline">Nullstill resultater</button><span class="status" style="align-self:center">Testdata lagres ikke</span>';$('liveGroups')?.insertAdjacentElement('beforebegin',bar);return bar}
+  function renderHtml(){return simState.groups.map((players,gi)=>{const table=standings(gi),qualify=simState.adv==='all'?players.length:Math.min(players.length,Number(simState.adv||0)),roundNos=[...new Set(simState.matches.filter(m=>m.group===gi).map(m=>m.round))];return `<div class="group-card simulation-group" data-sim-group="${gi}"><div class="heading"><div><small>PULJE ${gi+1}</small><h2>${players.length} spillere</h2></div><div class="status">Best av ${simState.best}</div></div><table class="standings"><thead><tr><th>#</th><th>Spiller</th><th>V</th><th>+/-</th><th>Legs</th></tr></thead><tbody>${table.map((p,i)=>`<tr class="${i<qualify?'qualify':''}"><td>${i+1}</td><td>${escLocal(p.name)}</td><td>${p.w}</td><td>${p.d>0?'+':''}${p.d}</td><td>${p.lf}</td></tr>`).join('')}</tbody></table>${roundNos.map(r=>`<div class="round-block"><div class="round-title">Runde ${r+1}</div>${simState.matches.filter(m=>m.group===gi&&m.round===r).map(m=>`<div class="match-row simulation-match ${m.status==='finished'?'simulation-finished':''}" role="button" tabindex="0" data-sim-id="${m.id}"><div class="match-players"><strong>${escLocal(m.a.name)}</strong><span class="muted">vs</span><strong>${escLocal(m.b.name)}</strong><span class="match-state">${m.status==='finished'?'Ferdig':'Klar'}</span></div><div class="match-score">${m.status==='finished'?`${m.p1}–${m.p2}`:'vs'}</div></div>`).join('')}</div>`).join('')}</div>`}).join('')}
+  function paint(scroll=false){if(!simState)return;restoring=true;$('groupSetup')?.classList.add('hidden');$('groupLobby')?.classList.remove('hidden');ensureControls();const done=simState.matches.filter(m=>m.status==='finished').length,total=simState.matches.length;if($('groupProgress'))$('groupProgress').textContent=`${done} / ${total} kamper ferdig • TESTMODUS`;if($('tStatus'))$('tStatus').textContent='Puljespill (simulering)';if($('tInfo'))$('tInfo').textContent=done===total?'TESTMODUS: Alle puljekamper er ferdige. Neste test er overgang til cup.':'TESTMODUS: Klikk en kamp for å legge inn resultat, eller simuler alle puljekampene.';if($('liveGroups'))$('liveGroups').innerHTML=renderHtml();restoring=false;if(scroll)$('groupLobby')?.scrollIntoView({behavior:'smooth',block:'start'})}
+  function render(){simState=buildState();if(!simState){alert('Kunne ikke lese den simulerte trekningen. Trekk puljene på nytt.');return}simViewActive=true;window.dartArenaSimulationViewActive=true;paint(true)}
+  function randomResult(m){const win=targetWins(),loser=Math.floor(Math.random()*win);if(Math.random()<.5){m.p1=win;m.p2=loser}else{m.p1=loser;m.p2=win}m.status='finished'}
+  function editMatch(m){const win=targetWins(),current=m.status==='finished'?`${m.p1}-${m.p2}`:`${win}-0`,input=prompt(`${m.a.name} vs ${m.b.name}\nBest av ${simState.best}\n\nSkriv sluttresultat:`,current);if(input===null)return;const x=input.trim().match(/^(\d+)\s*[-–:]\s*(\d+)$/);if(!x)return alert('Skriv resultat som for eksempel 3-1.');const p1=Number(x[1]),p2=Number(x[2]);if(!((p1===win&&p2<win)||(p2===win&&p1<win)))return alert(`Ugyldig resultat. I Best av ${simState.best} må vinneren ha ${win} legs.`);m.p1=p1;m.p2=p2;m.status='finished';paint(false)}
+  const observer=new MutationObserver(()=>{if(!simViewActive||restoring||!simState)return;const lobby=$('groupLobby'),live=$('liveGroups');if(!lobby||!live)return;if(lobby.classList.contains('hidden')||!live.querySelector('.simulation-group'))paint(false)});observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+  document.addEventListener('click',e=>{const start=e.target.closest('#startGroupsBtn');if(start&&simulation){e.preventDefault();e.stopImmediatePropagation();render();return}if(e.target.closest('#simulateAllMatchesBtn')){e.preventDefault();simState?.matches.filter(m=>m.status!=='finished').forEach(randomResult);paint(false);return}if(e.target.closest('#resetSimulationBtn')){e.preventDefault();simState?.matches.forEach(m=>{m.p1=null;m.p2=null;m.status='pending'});paint(false);return}const toggle=e.target.closest('#simulate8Btn');if(toggle&&simViewActive){simViewActive=false;window.dartArenaSimulationViewActive=false;simState=null;$('simulationControls')?.remove()}const match=e.target.closest('.simulation-match');if(match&&simState){e.preventDefault();const m=simState.matches.find(x=>x.id===match.dataset.simId);if(m)editMatch(m)}},true);
 })();
