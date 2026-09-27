@@ -64,17 +64,43 @@
     for(let r=2;r<=rounds;r++){const count=size/(2**r);for(let i=0;i<count;i++)rows.push({tournament_id:id,stage:'cup',round_no:r,match_no:i+1,player1_id:null,player2_id:null,best_of:roundFormats[r],status:'pending',is_wo:false})}
     const {error}=await db.from('tournament_matches').insert(rows);if(error)return alert('Kunne ikke opprette cup: '+error.message);const {error:te}=await db.from('tournaments').update({status:'cup',updated_at:new Date().toISOString()}).eq('id',id).eq('owner_id',me);if(te)return alert(te.message);await load();await loadCup();
   }
-  async function advanceWinners(matches){const rounds=[...new Set(matches.map(m=>m.round_no))].sort((a,b)=>a-b);let changed=false;for(const r of rounds.slice(0,-1)){const cur=matches.filter(m=>m.round_no===r).sort((a,b)=>a.match_no-b.match_no),next=matches.filter(m=>m.round_no===r+1).sort((a,b)=>a.match_no-b.match_no);for(let i=0;i<cur.length;i++){const w=cur[i].winner_id;if(!w)continue;const target=next[Math.floor(i/2)];if(!target)continue;const field=i%2===0?'player1_id':'player2_id';if(!target[field]){const {error}=await db.from('tournament_matches').update({[field]:w}).eq('id',target.id);if(!error){target[field]=w;changed=true}}}}return changed}
+  async function advanceWinners(matches){
+    const rounds=[...new Set(matches.map(m=>m.round_no))].sort((a,b)=>a-b);
+    let blocked=false;
+    for(const r of rounds.slice(0,-1)){
+      const cur=matches.filter(m=>m.round_no===r).sort((a,b)=>a.match_no-b.match_no);
+      const next=matches.filter(m=>m.round_no===r+1).sort((a,b)=>a.match_no-b.match_no);
+      for(let i=0;i<cur.length;i++){
+        const w=cur[i].winner_id;
+        if(!done(cur[i])||!w)continue;
+        const target=next[Math.floor(i/2)],field=i%2===0?'player1_id':'player2_id';
+        if(!target||target[field])continue;
+        if(tournament?.owner_id!==me){blocked=true;continue}
+        try{
+          const {data:saved,error}=await db.from('tournament_matches')
+            .update({[field]:w}).eq('id',target.id).is(field,null).select('id,'+field);
+          if(error||!saved?.some(row=>row.id===target.id&&row[field]===w)){
+            blocked=true;
+            console.warn('Cup advancement was not confirmed',error||{matchId:target.id,field});
+            continue;
+          }
+          target[field]=w;
+        }catch(error){blocked=true;console.error('Cup advancement failed',error)}
+      }
+    }
+    return blocked;
+  }
   function cupPlayerHtml(playerId,seedById,{bye=false}={}){if(!playerId)return bye?'<span class="cup-bye">BYE</span>':'<span class="cup-name muted">Venter</span>';const seed=seedById.get(playerId)||'';return `${seed?`<span class="cup-seed">${esc(seed)}</span>`:''}<span class="cup-name">${esc(names[playerId]||'Spiller')}</span>`}
   async function finishTournamentIfNeeded(final){if(!final?.winner_id||tournament?.status!=='cup'||tournament?.owner_id!==me)return;const {error}=await db.from('tournaments').update({status:'finished',updated_at:new Date().toISOString()}).eq('id',id).eq('owner_id',me).eq('status','cup');if(error){console.error('Could not archive completed tournament',error);return}tournament.status='finished';setTimeout(()=>{try{if(typeof load==='function')load()}catch{}},80)}
   async function loadCup(){
     if(!tournament||!['cup_setup','cup','finished'].includes(tournament.status))return;const d=await data();const setup=$('cupSetup'),lobby=$('cupLobby');if(!setup||!lobby)return;
     setup.classList.toggle('hidden',tournament.status!=='cup_setup');lobby.classList.toggle('hidden',!['cup','finished'].includes(tournament.status));
     if(tournament.status==='cup_setup'){const allDone=d.gm.length&&d.gm.every(done),q=allDone?qualifiers(d):[];$('cupSetupInfo').textContent=allDone?`${q.length} spillere er klare for sluttspillet. Cupen bruker NDF-oppsett der dette er definert, og viser puljeplassering som 1P1, 2P1 osv.`:'Cupen kan opprettes når alle puljekampene er ferdige.';$('buildCupBtn').disabled=!allDone;if(allDone&&q.length>=2)renderCupFormat(q);return}
-    if(!d.cm.length)return;if(await advanceWinners(d.cm)){setTimeout(loadCup,200);return}const ids=[...new Set(d.cm.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))],missing=ids.filter(x=>!names[x]);if(missing.length){const {data:p}=await db.from('profiles').select('id,username').in('id',missing);Object.assign(names,Object.fromEntries((p||[]).map(x=>[x.id,x.username])))}
+    if(!d.cm.length)return;const advancementBlocked=await advanceWinners(d.cm);const ids=[...new Set(d.cm.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))],missing=ids.filter(x=>!names[x]);if(missing.length){const {data:p}=await db.from('profiles').select('id,username').in('id',missing);Object.assign(names,Object.fromEntries((p||[]).map(x=>[x.id,x.username])))}
     const seedById=new Map(qualifiers(d).map(p=>[p.id,p.seedLabel]));
     const max=Math.max(...d.cm.map(m=>m.round_no));$('cupBracket').innerHTML=Array.from({length:max},(_,i)=>i+1).map(r=>{const rm=d.cm.filter(m=>m.round_no===r),bo=rm[0]?.best_of;return `<div class="cup-round"><div class="cup-round-title">${cupRoundName(r,2**max)}${bo?` • Bo${bo}`:''}</div>${rm.map(m=>{const score=done(m)&&!m.is_wo?`${m.player1_legs||0}–${m.player2_legs||0}`:m.is_wo?'WO':'vs',aBye=r===1&&m.is_wo&&!m.player1_id,bBye=r===1&&m.is_wo&&!m.player2_id;return `<div class="cup-match" data-match="${m.id}"><div class="cup-player ${m.winner_id===m.player1_id&&m.player1_id?'winner':''}">${cupPlayerHtml(m.player1_id,seedById,{bye:aBye})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner_id===m.player2_id&&m.player2_id?'winner':''}">${cupPlayerHtml(m.player2_id,seedById,{bye:bBye})}</div></div>`}).join('')}</div>`}).join('');
     const final=d.cm.find(m=>m.round_no===max);$('cupProgress').textContent=final?.winner_id?`Vinner: ${names[final.winner_id]||'Spiller'}`:`${d.cm.filter(done).length} / ${d.cm.length} kamper ferdig`;
+    if(advancementBlocked)$('cupProgress').textContent+=' • Vinner venter på overføring til neste runde';
     await finishTournamentIfNeeded(final);
   }
   document.addEventListener('click',e=>{if(e.target.closest('#buildCupBtn'))buildCup()});
