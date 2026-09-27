@@ -12,10 +12,19 @@
   function targetWins(best){return Math.floor(Number(best||5)/2)+1}
   function nextPow2(n){let x=1;while(x<n)x*=2;return x}
 
-  // Standard seeded bracket order, matching the normal 16-player sheet:
-  // 1-16, 9-8, 5-12, 13-4, 3-14, 11-6, 7-10, 15-2.
   function seedOrder(size){let a=[1,2];while(a.length<size){const n=a.length*2,out=[];for(const x of a)out.push(x,n+1-x);a=out}return a.slice(0,size)}
+  const NDF_SLOTS={
+    '2:16':['1P1','8P2','5P1','4P2','3P1','6P2','7P1','2P2','2P1','7P2','6P1','3P2','4P1','5P2','8P1','1P2'],
+    '2:32':['1P1','16P2','9P1','8P2','5P1','12P2','13P1','4P2','3P1','14P2','11P1','6P2','7P1','10P2','15P1','2P2','2P1','15P2','10P1','7P2','6P1','11P2','14P1','3P2','4P1','13P2','12P1','5P2','8P1','9P2','16P1','1P2'],
+    '4:16':['1P1','4P3','3P2','2P4','2P3','3P1','4P4','1P2','1P3','4P1','3P4','2P2','2P1','3P3','4P2','1P4'],
+    '4:8':['1P1','2P4','2P3','1P2','1P3','2P2','2P1','1P4'],
+    '8:32':['1P1','4P7','3P4','2P6','2P5','3P3','4P8','1P2','1P3','4P5','3P2','2P8','2P7','3P1','4P6','1P4','1P5','4P3','3P8','2P2','2P1','3P7','4P4','1P6','1P7','4P1','3P6','2P4','2P3','3P5','4P2','1P8'],
+    '8:16':['1P1','2P6','2P5','1P2','1P3','2P8','2P7','1P4','1P5','2P2','2P1','1P6','1P7','2P4','2P3','1P8'],
+    '16:32':['1P1','2P15','2P16','1P2','1P3','2P13','2P14','1P4','1P5','2P11','2P12','1P6','1P7','2P9','2P10','1P8','1P9','2P7','2P8','1P10','1P11','2P5','2P6','1P12','1P13','2P3','2P4','1P14','1P15','2P1','2P2','1P16']
+  };
   function seededSlots(q,size){
+    const groupCount=Math.max(0,...q.map(p=>Number(p.group)||0)),template=NDF_SLOTS[`${groupCount}:${size}`];
+    if(template){const byLabel=new Map(q.map(p=>[p.seedLabel||`${p.pos}P${p.group}`,p])),slots=template.map(label=>byLabel.get(label)||null);if(slots.filter(Boolean).length===q.length)return slots}
     const seeded=[...q].sort((a,b)=>a.pos-b.pos||a.group-b.group).map((p,i)=>({...p,seedNo:i+1,seedLabel:`${p.pos}P${p.group}`}));
     const bySeed=new Map(seeded.map(p=>[p.seedNo,p]));
     return seedOrder(size).map(seed=>bySeed.get(seed)||null);
