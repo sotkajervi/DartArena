@@ -41,7 +41,7 @@
     `;
     document.head.appendChild(style);
 
-    const anchor=document.getElementById('groupLobby')||document.querySelector('main.shell');
+    const anchor=document.getElementById('cupLobby')||document.getElementById('cupSetup')||document.getElementById('groupLobby')||document.querySelector('main.shell');
     if(anchor?.parentNode)anchor.insertAdjacentElement('afterend',section);
     else document.querySelector('main.shell')?.appendChild(section);
     return section;
