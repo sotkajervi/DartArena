@@ -11,6 +11,8 @@
   function snapshotGroups(){if(!Array.isArray(drawnGroups))return[];return drawnGroups.map(group=>group.map(player=>({id:player.user_id,name:names[player.user_id]||'Testspiller'})))}
   function targetWins(best){return Math.floor(Number(best||5)/2)+1}
   function nextPow2(n){let x=1;while(x<n)x*=2;return x}
+  function seedOrder(size){let a=[1,2];while(a.length<size){const n=a.length*2,out=[];for(const x of a)out.push(x,n+1-x);a=out}return a.slice(0,size)}
+  function seededSlots(q,size){const seeded=[...q].sort((a,b)=>a.pos-b.pos||a.group-b.group),bySeed=new Map(seeded.map((p,i)=>[i+1,p]));return seedOrder(size).map(seed=>bySeed.get(seed)||null)}
   function roundName(round,totalRounds){const players=2**(totalRounds-round+1);if(players===2)return'Finale';if(players===4)return'Semifinale';if(players===8)return'Kvartfinale';if(players===16)return'Åttedelsfinale';return`Runde ${round}`}
 
   function buildState(){
@@ -44,19 +46,10 @@
     return out;
   }
 
-  function pairQualifiers(q){
-    const byGroup={};q.forEach(x=>(byGroup[x.group]??=[]).push(x));
-    const gs=Object.keys(byGroup).map(Number).sort((a,b)=>a-b),pairs=[],used=new Set();
-    if(gs.length===2){const a=byGroup[gs[0]],b=byGroup[gs[1]],n=Math.min(a.length,b.length);for(let i=0;i<n;i++){pairs.push([a[i],b[n-1-i]]);used.add(a[i].id);used.add(b[n-1-i].id)}}
-    else if(gs.length>=2&&gs.length%2===0){for(let i=0;i<gs.length/2;i++){const a=byGroup[gs[i]],b=byGroup[gs[gs.length-1-i]],n=Math.min(a.length,b.length);for(let k=0;k<n;k++){pairs.push([a[k],b[n-1-k]]);used.add(a[k].id);used.add(b[n-1-k].id)}}}
-    const rest=q.filter(x=>!used.has(x.id)).sort((a,b)=>a.pos-b.pos||a.group-b.group);while(rest.length>1)pairs.push([rest.shift(),rest.pop()]);if(rest.length)pairs.push([rest.shift(),null]);
-    return pairs;
-  }
-
   function buildCup(){
     if(!simState||simState.matches.some(m=>m.status!=='finished'))return alert('Alle puljekampene må være ferdige først.');
     const q=qualifiers();if(q.length<2)return alert('Minst to spillere må gå videre til cup.');
-    const size=nextPow2(q.length),totalRounds=Math.log2(size),pairs=pairQualifiers(q),slots=[];pairs.forEach(p=>slots.push(...p));while(slots.length<size)slots.push(null);
+    const size=nextPow2(q.length),totalRounds=Math.log2(size),slots=seededSlots(q,size);
     const cupMatches=[];
     for(let i=0;i<size/2;i++){
       const a=slots[i*2],b=slots[i*2+1],winner=a&&!b?a:!a&&b?b:null;
