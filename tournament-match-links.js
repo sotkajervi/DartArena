@@ -17,6 +17,10 @@ function ensureTournamentMatchStyles(){
   `;document.head.appendChild(s);
 }
 
+function isTournamentBye(match){
+  return match?.status==='wo'&&!!match.player1_id!==!!match.player2_id;
+}
+
 async function getTournamentLinkUid(){
   if(tournamentLinkUid)return tournamentLinkUid;
   const {data:{session}}=await tournamentLinkDb.auth.getSession();
@@ -29,7 +33,7 @@ async function openTournamentMatch(row){
   try{
     const uid=await getTournamentLinkUid();
     const {data:match,error}=await tournamentLinkDb.from('tournament_matches').select('id,player1_id,player2_id,status,live_match_id').eq('id',id).single();
-    if(error||!match)return;
+    if(error||!match||isTournamentBye(match))return;
     const isPlayer=uid&&[match.player1_id,match.player2_id].includes(uid);
     if(['finished','wo'].includes(match.status)){window.open(`tournament-match-stats.html?id=${encodeURIComponent(id)}`,'_blank','noopener');return}
     if(match.status==='live'){
@@ -47,15 +51,17 @@ document.addEventListener('keydown',e=>{if(!['Enter',' '].includes(e.key))return
 
 function setCupAccessLabel(row,text){
   let el=row.querySelector('.match-access-label');
+  if(!text){el?.remove();return}
   if(!el){el=document.createElement('div');el.className='match-access-label';row.appendChild(el)}
   if(el.textContent!==text)el.textContent=text;
 }
 function setGroupAccessLabel(row,text){const el=row.querySelector('.match-state');if(el&&el.textContent!==text)el.textContent=text}
 function applyMatchAccess(row,match,uid){
-  const isPlayer=!!uid&&[match.player1_id,match.player2_id].includes(uid),finished=['finished','wo'].includes(match.status),live=match.status==='live',pending=match.status==='pending',ready=!!(match.player1_id&&match.player2_id);
+  const isPlayer=!!uid&&[match.player1_id,match.player2_id].includes(uid),bye=isTournamentBye(match),finished=['finished','wo'].includes(match.status),live=match.status==='live',pending=match.status==='pending',ready=!!(match.player1_id&&match.player2_id);
   row.classList.toggle('my-tournament-match',isPlayer);
   let label,title,clickable=true;
-  if(finished){label='Se statistikk';title='Åpne kampstatistikk'}
+  if(bye){label='';title='BYE';clickable=false}
+  else if(finished){label='Se statistikk';title='Åpne kampstatistikk'}
   else if(live&&isPlayer){label='Gå til kamp';title='Gå tilbake til din kamp'}
   else if(live){label='Se kamp';title='Se kampen live'}
   else if(pending&&isPlayer&&ready){label='Min kamp';title='Åpne venterom for din kamp'}
@@ -90,8 +96,8 @@ async function decorateTournamentMatches(){
       applyMatchAccess(row,m,uid);
       if(row.classList.contains('cup-match')&&['finished','wo'].includes(m.status)){
         const score=(row.querySelector('.cup-score')?.textContent||'').trim().toLowerCase();
-        const shouldBeScore=m.status==='wo'?'wo':`${Number(m.player1_legs||0)}–${Number(m.player2_legs||0)}`;
-        if(score==='vs'||score!==shouldBeScore.toLowerCase())staleCup=true;
+        const shouldBeScore=isTournamentBye(m)?'vs':m.status==='wo'?'wo':`${Number(m.player1_legs||0)}–${Number(m.player2_legs||0)}`;
+        if(score!==shouldBeScore.toLowerCase())staleCup=true;
       }
     });
     if(staleCup)healStaleCupSoon();
