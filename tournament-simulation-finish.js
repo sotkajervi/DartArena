@@ -1,4 +1,13 @@
 (()=>{
+  // Shared bracket geometry for both simulation and real tournament cups.
+  // The version query also prevents an old browser cache from reusing the manual-offset layout.
+  if(!document.querySelector('script[data-dartarena-bracket-layout]')){
+    const layoutScript=document.createElement('script');
+    layoutScript.src='tournament-bracket-layout.js?v=20260927-1';
+    layoutScript.dataset.dartarenaBracketLayout='1';
+    document.head.appendChild(layoutScript);
+  }
+
   const $=id=>document.getElementById(id),id=new URLSearchParams(location.search).get('id');
   function parseScore(text){const m=String(text||'').match(/(\d+)\s*[-–:]\s*(\d+)/);return m?[Number(m[1]),Number(m[2])]:null}
   function snapshot(){
