@@ -1,5 +1,5 @@
 /* DartArena button hierarchy: primary action, secondary action, neutral, destructive. */
-button{transition:background-color .14s ease,border-color .14s ease,color .14s ease,box-shadow .14s ease,transform .08s ease}
+button{transition:background-color .14s ease,border-color .14s ease,color .14s ease,box-shadow .14s ease,transform .08s ease,opacity .14s ease}
 button:focus-visible{outline:2px solid rgba(35,226,209,.88);outline-offset:2px}
 button:not(:disabled):active{transform:translateY(1px)}
 
@@ -29,3 +29,25 @@ button:not(:disabled):active{transform:translateY(1px)}
 .availability,.tab,.format-btn,.calendar-nav,.calendar-day,.time-chip,.datetime-display{box-shadow:none}
 
 button:disabled{opacity:.46!important;cursor:not-allowed!important;transform:none!important;box-shadow:none!important}
+
+/* Async feedback without interfering with application-owned disabled state. */
+button.ui-busy{opacity:.68!important;cursor:wait!important;pointer-events:none!important;transform:none!important}
+button.ui-busy::after{content:' ';display:inline-block;width:.72em;height:.72em;margin-left:.55em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-.06em;animation:da-spin .65s linear infinite}
+@keyframes da-spin{to{transform:rotate(360deg)}}
+
+/* Shared spacing and typography polish. Keep match-page density intact. */
+.heading h2,.card>h2,.lobby-top h1,.match-head h1{line-height:1.12}
+.heading{gap:14px}
+.heading>div{min-width:0}
+.heading button{flex:0 0 auto}
+.status,.message,.muted.compact{line-height:1.4}
+body:not(.match-page) .top-actions button{min-height:40px}
+body:not(.match-page) .lobby-top{margin-bottom:22px}
+body:not(.match-page) .heading{margin-bottom:14px}
+body:not(.match-page) .player-row,body:not(.match-page) .challenge-row{min-height:58px}
+#lobbyView>.lobby-grid{margin-bottom:20px}
+
+@media(max-width:850px){
+  #lobbyView>.lobby-grid{margin-bottom:16px}
+  body:not(.match-page) .lobby-top{margin-bottom:18px}
+}
