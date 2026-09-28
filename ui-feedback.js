@@ -11,6 +11,7 @@
     retryCameraBtn:['Starter kamera…',1400],
     cameraBtn:['Starter kamera…',1400],
     readyBtn:['Klargjør…',1000],
+    buildCupBtn:['Oppretter…',1800],
     matchScoreBtn:['Registrerer…',500],
     cricketSubmitBtn:['Registrerer…',500]
   };
