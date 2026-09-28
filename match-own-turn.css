@@ -1,89 +1,111 @@
-/* 501/301 own-turn layout: same TV frame as opponent focus, input docked below video. */
-body.match-page.standard-tv-layout.own-turn-focus #matchView{
-  grid-template-rows:auto minmax(0,1fr) auto;
+/* 501/301 own-turn layout: same TV frame, but camera shrinks and score control appears below it. */
+
+/* Keep the same overall frame as opponent focus. */
+body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus #matchView{
+  grid-template-rows:auto minmax(0,1fr) auto!important;
   grid-template-areas:
     "head head"
     "score video"
-    "score input";
+    "score input"!important;
 }
 
-body.match-page.standard-tv-layout.own-turn-focus #videoGrid{
-  height:calc(100dvh - 238px)!important;
-  max-height:calc(100dvh - 238px)!important;
-  min-height:430px!important;
+/* Own turn: clearly shrink the opponent video so scoring gets its own control strip. */
+body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus #videoGrid{
+  height:clamp(420px,58dvh,570px)!important;
+  max-height:clamp(420px,58dvh,570px)!important;
+  min-height:420px!important;
+  transition:height .28s cubic-bezier(.2,.8,.2,1),max-height .28s cubic-bezier(.2,.8,.2,1)!important;
 }
 
-body.match-page.standard-tv-layout .focus-input-dock{
+/* Input dock lives below the big video. */
+body.match-page.match-tv-layout.standard-tv-layout .focus-input-dock{
   grid-area:input;
   min-width:0;
   margin-top:0;
 }
 
-body.match-page.standard-tv-layout.opponent-focus .focus-input-dock{
+/* Opponent turn: no score controls, maximum viewing area. */
+body.match-page.match-tv-layout.standard-tv-layout.opponent-focus .focus-input-dock{
   display:none!important;
 }
 
-body.match-page.standard-tv-layout.own-turn-focus .focus-input-dock{
+/* Stronger than the generic :not(:has(#cricketBoard)) rule in opponent-focus.css. */
+body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock{
   display:block!important;
+  animation:scoreDockIn .24s ease-out both;
 }
 
-body.match-page.standard-tv-layout.own-turn-focus .focus-input-dock::before{
-  content:'DIN TUR';
+body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock::before{
+  content:'DIN TUR  •  REGISTRER SCORE';
   display:block;
   margin:0 0 5px 2px;
   color:var(--cyan);
   font-size:11px;
-  font-weight:900;
+  font-weight:950;
   letter-spacing:.08em;
 }
 
-body.match-page.standard-tv-layout.own-turn-focus .focus-input-dock .score-entry{
+body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock .score-entry{
   display:grid!important;
   grid-template-columns:minmax(0,1fr) auto!important;
-  gap:8px!important;
-  width:100%;
+  gap:9px!important;
+  width:100%!important;
   margin:0!important;
   padding:10px!important;
-  border:1px solid rgba(255,255,255,.09);
-  border-radius:12px;
-  background:rgba(8,20,22,.92);
-  box-shadow:0 8px 26px rgba(0,0,0,.22);
+  border:1px solid rgba(35,226,209,.28)!important;
+  border-radius:12px!important;
+  background:linear-gradient(180deg,rgba(11,28,30,.97),rgba(7,18,20,.97))!important;
+  box-shadow:0 10px 30px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.035)!important;
 }
 
-body.match-page.standard-tv-layout.own-turn-focus .focus-input-dock .score-entry input{
+body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock .score-entry input{
+  display:block!important;
   width:100%!important;
   min-width:0!important;
-  padding:11px 12px!important;
-  font-size:20px!important;
-  font-weight:850!important;
+  padding:12px 14px!important;
+  font-size:22px!important;
+  line-height:1!important;
+  font-weight:900!important;
+  border-color:rgba(255,255,255,.12)!important;
+  background:rgba(0,0,0,.18)!important;
 }
 
-body.match-page.standard-tv-layout.own-turn-focus .focus-input-dock .score-entry button{
-  padding:10px 18px!important;
+body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock .score-entry button{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:11px 22px!important;
   font-size:14px!important;
   white-space:nowrap!important;
 }
 
-/* Keep the left sidebar readable and stable on both turns. */
-body.match-page.standard-tv-layout .match-grid{
+/* Sidebar remains unchanged between turns. */
+body.match-page.match-tv-layout.standard-tv-layout .match-grid{
   overflow-y:auto;
 }
-
-body.match-page.standard-tv-layout .score-card{
+body.match-page.match-tv-layout.standard-tv-layout .score-card{
   overflow:visible!important;
 }
 
+@keyframes scoreDockIn{
+  from{opacity:0;transform:translateY(-8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
 @media(max-height:820px){
-  body.match-page.standard-tv-layout.own-turn-focus #videoGrid{
-    height:calc(100dvh - 224px)!important;
-    max-height:calc(100dvh - 224px)!important;
-    min-height:390px!important;
+  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus #videoGrid{
+    height:clamp(360px,53dvh,465px)!important;
+    max-height:clamp(360px,53dvh,465px)!important;
+    min-height:360px!important;
   }
-  body.match-page.standard-tv-layout.own-turn-focus .focus-input-dock .score-entry{
+  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock .score-entry{
     padding:8px!important;
   }
-  body.match-page.standard-tv-layout.own-turn-focus .focus-input-dock .score-entry input{
-    padding:9px 10px!important;
-    font-size:18px!important;
+  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock .score-entry input{
+    padding:10px 11px!important;
+    font-size:19px!important;
+  }
+  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock .score-entry button{
+    padding:9px 16px!important;
   }
 }
