@@ -28,10 +28,10 @@ body.match-page .match-player .match-sets{
   align-self:end;
   margin:3px 0 0!important;
   color:var(--amber)!important;
-  font-size:13px!important;
+  font-size:24px!important;
   font-weight:950!important;
   line-height:1!important;
-  letter-spacing:.035em;
+  letter-spacing:.02em;
   text-transform:uppercase;
   white-space:nowrap;
 }
@@ -40,12 +40,12 @@ body.match-page .match-player .match-legs{
   grid-area:legs;
   justify-self:end;
   align-self:start;
-  margin:4px 0 0!important;
+  margin:5px 0 0!important;
   color:var(--cyan)!important;
-  font-size:13px!important;
+  font-size:24px!important;
   font-weight:950!important;
   line-height:1!important;
-  letter-spacing:.035em;
+  letter-spacing:.02em;
   text-transform:uppercase;
   white-space:nowrap;
 }
@@ -58,15 +58,15 @@ body.match-page .match-player:has(.match-sets.hidden) .match-legs{
   margin:0!important;
 }
 
-/* Slightly larger meta in the left TV sidebar. */
+/* Slightly larger meta in the left TV sidebar, while leaving room for both sets and legs. */
 body.match-page.match-tv-layout .match-player .match-sets,
 body.match-page.match-tv-layout .match-player .match-legs{
-  font-size:14px!important;
+  font-size:26px!important;
 }
 
 @media(max-height:820px){
   body.match-page .match-player .match-sets,
   body.match-page .match-player .match-legs{
-    font-size:12px!important;
+    font-size:22px!important;
   }
 }
