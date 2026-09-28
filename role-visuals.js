@@ -4,21 +4,45 @@
 
   const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
   const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
+  const BUILD='20260928-ui2';
   const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   const ADMIN='#ff9f43';
   const LEADER='#4da3ff';
   let roleMap=new Map();
   let observer=null;
   let scanTimer=null;
+  window.DARTARENA_BUILD=BUILD;
+
+  function ensureSharedUi(){
+    let buttonTheme=document.querySelector('link[href*="button-theme.css"]');
+    if(!buttonTheme){
+      buttonTheme=document.createElement('link');
+      buttonTheme.rel='stylesheet';
+      document.head.appendChild(buttonTheme);
+    }
+    const buttonHref=`button-theme.css?v=${BUILD}`;
+    if(!buttonTheme.href.endsWith(buttonHref))buttonTheme.href=buttonHref;
+
+    let bg=document.querySelector('link[data-dartarena-global-bg],link[href*="dartboard-background.css"]');
+    if(!bg){
+      bg=document.createElement('link');
+      bg.rel='stylesheet';
+      bg.dataset.dartarenaGlobalBg='1';
+      document.head.appendChild(bg);
+    }
+    const bgHref=`dartboard-background.css?v=${BUILD}`;
+    if(!bg.href.endsWith(bgHref))bg.href=bgHref;
+
+    if(!document.querySelector('script[data-dartarena-ui-feedback]')){
+      const script=document.createElement('script');
+      script.src=`ui-feedback.js?v=${BUILD}`;
+      script.dataset.dartarenaUiFeedback='1';
+      document.head.appendChild(script);
+    }
+  }
 
   function ensureTheme(){
-    if(!document.querySelector('link[data-dartarena-global-bg]')&&!document.querySelector('link[href*="dartboard-background.css"]')){
-      const link=document.createElement('link');
-      link.rel='stylesheet';
-      link.href='dartboard-background.css?v=20260928-global1';
-      link.dataset.dartarenaGlobalBg='1';
-      document.head.appendChild(link);
-    }
+    ensureSharedUi();
     if(document.getElementById('dartarena-role-visuals-style'))return;
     const style=document.createElement('style');
     style.id='dartarena-role-visuals-style';
