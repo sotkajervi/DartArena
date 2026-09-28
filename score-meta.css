@@ -1,0 +1,72 @@
+/* DartArena 501/301 score card meta: big score left, legs/sets right. */
+body.match-page .match-player{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto;
+  grid-template-rows:auto auto auto;
+  grid-template-areas:
+    "name name"
+    "score sets"
+    "score legs";
+  column-gap:14px;
+  align-items:center;
+}
+
+body.match-page .match-player .match-name{
+  grid-area:name;
+  min-width:0;
+}
+
+body.match-page .match-player .match-score{
+  grid-area:score;
+  align-self:center;
+  margin:4px 0 0!important;
+}
+
+body.match-page .match-player .match-sets{
+  grid-area:sets;
+  justify-self:end;
+  align-self:end;
+  margin:3px 0 0!important;
+  color:var(--amber)!important;
+  font-size:13px!important;
+  font-weight:950!important;
+  line-height:1!important;
+  letter-spacing:.035em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+body.match-page .match-player .match-legs{
+  grid-area:legs;
+  justify-self:end;
+  align-self:start;
+  margin:4px 0 0!important;
+  color:var(--cyan)!important;
+  font-size:13px!important;
+  font-weight:950!important;
+  line-height:1!important;
+  letter-spacing:.035em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+/* No-set formats: use the right side for legs only, vertically centered beside score. */
+body.match-page .match-player:has(.match-sets.hidden) .match-legs{
+  grid-area:score;
+  justify-self:end;
+  align-self:center;
+  margin:0!important;
+}
+
+/* Slightly larger meta in the left TV sidebar. */
+body.match-page.match-tv-layout .match-player .match-sets,
+body.match-page.match-tv-layout .match-player .match-legs{
+  font-size:14px!important;
+}
+
+@media(max-height:820px){
+  body.match-page .match-player .match-sets,
+  body.match-page .match-player .match-legs{
+    font-size:12px!important;
+  }
+}
