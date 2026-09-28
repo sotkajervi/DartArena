@@ -1,0 +1,31 @@
+/* DartArena button hierarchy: primary action, secondary action, neutral, destructive. */
+button{transition:background-color .14s ease,border-color .14s ease,color .14s ease,box-shadow .14s ease,transform .08s ease}
+button:focus-visible{outline:2px solid rgba(35,226,209,.88);outline-offset:2px}
+button:not(:disabled):active{transform:translateY(1px)}
+
+.primary{background:var(--cyan)!important;border-color:var(--cyan)!important;color:#041010!important;box-shadow:0 6px 18px rgba(35,226,209,.12)}
+.primary:hover:not(:disabled){background:#50ebdd!important;border-color:#50ebdd!important;box-shadow:0 8px 24px rgba(35,226,209,.18)}
+
+.small-btn{background:rgba(35,226,209,.065)!important;border-color:rgba(35,226,209,.38)!important;color:var(--cyan)!important;box-shadow:none}
+.small-btn:hover:not(:disabled){background:rgba(35,226,209,.13)!important;border-color:rgba(35,226,209,.68)!important;color:#6cf1e5!important}
+
+.outline{background:#0e1b1e!important;border-color:#2b4247!important;color:#dce8e9!important;box-shadow:none}
+.outline:hover:not(:disabled){background:#142528!important;border-color:#486269!important;color:#fff!important}
+
+.danger{background:#35171a!important;color:#ff9ba1!important;border-color:#743139!important;box-shadow:none}
+.danger:hover:not(:disabled){background:#481d22!important;border-color:#a0444e!important;color:#ffc0c4!important}
+
+/* Accept is a primary action; decline is destructive. */
+.small-btn.accept,.challenge-actions .accept{background:var(--cyan)!important;border-color:var(--cyan)!important;color:#041010!important}
+.small-btn.accept:hover:not(:disabled),.challenge-actions .accept:hover:not(:disabled){background:#50ebdd!important;border-color:#50ebdd!important;color:#041010!important}
+.small-btn.decline,.challenge-actions .decline{background:#35171a!important;border-color:#743139!important;color:#ff9ba1!important}
+.small-btn.decline:hover:not(:disabled),.challenge-actions .decline:hover:not(:disabled){background:#481d22!important;border-color:#a0444e!important;color:#ffc0c4!important}
+
+/* These actions are semantically destructive even where the legacy markup says outline. */
+#leaveRoomBtn,#rejectProposalBtn{background:#35171a!important;color:#ff9ba1!important;border-color:#743139!important}
+#leaveRoomBtn:hover:not(:disabled),#rejectProposalBtn:hover:not(:disabled){background:#481d22!important;border-color:#a0444e!important;color:#ffc0c4!important}
+
+/* Status/toggle controls keep their own state colors. */
+.availability,.tab,.format-btn,.calendar-nav,.calendar-day,.time-chip,.datetime-display{box-shadow:none}
+
+button:disabled{opacity:.46!important;cursor:not-allowed!important;transform:none!important;box-shadow:none!important}
