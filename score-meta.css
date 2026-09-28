@@ -27,7 +27,7 @@ body.match-page .match-player .match-sets{
   justify-self:end;
   align-self:end;
   margin:3px 0 0!important;
-  color:var(--amber)!important;
+  color:var(--text)!important;
   font-size:24px!important;
   font-weight:950!important;
   line-height:1!important;
