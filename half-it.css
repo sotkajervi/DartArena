@@ -33,5 +33,33 @@ body.half-it-page .half-status-row{display:flex;justify-content:space-between;ga
 body.half-it-page .half-status-row:last-child{border-bottom:0}
 body.half-it-page .half-status-row span{color:var(--muted)}
 body.half-it-page .half-status-row strong{text-align:right}
+
+/* Desktop play view: keep the scoring controls above the fold on the thrower's turn. */
+@media(min-width:901px){
+body.half-it-page .video-grid:not(.opponent-throwing){height:clamp(240px,30vh,430px);min-height:240px}
+body.half-it-page .half-grid{gap:10px;margin-top:8px}
+body.half-it-page .half-scoreboard{gap:8px;margin-bottom:8px}
+body.half-it-page .half-player{padding:8px 12px}
+body.half-it-page .half-score{font-size:34px}
+body.half-it-page .half-target-card{padding:9px 14px;margin-bottom:8px}
+body.half-it-page .half-target-card h2{font-size:23px;margin:2px 0 3px}
+body.half-it-page .half-target-card p{font-size:13px;line-height:1.35}
+body.half-it-page .half-entry{padding:9px 10px}
+body.half-it-page .half-darts{gap:6px;margin-bottom:7px}
+body.half-it-page .half-dart{min-height:34px}
+body.half-it-page .half-number-grid{gap:5px;margin-top:6px}
+body.half-it-page .half-number-grid button{padding:7px 3px}
+body.half-it-page .half-multiplier{gap:5px;margin-bottom:6px}
+body.half-it-page .half-actions{gap:5px;margin-top:6px}
+body.half-it-page .half-status-list{gap:4px;margin-top:8px}
+body.half-it-page .half-status-row{padding:6px 0}
+}
+@media(min-width:901px) and (max-height:900px){
+body.half-it-page .video-grid:not(.opponent-throwing){height:clamp(210px,27vh,300px);min-height:210px}
+body.half-it-page .half-score{font-size:30px}
+body.half-it-page .half-round{font-size:11px}
+body.half-it-page .half-target-card{padding:7px 12px}
+body.half-it-page .half-entry{padding:8px}
+}
 @media(max-width:900px){body.half-it-page .half-grid{grid-template-columns:1fr}body.half-it-page .half-number-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media(max-width:600px){body.half-it-page .half-score{font-size:32px}body.half-it-page .half-target-card h2{font-size:23px}body.half-it-page .half-quick{grid-template-columns:repeat(2,1fr)}body.half-it-page .half-number-grid{grid-template-columns:repeat(4,minmax(0,1fr))}body.half-it-page .half-actions{grid-template-columns:1fr 1fr}body.half-it-page #halfSubmitBtn{grid-column:1/-1}}
