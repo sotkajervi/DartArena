@@ -7,7 +7,7 @@
 
   const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
   const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
-  const BUILD='20260930-lobbyheader1';
+  const BUILD='20260930-solo1';
   const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   const ADMIN='#ff9f43';
   const LEADER='#4da3ff';
@@ -81,6 +81,23 @@
     };
     add('formStatsBtn','Form stats','form-stats.html');
     add('matchHistoryBtn','Kamphistorikk','match-history.html');
+  }
+
+  function ensureSoloHalfItCards(){
+    const grid=document.querySelector('#lobbyView .training-games-grid');
+    if(!grid)return;
+    const insert=(id,title,description,mode)=>{
+      if(document.getElementById(id))return;
+      const card=document.createElement('article');
+      card.className='training-game-card';
+      card.id=id;
+      card.innerHTML=`<div class="training-game-main"><div class="training-icon">½</div><div><h3>${title}</h3><p>${description}</p></div></div><button class="primary" type="button">Spill Half-It</button>`;
+      card.querySelector('button').onclick=()=>window.open(`half-it-solo.html?mode=${mode}`,`dartarena-training-half-it-${mode}`);
+      const disabled=grid.querySelector('.training-game-card.is-disabled');
+      grid.insertBefore(card,disabled||null);
+    };
+    insert('soloHalfItDartCounterCard','Half-It (DartCounter)','12 runder med farger, eksakt-score og tre valg på eksakt-runden.','dartcounter');
+    insert('soloHalfItStandardCard','Half-It (Standard)','13, 14, Dobbel, 15, 16, Trippel, 17, 18, 41, 19, 20 og Bull.','standard');
   }
 
   function showTournamentFormStatsBadge(enabled){
@@ -193,6 +210,7 @@
   async function boot(){
     ensureTheme();
     ensureLobbyNavButtons();
+    ensureSoloHalfItCards();
     await loadRoles();
     rolesLoaded=true;
     scan();
@@ -201,6 +219,7 @@
       const title=document.getElementById('welcomeName');
       const welcomeChanged=!!title&&mutations.some(m=>m.target===title||title.contains(m.target));
       if(welcomeChanged)syncWelcomeName();
+      ensureSoloHalfItCards();
       scheduleScan();
     });
     observer.observe(document.body,{childList:true,subtree:true,characterData:true});
