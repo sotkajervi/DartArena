@@ -1,32 +1,8 @@
 /* DartArena TV match layout: large opponent camera + fixed scoring sidebar */
-body.match-page.match-tv-layout .shell{
-  width:min(1580px,98vw);
-  margin:0 auto;
-  padding:6px 0 8px;
-}
-body.match-page.match-tv-layout #matchView{
-  display:grid;
-  grid-template-columns:320px minmax(0,1fr);
-  grid-template-rows:auto minmax(0,1fr);
-  grid-template-areas:
-    "head head"
-    "score video";
-  gap:8px 12px;
-  min-height:0;
-}
+body.match-page.match-tv-layout .shell{width:min(1580px,98vw);margin:0 auto;padding:6px 0 8px}
+body.match-page.match-tv-layout #matchView{display:grid;grid-template-columns:320px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"head head" "score video";gap:8px 12px;min-height:0}
 body.match-page.match-tv-layout .match-head{grid-area:head;margin:0}
-body.match-page.match-tv-layout #videoGrid{
-  grid-area:video;
-  display:block!important;
-  position:relative;
-  height:calc(100dvh - 154px)!important;
-  min-height:0!important;
-  max-height:calc(100dvh - 154px)!important;
-  margin:0!important;
-  overflow:hidden;
-  border-radius:14px;
-  transition:height .2s ease,max-height .2s ease;
-}
+body.match-page.match-tv-layout #videoGrid{grid-area:video;display:block!important;position:relative;height:calc(100dvh - 154px)!important;min-height:0!important;max-height:calc(100dvh - 154px)!important;margin:0!important;overflow:hidden;border-radius:14px;transition:height .2s ease,max-height .2s ease}
 body.match-page.match-tv-layout #videoGrid .remote-card{position:absolute;inset:0;width:100%;height:100%;z-index:1;border-color:rgba(35,226,209,.35);box-shadow:0 12px 40px rgba(0,0,0,.30);opacity:1;transition:border-color .18s ease,box-shadow .18s ease}
 body.match-page.match-tv-layout.opponent-focus #videoGrid .remote-card{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(35,226,209,.28),0 18px 55px rgba(0,0,0,.38)}
 body.match-page.match-tv-layout #videoGrid .remote-card video{width:100%;height:100%;object-fit:contain;background:#020607}
@@ -63,24 +39,25 @@ body.match-page.match-tv-layout:not(:has(#cricketBoard)) .throw-row .throw-score
 body.match-page.match-tv-layout:not(:has(#cricketBoard)) .throw-row button{padding:3px 6px!important;font-size:9px!important}
 body.match-page.match-tv-layout:not(:has(#cricketBoard)) #myThrowRows .throw-row:nth-last-child(n+3),body.match-page.match-tv-layout:not(:has(#cricketBoard)) #oppThrowRows .throw-row:nth-last-child(n+3){display:none!important}
 
+/* Cricket: keep the sidebar footprint, but make the information that must be read from the oche much larger. */
 body.match-page.cricket-tv-layout .cricket-play-grid{display:block!important;width:100%}
 body.match-page.cricket-tv-layout .cricket-play-grid>div:first-child{display:block!important}
 body.match-page.cricket-tv-layout .cricket-summary{display:grid!important;grid-template-columns:1fr!important;gap:5px!important;margin:0 0 6px!important}
-body.match-page.cricket-tv-layout .cricket-player{padding:6px 8px!important}
-body.match-page.cricket-tv-layout .cricket-player-stats{margin-top:1px!important}
-body.match-page.cricket-tv-layout .cricket-points{font-size:24px!important}
+body.match-page.cricket-tv-layout .cricket-player{padding:7px 9px!important}
+body.match-page.cricket-tv-layout .cricket-player-stats{margin-top:1px!important;font-size:13px!important}
+body.match-page.cricket-tv-layout .cricket-points{font-size:30px!important;font-weight:950!important;line-height:1!important}
 body.match-page.cricket-tv-layout .cricket-board{width:100%!important}
-body.match-page.cricket-tv-layout .cricket-row{min-height:29px!important;grid-template-columns:1fr 58px 1fr!important}
-body.match-page.cricket-tv-layout .cricket-target{font-size:12px!important}
-body.match-page.cricket-tv-layout .cricket-mark{font-size:19px!important}
+body.match-page.cricket-tv-layout .cricket-row{min-height:38px!important;grid-template-columns:1fr 64px 1fr!important}
+body.match-page.cricket-tv-layout .cricket-target{font-size:17px!important;font-weight:950!important;line-height:1!important}
+body.match-page.cricket-tv-layout .cricket-mark{font-size:27px!important;font-weight:950!important;line-height:1!important}
 body.match-page.cricket-tv-layout .cricket-history{display:block!important;margin-top:7px!important;border-radius:8px!important}
 body.match-page.cricket-tv-layout .cricket-history-head{padding:5px 7px!important}
 body.match-page.cricket-tv-layout .cricket-history-head span{display:none!important}
-body.match-page.cricket-tv-layout .cricket-history-list{max-height:76px!important;overflow-y:auto!important}
-body.match-page.cricket-tv-layout .cricket-history-row{grid-template-columns:minmax(72px,.8fr) minmax(88px,1.2fr) 30px 48px!important;gap:5px!important;min-height:27px!important;padding:4px 6px!important;font-size:9px!important}
+body.match-page.cricket-tv-layout .cricket-history-list{max-height:88px!important;overflow-y:auto!important}
+body.match-page.cricket-tv-layout .cricket-history-row{grid-template-columns:minmax(80px,.8fr) minmax(98px,1.2fr) 34px 52px!important;gap:5px!important;min-height:31px!important;padding:5px 7px!important;font-size:11px!important;font-weight:750!important}
 body.match-page.cricket-tv-layout .cricket-history-meta{display:none!important}
-body.match-page.cricket-tv-layout .cricket-history-edit{padding:3px 5px!important;font-size:8px!important}
-body.match-page.cricket-tv-layout .cricket-history-empty{padding:7px!important;font-size:9px!important}
+body.match-page.cricket-tv-layout .cricket-history-edit{padding:3px 5px!important;font-size:9px!important}
+body.match-page.cricket-tv-layout .cricket-history-empty{padding:7px!important;font-size:10px!important}
 body.match-page.cricket-tv-layout.opponent-focus .focus-input-dock{display:none!important}
 body.match-page.cricket-tv-layout.opponent-focus #matchMessage{display:none!important}
 body.match-page.cricket-tv-layout.own-turn-focus #matchView{grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"head head" "score video" "score input"}
@@ -97,13 +74,15 @@ body.match-page.cricket-tv-layout.own-turn-focus .focus-input-dock .cricket-entr
 body.match-page.cricket-tv-layout.own-turn-focus .focus-input-dock .cricket-help{grid-area:help!important;margin:0!important;font-size:10px!important;line-height:1.3!important}
 
 @media(max-height:820px){
-  body.match-page.match-tv-layout #matchView{grid-template-columns:300px minmax(0,1fr)}
-  body.match-page.match-tv-layout #videoGrid{height:calc(100dvh - 144px)!important;min-height:0!important;max-height:calc(100dvh - 144px)!important}
-  body.match-page.match-tv-layout .match-grid{max-height:calc(100dvh - 144px)}
-  body.match-page.match-tv-layout .match-info .focus-local-docked{height:92px!important}
-  body.match-page.cricket-tv-layout .cricket-row{min-height:27px!important}
-  body.match-page.cricket-tv-layout .cricket-history-list{max-height:64px!important}
-  body.match-page.cricket-tv-layout.own-turn-focus #videoGrid{height:calc(100dvh - 292px)!important;max-height:calc(100dvh - 292px)!important;min-height:390px!important}
-  body.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-score{font-size:64px!important}
-  body.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-player{min-height:112px!important;padding:11px!important}
+ body.match-page.match-tv-layout #matchView{grid-template-columns:300px minmax(0,1fr)}
+ body.match-page.match-tv-layout #videoGrid{height:calc(100dvh - 144px)!important;min-height:0!important;max-height:calc(100dvh - 144px)!important}
+ body.match-page.match-tv-layout .match-grid{max-height:calc(100dvh - 144px)}
+ body.match-page.match-tv-layout .match-info .focus-local-docked{height:92px!important}
+ body.match-page.cricket-tv-layout .cricket-row{min-height:34px!important}
+ body.match-page.cricket-tv-layout .cricket-target{font-size:16px!important}
+ body.match-page.cricket-tv-layout .cricket-mark{font-size:24px!important}
+ body.match-page.cricket-tv-layout .cricket-history-list{max-height:70px!important}
+ body.match-page.cricket-tv-layout.own-turn-focus #videoGrid{height:calc(100dvh - 292px)!important;max-height:calc(100dvh - 292px)!important;min-height:390px!important}
+ body.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-score{font-size:64px!important}
+ body.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-player{min-height:112px!important;padding:11px!important}
 }
