@@ -10,6 +10,7 @@
 
   async function boot(){
     if(!window.supabase||!$('tournamentList'))return;
+    ensureFormStatsUi();
     db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
     const {data:{session}}=await db.auth.getSession();if(!session)return;
     me=session.user.id;
@@ -23,8 +24,36 @@
       .subscribe();
   }
 
+  function ensureFormStatsUi(){
+    if(!document.querySelector('link[data-tournament-form-stats]')){
+      const link=document.createElement('link');
+      link.rel='stylesheet';link.href='tournament-form-stats.css?v=20260929-formtoggle1';link.dataset.tournamentFormStats='1';
+      document.head.appendChild(link);
+    }
+    if($('tournamentFormStats'))return;
+    const submit=document.querySelector('#createTournamentForm > button[type="submit"]');
+    if(!submit)return;
+    const option=document.createElement('label');
+    option.className='form-stats-option';
+    option.htmlFor='tournamentFormStats';
+    option.innerHTML='<span class="form-stats-copy"><strong>Form stats</strong><small>501-kamper teller i spillerens formstatistikk</small></span><span class="form-stats-control"><span id="tournamentFormStatsState" class="form-stats-state">PÅ</span><span class="form-stats-switch"><input id="tournamentFormStats" type="checkbox" checked><span class="form-stats-slider"></span></span></span>';
+    submit.insertAdjacentElement('beforebegin',option);
+    $('tournamentFormStats').addEventListener('change',syncFormStatsToggle);
+    syncFormStatsToggle();
+  }
+  function syncFormStatsToggle(){
+    const on=$('tournamentFormStats')?.checked!==false;
+    if($('tournamentFormStatsState'))$('tournamentFormStatsState').textContent=on?'PÅ':'AV';
+    document.querySelector('.form-stats-option')?.classList.toggle('is-off',!on);
+  }
+  function resetFormStatsToggle(){
+    if(!$('tournamentFormStats'))return;
+    $('tournamentFormStats').checked=true;
+    syncFormStatsToggle();
+  }
+
   function defaultDate(){const d=new Date(Date.now()+3600000);d.setMinutes(Math.ceil(d.getMinutes()/5)*5,0,0);selectedDate=new Date(d.getFullYear(),d.getMonth(),d.getDate());selectedTime=`${pad(d.getHours())}:${pad(d.getMinutes())}`;viewMonth=new Date(d.getFullYear(),d.getMonth(),1);syncDate()}
-  function bind(){$('createTournamentBtn').onclick=()=>{$('tournamentModal').classList.remove('hidden');defaultDate()};$('closeTournamentModal').onclick=()=>$('tournamentModal').classList.add('hidden');$('tournamentModalBackdrop').onclick=()=>$('tournamentModal').classList.add('hidden');$('createTournamentForm').onsubmit=create;$('openDatePicker').onclick=openPicker;$('datePickerBackdrop').onclick=closePicker;$('cancelDatePicker').onclick=closePicker;$('prevMonth').onclick=()=>{viewMonth=new Date(viewMonth.getFullYear(),viewMonth.getMonth()-1,1);renderCalendar()};$('nextMonth').onclick=()=>{viewMonth=new Date(viewMonth.getFullYear(),viewMonth.getMonth()+1,1);renderCalendar()};$('customTime').oninput=e=>{if(e.target.value){selectedTime=e.target.value;renderTimes();updateSummary()}};$('confirmDatePicker').onclick=()=>{syncDate();closePicker()}}
+  function bind(){$('createTournamentBtn').onclick=()=>{resetFormStatsToggle();$('tournamentModal').classList.remove('hidden');defaultDate()};$('closeTournamentModal').onclick=()=>$('tournamentModal').classList.add('hidden');$('tournamentModalBackdrop').onclick=()=>$('tournamentModal').classList.add('hidden');$('createTournamentForm').onsubmit=create;$('openDatePicker').onclick=openPicker;$('datePickerBackdrop').onclick=closePicker;$('cancelDatePicker').onclick=closePicker;$('prevMonth').onclick=()=>{viewMonth=new Date(viewMonth.getFullYear(),viewMonth.getMonth()-1,1);renderCalendar()};$('nextMonth').onclick=()=>{viewMonth=new Date(viewMonth.getFullYear(),viewMonth.getMonth()+1,1);renderCalendar()};$('customTime').oninput=e=>{if(e.target.value){selectedTime=e.target.value;renderTimes();updateSummary()}};$('confirmDatePicker').onclick=()=>{syncDate();closePicker()}}
   function openPicker(){if(!selectedDate)defaultDate();viewMonth=new Date(selectedDate.getFullYear(),selectedDate.getMonth(),1);renderCalendar();renderTimes();updateSummary();$('datePickerModal').classList.remove('hidden')}
   function closePicker(){$('datePickerModal').classList.add('hidden')}
   function renderCalendar(){const y=viewMonth.getFullYear(),m=viewMonth.getMonth();$('calendarMonth').textContent=new Intl.DateTimeFormat('nb-NO',{month:'long',year:'numeric'}).format(viewMonth);const first=(new Date(y,m,1).getDay()+6)%7,days=new Date(y,m+1,0).getDate(),today=new Date();let html='';for(let i=0;i<first;i++)html+='<span class="calendar-empty"></span>';for(let d=1;d<=days;d++){const dt=new Date(y,m,d),past=new Date(y,m,d+1)<=new Date(today.getFullYear(),today.getMonth(),today.getDate()),sel=selectedDate&&dt.toDateString()===selectedDate.toDateString(),isToday=dt.toDateString()===today.toDateString();html+=`<button type="button" class="calendar-day${sel?' selected':''}${isToday?' today':''}" data-day="${d}" ${past?'disabled':''}>${d}</button>`}$('calendarDays').innerHTML=html;document.querySelectorAll('.calendar-day:not(:disabled)').forEach(b=>b.onclick=()=>{selectedDate=new Date(y,m,Number(b.dataset.day));renderCalendar();updateSummary()})}
@@ -32,14 +61,15 @@
   function updateSummary(){$('datePickerSummary').textContent=selectedDate?pretty(selectedDate,selectedTime):'Velg dato og tid'}
   function syncDate(){if(!selectedDate)return;$('tournamentStart').value=localValue(selectedDate,selectedTime);$('dateTimeText').textContent=pretty(selectedDate,selectedTime)}
 
-  async function create(e){e.preventDefault();const name=$('tournamentName').value.trim(),type=$('tournamentType').value,start=$('tournamentStart').value,msg=$('tournamentCreateMessage');if(!start){msg.textContent='Velg starttidspunkt.';msg.className='message error';return}msg.textContent='Oppretter…';const {data,error}=await db.from('tournaments').insert({name,owner_id:me,tournament_type:type,starts_at:new Date(start).toISOString()}).select('*').single();if(error){msg.textContent=error.message;msg.className='message error';return}msg.textContent='';$('tournamentModal').classList.add('hidden');await load();location.href=`tournament.html?id=${encodeURIComponent(data.id)}`}
+  async function create(e){e.preventDefault();const name=$('tournamentName').value.trim(),type=$('tournamentType').value,start=$('tournamentStart').value,msg=$('tournamentCreateMessage'),statsEnabled=$('tournamentFormStats')?.checked!==false;if(!start){msg.textContent='Velg starttidspunkt.';msg.className='message error';return}msg.textContent='Oppretter…';const {data,error}=await db.from('tournaments').insert({name,owner_id:me,tournament_type:type,starts_at:new Date(start).toISOString(),stats_enabled:statsEnabled}).select('*').single();if(error){msg.textContent=error.message;msg.className='message error';return}msg.textContent='';$('tournamentModal').classList.add('hidden');await load();location.href=`tournament.html?id=${encodeURIComponent(data.id)}`}
 
   function tournamentRow(x,list,{archive=false,winnerName=''}={}){
-    const joined=list.some(m=>m.user_id===me),n=list.filter(m=>m.role==='participant').length;
+    const joined=list.some(m=>m.user_id===me),n=list.filter(m=>m.role==='participant').length,statsOn=x.stats_enabled!==false;
     const meta=archive
       ?`${x.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup'} • Ferdig ${fmt(x.finished_at||x.updated_at||x.starts_at)} • ${n} deltakere • Vinner: ${esc(winnerName||'–')}`
       :`${x.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup'} • ${fmt(x.starts_at)} • ${n} påmeldt`;
-    return `<article class="tournament-row"><div><div class="player-name">${esc(x.name)}</div><div class="status">${meta}</div></div><div class="challenge-actions">${archive?`<button class="small-btn" data-history-open="${x.id}">Se turnering</button><button class="small-btn" data-history-stats="${x.id}">Sluttstatistikk</button>`:`<button class="small-btn" data-open="${x.id}">Åpne</button>${x.registration_open?`<button class="small-btn ${joined?'decline':'accept'}" data-${joined?'leave':'join'}="${x.id}">${joined?'Avmeld':'Meld på'}</button>`:''}`}</div></article>`;
+    const statsBadge=`<span class="form-stats-badge${statsOn?'':' off'}" title="${statsOn?'Teller i Form stats':'Teller ikke i Form stats'}">${statsOn?'FORM STATS':'FORM STATS AV'}</span>`;
+    return `<article class="tournament-row"><div><div class="tournament-title-line"><div class="player-name">${esc(x.name)}</div>${statsBadge}</div><div class="status">${meta}</div></div><div class="challenge-actions">${archive?`<button class="small-btn" data-history-open="${x.id}">Se turnering</button><button class="small-btn" data-history-stats="${x.id}">Sluttstatistikk</button>`:`<button class="small-btn" data-open="${x.id}">Åpne</button>${x.registration_open?`<button class="small-btn ${joined?'decline':'accept'}" data-${joined?'leave':'join'}="${x.id}">${joined?'Avmeld':'Meld på'}</button>`:''}`}</div></article>`;
   }
 
   async function archiveWinners(past){
