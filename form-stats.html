@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071012">
+  <title>DartArena • Form stats</title>
+  <link rel="stylesheet" href="style.css?v=20260929-formstats1">
+  <link rel="stylesheet" href="dartboard-background.css?v=20260929-formstats1">
+  <link rel="stylesheet" href="button-theme.css?v=20260929-formstats1">
+  <style>
+    .form-wrap{max-width:1180px;margin:0 auto}.form-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px}.form-head h1{margin-bottom:6px}.form-info{margin-bottom:16px;line-height:1.5}.form-table-wrap{overflow-x:auto;border:1px solid rgba(255,255,255,.08);border-radius:16px}.form-table{width:100%;border-collapse:collapse;min-width:900px}.form-table th,.form-table td{padding:13px 12px;border-bottom:1px solid rgba(255,255,255,.065);text-align:center;white-space:nowrap}.form-table th:first-child,.form-table td:first-child{text-align:left}.form-table thead th{color:var(--cyan);font-size:12px;text-transform:uppercase;letter-spacing:.04em;background:rgba(5,16,18,.78);position:sticky;top:0}.form-table tbody tr:last-child td{border-bottom:0}.form-table tbody tr:hover{background:rgba(35,226,209,.035)}.form-rank{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(35,226,209,.09);color:var(--cyan);font-size:12px;font-weight:900;margin-right:9px}.form-player{font-weight:900}.form-avg{font-size:19px;font-weight:950;color:var(--cyan)}.form-first9{font-weight:850}.form-sub{display:block;color:var(--muted);font-size:11px;font-weight:600;margin-top:3px}.form-empty{text-align:center;padding:28px 10px}.form-updated{text-align:right;margin-top:10px;color:var(--muted);font-size:12px}@media(max-width:650px){.form-head{flex-direction:column}.form-head .top-actions{width:100%}.form-head .top-actions button{width:100%}.form-table th,.form-table td{padding:11px 9px}}
+  </style>
+</head>
+<body>
+  <header><div class="brand">DART<span>ARENA</span></div><div class="live"><i></i> FORM STATS</div></header>
+  <main class="shell">
+    <div class="form-wrap">
+      <div class="form-head">
+        <div><small>TURNERINGSFORM</small><h1>Form stats</h1><p class="muted compact">Hvordan spillerne har kastet i sine siste turneringer.</p></div>
+        <div class="top-actions"><button id="backBtn" class="outline" type="button">Tilbake til lobby</button></div>
+      </div>
+      <section class="card">
+        <p class="muted form-info">Basert på spillerens <strong>siste 5 fullførte turneringer med registrerte X01-kast</strong>. Onlinekamper, trening, WO og BYE teller ikke. 100+, 140+ og 170+ er separate intervaller.</p>
+        <div id="formState" class="form-empty muted">Laster formstatistikk…</div>
+        <div id="formTableWrap" class="form-table-wrap hidden">
+          <table class="form-table">
+            <thead><tr><th>Spiller</th><th>Form AVG</th><th>First 9</th><th>100+</th><th>140+</th><th>170+</th><th>180</th><th>Høyeste CO</th><th>Kamper</th><th>Legs</th><th>Turn.</th></tr></thead>
+            <tbody id="formTableBody"></tbody>
+          </table>
+        </div>
+        <div id="formUpdated" class="form-updated"></div>
+      </section>
+    </div>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="form-stats.js?v=20260929-formstats1"></script>
+  <script src="role-visuals.js?v=20260929-formstats1"></script>
+</body>
+</html>
