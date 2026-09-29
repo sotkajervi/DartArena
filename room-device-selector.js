@@ -19,6 +19,7 @@
 
   const currentTrack = kind => stream?.getTracks?.().find(track => track.kind === kind && track.readyState === 'live') || null;
   const currentDeviceId = kind => currentTrack(kind)?.getSettings?.().deviceId || '';
+  const roomStreamReady = () => !!stream?.getTracks?.().length;
 
   function setMicLevel(value) {
     const pct = Math.max(0, Math.min(100, Math.round(value)));
@@ -102,7 +103,7 @@
       option.textContent = device.label || `${fallbackLabel} ${index + 1}`;
       select.appendChild(option);
     });
-    select.disabled = switching;
+    select.disabled = switching || !roomStreamReady();
     if (wanted) select.value = wanted;
   }
 
@@ -130,6 +131,10 @@
         currentDeviceId('audio'),
         'Mikrofon'
       );
+      if (!roomStreamReady()) {
+        cameraSelect.disabled = true;
+        micSelect.disabled = true;
+      }
     } catch (error) {
       console.warn('Kunne ikke hente kamera/mikrofonliste', error);
     }
@@ -159,7 +164,7 @@
   }
 
   async function replaceDevice(kind, deviceId, save = true) {
-    if (!deviceId || switching || !navigator.mediaDevices?.getUserMedia) return;
+    if (!deviceId || switching || !navigator.mediaDevices?.getUserMedia || !roomStreamReady()) return;
     const oldTrack = currentTrack(kind);
     if (oldTrack?.getSettings?.().deviceId === deviceId) {
       if (save) localStorage.setItem(kind === 'video' ? CAMERA_KEY : MIC_KEY, deviceId);
@@ -215,8 +220,8 @@
       }, 2500);
     } finally {
       switching = false;
-      cameraSelect.disabled = !cameraSelect.options.length;
-      micSelect.disabled = !micSelect.options.length;
+      cameraSelect.disabled = !roomStreamReady() || !cameraSelect.options.length;
+      micSelect.disabled = !roomStreamReady() || !micSelect.options.length;
     }
   }
 
