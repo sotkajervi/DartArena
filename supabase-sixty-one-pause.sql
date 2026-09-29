@@ -4,7 +4,7 @@ alter table public.sixty_one_match_state
   add column if not exists paused_at timestamptz,
   add column if not exists paused_by uuid;
 
-create or replace function public.toggle_sixty_one_pause(p_match_id uuid)
+create or replace function public.set_sixty_one_pause(p_match_id uuid, p_paused boolean)
 returns jsonb
 language plpgsql
 security definer
@@ -36,33 +36,41 @@ begin
   if not found then raise exception '61 state is missing'; end if;
   if v_state.sudden_death then raise exception 'Pause is not available in sudden death'; end if;
 
-  if v_state.is_paused then
-    v_pause_length := now() - coalesce(v_state.paused_at, now());
+  if p_paused then
+    if v_state.is_paused then
+      return jsonb_build_object('paused', true, 'paused_by', v_state.paused_by);
+    end if;
+    if now() >= v_state.leg_started_at + make_interval(secs => v_state.leg_duration_seconds) then
+      raise exception 'Time is up';
+    end if;
     update public.sixty_one_match_state
-    set leg_started_at = leg_started_at + v_pause_length,
-        is_paused = false,
-        paused_at = null,
-        paused_by = null,
+    set is_paused = true,
+        paused_at = now(),
+        paused_by = v_uid,
         updated_at = now()
     where match_id = p_match_id;
-    return jsonb_build_object('paused', false, 'resumed_by', v_uid);
+    return jsonb_build_object('paused', true, 'paused_by', v_uid);
   end if;
 
-  if now() >= v_state.leg_started_at + make_interval(secs => v_state.leg_duration_seconds) then
-    raise exception 'Time is up';
+  if not v_state.is_paused then
+    return jsonb_build_object('paused', false);
   end if;
 
+  v_pause_length := now() - coalesce(v_state.paused_at, now());
   update public.sixty_one_match_state
-  set is_paused = true,
-      paused_at = now(),
-      paused_by = v_uid,
+  set leg_started_at = leg_started_at + v_pause_length,
+      is_paused = false,
+      paused_at = null,
+      paused_by = null,
       updated_at = now()
   where match_id = p_match_id;
 
-  return jsonb_build_object('paused', true, 'paused_by', v_uid);
+  return jsonb_build_object('paused', false, 'resumed_by', v_uid);
 end;
 $$;
 
-revoke execute on function public.toggle_sixty_one_pause(uuid) from public;
-revoke execute on function public.toggle_sixty_one_pause(uuid) from anon;
-grant execute on function public.toggle_sixty_one_pause(uuid) to authenticated;
+revoke execute on function public.set_sixty_one_pause(uuid, boolean) from public;
+revoke execute on function public.set_sixty_one_pause(uuid, boolean) from anon;
+grant execute on function public.set_sixty_one_pause(uuid, boolean) to authenticated;
+
+drop function if exists public.toggle_sixty_one_pause(uuid);
