@@ -6,17 +6,20 @@
   const restartButton=document.getElementById('restartCameraTest');
   const video=document.getElementById('cameraTestVideo');
   const previewStatus=document.getElementById('cameraTestPreviewStatus');
-  const cameraName=document.getElementById('cameraTestCameraName');
-  const micName=document.getElementById('cameraTestMicName');
+  const cameraSelect=document.getElementById('cameraTestCameraSelect');
+  const micSelect=document.getElementById('cameraTestMicSelect');
   const micStatus=document.getElementById('cameraTestMicStatus');
   const levelFill=document.getElementById('cameraTestLevelFill');
-  if(!button||!modal||!video)return;
+  if(!button||!modal||!video||!cameraSelect||!micSelect)return;
 
+  const CAMERA_KEY='dartarena-preferred-camera';
+  const MIC_KEY='dartarena-preferred-microphone';
   let stream=null;
   let audioContext=null;
   let source=null;
   let analyser=null;
   let animationFrame=0;
+  let starting=false;
 
   function setMeter(value){
     const pct=Math.max(0,Math.min(100,Math.round(value)));
@@ -29,7 +32,8 @@
     if(audioContext){try{await audioContext.close()}catch{}audioContext=null}
     analyser=null;
     if(stream){for(const track of stream.getTracks())track.stop();stream=null}
-    video.pause();video.srcObject=null;
+    video.pause();
+    video.srcObject=null;
     setMeter(0);
   }
 
@@ -52,35 +56,111 @@
 
   function errorText(error){
     if(error?.name==='NotAllowedError')return'Kamera eller mikrofon er blokkert i nettleseren.';
-    if(error?.name==='NotFoundError')return'Fant ikke kamera eller mikrofon.';
+    if(error?.name==='NotFoundError'||error?.name==='OverconstrainedError')return'Fant ikke valgt kamera eller mikrofon.';
     if(error?.name==='NotReadableError')return'Kamera eller mikrofon kan være i bruk av et annet program.';
     return `Kunne ikke starte kamera/mikrofon${error?.name?' ('+error.name+')':''}.`;
   }
 
+  function constraints(cameraId,micId){
+    return{
+      video:{
+        ...(cameraId?{deviceId:{exact:cameraId}}:{}),
+        width:{ideal:1280},
+        height:{ideal:720},
+        frameRate:{ideal:30,max:30}
+      },
+      audio:{
+        ...(micId?{deviceId:{exact:micId}}:{}),
+        echoCancellation:true,
+        noiseSuppression:true,
+        autoGainControl:true
+      }
+    };
+  }
+
+  function fillSelect(select,devices,activeId,label){
+    const remembered=localStorage.getItem(label==='Kamera'?CAMERA_KEY:MIC_KEY)||'';
+    const wanted=devices.some(d=>d.deviceId===activeId)?activeId:devices.some(d=>d.deviceId===remembered)?remembered:devices[0]?.deviceId||'';
+    select.innerHTML='';
+    if(!devices.length){
+      const option=document.createElement('option');
+      option.value='';
+      option.textContent=`Ingen ${label.toLowerCase()} funnet`;
+      select.appendChild(option);
+      select.disabled=true;
+      return;
+    }
+    devices.forEach((device,index)=>{
+      const option=document.createElement('option');
+      option.value=device.deviceId;
+      option.textContent=device.label||`${label} ${index+1}`;
+      select.appendChild(option);
+    });
+    if(wanted)select.value=wanted;
+    select.disabled=false;
+  }
+
+  async function refreshDeviceLists(){
+    if(!navigator.mediaDevices?.enumerateDevices)return;
+    try{
+      const devices=await navigator.mediaDevices.enumerateDevices();
+      const videoTrack=stream?.getVideoTracks?.()[0];
+      const audioTrack=stream?.getAudioTracks?.()[0];
+      fillSelect(cameraSelect,devices.filter(d=>d.kind==='videoinput'),videoTrack?.getSettings?.().deviceId||'','Kamera');
+      fillSelect(micSelect,devices.filter(d=>d.kind==='audioinput'),audioTrack?.getSettings?.().deviceId||'','Mikrofon');
+    }catch(error){
+      console.warn('Kunne ikke hente kamera/mikrofonliste',error);
+    }
+  }
+
+  async function getPreferredStream(cameraId,micId){
+    try{
+      return await navigator.mediaDevices.getUserMedia(constraints(cameraId,micId));
+    }catch(error){
+      if((cameraId||micId)&&['NotFoundError','OverconstrainedError'].includes(error?.name)){
+        if(cameraId)localStorage.removeItem(CAMERA_KEY);
+        if(micId)localStorage.removeItem(MIC_KEY);
+        return navigator.mediaDevices.getUserMedia(constraints('',''));
+      }
+      throw error;
+    }
+  }
+
   async function startTest(){
+    if(starting)return;
+    starting=true;
+    cameraSelect.disabled=true;
+    micSelect.disabled=true;
     await stopMedia();
     previewStatus.textContent='Starter kamera…';
-    if(cameraName)cameraName.textContent='Laster…';
-    if(micName)micName.textContent='Laster…';
     if(micStatus)micStatus.textContent='Starter mikrofon…';
+
     if(!navigator.mediaDevices?.getUserMedia){
       previewStatus.textContent='Nettleseren støtter ikke kameratest.';
       if(micStatus)micStatus.textContent='Ikke tilgjengelig';
+      starting=false;
       return;
     }
+
+    const selectedCamera=cameraSelect.value&&!cameraSelect.value.startsWith('Laster')?cameraSelect.value:'';
+    const selectedMic=micSelect.value&&!micSelect.value.startsWith('Laster')?micSelect.value:'';
+    const cameraId=selectedCamera||localStorage.getItem(CAMERA_KEY)||'';
+    const micId=selectedMic||localStorage.getItem(MIC_KEY)||'';
+
     try{
-      stream=await navigator.mediaDevices.getUserMedia({
-        video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},
-        audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}
-      });
+      stream=await getPreferredStream(cameraId,micId);
       video.srcObject=stream;
       video.muted=true;
       await video.play().catch(()=>{});
       const videoTrack=stream.getVideoTracks()[0];
       const audioTrack=stream.getAudioTracks()[0];
-      if(cameraName)cameraName.textContent=videoTrack?.label||'Kamera aktivt';
-      if(micName)micName.textContent=audioTrack?.label||'Mikrofon aktiv';
+      const activeCamera=videoTrack?.getSettings?.().deviceId||'';
+      const activeMic=audioTrack?.getSettings?.().deviceId||'';
+      if(activeCamera)localStorage.setItem(CAMERA_KEY,activeCamera);
+      if(activeMic)localStorage.setItem(MIC_KEY,activeMic);
       previewStatus.textContent=videoTrack?'Kamera OK':'Ingen videostrøm';
+
+      await refreshDeviceLists();
 
       if(audioTrack){
         const AudioContextCtor=window.AudioContext||window.webkitAudioContext;
@@ -102,15 +182,31 @@
     }catch(error){
       const text=errorText(error);
       previewStatus.textContent=text;
-      if(cameraName)cameraName.textContent='Ikke tilgjengelig';
-      if(micName)micName.textContent='Ikke tilgjengelig';
       if(micStatus)micStatus.textContent=text;
       console.error('Camera test failed',error);
+      await refreshDeviceLists();
+    }finally{
+      starting=false;
+      cameraSelect.disabled=!cameraSelect.options.length;
+      micSelect.disabled=!micSelect.options.length;
     }
+  }
+
+  async function chooseCamera(){
+    if(!cameraSelect.value)return;
+    localStorage.setItem(CAMERA_KEY,cameraSelect.value);
+    await startTest();
+  }
+
+  async function chooseMic(){
+    if(!micSelect.value)return;
+    localStorage.setItem(MIC_KEY,micSelect.value);
+    await startTest();
   }
 
   async function openTest(){
     modal.classList.remove('hidden');
+    await refreshDeviceLists();
     await startTest();
   }
 
@@ -118,12 +214,13 @@
     modal.classList.add('hidden');
     await stopMedia();
     previewStatus.textContent='Ikke startet';
-    if(cameraName)cameraName.textContent='–';
-    if(micName)micName.textContent='–';
     if(micStatus)micStatus.textContent='Snakk for å teste mikrofonen';
   }
 
   button.onclick=openTest;
+  cameraSelect.addEventListener('change',chooseCamera);
+  micSelect.addEventListener('change',chooseMic);
+  navigator.mediaDevices?.addEventListener?.('devicechange',refreshDeviceLists);
   closeButton?.addEventListener('click',closeTest);
   backdrop?.addEventListener('click',closeTest);
   restartButton?.addEventListener('click',startTest);
