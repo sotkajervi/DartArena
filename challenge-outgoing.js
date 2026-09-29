@@ -1,9 +1,5 @@
 (()=>{
-  let startedFor=null,sentChannel=null,pendingSentIds=new Set();
-
-  enterAcceptedRoom=function(id){
-    location.href=`room.html?id=${encodeURIComponent(id)}`;
-  };
+  let startedFor=null,sentChannel=null,pendingSentIds=new Set(),acceptedRoomId=null;
 
   function ensureUi(){
     let host=document.getElementById('sentChallengeList');
@@ -13,6 +9,18 @@
     const section=incoming.closest('.card');
     const heading=section?.querySelector('.heading h2');
     if(heading)heading.textContent='Utfordringer';
+
+    const roomPrompt=document.createElement('div');
+    roomPrompt.id='acceptedRoomPrompt';
+    roomPrompt.className='challenge-list';
+    roomPrompt.style.marginBottom='14px';
+    roomPrompt.hidden=true;
+    incoming.insertAdjacentElement('beforebegin',roomPrompt);
+
+    const incomingLabel=document.createElement('small');
+    incomingLabel.textContent='INNKOMMENDE';
+    incoming.insertAdjacentElement('beforebegin',incomingLabel);
+
     const label=document.createElement('div');
     label.style.marginTop='18px';
     label.innerHTML='<small>SENDTE</small>';
@@ -22,11 +30,35 @@
     host.innerHTML='<p class="muted">Ingen sendte utfordringer.</p>';
     incoming.insertAdjacentElement('afterend',label);
     label.insertAdjacentElement('afterend',host);
-    const incomingLabel=document.createElement('small');
-    incomingLabel.textContent='INNKOMMENDE';
-    incoming.insertAdjacentElement('beforebegin',incomingLabel);
     return host;
   }
+
+  function renderAcceptedRoomPrompt(){
+    ensureUi();
+    const box=document.getElementById('acceptedRoomPrompt');
+    if(!box)return;
+    if(!acceptedRoomId){box.hidden=true;box.innerHTML='';return}
+    box.hidden=false;
+    box.innerHTML=`<div class="challenge-row"><div><div class="player-name">Utfordringen er godtatt</div><div class="status">Venterommet er klart i egen fane.</div></div><div class="challenge-actions"><button id="openAcceptedRoomBtn" class="small-btn accept">Åpne venterom</button></div></div>`;
+    box.querySelector('#openAcceptedRoomBtn').onclick=()=>openAcceptedRoom(acceptedRoomId);
+  }
+
+  function openAcceptedRoom(id){
+    if(!id)return false;
+    const url=`room.html?id=${encodeURIComponent(id)}`;
+    const tab=window.open(url,`dartarena-room-${id}`);
+    if(tab){
+      acceptedRoomId=null;
+      renderAcceptedRoomPrompt();
+      try{tab.focus()}catch{}
+      return true;
+    }
+    acceptedRoomId=id;
+    renderAcceptedRoomPrompt();
+    return false;
+  }
+
+  enterAcceptedRoom=function(id){openAcceptedRoom(id)};
 
   function applySentButtonState(){
     document.querySelectorAll('.challenge-btn').forEach(b=>{
@@ -39,6 +71,7 @@
 
   async function loadSentChallenges(){
     const host=ensureUi();
+    renderAcceptedRoomPrompt();
     if(!host||!profile)return;
     if(activeMatch){pendingSentIds=new Set();host.innerHTML='<p class="muted">Du er i kamp.</p>';return}
     const{data,error}=await db.from('challenges').select('id,challenged_id,status,created_at').eq('challenger_id',profile.id).eq('status','pending').order('created_at',{ascending:false});
@@ -93,7 +126,7 @@
         .maybeSingle();
       if(acceptError){button.disabled=false;button.textContent=old;alert(acceptError.message);return}
       if(!accepted?.id){button.disabled=false;button.textContent=old;await Promise.all([loadChallenges(),loadPlayers()]);return}
-      enterAcceptedRoom(accepted.id);
+      openAcceptedRoom(accepted.id);
       return;
     }
 
@@ -114,11 +147,29 @@
     sentChannel=db.channel('lobby-sent-challenges-'+profile.id)
       .on('postgres_changes',{event:'UPDATE',schema:'public',table:'challenges',filter:`challenger_id=eq.${profile.id}`},payload=>{
         const row=payload.new;
-        if(row.status==='room')return enterAcceptedRoom(row.id);
+        if(row.status==='room'){
+          openAcceptedRoom(row.id);
+          loadSentChallenges();
+          loadPlayers();
+          return;
+        }
+        if((row.status==='declined'||row.status==='cancelled'||row.status==='accepted')&&acceptedRoomId===row.id){
+          acceptedRoomId=null;
+          renderAcceptedRoomPrompt();
+        }
         loadSentChallenges();
         loadPlayers();
       }).subscribe();
   }
 
-  setInterval(()=>{if(profile)startForProfile();else{startedFor=null;pendingSentIds=new Set()}},600);
+  window.addEventListener('message',e=>{
+    if(e.origin!==location.origin)return;
+    if(e.data?.type==='dartarena-room-cancelled'){
+      if(acceptedRoomId===e.data.id)acceptedRoomId=null;
+      renderAcceptedRoomPrompt();
+      Promise.all([loadLobby(),loadSentChallenges(),loadPlayers()]).catch(()=>{});
+    }
+  });
+
+  setInterval(()=>{if(profile)startForProfile();else{startedFor=null;pendingSentIds=new Set();acceptedRoomId=null}},600);
 })();
