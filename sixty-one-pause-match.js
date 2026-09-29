@@ -4,6 +4,7 @@
   if(!pauseBtn||typeof state==='undefined'||typeof db==='undefined')return;
 
   let pauseBusy=false;
+  const sharedDeadline=()=>state?.game_started_at?new Date(state.game_started_at).getTime()+Number(state.leg_duration_seconds||600)*1000:null;
 
   const baseCanAct=canAct;
   canAct=function(){
@@ -20,8 +21,9 @@
   const baseTickClock=tickClock;
   tickClock=function(){
     if(state?.is_paused&&m?.status==='playing'&&!state?.sudden_death){
+      const end=sharedDeadline();
       const frozenAt=state.paused_at?new Date(state.paused_at).getTime():Date.now();
-      const left=deadline()-frozenAt;
+      const left=end?end-frozenAt:Number(state.leg_duration_seconds||600)*1000;
       clock.textContent=fmt(left);
       clock.classList.remove('done');
       clock.classList.add('paused');
@@ -33,7 +35,7 @@
 
   function renderPauseState(){
     if(!state||!m)return;
-    const active=m.status==='playing'&&!state.sudden_death;
+    const active=m.status==='playing'&&!state.sudden_death&&!!state.game_started_at;
     pauseBtn.disabled=!active||pauseBusy;
     pauseBtn.classList.toggle('active',!!state.is_paused);
     pauseBtn.textContent=state.is_paused?'▶ FORTSETT (P)':'⏸ PAUSE (P)';
@@ -54,7 +56,7 @@
   };
 
   pauseBtn.onclick=async()=>{
-    if(pauseBusy||!state||!m||m.status!=='playing'||state.sudden_death)return;
+    if(pauseBusy||!state||!m||m.status!=='playing'||state.sudden_death||!state.game_started_at)return;
     pauseBusy=true;
     const shouldPause=!state.is_paused;
     renderPauseState();
@@ -73,7 +75,6 @@
     }
   };
 
-  // Ensure the interval uses the pause-aware clock even if the main script created it first.
   let attempts=0;
   const adoptClock=()=>{
     attempts++;
