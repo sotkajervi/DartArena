@@ -9,6 +9,7 @@ body.match-page .match-player{
     "score legs";
   column-gap:14px;
   align-items:center;
+  position:relative;
 }
 
 body.match-page .match-player .match-name{
@@ -50,6 +51,27 @@ body.match-page .match-player .match-legs{
   white-space:nowrap;
 }
 
+body.match-page .match-player .live-avg{
+  position:absolute;
+  top:10px;
+  right:11px;
+  display:flex;
+  align-items:baseline;
+  gap:5px;
+  padding:4px 7px;
+  border-radius:7px;
+  background:rgba(0,0,0,.28);
+  color:var(--muted);
+  font-size:10px;
+  font-weight:850;
+  line-height:1;
+  letter-spacing:.04em;
+  white-space:nowrap;
+  pointer-events:none;
+}
+body.match-page .match-player .live-avg b{color:var(--text);font-size:14px;font-weight:950;font-variant-numeric:tabular-nums;letter-spacing:0}
+body.match-page .match-player.active .live-avg b{color:var(--cyan)}
+
 /* No-set formats: use the right side for legs only, vertically centered beside score. */
 body.match-page .match-player:has(.match-sets.hidden) .match-legs{
   grid-area:score;
@@ -63,6 +85,7 @@ body.match-page.match-tv-layout .match-player .match-sets,
 body.match-page.match-tv-layout .match-player .match-legs{
   font-size:26px!important;
 }
+body.match-page.match-tv-layout .match-player .live-avg{top:8px;right:9px}
 
 @media(max-height:820px){
   body.match-page .match-player .match-sets,
