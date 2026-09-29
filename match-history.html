@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071012">
+  <title>DartArena • Kamphistorikk</title>
+  <link rel="stylesheet" href="style.css?v=20260928-ui2">
+  <link rel="stylesheet" href="dartboard-background.css?v=20260928-ui2">
+  <link rel="stylesheet" href="button-theme.css?v=20260928-ui2">
+  <style>
+    .history-wrap{max-width:1050px;margin:0 auto}.history-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px}.history-list{display:grid;gap:10px}.history-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:rgba(7,16,18,.72)}.history-main{min-width:0}.history-title{font-size:17px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.history-meta{display:flex;flex-wrap:wrap;gap:7px 12px;margin-top:5px;color:var(--muted);font-size:13px}.history-result{color:var(--cyan);font-weight:950}.history-tag{display:inline-flex;align-items:center;padding:3px 7px;border:1px solid rgba(35,226,209,.25);border-radius:999px;color:var(--cyan);font-size:11px;font-weight:850}.history-empty{text-align:center;padding:30px 10px}.history-actions{display:flex;align-items:center;gap:8px}@media(max-width:650px){.history-head{flex-direction:column}.history-row{grid-template-columns:1fr}.history-actions{justify-content:flex-start}}
+  </style>
+</head>
+<body>
+  <header><div class="brand">DART<span>ARENA</span></div><div class="live"><i></i> Kamphistorikk</div></header>
+  <main class="shell"><div class="history-wrap">
+    <div class="history-head"><div><small>DIN HISTORIKK</small><h1>Tidligere kamper</h1><p class="muted compact">Ferdige X01-kamper. Åpne en kamp for full statistikk.</p></div><button id="backBtn" class="outline">Tilbake til lobby</button></div>
+    <section class="card"><div id="historyList" class="history-list"><p class="muted history-empty">Laster kamper…</p></div></section>
+  </div></main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="match-history.js?v=20260929-history1"></script>
+  <script src="role-visuals.js?v=20260928-ui2"></script>
+</body>
+</html>
