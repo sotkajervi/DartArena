@@ -1,9 +1,11 @@
 (()=>{
   if(typeof selectedGame!=='function')return;
-  const resolveVariant=g=>g==='half_it'||g==='half_it_standard'?'half_it':g==='cricket'?'cricket':g==='sixty_one'?'sixty_one':'x01';
-  const isSpecial=g=>['cricket','half_it','half_it_standard','sixty_one'].includes(g);
-  const halfMode=g=>g==='half_it_standard'?'standard':g==='half_it'?'dartcounter':null;
-  const labelFor=g=>g==='half_it_standard'?'Half-It (Standard)':g==='half_it'?'Half-It (DartCounter)':g==='cricket'?'Cricket':g==='sixty_one'?'61':String(g);
+  const games=window.DartArenaGames;
+  const resolveVariant=g=>games?.variantFor(g)||(g==='half_it'||g==='half_it_standard'?'half_it':g==='cricket'?'cricket':g==='sixty_one'?'sixty_one':'x01');
+  const isSpecial=g=>games?.isSpecial(g)??['cricket','half_it','half_it_standard','sixty_one'].includes(g);
+  const halfMode=g=>games?.halfItModeFor(g)||(g==='half_it_standard'?'standard':g==='half_it'?'dartcounter':null);
+  const labelFor=g=>games?.labelForRaw(g)||(g==='half_it_standard'?'Half-It (Standard)':g==='half_it'?'Half-It (DartCounter)':g==='cricket'?'Cricket':g==='sixty_one'?'61':String(g));
+  const pageFor=v=>games?.pageForVariant(v)||pageForVariant(v);
 
   syncGameMode=function(){
     const g=selectedGame(),special=isSpecial(g),sixty=g==='sixty_one';
@@ -49,6 +51,6 @@
     await db.from('challenges').update({status:'accepted'}).eq('id',challengeId);
     await db.from('profiles').update({status:'in_game'}).in('id',[c.challenger_id,c.challenged_id]);
     await send('match-start',{matchId:match.id,gameVariant:variant});
-    location.href=`${pageForVariant(variant)}?id=${encodeURIComponent(match.id)}`;
+    location.href=`${pageFor(variant)}?id=${encodeURIComponent(match.id)}`;
   };
 })();
