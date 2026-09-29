@@ -35,56 +35,12 @@
 </head>
 <body class="match-page">
 <header><div class="brand">DART<span>ARENA</span></div><div style="display:flex;align-items:center;gap:10px"><div id="viewerCount" class="viewer-count" title="Tilskuere i kamprommet"><span class="viewer-dot"></span><b id="viewerCountNumber">0</b> ser på</div><div id="headerStatus" class="live"><i></i> Cricket</div></div></header>
-<main class="shell">
-<section id="matchView">
-  <div class="match-head"><div><small id="matchFormat">CRICKET</small><h1 id="matchTitle">Kamprom</h1></div><div class="top-actions"><button id="cancelMatchBtn" class="danger">Avbryt kamp</button><button id="closeMatchBtn" class="outline">Lukk kampfane</button></div></div>
-  <div id="videoGrid" class="video-grid">
-    <div id="localVideoCard" class="video-card local-card"><video id="localVideo" autoplay playsinline muted></video><div id="localPlaceholder" class="video-placeholder">Ditt kamera</div><span id="localVideoName" class="video-name">Deg</span><button id="micBtn" class="outline">Mikrofon på</button></div>
-    <div id="remoteVideoCard" class="video-card remote-card"><video id="remoteVideo" autoplay playsinline></video><div id="remotePlaceholder" class="video-placeholder">Venter på motstanderens kamera…</div><span id="remoteVideoName" class="video-name">Motstander</span><button id="remoteAudioBtn" class="outline hidden">Slå av lyd</button></div>
-  </div>
-  <div class="match-grid">
-    <section class="card score-card">
-      <div class="cricket-play-grid">
-        <div>
-          <div class="cricket-summary">
-            <article id="cricketP1" class="cricket-player"><div id="cricketName1" class="cricket-player-name">Spiller 1</div><div class="cricket-player-stats"><span id="cricketPoints1" class="cricket-points">0</span><span id="cricketLegs1" class="cricket-legs">0 legs</span></div></article>
-            <article id="cricketP2" class="cricket-player"><div id="cricketName2" class="cricket-player-name">Spiller 2</div><div class="cricket-player-stats"><span id="cricketPoints2" class="cricket-points">0</span><span id="cricketLegs2" class="cricket-legs">0 legs</span></div></article>
-          </div>
-          <div id="cricketBoard" class="cricket-board"></div>
-        </div>
-        <div class="cricket-entry-card">
-          <small id="cricketEntryTitle">DITT KAST</small>
-          <p id="turnText" class="turn-text" style="margin:5px 0 0">Venter…</p>
-          <div id="cricketDarts" class="cricket-darts"></div>
-          <div id="cricketKeypad" class="cricket-keypad"></div>
-          <div class="cricket-entry-actions">
-            <button id="cricketMissBtn" class="outline" type="button">Miss</button>
-            <button id="cricketUndoBtn" class="outline" type="button">Angre</button>
-            <button id="cricketCancelEditBtn" class="outline hidden" type="button">Avbryt korrigering</button>
-            <button id="cricketSubmitBtn" class="primary" type="button">Registrer kast</button>
-          </div>
-          <p class="cricket-help"><kbd>0</kbd>=20 <kbd>9</kbd>=19 <kbd>8</kbd>=18 <kbd>7</kbd>=17 <kbd>6</kbd>=16 <kbd>5</kbd>=15 <kbd>B</kbd>=Bull · <kbd>Space</kbd>=miss · <kbd>Backspace</kbd>=angre · <kbd>Enter</kbd>=registrer</p>
-        </div>
-      </div>
-      <div class="cricket-history">
-        <div class="cricket-history-head"><strong>KASTLOGG</strong><span>Alle visits i kampen • siste aktive visit kan korrigeres av spilleren som kastet</span></div>
-        <div id="cricketVisitLog" class="cricket-history-list"><div class="cricket-history-empty">Ingen kast registrert ennå.</div></div>
-      </div>
-      <p id="matchMessage" class="message"></p>
-    </section>
-    <aside class="card match-info"><small>KAMPSTATUS</small><h2 id="matchStatus">Pågår</h2><button id="cameraBtn" class="outline wide">Start kamera</button></aside>
-  </div>
-</section>
-</main>
+<main class="shell"><section id="matchView">
+<div class="match-head"><div><small id="matchFormat">CRICKET</small><h1 id="matchTitle">Kamprom</h1></div><div class="top-actions"><button id="cancelMatchBtn" class="danger">Avbryt kamp</button><button id="closeMatchBtn" class="outline">Lukk kampfane</button></div></div>
+<div id="videoGrid" class="video-grid"><div id="localVideoCard" class="video-card local-card"><video id="localVideo" autoplay playsinline muted></video><div id="localPlaceholder" class="video-placeholder">Ditt kamera</div><span id="localVideoName" class="video-name">Deg</span><button id="micBtn" class="outline">Mikrofon på</button></div><div id="remoteVideoCard" class="video-card remote-card"><video id="remoteVideo" autoplay playsinline></video><div id="remotePlaceholder" class="video-placeholder">Venter på motstanderens kamera…</div><span id="remoteVideoName" class="video-name">Motstander</span><button id="remoteAudioBtn" class="outline hidden">Slå av lyd</button></div></div>
+<div class="match-grid"><section class="card score-card"><div class="cricket-play-grid"><div><div class="cricket-summary"><article id="cricketP1" class="cricket-player"><div id="cricketName1" class="cricket-player-name">Spiller 1</div><div class="cricket-player-stats"><span id="cricketPoints1" class="cricket-points">0</span><span id="cricketLegs1" class="cricket-legs">0 legs</span></div></article><article id="cricketP2" class="cricket-player"><div id="cricketName2" class="cricket-player-name">Spiller 2</div><div class="cricket-player-stats"><span id="cricketPoints2" class="cricket-points">0</span><span id="cricketLegs2" class="cricket-legs">0 legs</span></div></article></div><div id="cricketBoard" class="cricket-board"></div></div><div class="cricket-entry-card"><small id="cricketEntryTitle">DITT KAST</small><p id="turnText" class="turn-text" style="margin:5px 0 0">Venter…</p><div id="cricketDarts" class="cricket-darts"></div><div id="cricketKeypad" class="cricket-keypad"></div><div class="cricket-entry-actions"><button id="cricketMissBtn" class="outline" type="button">Miss</button><button id="cricketUndoBtn" class="outline" type="button">Angre</button><button id="cricketCancelEditBtn" class="outline hidden" type="button">Avbryt korrigering</button><button id="cricketSubmitBtn" class="primary" type="button">Registrer kast</button></div><p class="cricket-help"><kbd>0</kbd>=20 <kbd>9</kbd>=19 <kbd>8</kbd>=18 <kbd>7</kbd>=17 <kbd>6</kbd>=16 <kbd>5</kbd>=15 <kbd>B</kbd>=Bull · <kbd>Space</kbd>=miss · <kbd>Backspace</kbd>=angre · <kbd>Enter</kbd>=registrer</p></div></div><div class="cricket-history"><div class="cricket-history-head"><strong>KASTLOGG</strong><span>Alle visits i kampen • siste aktive visit kan korrigeres av spilleren som kastet</span></div><div id="cricketVisitLog" class="cricket-history-list"><div class="cricket-history-empty">Ingen kast registrert ennå.</div></div></div><p id="matchMessage" class="message"></p></section><aside class="card match-info"><small>KAMPSTATUS</small><h2 id="matchStatus">Pågår</h2><button id="cameraBtn" class="outline wide">Start kamera</button></aside></div>
+</section></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="sfu-config.js?v=20260928-ui2"></script>
-<script src="sfu-client.js?v=20260928-ui2"></script>
-<script src="cricket.js?v=20260928-ui2"></script>
-<script src="cricket-keyboard-log.js?v=20260928-ui2"></script>
-<script src="match-controls.js?v=20260928-ui2"></script>
-<script src="opponent-focus.js?v=20260928-ui2"></script>
-<script src="spectator-presence.js?v=20260928-ui2"></script>
-<script src="match-spectator-broadcast.js?v=20260928-ui2"></script>
-<script src="ui-feedback.js?v=20260928-ui2"></script>
-</body>
-</html>
+<script src="match-single-tab.js?v=20260929-online1"></script>
+<script src="sfu-config.js?v=20260928-ui2"></script><script src="sfu-client.js?v=20260928-ui2"></script><script src="cricket.js?v=20260929-online1"></script><script src="cricket-keyboard-log.js?v=20260928-ui2"></script><script src="match-controls.js?v=20260928-ui2"></script><script src="opponent-focus.js?v=20260928-ui2"></script><script src="spectator-presence.js?v=20260928-ui2"></script><script src="match-spectator-broadcast.js?v=20260928-ui2"></script><script src="ui-feedback.js?v=20260928-ui2"></script>
+</body></html>
