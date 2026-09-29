@@ -4,7 +4,7 @@
 
   const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
   const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
-  const BUILD='20260928-ui2';
+  const BUILD='20260929-history1';
   const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   const ADMIN='#ff9f43';
   const LEADER='#4da3ff';
@@ -53,6 +53,19 @@
       .admin-badge{color:${ADMIN}!important;border-color:rgba(255,159,67,.5)!important;background:rgba(255,159,67,.1)!important}
     `;
     document.head.appendChild(style);
+  }
+
+  function ensureLobbyHistoryButton(){
+    if(!document.getElementById('lobbyView')||document.getElementById('matchHistoryBtn'))return;
+    const actions=document.querySelector('#lobbyView .lobby-top .top-actions');
+    if(!actions)return;
+    const button=document.createElement('button');
+    button.id='matchHistoryBtn';
+    button.className='outline';
+    button.type='button';
+    button.textContent='Kamphistorikk';
+    button.onclick=()=>location.href='match-history.html';
+    actions.prepend(button);
   }
 
   function escRegex(v){return String(v).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
@@ -127,6 +140,7 @@
 
   async function boot(){
     ensureTheme();
+    ensureLobbyHistoryButton();
     await loadRoles();
     scan();
     observer=new MutationObserver(()=>scheduleScan());
