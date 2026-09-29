@@ -69,7 +69,35 @@
   sendInvite=async function(button){
     if(activeMatch||!button||button.disabled)return;
     const id=button.dataset.id,old=button.textContent;
-    button.disabled=true;button.textContent='Sender…';
+    button.disabled=true;button.textContent='Sjekker…';
+
+    const{data:incoming,error:incomingError}=await db.from('challenges')
+      .select('id')
+      .eq('challenger_id',id)
+      .eq('challenged_id',profile.id)
+      .eq('status','pending')
+      .order('created_at',{ascending:false})
+      .limit(1)
+      .maybeSingle();
+
+    if(incomingError){button.disabled=false;button.textContent=old;alert(incomingError.message);return}
+
+    if(incoming?.id){
+      button.textContent='Kobler til…';
+      const{data:accepted,error:acceptError}=await db.from('challenges')
+        .update({status:'room'})
+        .eq('id',incoming.id)
+        .eq('challenged_id',profile.id)
+        .eq('status','pending')
+        .select('id')
+        .maybeSingle();
+      if(acceptError){button.disabled=false;button.textContent=old;alert(acceptError.message);return}
+      if(!accepted?.id){button.disabled=false;button.textContent=old;await Promise.all([loadChallenges(),loadPlayers()]);return}
+      enterAcceptedRoom(accepted.id);
+      return;
+    }
+
+    button.textContent='Sender…';
     const{data,error}=await db.from('challenges').insert({challenger_id:profile.id,challenged_id:id,game:501,legs:5,allow_draw:false,starter:'me',status:'pending'}).select('id').single();
     if(error){button.disabled=false;button.textContent=old;alert(error.message);return}
     pendingSentIds.add(id);
