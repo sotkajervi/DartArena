@@ -27,7 +27,8 @@
   }
 
   function addBadge(){
-    const title=document.getElementById('welcomeName')||document.getElementById('tName');
+    document.querySelector('#tName .admin-badge')?.remove();
+    const title=document.getElementById('welcomeName');
     if(!title||title.querySelector('.admin-badge'))return;
     const badge=document.createElement('span');
     badge.className='admin-badge';
