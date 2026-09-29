@@ -7,7 +7,7 @@
 
   const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
   const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
-  const BUILD='20260929-roleflash2';
+  const BUILD='20260930-lobbyheader1';
   const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   const ADMIN='#ff9f43';
   const LEADER='#4da3ff';
@@ -65,19 +65,22 @@
   function ensureLobbyNavButtons(){
     if(!document.getElementById('lobbyView'))return;
     const actions=document.querySelector('#lobbyView .lobby-top .top-actions');
-    if(!actions)return;
+    const host=document.getElementById('lobbyStatsActions')||actions;
+    if(!host)return;
     const add=(id,label,href)=>{
-      if(document.getElementById(id))return;
-      const button=document.createElement('button');
-      button.id=id;
-      button.className='outline';
-      button.type='button';
-      button.textContent=label;
-      button.onclick=()=>location.href=href;
-      actions.prepend(button);
+      let button=document.getElementById(id);
+      if(!button){
+        button=document.createElement('button');
+        button.id=id;
+        button.type='button';
+        button.textContent=label;
+        button.onclick=()=>location.href=href;
+      }
+      button.className=host.id==='lobbyStatsActions'?'small-btn lobby-utility-btn':'outline';
+      if(button.parentElement!==host)host.appendChild(button);
     };
-    add('matchHistoryBtn','Kamphistorikk','match-history.html');
     add('formStatsBtn','Form stats','form-stats.html');
+    add('matchHistoryBtn','Kamphistorikk','match-history.html');
   }
 
   function showTournamentFormStatsBadge(enabled){
