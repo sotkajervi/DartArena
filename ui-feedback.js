@@ -9,7 +9,6 @@
     leaveBtn:['Melder av…',1000],
     proposalBtn:['Sender…',900],
     retryCameraBtn:['Starter kamera…',1400],
-    cameraBtn:['Starter kamera…',1400],
     readyBtn:['Klargjør…',1000],
     buildCupBtn:['Oppretter…',1800],
     matchScoreBtn:['Registrerer…',500],
