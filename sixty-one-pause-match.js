@@ -56,10 +56,11 @@
   pauseBtn.onclick=async()=>{
     if(pauseBusy||!state||!m||m.status!=='playing'||state.sudden_death)return;
     pauseBusy=true;
+    const shouldPause=!state.is_paused;
     renderPauseState();
-    document.getElementById('matchMessage').textContent=state.is_paused?'Fortsetter kampen…':'Pauser kampen…';
+    document.getElementById('matchMessage').textContent=shouldPause?'Pauser kampen…':'Fortsetter kampen…';
     try{
-      const{data,error}=await db.rpc('toggle_sixty_one_pause',{p_match_id:matchId});
+      const{data,error}=await db.rpc('set_sixty_one_pause',{p_match_id:matchId,p_paused:shouldPause});
       if(error)throw error;
       await refreshGame();
       document.getElementById('matchMessage').textContent=data?.paused?'Kampen er pauset. Tiden står stille.':'Kampen fortsetter.';
