@@ -53,7 +53,7 @@
   render=function(){
     if(!m||!profile)return;
     const c1=legRoundCount(m.player1_id),c2=legRoundCount(m.player2_id),mine=m.turn_player_id===profile.id&&m.status==='playing',rn=currentRoundNo(),r=currentRound(),leg=currentLegNo();
-    $('matchFormat').textContent=`HALF-IT • BEST OF ${m.legs||1} LEGS • 12 RUNDER/LEG`;
+    $('matchFormat').textContent=`HALF-IT (DARTCOUNTER) • BEST OF ${m.legs||1} LEGS • 12 RUNDER/LEG`;
     $('halfName1').textContent=names[m.player1_id]||'Spiller 1';$('halfName2').textContent=names[m.player2_id]||'Spiller 2';$('historyName1').textContent=names[m.player1_id]||'Spiller 1';$('historyName2').textContent=names[m.player2_id]||'Spiller 2';
     $('halfScore1').textContent=String(m.player1_score||0);$('halfScore2').textContent=String(m.player2_score||0);
     $('halfRound1').textContent=`${Number(m.player1_legs||0)} legs • ${c1>=12?'12/12 ferdig':`Runde ${c1+1}/12`}`;
