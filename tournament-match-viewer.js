@@ -7,9 +7,7 @@ const subscriptions=new Map();
 
 
 let statsMatchId=null,statsChannel=null,statsTimer=null,statsRequest=0,statsRows=null,statsError=false;
-const dartsFor=t=>Number(t.is_checkout?t.darts_used:3)||3;
 const statsEsc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function statsFor(all,pid){const pt=all.filter(t=>t.player_id===pid),score=pt.reduce((s,t)=>s+Number(t.score||0),0),darts=pt.reduce((s,t)=>s+dartsFor(t),0),cos=pt.filter(t=>t.is_checkout);let fast=null,high=0;for(const co of cos){high=Math.max(high,Number(co.score||0));const leg=pt.filter(t=>Number(t.set_no||1)===Number(co.set_no||1)&&Number(t.leg_no||1)===Number(co.leg_no||1)),used=leg.reduce((s,t)=>s+dartsFor(t),0);if(used>0&&(fast===null||used<fast))fast=used}return{avg:darts?score/darts*3:0,fast,high,c100:pt.filter(t=>+t.score>=100&&+t.score<=139).length,c140:pt.filter(t=>+t.score>=140&&+t.score<=169).length,c170:pt.filter(t=>+t.score>=170&&+t.score<=179).length,c180:pt.filter(t=>+t.score===180).length}}
 
 function renderViewerStats(){
   const host=$('spectatorStats');if(!host||!tm)return;
@@ -18,8 +16,8 @@ function renderViewerStats(){
   if(statsError){host.innerHTML='<p class="muted">Kunne ikke hente kampstatistikken. Prøver igjen…</p>';return}
   if(statsRows===null){host.innerHTML='<p class="muted">Laster kampstatistikk…</p>';return}
   if(!statsRows.length){host.innerHTML='<p class="muted">Ingen registrerte kast tilgjengelig ennå.</p>';return}
-  const a=statsFor(statsRows,tm.player1_id),b=statsFor(statsRows,tm.player2_id);
-  const rows=[['3-dart snitt',a.avg.toFixed(2),b.avg.toFixed(2)],['Høyeste checkout',a.high||'–',b.high||'–'],['Raskeste leg',a.fast?a.fast+' piler':'–',b.fast?b.fast+' piler':'–'],['100+',a.c100,b.c100],['140+',a.c140,b.c140],['170+',a.c170,b.c170],['180',a.c180,b.c180]];
+  const a=window.DartArenaX01Stats.statsFor(statsRows,tm.player1_id),b=window.DartArenaX01Stats.statsFor(statsRows,tm.player2_id);
+  const rows=[['3-dart snitt',a.avg.toFixed(2),b.avg.toFixed(2)],['First 9 AVG',a.first9.toFixed(2),b.first9.toFixed(2)],['Høyeste checkout',a.high||'–',b.high||'–'],['Raskeste leg',a.fast?a.fast+' piler':'–',b.fast?b.fast+' piler':'–'],['100+',a.c100,b.c100],['140+',a.c140,b.c140],['170+',a.c170,b.c170],['180',a.c180,b.c180]];
   host.innerHTML='<table class="spectator-stats-table"><thead><tr><th scope="col">Statistikk</th><th scope="col">'+statsEsc(names[tm.player1_id]||'Spiller 1')+'</th><th scope="col">'+statsEsc(names[tm.player2_id]||'Spiller 2')+'</th></tr></thead><tbody>'+rows.map(r=>'<tr><th scope="row">'+r[0]+'</th><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>').join('')+'</tbody></table>';
 }
 async function loadViewerStats(){
