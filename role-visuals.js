@@ -4,7 +4,7 @@
 
   const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
   const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
-  const BUILD='20260929-history1';
+  const BUILD='20260929-formstats1';
   const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   const ADMIN='#ff9f43';
   const LEADER='#4da3ff';
@@ -55,17 +55,22 @@
     document.head.appendChild(style);
   }
 
-  function ensureLobbyHistoryButton(){
-    if(!document.getElementById('lobbyView')||document.getElementById('matchHistoryBtn'))return;
+  function ensureLobbyNavButtons(){
+    if(!document.getElementById('lobbyView'))return;
     const actions=document.querySelector('#lobbyView .lobby-top .top-actions');
     if(!actions)return;
-    const button=document.createElement('button');
-    button.id='matchHistoryBtn';
-    button.className='outline';
-    button.type='button';
-    button.textContent='Kamphistorikk';
-    button.onclick=()=>location.href='match-history.html';
-    actions.prepend(button);
+    const add=(id,label,href)=>{
+      if(document.getElementById(id))return;
+      const button=document.createElement('button');
+      button.id=id;
+      button.className='outline';
+      button.type='button';
+      button.textContent=label;
+      button.onclick=()=>location.href=href;
+      actions.prepend(button);
+    };
+    add('matchHistoryBtn','Kamphistorikk','match-history.html');
+    add('formStatsBtn','Form stats','form-stats.html');
   }
 
   function escRegex(v){return String(v).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
@@ -140,7 +145,7 @@
 
   async function boot(){
     ensureTheme();
-    ensureLobbyHistoryButton();
+    ensureLobbyNavButtons();
     await loadRoles();
     scan();
     observer=new MutationObserver(()=>scheduleScan());
