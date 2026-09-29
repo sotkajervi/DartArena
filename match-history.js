@@ -3,6 +3,9 @@ const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let me=null;
+let allMatches=[];
+let activeFilter='all';
 
 $('backBtn').onclick=()=>location.href='./';
 
@@ -11,47 +14,87 @@ function fmtDate(value){
   return new Intl.DateTimeFormat('nb-NO',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(value));
 }
 
-function matchResult(m,me){
-  const sets=m.match_mode==='sets';
-  const a=sets?Number(m.player1_sets||0):Number(m.player1_legs||0);
-  const b=sets?Number(m.player2_sets||0):Number(m.player2_legs||0);
-  const mine=me===m.player1_id?a:b,other=me===m.player1_id?b:a;
-  return `${mine}–${other}`;
+function variantOf(m){return m.game_variant||'x01'}
+function gameLabel(m){
+  const v=variantOf(m);
+  if(v==='cricket')return'Cricket';
+  if(v==='half_it')return'Half-It';
+  if(v==='sixty_one')return'61';
+  if(v==='x01')return String(m.game||501);
+  return v;
+}
+function scorePair(m){
+  const v=variantOf(m);
+  if(v==='half_it')return [Number(m.player1_score||0),Number(m.player2_score||0)];
+  if(v==='x01'&&m.match_mode==='sets')return [Number(m.player1_sets||0),Number(m.player2_sets||0)];
+  return [Number(m.player1_legs||0),Number(m.player2_legs||0)];
+}
+function formatLabel(m){
+  const v=variantOf(m);
+  if(v==='half_it')return'12 runder';
+  if(v==='sixty_one'){
+    const mins=Math.round(Number(m.game_config?.duration_seconds||600)/60);
+    return `Best of ${m.legs||1} legs • ${mins} min/leg`;
+  }
+  if(v==='cricket')return `Best of ${m.legs||1} legs`;
+  return m.match_mode==='sets'
+    ? `Best of ${m.best_of_sets||1} sets • Best of ${m.legs||1} legs`
+    : `Best of ${m.legs||1} legs`;
+}
+function extraLabel(m){
+  const v=variantOf(m);
+  if(v==='sixty_one')return `Sluttmål ${Number(m.player1_score||0)}–${Number(m.player2_score||0)}`;
+  if(v==='cricket'&&(Number(m.player1_score||0)||Number(m.player2_score||0)))return `Siste leg ${Number(m.player1_score||0)}–${Number(m.player2_score||0)} poeng`;
+  return'';
+}
+function contextLabel(m){
+  if(!m.tournament_id)return'Onlinekamp';
+  const stage=m.tournament_stage==='group'?'Pulje':'Cup';
+  return `${m.tournament_name||'Turnering'} • ${stage}`;
+}
+function canOpenStats(m){
+  if(variantOf(m)!=='x01')return false;
+  return !!m.tournament_id||m.player1_id===me||m.player2_id===me;
 }
 
-async function boot(){
-  const {data:{session}}=await db.auth.getSession();
-  if(!session)return location.replace('./');
-  const me=session.user.id;
-  const {data:allMatches,error}=await db.from('matches')
-    .select('*')
-    .or(`player1_id.eq.${me},player2_id.eq.${me}`)
-    .eq('status','finished')
-    .order('finished_at',{ascending:false,nullsFirst:false})
-    .limit(150);
-  if(error)throw error;
-  const matches=(allMatches||[]).filter(m=>(m.game_variant||'x01')==='x01').slice(0,100);
-  if(!matches.length){$('historyList').innerHTML='<p class="muted history-empty">Ingen ferdige X01-kamper ennå.</p>';return}
-
-  const playerIds=[...new Set(matches.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))];
-  const {data:profiles}=await db.from('profiles').select('id,username').in('id',playerIds);
-  const names=Object.fromEntries((profiles||[]).map(p=>[p.id,p.username]));
-  const matchIds=matches.map(m=>m.id);
-  const {data:tournamentMatches}=await db.from('tournament_matches').select('live_match_id,tournament_id,stage').in('live_match_id',matchIds);
-  const tournamentByMatch=new Map((tournamentMatches||[]).map(tm=>[tm.live_match_id,tm]));
-  const tournamentIds=[...new Set((tournamentMatches||[]).map(tm=>tm.tournament_id).filter(Boolean))];
-  let tournamentNames={};
-  if(tournamentIds.length){
-    const {data:tournaments}=await db.from('tournaments').select('id,name').in('id',tournamentIds);
-    tournamentNames=Object.fromEntries((tournaments||[]).map(t=>[t.id,t.name]));
+function render(){
+  const mineOnly=$('mineOnly').checked;
+  const visible=allMatches.filter(m=>{
+    if(activeFilter!=='all'&&variantOf(m)!==activeFilter)return false;
+    if(mineOnly&&m.player1_id!==me&&m.player2_id!==me)return false;
+    return true;
+  });
+  $('historyCount').textContent=`${visible.length} ${visible.length===1?'kamp':'kamper'}`;
+  if(!visible.length){
+    $('historyList').innerHTML='<p class="muted history-empty">Ingen ferdige kamper i dette utvalget ennå.</p>';
+    return;
   }
 
-  $('historyList').innerHTML=matches.map(m=>{
-    const opponent=m.player1_id===me?m.player2_id:m.player1_id;
-    const tm=tournamentByMatch.get(m.id);
-    const tournamentLabel=tm?`${tournamentNames[tm.tournament_id]||'Turnering'} • ${tm.stage==='group'?'Pulje':'Cup'}`:null;
-    const format=m.match_mode==='sets'?`Best of ${m.best_of_sets||1} sets • Best of ${m.legs} legs`:`Best of ${m.legs} legs`;
-    return `<article class="history-row"><div class="history-main"><div class="history-title">${esc(names[me]||'Du')} <span class="history-result">${matchResult(m,me)}</span> ${esc(names[opponent]||'Motstander')}</div><div class="history-meta"><span>${fmtDate(m.finished_at||m.updated_at||m.created_at)}</span><span>${esc(String(m.game||501))}</span><span>${esc(format)}</span>${tournamentLabel?`<span class="history-tag">${esc(tournamentLabel)}</span>`:'<span>Onlinekamp</span>'}</div></div><div class="history-actions"><button class="small-btn" data-match-id="${m.id}">Se statistikk</button></div></article>`;
+  $('historyList').innerHTML=visible.map(m=>{
+    const [a,b]=scorePair(m);
+    const p1Winner=m.winner_id&&m.winner_id===m.player1_id;
+    const p2Winner=m.winner_id&&m.winner_id===m.player2_id;
+    const draw=!m.winner_id&&a===b;
+    const extra=extraLabel(m);
+    const stats=canOpenStats(m)?`<button class="small-btn" data-match-id="${m.id}">Se statistikk</button>`:'';
+    return `<article class="history-row">
+      <div class="history-main">
+        <div class="history-title">
+          <span class="history-game">${esc(gameLabel(m))}</span>
+          <span class="history-player${p1Winner?' winner':''}">${esc(m.player1_name||'Spiller 1')}</span>
+          <span class="history-result">${a}–${b}</span>
+          <span class="history-player${p2Winner?' winner':''}">${esc(m.player2_name||'Spiller 2')}</span>
+          ${draw?'<span class="history-tag">Uavgjort</span>':''}
+        </div>
+        <div class="history-meta">
+          <span>${fmtDate(m.finished_at||m.created_at)}</span>
+          <span>${esc(formatLabel(m))}</span>
+          <span class="history-tag">${esc(contextLabel(m))}</span>
+          ${extra?`<span class="history-extra">${esc(extra)}</span>`:''}
+        </div>
+      </div>
+      <div class="history-actions">${stats}</div>
+    </article>`;
   }).join('');
 
   document.querySelectorAll('[data-match-id]').forEach(button=>button.onclick=()=>{
@@ -59,7 +102,26 @@ async function boot(){
   });
 }
 
+async function boot(){
+  const {data:{session}}=await db.auth.getSession();
+  if(!session)return location.replace('./');
+  me=session.user.id;
+
+  document.querySelectorAll('.history-filter').forEach(button=>button.onclick=()=>{
+    activeFilter=button.dataset.filter;
+    document.querySelectorAll('.history-filter').forEach(x=>x.classList.toggle('active',x===button));
+    render();
+  });
+  $('mineOnly').onchange=render;
+
+  const {data,error}=await db.rpc('get_global_match_history',{p_limit:300});
+  if(error)throw error;
+  allMatches=data||[];
+  render();
+}
+
 boot().catch(error=>{
-  console.error('Match history failed',error);
+  console.error('Global match history failed',error);
+  $('historyCount').textContent='Kunne ikke laste';
   $('historyList').innerHTML='<p class="muted history-empty">Kunne ikke laste kamphistorikken.</p>';
 });
