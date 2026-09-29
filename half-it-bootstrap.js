@@ -11,6 +11,7 @@
     if(mode==='standard'){
       document.body.dataset.halfItMode='standard';
       await loadScript('half-it-standard.js?v=20260930-standard1');
+      await loadScript('half-it-standard-audio.js?v=20260930-standard1');
       await loadScript('role-visuals.js?v=20260930-lobbyheader1');
       return;
     }
