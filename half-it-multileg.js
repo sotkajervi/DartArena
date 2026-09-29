@@ -1,6 +1,4 @@
 (()=>{
-  if(typeof m==='undefined'||typeof visits==='undefined')return;
-
   const currentLegNo=()=>Math.max(1,Number(m?.current_leg||1));
   const currentLegVisits=()=>visits.filter(v=>Number(v.leg_no||1)===currentLegNo());
   const legRoundCount=playerId=>currentLegVisits().filter(v=>v.player_id===playerId).length;
