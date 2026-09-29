@@ -4,7 +4,7 @@
 
   const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
   const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
-  const BUILD='20260929-formstats1';
+  const BUILD='20260929-tournamentbadge1';
   const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   const ADMIN='#ff9f43';
   const LEADER='#4da3ff';
@@ -51,6 +51,8 @@
       .da-role-admin-name{color:${ADMIN}!important}
       .da-role-leader-name,.role-leader,.role-leader-label{color:${LEADER}!important}
       .admin-badge{color:${ADMIN}!important;border-color:rgba(255,159,67,.5)!important;background:rgba(255,159,67,.1)!important}
+      .form-stats-badge{display:inline-flex;align-items:center;padding:3px 7px;border:1px solid rgba(35,226,209,.45);border-radius:999px;background:rgba(35,226,209,.08);color:var(--cyan);font-size:10px;font-weight:950;line-height:1;letter-spacing:.055em;text-transform:uppercase;white-space:nowrap}
+      .form-stats-badge.off{border-color:rgba(142,159,163,.32);background:rgba(142,159,163,.07);color:#8e9fa3}
     `;
     document.head.appendChild(style);
   }
@@ -71,6 +73,22 @@
     };
     add('matchHistoryBtn','Kamphistorikk','match-history.html');
     add('formStatsBtn','Form stats','form-stats.html');
+  }
+
+  function showTournamentFormStatsBadge(enabled){
+    const participantList=document.getElementById('participantList');
+    const heading=participantList?.closest('.card')?.querySelector('.heading');
+    if(!heading)return;
+    let badge=document.getElementById('tournamentFormStatsBadge');
+    if(!badge){
+      badge=document.createElement('span');
+      badge.id='tournamentFormStatsBadge';
+      heading.appendChild(badge);
+    }
+    const on=enabled!==false;
+    badge.className=`form-stats-badge${on?'':' off'}`;
+    badge.textContent=on?'FORM STATS':'FORM STATS AV';
+    badge.title=on?'501-kamper teller i Form stats':'Denne turneringen teller ikke i Form stats';
   }
 
   function escRegex(v){return String(v).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
@@ -135,7 +153,10 @@
     const params=new URLSearchParams(location.search);
     const tournamentId=params.get('id');
     if(tournamentId&&location.pathname.toLowerCase().includes('tournament')){
-      const {data:t}=await db.from('tournaments').select('owner_id').eq('id',tournamentId).maybeSingle();
+      const {data:t}=await db.from('tournaments').select('owner_id,stats_enabled').eq('id',tournamentId).maybeSingle();
+      if(t){
+        showTournamentFormStatsBadge(t.stats_enabled);
+      }
       if(t?.owner_id){
         const {data:p}=await db.from('profiles').select('username').eq('id',t.owner_id).maybeSingle();
         if(p?.username&&!roleMap.has(p.username))roleMap.set(p.username,'leader');
