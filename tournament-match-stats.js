@@ -5,30 +5,7 @@ const $=id=>document.getElementById(id);
 const tournamentMatchId=new URLSearchParams(location.search).get('id');
 let tournamentId=null;
 const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const dartsFor=t=>Number(t.is_checkout?t.darts_used:3)||3;
-
-function statsFor(all,pid){
-  const pt=all.filter(t=>t.player_id===pid);
-  const score=pt.reduce((s,t)=>s+Number(t.score||0),0);
-  const darts=pt.reduce((s,t)=>s+dartsFor(t),0);
-  const cos=pt.filter(t=>t.is_checkout);
-  let fast=null,high=0;
-  for(const co of cos){
-    high=Math.max(high,Number(co.score||0));
-    const leg=pt.filter(t=>Number(t.set_no||1)===Number(co.set_no||1)&&Number(t.leg_no||1)===Number(co.leg_no||1));
-    const used=leg.reduce((s,t)=>s+dartsFor(t),0);
-    if(used>0&&(fast===null||used<fast))fast=used;
-  }
-  return{
-    avg:darts?score/darts*3:0,
-    fast,
-    high,
-    c100:pt.filter(t=>+t.score>=100&&+t.score<=139).length,
-    c140:pt.filter(t=>+t.score>=140&&+t.score<=169).length,
-    c170:pt.filter(t=>+t.score>=170&&+t.score<=179).length,
-    c180:pt.filter(t=>+t.score===180).length
-  };
-}
+const dartsFor=t=>window.DartArenaX01Stats.dartsFor(t);
 
 function legSummary(all,names){
   const keys=[...new Set(all.map(t=>`${Number(t.set_no||1)}:${Number(t.leg_no||1)}`))];
@@ -89,9 +66,10 @@ async function boot(){
   }
 
   const all=throws||[];
-  const a=statsFor(all,tm.player1_id),b=statsFor(all,tm.player2_id);
+  const a=window.DartArenaX01Stats.statsFor(all,tm.player1_id),b=window.DartArenaX01Stats.statsFor(all,tm.player2_id);
   const rows=[
     ['3-dart avg',a.avg?a.avg.toFixed(2):'–',b.avg?b.avg.toFixed(2):'–'],
+    ['First 9 AVG',a.first9Darts?a.first9.toFixed(2):'–',b.first9Darts?b.first9.toFixed(2):'–'],
     ['Høyeste checkout',a.high||'–',b.high||'–'],
     ['Raskeste leg',a.fast?`${a.fast} piler`:'–',b.fast?`${b.fast} piler`:'–'],
     ['100+',a.c100,b.c100],
