@@ -36,7 +36,7 @@
     const active=m.status==='playing'&&!state.sudden_death;
     pauseBtn.disabled=!active||pauseBusy;
     pauseBtn.classList.toggle('active',!!state.is_paused);
-    pauseBtn.textContent=state.is_paused?'▶ FORTSETT':'⏸ PAUSE';
+    pauseBtn.textContent=state.is_paused?'▶ FORTSETT (P)':'⏸ PAUSE (P)';
     if(state.is_paused&&m.status==='playing'){
       const who=names?.[state.paused_by]||'En spiller';
       document.getElementById('matchStatus').textContent='Pauset';
