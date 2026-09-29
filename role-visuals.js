@@ -2,9 +2,12 @@
   if(!window.supabase||window.__dartArenaRoleVisuals)return;
   window.__dartArenaRoleVisuals=true;
 
+  const ROLE_PENDING_CLASS='da-role-visuals-pending';
+  document.documentElement.classList.add(ROLE_PENDING_CLASS);
+
   const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
   const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
-  const BUILD='20260929-tournamentbadge1';
+  const BUILD='20260929-roleflash1';
   const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   const ADMIN='#ff9f43';
   const LEADER='#4da3ff';
@@ -47,6 +50,7 @@
     const style=document.createElement('style');
     style.id='dartarena-role-visuals-style';
     style.textContent=`
+      html.${ROLE_PENDING_CLASS} #welcomeName{visibility:hidden}
       .da-role-name{font-weight:850}
       .da-role-admin-name{color:${ADMIN}!important}
       .da-role-leader-name,.role-leader,.role-leader-label{color:${LEADER}!important}
@@ -167,8 +171,12 @@
   async function boot(){
     ensureTheme();
     ensureLobbyNavButtons();
-    await loadRoles();
-    scan();
+    try{
+      await loadRoles();
+      scan();
+    }finally{
+      document.documentElement.classList.remove(ROLE_PENDING_CLASS);
+    }
     observer=new MutationObserver(()=>scheduleScan());
     observer.observe(document.body,{childList:true,subtree:true,characterData:true});
   }
