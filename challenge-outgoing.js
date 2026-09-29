@@ -1,5 +1,5 @@
 (()=>{
-  let startedFor=null,sentChannel=null,pendingSentIds=new Set(),acceptedRoomId=null;
+  let startedFor=null,sentChannel=null,pendingSentIds=new Set(),acceptedRoomId=null,roomTabs=new Map();
 
   function ensureUi(){
     let host=document.getElementById('sentChallengeList');
@@ -40,17 +40,26 @@
     if(!acceptedRoomId){box.hidden=true;box.innerHTML='';return}
     box.hidden=false;
     box.innerHTML=`<div class="challenge-row"><div><div class="player-name">Utfordringen er godtatt</div><div class="status">Venterommet er klart i egen fane.</div></div><div class="challenge-actions"><button id="openAcceptedRoomBtn" class="small-btn accept">Åpne venterom</button></div></div>`;
-    box.querySelector('#openAcceptedRoomBtn').onclick=()=>openAcceptedRoom(acceptedRoomId);
+    box.querySelector('#openAcceptedRoomBtn').onclick=()=>openAcceptedRoom(acceptedRoomId,true);
   }
 
-  function openAcceptedRoom(id){
+  function openAcceptedRoom(id,focus=false){
     if(!id)return false;
+    const existing=roomTabs.get(id);
+    if(existing&&!existing.closed){
+      acceptedRoomId=null;
+      renderAcceptedRoomPrompt();
+      if(focus)try{existing.focus()}catch{}
+      return true;
+    }
+    if(existing?.closed)roomTabs.delete(id);
     const url=`room.html?id=${encodeURIComponent(id)}`;
     const tab=window.open(url,`dartarena-room-${id}`);
     if(tab){
+      roomTabs.set(id,tab);
       acceptedRoomId=null;
       renderAcceptedRoomPrompt();
-      try{tab.focus()}catch{}
+      if(focus)try{tab.focus()}catch{}
       return true;
     }
     acceptedRoomId=id;
@@ -58,7 +67,7 @@
     return false;
   }
 
-  enterAcceptedRoom=function(id){openAcceptedRoom(id)};
+  enterAcceptedRoom=function(id){openAcceptedRoom(id,false)};
 
   function applySentButtonState(){
     document.querySelectorAll('.challenge-btn').forEach(b=>{
@@ -126,7 +135,7 @@
         .maybeSingle();
       if(acceptError){button.disabled=false;button.textContent=old;alert(acceptError.message);return}
       if(!accepted?.id){button.disabled=false;button.textContent=old;await Promise.all([loadChallenges(),loadPlayers()]);return}
-      openAcceptedRoom(accepted.id);
+      openAcceptedRoom(accepted.id,true);
       return;
     }
 
@@ -148,14 +157,17 @@
       .on('postgres_changes',{event:'UPDATE',schema:'public',table:'challenges',filter:`challenger_id=eq.${profile.id}`},payload=>{
         const row=payload.new;
         if(row.status==='room'){
-          openAcceptedRoom(row.id);
+          openAcceptedRoom(row.id,false);
           loadSentChallenges();
           loadPlayers();
           return;
         }
-        if((row.status==='declined'||row.status==='cancelled'||row.status==='accepted')&&acceptedRoomId===row.id){
-          acceptedRoomId=null;
-          renderAcceptedRoomPrompt();
+        if(row.status!=='room'){
+          roomTabs.delete(row.id);
+          if(acceptedRoomId===row.id){
+            acceptedRoomId=null;
+            renderAcceptedRoomPrompt();
+          }
         }
         loadSentChallenges();
         loadPlayers();
@@ -165,11 +177,12 @@
   window.addEventListener('message',e=>{
     if(e.origin!==location.origin)return;
     if(e.data?.type==='dartarena-room-cancelled'){
+      roomTabs.delete(e.data.id);
       if(acceptedRoomId===e.data.id)acceptedRoomId=null;
       renderAcceptedRoomPrompt();
       Promise.all([loadLobby(),loadSentChallenges(),loadPlayers()]).catch(()=>{});
     }
   });
 
-  setInterval(()=>{if(profile)startForProfile();else{startedFor=null;pendingSentIds=new Set();acceptedRoomId=null}},600);
+  setInterval(()=>{if(profile)startForProfile();else{startedFor=null;pendingSentIds=new Set();acceptedRoomId=null;roomTabs.clear()}},600);
 })();
