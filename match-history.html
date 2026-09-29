@@ -9,17 +9,28 @@
   <link rel="stylesheet" href="dartboard-background.css?v=20260928-ui2">
   <link rel="stylesheet" href="button-theme.css?v=20260928-ui2">
   <style>
-    .history-wrap{max-width:1050px;margin:0 auto}.history-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px}.history-list{display:grid;gap:10px}.history-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:rgba(7,16,18,.72)}.history-main{min-width:0}.history-title{font-size:17px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.history-meta{display:flex;flex-wrap:wrap;gap:7px 12px;margin-top:5px;color:var(--muted);font-size:13px}.history-result{color:var(--cyan);font-weight:950}.history-tag{display:inline-flex;align-items:center;padding:3px 7px;border:1px solid rgba(35,226,209,.25);border-radius:999px;color:var(--cyan);font-size:11px;font-weight:850}.history-empty{text-align:center;padding:30px 10px}.history-actions{display:flex;align-items:center;gap:8px}@media(max-width:650px){.history-head{flex-direction:column}.history-row{grid-template-columns:1fr}.history-actions{justify-content:flex-start}}
+    .history-wrap{max-width:1120px;margin:0 auto}.history-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}.history-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}.history-filters{display:flex;gap:7px;flex-wrap:wrap}.history-filter{min-height:36px;padding:8px 12px}.history-filter.active{border-color:rgba(35,226,209,.7)!important;background:rgba(35,226,209,.14)!important;color:var(--cyan)!important}.history-mine{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;font-weight:800;cursor:pointer}.history-mine input{accent-color:var(--cyan);width:17px;height:17px}.history-summary{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:0 2px 10px;color:var(--muted);font-size:12px}.history-list{display:grid;gap:10px}.history-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:rgba(7,16,18,.72)}.history-main{min-width:0}.history-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:17px;font-weight:900}.history-player.winner{color:var(--cyan)}.history-result{font-size:18px;color:var(--text);font-weight:950;letter-spacing:.03em}.history-meta{display:flex;flex-wrap:wrap;gap:7px 12px;margin-top:6px;color:var(--muted);font-size:13px}.history-tag,.history-game{display:inline-flex;align-items:center;padding:3px 7px;border:1px solid rgba(35,226,209,.25);border-radius:999px;color:var(--cyan);font-size:11px;font-weight:850}.history-game{border-color:rgba(255,255,255,.14);color:var(--text);background:rgba(255,255,255,.035)}.history-extra{color:var(--text)}.history-empty{text-align:center;padding:34px 10px}.history-actions{display:flex;align-items:center;gap:8px}.history-actions:empty{display:none}@media(max-width:700px){.history-head{flex-direction:column}.history-row{grid-template-columns:1fr}.history-actions{justify-content:flex-start}.history-toolbar{align-items:flex-start}.history-title{font-size:15px}.history-result{font-size:16px}}
   </style>
 </head>
 <body>
   <header><div class="brand">DART<span>ARENA</span></div><div class="live"><i></i> Kamphistorikk</div></header>
   <main class="shell"><div class="history-wrap">
-    <div class="history-head"><div><small>DIN HISTORIKK</small><h1>Tidligere kamper</h1><p class="muted compact">Ferdige X01-kamper. Åpne en kamp for full statistikk.</p></div><button id="backBtn" class="outline">Tilbake til lobby</button></div>
+    <div class="history-head"><div><small>ALLE ONLINEKAMPER</small><h1>Kamphistorikk</h1><p class="muted compact">Ferdige kamper mellom DartArena-spillere – X01, Cricket, Half-It og 61.</p></div><button id="backBtn" class="outline">Tilbake til lobby</button></div>
+    <div class="history-toolbar">
+      <div class="history-filters" id="historyFilters">
+        <button class="outline history-filter active" data-filter="all">Alle</button>
+        <button class="outline history-filter" data-filter="x01">X01</button>
+        <button class="outline history-filter" data-filter="cricket">Cricket</button>
+        <button class="outline history-filter" data-filter="half_it">Half-It</button>
+        <button class="outline history-filter" data-filter="sixty_one">61</button>
+      </div>
+      <label class="history-mine"><input id="mineOnly" type="checkbox"> Vis bare mine kamper</label>
+    </div>
+    <div class="history-summary"><span id="historyCount">Laster…</span><span>Nyeste først</span></div>
     <section class="card"><div id="historyList" class="history-list"><p class="muted history-empty">Laster kamper…</p></div></section>
   </div></main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="match-history.js?v=20260929-history1"></script>
-  <script src="role-visuals.js?v=20260929-history1"></script>
+  <script src="match-history.js?v=20260929-globalhistory1"></script>
+  <script src="role-visuals.js?v=20260929-roleflash2"></script>
 </body>
 </html>
