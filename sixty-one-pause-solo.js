@@ -8,7 +8,7 @@
 
   function paint(){
     pauseBtn.disabled=!running;
-    pauseBtn.textContent=paused?'▶ FORTSETT':'⏸ PAUSE';
+    pauseBtn.textContent=paused?'▶ FORTSETT (P)':'⏸ PAUSE (P)';
     gameCard?.classList.toggle('is-paused',paused);
     document.getElementById('clock')?.classList.toggle('paused',paused);
     if(paused){
@@ -54,19 +54,19 @@
     resetPause();
     baseFinish();
     pauseBtn.disabled=true;
-    pauseBtn.textContent='⏸ PAUSE';
+    pauseBtn.textContent='⏸ PAUSE (P)';
   };
 
   document.getElementById('startBtn')?.addEventListener('click',()=>{
     resetPause();
     pauseBtn.disabled=false;
-    pauseBtn.textContent='⏸ PAUSE';
+    pauseBtn.textContent='⏸ PAUSE (P)';
   });
 
   document.getElementById('restartBtn')?.addEventListener('click',()=>{
     resetPause();
     pauseBtn.disabled=true;
-    pauseBtn.textContent='⏸ PAUSE';
+    pauseBtn.textContent='⏸ PAUSE (P)';
   });
 
   pauseBtn.disabled=true;
