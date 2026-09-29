@@ -20,13 +20,14 @@ async function boot(){
 
   const rows=data||[];
   if(!rows.length){
-    $('formState').textContent='Ingen ferdige turneringer med registrerte X01-kast ennå.';
+    $('formState').textContent='Ingen ferdige turneringer med registrerte 501-kast ennå.';
     return;
   }
 
   $('formTableBody').innerHTML=rows.map((row,index)=>{
     const tournaments=Number(row.tournaments_count||0);
     const tournamentLabel=tournaments===1?'1 turnering':`${tournaments} turneringer`;
+    const fastest=Number(row.fastest_leg||0);
     return `<tr>
       <td><span class="form-rank">${index+1}</span><span class="form-player">${esc(row.username||'Spiller')}</span><span class="form-sub">${tournamentLabel}</span></td>
       <td class="form-avg">${num(row.form_avg)}</td>
@@ -36,6 +37,7 @@ async function boot(){
       <td>${Number(row.count_170||0)}</td>
       <td>${Number(row.count_180||0)}</td>
       <td>${Number(row.highest_checkout||0)||'–'}</td>
+      <td>${fastest?`${fastest} piler`:'–'}</td>
       <td>${Number(row.matches_count||0)}</td>
       <td>${Number(row.legs_count||0)}</td>
       <td>${tournaments}</td>
