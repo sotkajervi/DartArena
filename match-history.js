@@ -23,15 +23,15 @@ async function boot(){
   const {data:{session}}=await db.auth.getSession();
   if(!session)return location.replace('./');
   const me=session.user.id;
-  const {data:matches,error}=await db.from('matches')
+  const {data:allMatches,error}=await db.from('matches')
     .select('*')
     .or(`player1_id.eq.${me},player2_id.eq.${me}`)
     .eq('status','finished')
-    .eq('game_variant','x01')
     .order('finished_at',{ascending:false,nullsFirst:false})
-    .limit(100);
+    .limit(150);
   if(error)throw error;
-  if(!matches?.length){$('historyList').innerHTML='<p class="muted history-empty">Ingen ferdige X01-kamper ennå.</p>';return}
+  const matches=(allMatches||[]).filter(m=>(m.game_variant||'x01')==='x01').slice(0,100);
+  if(!matches.length){$('historyList').innerHTML='<p class="muted history-empty">Ingen ferdige X01-kamper ennå.</p>';return}
 
   const playerIds=[...new Set(matches.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))];
   const {data:profiles}=await db.from('profiles').select('id,username').in('id',playerIds);
