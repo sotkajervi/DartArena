@@ -32,6 +32,7 @@
     $(map[pendingCodes[pendingCodes.length-1]])?.classList.add('jdc-selected');
   }
   function setMessage(text=''){$('matchMessage').textContent=text}
+  function setStableText(id,text){const el=$(id);if(el&&el.textContent!==text)el.textContent=text}
 
   async function refresh(){
     if(!matchId)return location.replace('./');
@@ -52,9 +53,9 @@
   function render(){
     if(!match)return;
     const p1=countFor(match.player1_id),p2=countFor(match.player2_id),turnNo=currentTurnNo(),pos=positionFor(turnNo),mine=isMyTurn();
-    $('matchTitle').textContent=`${names[match.player1_id]||'Spiller 1'} vs ${names[match.player2_id]||'Spiller 2'}`;
-    $('player1Name').textContent=names[match.player1_id]||'Spiller 1';
-    $('player2Name').textContent=names[match.player2_id]||'Spiller 2';
+    setStableText('matchTitle',`${names[match.player1_id]||'Spiller 1'} vs ${names[match.player2_id]||'Spiller 2'}`);
+    setStableText('player1Name',names[match.player1_id]||'Spiller 1');
+    setStableText('player2Name',names[match.player2_id]||'Spiller 2');
     $('player1Score').textContent=String(match.player1_score||0);
     $('player2Score').textContent=String(match.player2_score||0);
     $('player1Progress').textContent=`${p1}/33 mål`;
