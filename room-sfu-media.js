@@ -45,11 +45,7 @@
 
   async function broadcastPublication(){
     if(!sfuChannel||!profile?.id)return;
-    await sfuChannel.send({
-      type:'broadcast',
-      event:'media-state',
-      payload:{from:profile.id,publication}
-    });
+    await sfuChannel.send({type:'broadcast',event:'media-state',payload:{from:profile.id,publication}});
   }
 
   async function ensurePublished(force=false){
@@ -92,25 +88,15 @@
     lastError='';
     setStatus(`Kobler til ${names?.[other]||'motstander'} via Cloudflare…`);
     const video=$('remoteVideo');
-    if(video){
-      try{video.pause()}catch{}
-      video.srcObject=new MediaStream();
-      video.muted=true;
-      video.playsInline=true;
-    }
+    if(video){try{video.pause()}catch{};video.srcObject=new MediaStream();video.muted=true;video.playsInline=true}
 
     try{
       await client.subscribe(pub,async event=>{
         if(!video)return;
         let remote=video.srcObject;
-        if(!(remote instanceof MediaStream)){
-          remote=new MediaStream();
-          video.srcObject=remote;
-        }
+        if(!(remote instanceof MediaStream)){remote=new MediaStream();video.srcObject=remote}
         const tracks=event.streams?.[0]?.getTracks?.()||[event.track];
-        for(const track of tracks){
-          if(track&&!remote.getTracks().some(t=>t.id===track.id))remote.addTrack(track);
-        }
+        for(const track of tracks){if(track&&!remote.getTracks().some(t=>t.id===track.id))remote.addTrack(track)}
         video.muted=true;
         video.playsInline=true;
         await video.play().catch(()=>{});
@@ -157,8 +143,12 @@
     return true;
   }
 
-  // Disable direct browser-to-browser negotiation. Signaling broadcasts can still arrive
-  // from a stale tab, but this room intentionally ignores them when SFU transport is active.
+  // Kill any direct P2P peer/timer that may have started before this script loaded.
+  try{clearInterval(helloTimer);helloTimer=null}catch{}
+  try{if(pc)destroyPeer()}catch{}
+
+  // Disable direct browser-to-browser negotiation. Challenge signaling remains in room.js,
+  // but audio/video is intentionally routed through Cloudflare instead.
   connectIfReady=async function(){
     setupSfuChannel();
     await ensurePublished();
@@ -187,6 +177,8 @@
       await ensurePublished();
     },1500);
   };
+  // Start the SFU-safe heartbeat even if room.js subscribed before this override loaded.
+  startHandshake();
 
   function buildDebug(){
     if(document.getElementById('roomSfuDebug'))return;
@@ -223,11 +215,7 @@
     ].join('\n');
   }
 
-  function renderDebug(){
-    buildDebug();
-    const el=document.getElementById('roomSfuDebugState');
-    if(el)el.textContent=debugText();
-  }
+  function renderDebug(){buildDebug();const el=document.getElementById('roomSfuDebugState');if(el)el.textContent=debugText()}
 
   async function copyDebug(){
     const text=`DartArena room SFU debug\nURL: ${location.href}\nTime: ${new Date().toISOString()}\n\n${debugText()}`;
@@ -248,19 +236,11 @@
   trackWatch=setInterval(()=>{
     if(!localReady||!stream?.getTracks?.().length||publishing)return;
     const signature=currentTrackSignature();
-    if(publication&&publishedTrackSignature&&signature!==publishedTrackSignature){
-      log('LOCAL tracks changed – republish');
-      ensurePublished(true);
-    }
+    if(publication&&publishedTrackSignature&&signature!==publishedTrackSignature){log('LOCAL tracks changed – republish');ensurePublished(true)}
     renderDebug();
   },700);
 
-  window.DartArenaRoomMedia={
-    mode:'sfu',
-    republish:()=>ensurePublished(true),
-    reconnect:()=>restartPeer(),
-    debugText
-  };
+  window.DartArenaRoomMedia={mode:'sfu',republish:()=>ensurePublished(true),reconnect:()=>restartPeer(),debugText};
 
   buildDebug();
   window.addEventListener('pagehide',()=>{
