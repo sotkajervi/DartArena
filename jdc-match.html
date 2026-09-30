@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071012">
+  <title>DartArena • JDC Challenge online</title>
+  <link rel="stylesheet" href="style.css?v=20260928-ui2">
+  <link rel="stylesheet" href="dartboard-background.css?v=20260928-ui2">
+  <link rel="stylesheet" href="button-theme.css?v=20260930-buttons4">
+  <link rel="stylesheet" href="jdc-tier.css?v=20260930-jdc1">
+  <link rel="stylesheet" href="jdc-match.css?v=20260930-jdconline1">
+</head>
+<body class="match-page jdc-match-page">
+<header><div class="brand">DART<span>ARENA</span></div><div class="live"><i></i> OFFISIELL JDC ONLINE</div></header>
+<main class="shell">
+  <div class="match-head">
+    <div><small>JDC CHALLENGE • 57 PILER HVER</small><h1 id="matchTitle">Laster kamp…</h1><p class="muted compact">Kun online-resultater teller på Top 10 og JDC-tier.</p></div>
+    <div class="top-actions"><button id="cancelMatchBtn" class="danger">Avbryt kamp</button><button id="closeMatchBtn" class="outline hidden">Lukk kampfane</button></div>
+  </div>
+
+  <div class="video-grid jdc-video-grid">
+    <div class="video-card"><video id="localVideo" autoplay playsinline muted></video><div id="localPlaceholder" class="video-placeholder">Starter kamera…</div><span id="localVideoName" class="video-name">Deg</span></div>
+    <div class="video-card"><video id="remoteVideo" autoplay playsinline muted></video><div id="remotePlaceholder" class="video-placeholder">Venter på motstanderens kamera…</div><span id="remoteVideoName" class="video-name">Motstander</span><button id="remoteAudioBtn" class="outline hidden jdc-audio-btn">Slå på lyd</button></div>
+  </div>
+  <p id="cameraStatus" class="muted compact jdc-camera-status">Kobler til video…</p>
+
+  <div class="jdc-online-grid">
+    <section class="card jdc-play-card">
+      <div class="jdc-online-scoreboard">
+        <article id="player1Card" class="jdc-online-player"><span id="player1Name">Spiller 1</span><strong id="player1Score">0</strong><small id="player1Progress">0/33 mål</small></article>
+        <article id="player2Card" class="jdc-online-player"><span id="player2Name">Spiller 2</span><strong id="player2Score">0</strong><small id="player2Progress">0/33 mål</small></article>
+      </div>
+
+      <div class="jdc-online-target">
+        <div id="phaseTitle" class="jdc-online-phase">FASE 1 • SHANGHAI 10–15</div>
+        <div id="targetValue" class="jdc-online-number">10</div>
+        <div id="dartMeta" class="muted">Venter…</div>
+      </div>
+
+      <div id="shanghaiActions" class="jdc-online-actions">
+        <button id="missBtn" class="outline">Bom <span class="da-key">0</span></button>
+        <button id="singleBtn" class="outline">Single <span class="da-key">1</span></button>
+        <button id="doubleBtn" class="outline">Double <span class="da-key">2</span></button>
+        <button id="tripleBtn" class="outline">Triple <span class="da-key">3</span></button>
+      </div>
+      <div id="doubleActions" class="jdc-online-actions two hidden">
+        <button id="doubleHitBtn" class="da-btn-hit">✓ TREFF <span class="da-key">2</span></button>
+        <button id="doubleMissBtn" class="da-btn-miss">✕ BOM <span class="da-key">0</span></button>
+      </div>
+      <div class="jdc-online-utility"><button id="undoBtn" class="outline">Angre siste <span class="da-key">Backspace</span></button></div>
+      <p id="matchMessage" class="message"></p>
+    </section>
+
+    <aside class="card jdc-online-info">
+      <small>OFFISIELL SCORE</small><h2 id="turnText">Venter…</h2>
+      <div class="jdc-info-row"><span>Format</span><strong>JDC Challenge</strong></div>
+      <div class="jdc-info-row"><span>Resultat</span><strong>Online-verifisert</strong></div>
+      <div class="jdc-info-row"><span>Toppliste</span><strong>Top 10 + tier</strong></div>
+      <p class="muted compact">Begge spiller samme mål før kampen går videre. Shanghai registreres med 0–3 og Enter. Doubles registreres direkte med 0 eller 2.</p>
+      <div id="finishedBox" class="jdc-finished hidden"><small>KAMP FERDIG</small><h2 id="winnerText">Ferdig</h2><p id="tierText" class="muted"></p></div>
+    </aside>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+<script src="jdc-match.js?v=20260930-jdconline1"></script>
+<script src="jdc-match-media.js?v=20260930-jdconline1"></script>
+<script src="secure-match-cancel.js?v=20260930-security1"></script>
+<script src="role-visuals.js?v=20260930-solo1"></script>
+</body></html>
