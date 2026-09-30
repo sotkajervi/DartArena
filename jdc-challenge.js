@@ -72,12 +72,6 @@
     }
   }
 
-  function clearPending(){
-    pendingCodes=[];
-    clearButtonSelection();
-    if(!submitted)$('gameMessage').textContent='';
-  }
-
   function buttonIdForCode(code){
     const kind=position().kind;
     if(kind==='double')return code==='M'?'doubleMissBtn':code==='H'?'doubleHitBtn':null;
@@ -85,17 +79,32 @@
     return null;
   }
 
-  function queueShanghai(code){
-    if(submitted||position().kind!=='shanghai'||pendingCodes.length>=3)return;
-    pendingCodes.push(code);
+  function refreshPendingUi(){
     clearButtonSelection();
-    const buttonId=buttonIdForCode(code);
+    if(!pendingCodes.length){
+      if(!submitted)$('gameMessage').textContent='';
+      return;
+    }
+    const last=pendingCodes[pendingCodes.length-1];
+    const buttonId=buttonIdForCode(last);
     const button=buttonId?$(buttonId):null;
     if(button){
       button.classList.add('jdc-selected');
       button.setAttribute('aria-pressed','true');
     }
     $('gameMessage').textContent=`Valgt: ${pendingCodes.map(item=>HIT_LABELS[item]||item).join(' • ')} • Enter registrerer`;
+  }
+
+  function clearPending(){
+    pendingCodes=[];
+    refreshPendingUi();
+  }
+
+  function queueShanghai(code){
+    if(submitted||position().kind!=='shanghai'||pendingCodes.length>=3)return;
+    pendingCodes.push(code);
+    refreshPendingUi();
+    render();
   }
 
   function commitShanghai(){
@@ -107,6 +116,35 @@
     $('gameMessage').textContent='';
     hits.push(...round);
     render();
+  }
+
+  function undoLastInput(){
+    if(submitted)return;
+    const kind=position().kind;
+
+    if(kind==='shanghai'&&pendingCodes.length){
+      pendingCodes.pop();
+      refreshPendingUi();
+      render();
+      return;
+    }
+
+    if(kind==='double'&&hits.length>18){
+      hits.pop();
+      render();
+      return;
+    }
+
+    if(kind==='shanghai'&&hits.length===39&&!pendingCodes.length){
+      hits.pop();
+      render();
+      return;
+    }
+
+    if(!pendingCodes.length&&hits.length){
+      hits.pop();
+      render();
+    }
   }
 
   function render(){
@@ -147,6 +185,13 @@
     if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||event.target?.isContentEditable)return;
 
     const kind=position().kind;
+
+    if(event.key==='Backspace'){
+      event.preventDefault();
+      undoLastInput();
+      return;
+    }
+
     if(event.key==='Enter'){
       if(kind!=='shanghai'||!pendingCodes.length)return;
       event.preventDefault();
@@ -208,7 +253,8 @@
 
   function reset(){
     window.DartArenaResults?.hide?.();
-    clearPending();
+    pendingCodes=[];
+    clearButtonSelection();
     hits=[];
     submitted=false;
     $('gameMessage').textContent='';
@@ -252,11 +298,7 @@
     $('tripleBtn').onclick=event=>clickHit('T',event);
     $('doubleMissBtn').onclick=event=>clickHit('M',event);
     $('doubleHitBtn').onclick=event=>clickHit('H',event);
-    $('undoBtn').onclick=()=>{
-      if(submitted)return;
-      if(pendingCodes.length){clearPending();render();return}
-      if(hits.length){hits.pop();render()}
-    };
+    $('undoBtn').onclick=undoLastInput;
     $('restartBtn').onclick=reset;
     document.addEventListener('keydown',handleKeyboard);
     render();
