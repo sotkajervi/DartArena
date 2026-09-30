@@ -9,25 +9,25 @@
   },100);
 
   function resolveVariant(raw){
-    return window.DartArenaGames?.variantFor?.(raw)||(raw==='cricket'?'cricket':raw==='half_it'||raw==='half_it_standard'?'half_it':raw==='sixty_one'?'sixty_one':'x01');
+    return window.DartArenaGames?.variantFor?.(raw)||(raw==='cricket'?'cricket':raw==='half_it'||raw==='half_it_standard'?'half_it':raw==='sixty_one'?'sixty_one':raw==='jdc'?'jdc':'x01');
   }
   function labelFor(raw){
-    return window.DartArenaGames?.labelForRaw?.(raw)||(raw==='half_it_standard'?'Half-It (Standard)':raw==='half_it'?'Half-It (DartCounter)':raw==='cricket'?'Cricket':raw==='sixty_one'?'61':String(raw));
+    return window.DartArenaGames?.labelForRaw?.(raw)||(raw==='half_it_standard'?'Half-It (Standard)':raw==='half_it'?'Half-It (DartCounter)':raw==='cricket'?'Cricket':raw==='sixty_one'?'61':raw==='jdc'?'JDC Challenge':String(raw));
   }
   function halfModeFor(raw){return raw==='half_it_standard'?'standard':raw==='half_it'?'dartcounter':null}
 
   function install(propose,accept,reject){
     propose.onclick=async()=>{
       const raw=selectedGame();
-      const variant=resolveVariant(raw),special=variant!=='x01',half=variant==='half_it',sixty=variant==='sixty_one';
-      const legs=Number(document.getElementById('roomLegs').value),mode=special?'legs':matchMode;
+      const variant=resolveVariant(raw),special=variant!=='x01',half=variant==='half_it',sixty=variant==='sixty_one',jdc=variant==='jdc';
+      const legs=jdc?1:Number(document.getElementById('roomLegs').value),mode=special?'legs':matchMode;
       const sets=special?1:(mode==='sets'?Number(document.getElementById('roomSets').value):1);
       const durationMinutes=sixty?Number(document.getElementById('room61Time').value):null;
       if(legs<1||legs>21||legs%2===0||sets<1||sets>11||sets%2===0){document.getElementById('roomMessage').textContent='Best of må være et gyldig oddetall.';return}
       if(sixty&&![10,20,30,45,60].includes(durationMinutes)){document.getElementById('roomMessage').textContent='Velg gyldig tid per leg.';return}
       const starterChoice=document.getElementById('roomStarter').value;
       const starterId=starterChoice==='me'?profile.id:starterChoice==='opponent'?other:null;
-      const gameConfig=sixty?{duration_seconds:durationMinutes*60}:half?{half_it_mode:halfModeFor(raw)}:{};
+      const gameConfig=sixty?{duration_seconds:durationMinutes*60}:half?{half_it_mode:halfModeFor(raw)}:jdc?{ranked:true}:{};
       const game=special?501:Number(raw);
       propose.disabled=true;propose.textContent='Sender…';
       try{
@@ -42,6 +42,7 @@
         document.getElementById('roomMessage').textContent=half
           ?`Forslag sendt: ${label} • Best of ${legs} legs • 12 runder/leg`
           :sixty?`Forslag sendt: 61 • Best of ${legs} legs • ${durationMinutes} min/leg`
+          :jdc?'Forslag sendt: JDC Challenge • 57 piler hver • offisiell online-score'
           :mode==='sets'?`Forslag sendt: ${label} • Best of ${sets} sets • Best of ${legs} legs`
           :`Forslag sendt: ${label} • Best of ${legs} legs`;
       }catch(error){document.getElementById('roomMessage').textContent=error?.message||'Forslaget kunne ikke sendes.'}
