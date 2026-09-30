@@ -5,9 +5,11 @@
   const $=id=>document.getElementById(id);
   const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const TIER_LABELS={white:'White',purple:'Purple',yellow:'Yellow',green:'Green',blue:'Blue',red:'Red',black:'Black',gold:'Gold'};
+  const HIT_BUTTON_IDS=['missBtn','singleBtn','doubleBtn','tripleBtn','doubleMissBtn','doubleHitBtn'];
   let session=null;
   let hits=[];
   let submitted=false;
+  let pendingCode=null;
 
   function badgeFor(score){
     if(score>=1250)return'gold';
@@ -60,6 +62,40 @@
     return{phase:3,phaseName:'FERDIG',target:'✓',dart:3,maxDarts:3,kind:'done'};
   }
 
+  function clearPending(){
+    pendingCode=null;
+    for(const id of HIT_BUTTON_IDS){
+      const button=$(id);
+      if(!button)continue;
+      button.classList.remove('jdc-selected');
+      button.setAttribute('aria-pressed','false');
+    }
+  }
+
+  function buttonIdForCode(code){
+    const kind=position().kind;
+    if(kind==='double')return code==='M'?'doubleMissBtn':code==='H'?'doubleHitBtn':null;
+    if(kind==='shanghai')return code==='M'?'missBtn':code==='S'?'singleBtn':code==='D'?'doubleBtn':code==='T'?'tripleBtn':null;
+    return null;
+  }
+
+  function selectPending(code){
+    const buttonId=buttonIdForCode(code);
+    if(!buttonId)return;
+    clearPending();
+    pendingCode=code;
+    const button=$(buttonId);
+    button.classList.add('jdc-selected');
+    button.setAttribute('aria-pressed','true');
+  }
+
+  function commitPending(){
+    if(!pendingCode||submitted)return;
+    const code=pendingCode;
+    clearPending();
+    addHit(code);
+  }
+
   function render(){
     const pos=position(),stats=calculate();
     $('phaseTitle').textContent=`FASE ${pos.phase} • ${pos.phaseName}`;
@@ -86,7 +122,38 @@
     render();
   }
 
+  function clickHit(code,event){
+    clearPending();
+    addHit(code);
+    event?.currentTarget?.blur?.();
+  }
+
+  function handleKeyboard(event){
+    if(submitted||event.ctrlKey||event.metaKey||event.altKey)return;
+    const tag=event.target?.tagName;
+    if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||event.target?.isContentEditable)return;
+
+    if(event.key==='Enter'){
+      if(!pendingCode)return;
+      event.preventDefault();
+      commitPending();
+      return;
+    }
+
+    const kind=position().kind;
+    let code=null;
+    if(event.key==='0')code='M';
+    else if(kind==='shanghai'&&event.key==='1')code='S';
+    else if(event.key==='2')code=kind==='double'?'H':kind==='shanghai'?'D':null;
+    else if(kind==='shanghai'&&event.key==='3')code='T';
+    if(!code)return;
+
+    event.preventDefault();
+    selectPending(code);
+  }
+
   async function finish(){
+    clearPending();
     submitted=true;
     $('gameMessage').textContent='Lagrer resultat…';
     const local=calculate();
@@ -123,6 +190,7 @@
 
   function reset(){
     window.DartArenaResults?.hide?.();
+    clearPending();
     hits=[];
     submitted=false;
     $('gameMessage').textContent='';
@@ -160,14 +228,15 @@
     session=s;
     if(!session)return location.replace('./');
     $('backBtn').onclick=()=>location.href='./';
-    $('missBtn').onclick=()=>addHit('M');
-    $('singleBtn').onclick=()=>addHit('S');
-    $('doubleBtn').onclick=()=>addHit('D');
-    $('tripleBtn').onclick=()=>addHit('T');
-    $('doubleMissBtn').onclick=()=>addHit('M');
-    $('doubleHitBtn').onclick=()=>addHit('H');
-    $('undoBtn').onclick=()=>{if(hits.length&&!submitted){hits.pop();render()}};
+    $('missBtn').onclick=event=>clickHit('M',event);
+    $('singleBtn').onclick=event=>clickHit('S',event);
+    $('doubleBtn').onclick=event=>clickHit('D',event);
+    $('tripleBtn').onclick=event=>clickHit('T',event);
+    $('doubleMissBtn').onclick=event=>clickHit('M',event);
+    $('doubleHitBtn').onclick=event=>clickHit('H',event);
+    $('undoBtn').onclick=()=>{if(hits.length&&!submitted){clearPending();hits.pop();render()}};
     $('restartBtn').onclick=reset;
+    document.addEventListener('keydown',handleKeyboard);
     render();
     await loadLeaderboard();
   }
