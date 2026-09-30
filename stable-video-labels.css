@@ -1,0 +1,22 @@
+/* Keep player name overlays visually stable while video/layout state updates. */
+body.match-page .video-card .video-name{
+  opacity:1!important;
+  visibility:visible!important;
+  transition:none!important;
+  animation:none!important;
+  transform:none!important;
+  will-change:auto!important;
+  z-index:12!important;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  contain:paint;
+}
+body.match-page .video-card:hover .video-name,
+body.match-page .video-grid.opponent-throwing .video-name,
+body.match-page.opponent-focus .video-name,
+body.match-page.own-turn-focus .video-name{
+  opacity:1!important;
+  visibility:visible!important;
+  transition:none!important;
+  animation:none!important;
+}
