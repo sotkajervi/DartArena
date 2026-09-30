@@ -25,6 +25,22 @@ New and migrated code belongs under `src/`:
 
 Do not create a new abstraction or directory unless more than one call site benefits from it.
 
+## UI consistency
+
+DartArena uses `button-theme.css` as the shared button design system. New pages and controls must use it instead of inventing a separate button shape.
+
+- Normal buttons use a 12 px corner radius.
+- Compact controls use a 10 px corner radius.
+- Large game actions use a 16 px corner radius.
+- Primary actions use cyan.
+- Neutral/secondary actions use the dark outline style.
+- Destructive/reset/cancel actions use the red danger style.
+- Green/red game choices such as Treff/Bom may keep semantic game colors, but must use the shared large-action shape.
+- Circular controls are only used where the control is intentionally circular, such as calendar navigation.
+- Do not add square browser-default buttons to production UI.
+
+If a page needs a genuinely different button treatment, extend the shared system rather than creating an unrelated local style.
+
 ## Legacy migration
 
 The current root-level JavaScript is production code and remains in place while DartArena is migrated gradually.
