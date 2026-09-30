@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="dartboard-background.css?v=20260928-ui2">
   <link rel="stylesheet" href="button-theme.css?v=20260930-buttons4">
   <link rel="stylesheet" href="jdc-tier.css?v=20260930-jdc1">
-  <link rel="stylesheet" href="jdc-match.css?v=20260930-jdconline4">
+  <link rel="stylesheet" href="jdc-match.css?v=20260930-jdconline5">
 </head>
 <body class="match-page jdc-match-page">
 <header><div class="brand">DART<span>ARENA</span></div><div class="live"><i></i> OFFISIELL JDC ONLINE</div></header>
@@ -48,7 +48,10 @@
         <button id="doubleHitBtn" class="da-btn-hit">✓ TREFF <span class="da-key">2</span></button>
         <button id="doubleMissBtn" class="da-btn-miss">✕ BOM <span class="da-key">0</span></button>
       </div>
-      <div class="jdc-online-utility"><button id="undoBtn" class="outline">Angre siste <span class="da-key">Backspace</span></button></div>
+      <div class="jdc-online-utility">
+        <button id="undoBtn" class="danger">Angre siste <span class="da-key">Backspace</span></button>
+        <button id="confirmTurnBtn" class="outline" type="button" onclick="document.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',bubbles:true,cancelable:true}))">Bekreft <span class="da-key">Enter</span></button>
+      </div>
       <p id="matchMessage" class="message"></p>
     </section>
 
@@ -66,8 +69,6 @@
 <script src="sfu-config.js?v=20260930-sfu1"></script>
 <script src="sfu-client.js?v=20260930-sfu1"></script>
 <script src="jdc-match.js?v=20260930-noflicker5"></script>
-<script src="jdc-turn-color.js?v=20260930-turncolor2"></script>
-<script src="jdc-controls-enhance.js?v=20260930-controls1"></script>
 <script src="jdc-match-media.js?v=20260930-jdcsfu3"></script>
 <script src="secure-match-cancel.js?v=20260930-security1"></script>
 </body></html>
