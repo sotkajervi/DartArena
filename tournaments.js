@@ -27,7 +27,7 @@
   function ensureFormStatsUi(){
     if(!document.querySelector('link[data-tournament-form-stats]')){
       const link=document.createElement('link');
-      link.rel='stylesheet';link.href='tournament-form-stats.css?v=20260929-formtoggle1';link.dataset.tournamentFormStats='1';
+      link.rel='stylesheet';link.href='tournament-form-stats.css?v=20260930-toggle2';link.dataset.tournamentFormStats='1';
       document.head.appendChild(link);
     }
     if($('tournamentFormStats'))return;
@@ -36,7 +36,7 @@
     const option=document.createElement('label');
     option.className='form-stats-option';
     option.htmlFor='tournamentFormStats';
-    option.innerHTML='<span class="form-stats-copy"><strong>Form stats</strong><small>501-kamper teller i spillerens formstatistikk</small></span><span class="form-stats-control"><span id="tournamentFormStatsState" class="form-stats-state">PÅ</span><span class="form-stats-switch"><input id="tournamentFormStats" type="checkbox" checked><span class="form-stats-slider"></span></span></span>';
+    option.innerHTML='<span class="form-stats-copy"><strong>Formstatistikk</strong><small>La 501-kamper fra turneringen telle i spillernes formstatistikk.</small></span><span class="form-stats-control"><span id="tournamentFormStatsState" class="form-stats-state">PÅ</span><span class="form-stats-switch"><input id="tournamentFormStats" type="checkbox" checked><span class="form-stats-slider"></span></span></span>';
     submit.insertAdjacentElement('beforebegin',option);
     $('tournamentFormStats').addEventListener('change',syncFormStatsToggle);
     syncFormStatsToggle();
