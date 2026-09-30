@@ -38,9 +38,10 @@
     syncJdcMode();
   }
 
-  // room.js predates JDC and routes every unknown variant to match.html.
-  // Keep the legacy router untouched for existing games, but send JDC starts on
-  // a dedicated event so the other player is always sent to jdc-match.html.
+  // room.js predates JDC and routes unknown variants to match.html.
+  // Reuse the existing waiting-room realtime channel instead of opening a second
+  // channel with the same topic. A duplicate room channel could interfere with
+  // the normal room subscription that starts camera/media.
   const baseSend=send;
   send=async function(event,payload={}){
     if(event==='match-start'&&payload?.gameVariant==='jdc'){
@@ -56,26 +57,20 @@
     return baseSend(event,payload);
   };
 
-  let routeChannel=null;
-  const installRouteChannel=()=>{
-    if(routeChannel||typeof db==='undefined'||typeof challengeId==='undefined'||!challengeId||!profile?.id)return false;
-    routeChannel=db.channel(`room-${challengeId}`)
-      .on('broadcast',{event:'jdc-match-start'},({payload})=>{
-        if(!payload?.matchId||payload.from===profile.id)return;
-        location.href=`jdc-match.html?id=${encodeURIComponent(payload.matchId)}`;
-      })
-      .subscribe();
+  let routeBound=false;
+  const bindJdcRoute=()=>{
+    if(routeBound||!channel||!profile?.id)return false;
+    channel.on('broadcast',{event:'jdc-match-start'},({payload})=>{
+      if(!payload?.matchId||payload.from===profile.id)return;
+      location.href=`jdc-match.html?id=${encodeURIComponent(payload.matchId)}`;
+    });
+    routeBound=true;
     return true;
   };
 
   const routeWait=setInterval(()=>{
-    if(installRouteChannel())clearInterval(routeWait);
+    if(bindJdcRoute())clearInterval(routeWait);
   },100);
   setTimeout(()=>clearInterval(routeWait),15000);
-
-  window.addEventListener('pagehide',()=>{
-    clearInterval(routeWait);
-    if(routeChannel){try{db.removeChannel(routeChannel)}catch{}}
-    routeChannel=null;
-  },{once:true});
+  window.addEventListener('pagehide',()=>clearInterval(routeWait),{once:true});
 })();
