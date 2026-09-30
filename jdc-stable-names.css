@@ -1,0 +1,57 @@
+/* JDC online: keep player names out of live video compositor/repaint paths. */
+.jdc-match-page .jdc-video-grid{
+  align-items:stretch;
+}
+.jdc-match-page .jdc-video-slot{
+  min-width:0;
+  height:100%;
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr);
+  gap:6px;
+  opacity:1!important;
+  visibility:visible!important;
+  transform:none!important;
+}
+.jdc-match-page .jdc-video-slot-label{
+  min-height:30px;
+  display:flex;
+  align-items:center;
+  padding:6px 10px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#071214;
+  color:var(--text);
+  font-size:12px;
+  font-weight:900;
+  line-height:1;
+  opacity:1!important;
+  visibility:visible!important;
+  animation:none!important;
+  transition:none!important;
+  transform:none!important;
+  filter:none!important;
+  contain:layout paint style;
+  isolation:isolate;
+  z-index:20;
+}
+.jdc-match-page .jdc-video-slot.local-slot .jdc-video-slot-label{color:var(--amber)}
+.jdc-match-page .jdc-video-slot .video-card{
+  width:100%;
+  height:100%!important;
+  min-height:0!important;
+  aspect-ratio:auto!important;
+}
+.jdc-match-page .jdc-video-slot .video-card>.video-name{display:none!important}
+
+/* Scoreboard names stay in their own stable layer and never animate. */
+.jdc-match-page .jdc-online-player>span:first-child{
+  display:block;
+  opacity:1!important;
+  visibility:visible!important;
+  animation:none!important;
+  transition:none!important;
+  transform:none!important;
+  filter:none!important;
+  contain:paint;
+}
+.jdc-match-page .jdc-online-player.is-local>span:first-child{color:var(--amber)!important}
