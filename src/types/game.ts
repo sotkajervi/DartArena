@@ -1,4 +1,4 @@
-export type GameVariant = 'x01' | 'cricket' | 'half_it' | 'sixty_one';
+export type GameVariant = 'x01' | 'cricket' | 'half_it' | 'sixty_one' | 'jdc';
 
 export type HalfItMode = 'dartcounter' | 'standard';
 
@@ -9,6 +9,7 @@ export type X01Game = 170 | 301 | 501 | 1001;
 export interface MatchGameConfig {
   duration_seconds?: number;
   half_it_mode?: HalfItMode;
+  ranked?: boolean;
 }
 
 export interface MatchFormat {
