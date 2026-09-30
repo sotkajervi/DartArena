@@ -9,8 +9,7 @@
   <link rel="stylesheet" href="dartboard-background.css?v=20260928-ui2">
   <link rel="stylesheet" href="button-theme.css?v=20260930-buttons4">
   <link rel="stylesheet" href="jdc-tier.css?v=20260930-jdc1">
-  <link rel="stylesheet" href="jdc-match.css?v=20260930-jdconline2">
-  <link rel="stylesheet" href="jdc-stable-names.css?v=20260930-namefix3">
+  <link rel="stylesheet" href="jdc-match.css?v=20260930-jdconline3">
 </head>
 <body class="match-page jdc-match-page">
 <header><div class="brand">DART<span>ARENA</span></div><div class="live"><i></i> OFFISIELL JDC ONLINE</div></header>
@@ -21,14 +20,8 @@
   </div>
 
   <div class="video-grid jdc-video-grid">
-    <div class="jdc-video-slot local-slot">
-      <span id="localVideoName" class="jdc-video-slot-label">Deg</span>
-      <div class="video-card"><video id="localVideo" autoplay playsinline muted></video><div id="localPlaceholder" class="video-placeholder">Starter kamera…</div></div>
-    </div>
-    <div class="jdc-video-slot remote-slot">
-      <span id="remoteVideoName" class="jdc-video-slot-label">Motstander</span>
-      <div class="video-card"><video id="remoteVideo" autoplay playsinline muted></video><div id="remotePlaceholder" class="video-placeholder">Venter på motstanderens kamera…</div><button id="remoteAudioBtn" class="outline hidden jdc-audio-btn">Slå på lyd</button></div>
-    </div>
+    <div class="video-card"><video id="localVideo" autoplay playsinline muted></video><div id="localPlaceholder" class="video-placeholder">Starter kamera…</div><span id="localVideoName" class="video-name">Deg</span></div>
+    <div class="video-card"><video id="remoteVideo" autoplay playsinline muted></video><div id="remotePlaceholder" class="video-placeholder">Venter på motstanderens kamera…</div><span id="remoteVideoName" class="video-name">Motstander</span><button id="remoteAudioBtn" class="outline hidden jdc-audio-btn">Slå på lyd</button></div>
   </div>
   <p id="cameraStatus" class="muted compact jdc-camera-status">Kobler til video…</p>
 
@@ -72,8 +65,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
 <script src="sfu-config.js?v=20260930-sfu1"></script>
 <script src="sfu-client.js?v=20260930-sfu1"></script>
-<script src="jdc-match.js?v=20260930-noflicker3"></script>
-<script src="jdc-stable-player-cards.js?v=20260930-namefix3"></script>
+<script src="jdc-match.js?v=20260930-noflicker4"></script>
 <script src="jdc-match-media.js?v=20260930-jdcsfu3"></script>
 <script src="secure-match-cancel.js?v=20260930-security1"></script>
+<script src="role-visuals.js?v=20260930-solo1"></script>
 </body></html>
