@@ -1,0 +1,8 @@
+node_modules/
+dist/
+
+# Existing root runtime is migrated gradually. Do not mass-format it.
+/*.js
+/*.html
+/*.css
+/*.sql
