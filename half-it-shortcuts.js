@@ -16,7 +16,15 @@
     button.appendChild(badge);
   }
 
+  function normalizeBullLabel(){
+    document.querySelectorAll('.half-number-grid button.half-hit').forEach(button=>{
+      if(button.textContent.trim()==='DB')button.textContent='Bull';
+    });
+  }
+
   function decorate(){
+    normalizeBullLabel();
+
     const miss=firstUsable(['halfMissBtn','soloMissBtn'])||document.getElementById('halfMissBtn')||document.getElementById('soloMissBtn');
     const undo=document.getElementById('halfUndoBtn')||document.getElementById('soloUndoBtn');
     const submit=document.getElementById('halfSubmitBtn')||document.getElementById('soloSubmitBtn');
