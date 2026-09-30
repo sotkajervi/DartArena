@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="dartboard-background.css?v=20260930-jdc1">
   <link rel="stylesheet" href="button-theme.css?v=20260930-jdc1">
   <link rel="stylesheet" href="jdc-tier.css?v=20260930-jdc1">
-  <link rel="stylesheet" href="jdc-challenge.css?v=20260930-jdc1">
+  <link rel="stylesheet" href="jdc-challenge.css?v=20260930-jdc2">
   <link rel="stylesheet" href="shared-results.css?v=20260930-results3">
 </head>
 <body>
@@ -32,12 +32,13 @@
             <button id="missBtn" class="outline" type="button">Bom</button>
             <button id="singleBtn" class="outline" type="button">Single</button>
             <button id="doubleBtn" class="outline" type="button">Double</button>
-            <button id="tripleBtn" class="primary" type="button">Triple</button>
+            <button id="tripleBtn" class="outline" type="button">Triple</button>
           </div>
           <div id="doubleActions" class="jdc-actions two hidden">
             <button id="doubleMissBtn" class="outline" type="button">Bom</button>
-            <button id="doubleHitBtn" class="primary" type="button">Treff</button>
+            <button id="doubleHitBtn" class="outline" type="button">Treff</button>
           </div>
+          <p class="jdc-shortcuts"><kbd>0</kbd> Bom <span>•</span> <kbd>1</kbd> Single <span>•</span> <kbd>2</kbd> Double <span>•</span> <kbd>3</kbd> Triple <span>•</span> <kbd>Enter</kbd> registrer</p>
 
           <div class="jdc-utility">
             <button id="undoBtn" class="outline" type="button" disabled>Angre siste</button>
@@ -70,7 +71,7 @@
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
   <script src="shared-results.js?v=20260930-results3"></script>
-  <script src="jdc-challenge.js?v=20260930-jdc1"></script>
+  <script src="jdc-challenge.js?v=20260930-jdc2"></script>
   <script src="role-visuals.js?v=20260930-solo1"></script>
 </body>
 </html>
