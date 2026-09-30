@@ -12,11 +12,12 @@ DartArena er en nettbasert dartplattform for onlinekamper, treningsspill og turn
 - Half-It (DartCounter)
 - Half-It (Standard)
 - 61 med tidsformat og sudden death
+- JDC Challenge med 57 piler, badge/tier og Top 10
 - Best of legs og sets der spilltypen støtter det
 - Felles DartArena-sluttskjerm for både onlinekamper og alene-spill
 - Live statistikk, kamphistorikk og spectator-visning
 - Turneringssystem med puljespill, cup og arkiv
-- Alene-spill for 61 og Half-It
+- Alene-spill for 61, Half-It og JDC Challenge
 - Adminfunksjoner og changelog
 
 ## Half-It
@@ -26,13 +27,19 @@ DartArena har to Half-It-varianter:
 - **Half-It (DartCounter)** – 12 runder med blant annet fargeoppgaver og tre valg i Eksakt-score.
 - **Half-It (Standard)** – 13, 14, Dobbel, 15, 16, Trippel, 17, 18, 41, 19, 20 og Bull.
 
+## JDC Challenge
+
+`jdc-challenge.html` følger 57-pilersformatet med Shanghai 10–15, D1–D20 + Bull og Shanghai 15–20. Resultatet valideres og beregnes i Supabase via `submit_jdc_challenge`; nettleseren kan ikke skrive en valgfri sluttscore direkte til resultat-tabellen.
+
+Beste resultat per spiller vises i Top 10 og gir tier fra White til Gold. `jdc-tier.css` brukes til den lille tier-prikken som blant annet vises ved spillernavnet i Form stats.
+
 ## Teknisk
 
 Frontend er i dag vanlig HTML, CSS og JavaScript. Supabase brukes til autentisering, database, RPC-funksjoner og realtime. Videotilkobling bruker WebRTC, med recovery-logikk for å gjenopprette forbindelsen ved avbrudd.
 
 Ny og gradvis migrert kode legges under `src/` og skrives i TypeScript. Eksisterende fungerende root-JavaScript flyttes ikke bare for å pynte strukturen; migrering skjer når en del faktisk jobbes med og kan testes kontrollert.
 
-`game-router.js` er felles register for spillnavn, variant og kamprom. Nye spill bør registreres der i stedet for å hardkode URL-er flere steder.
+`game-router.js` er felles register for spillnavn, variant og kamprom. Nye online spill bør registreres der i stedet for å hardkode URL-er flere steder.
 
 ### Kodestruktur
 
@@ -79,7 +86,7 @@ Alene-spill bruker samme skjerm via `DartArenaResults.showSolo(...)`. Dermed ska
 - `half-it.html` – Half-It-kamprom
 - `61-match.html` – 61-kamprom
 - `shared-results.js` / `shared-results.css` – felles sluttskjerm for alle spill
-- `61.html` og `half-it-solo.html` – treningsspill
+- `61.html`, `half-it-solo.html` og `jdc-challenge.html` – treningsspill
 - `src/` – TypeScript-kilde for ny og gradvis migrert kode
 - `changelog.html` – brukerrettet endringslogg
 
