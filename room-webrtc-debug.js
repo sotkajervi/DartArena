@@ -103,7 +103,7 @@
     try{await navigator.clipboard.writeText(text);const b=document.getElementById('roomDebugCopy');if(b){const old=b.textContent;b.textContent='Kopiert';setTimeout(()=>b.textContent=old,1200)}}catch{prompt('Kopier debug:',text)}
   }
 
-  function hook(name,formatter){
+  function hookAsync(name,formatter){
     try{
       const original=eval(name);
       if(typeof original!=='function')return;
@@ -115,14 +115,26 @@
     }catch{}
   }
 
+  function hookSync(name,formatter){
+    try{
+      const original=eval(name);
+      if(typeof original!=='function')return;
+      const wrapped=function(...args){
+        try{log(formatter?formatter(...args):name)}catch{}
+        try{return original.apply(this,args)}catch(error){log(`${name} ERROR`,error?.message||String(error));throw error}
+      };
+      eval(`${name}=wrapped`);
+    }catch{}
+  }
+
   function installHooks(){
-    hook('send',(event,payload)=>`SEND ${event}${payload?.description?.type?' '+payload.description.type:''}${payload?.candidate?' candidate':''}`);
-    hook('handleSignal',s=>`RECV signal${s?.description?.type?' '+s.description.type:''}${s?.candidate?' candidate':''}`);
-    hook('connectIfReady',()=>`connectIfReady local=${safe(()=>localReady)} remote=${safe(()=>remoteReady)} role=${safe(()=>isOfferer()?'offer':'answer')}`);
-    hook('restartPeer',()=>`restartPeer state=${safe(()=>pc?.connectionState,'none')} signal=${safe(()=>pc?.signalingState,'none')}`);
-    hook('createPeer',()=>`createPeer`);
-    hook('destroyPeer',()=>`destroyPeer state=${safe(()=>pc?.connectionState,'none')}`);
-    hook('showRemote',()=>`showRemote tracks=${safe(()=>remoteStream?.getTracks().length,0)}`);
+    hookAsync('send',(event,payload)=>`SEND ${event}${payload?.description?.type?' '+payload.description.type:''}${payload?.candidate?' candidate':''}`);
+    hookAsync('handleSignal',s=>`RECV signal${s?.description?.type?' '+s.description.type:''}${s?.candidate?' candidate':''}`);
+    hookAsync('connectIfReady',()=>`connectIfReady local=${safe(()=>localReady)} remote=${safe(()=>remoteReady)} role=${safe(()=>isOfferer()?'offer':'answer')}`);
+    hookAsync('restartPeer',()=>`restartPeer state=${safe(()=>pc?.connectionState,'none')} signal=${safe(()=>pc?.signalingState,'none')}`);
+    hookSync('createPeer',()=>`createPeer`);
+    hookSync('destroyPeer',()=>`destroyPeer state=${safe(()=>pc?.connectionState,'none')}`);
+    hookAsync('showRemote',()=>`showRemote tracks=${safe(()=>remoteStream?.getTracks().length,0)}`);
     log('DEBUG installed');
   }
 
