@@ -23,8 +23,10 @@ for select
 to authenticated
 using (true);
 
-revoke insert, update, delete on public.jdc_challenge_results from anon, authenticated;
-grant select on public.jdc_challenge_results to authenticated;
+revoke all on table public.jdc_challenge_results from anon;
+revoke insert, update, delete, truncate, references, trigger on table public.jdc_challenge_results from authenticated;
+grant select on table public.jdc_challenge_results to authenticated;
+revoke all on sequence public.jdc_challenge_results_id_seq from anon, authenticated;
 
 create or replace function public.submit_jdc_challenge(p_hits text[])
 returns public.jdc_challenge_results
@@ -135,8 +137,8 @@ from public.jdc_challenge_results r
 join public.profiles p on p.id=r.user_id
 order by r.user_id, r.score desc, r.created_at asc;
 
-grant select on public.jdc_challenge_best to authenticated;
 revoke all on public.jdc_challenge_best from anon;
+grant select on public.jdc_challenge_best to authenticated;
 
 create or replace function public.admin_delete_jdc_result(p_result_id bigint)
 returns void
