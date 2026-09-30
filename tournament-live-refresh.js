@@ -21,9 +21,9 @@
   async function readSnapshot(){
     const [tournamentResult,membersResult,matchesResult]=await Promise.all([
       client.from('tournaments')
-        .select('id,status,registration_open,updated_at')
+        .select('id,status,registration_open,updated_at,game')
         .eq('id',tournamentId)
-        .single(),
+        .maybeSingle(),
       client.from('tournament_members')
         .select('user_id,role,joined_at')
         .eq('tournament_id',tournamentId),
@@ -95,8 +95,6 @@
         current=await readSnapshot();
       }catch(err){
         console.warn('Tournament reconciliation check failed',err);
-        // A confirmed realtime/message change must still be reflected even if
-        // the lightweight safety query temporarily fails.
         if(knownChange){
           await refreshWholeTournament();
           snapshot=await captureSnapshot(snapshot);
@@ -117,18 +115,11 @@
       const tournamentChanged=current.tournament!==snapshot.tournament;
       const membersChanged=current.members!==snapshot.members;
       const matchesChanged=current.matches!==snapshot.matches;
-
-      // Normal Alt-Tab/focus with unchanged data ends here: no DOM redraw.
       if(!tournamentChanged&&!membersChanged&&!matchesChanged)return;
 
-      // Tournament/member changes can affect status, controls and participant
-      // lists, so use the authoritative full loader. Match-only changes redraw
-      // only groups/cup to minimize DOM churn.
       if(tournamentChanged||membersChanged)await refreshWholeTournament();
       else await refreshMatchViews();
 
-      // Re-read after rendering because cup advancement/finalization can update
-      // additional rows while the refresh is running.
       snapshot=await captureSnapshot(current);
     }finally{
       syncing=false;
@@ -182,7 +173,6 @@
     })
     .subscribe();
 
-  // Baseline only. It never redraws the page.
   setTimeout(async()=>{
     try{snapshot=await readSnapshot()}
     catch(err){console.warn('Tournament refresh baseline failed',err)}
