@@ -1,15 +1,20 @@
-/* Keep player name overlays visually stable while video/layout state updates. */
+/* Keep player name overlays visually stable above live video frames. */
 body.match-page .video-card .video-name{
   opacity:1!important;
   visibility:visible!important;
   transition:none!important;
   animation:none!important;
-  transform:none!important;
-  will-change:auto!important;
-  z-index:12!important;
-  backface-visibility:hidden;
-  -webkit-backface-visibility:hidden;
+  transform:translate3d(0,0,0)!important;
+  -webkit-transform:translate3d(0,0,0)!important;
+  will-change:transform!important;
+  z-index:50!important;
+  backface-visibility:hidden!important;
+  -webkit-backface-visibility:hidden!important;
   contain:paint;
+  isolation:isolate;
+  background:#061012!important;
+  box-shadow:0 0 0 1px var(--line),0 2px 8px rgba(0,0,0,.35)!important;
+  pointer-events:none!important;
 }
 body.match-page .video-card:hover .video-name,
 body.match-page .video-grid.opponent-throwing .video-name,
@@ -19,4 +24,6 @@ body.match-page.own-turn-focus .video-name{
   visibility:visible!important;
   transition:none!important;
   animation:none!important;
+  transform:translate3d(0,0,0)!important;
+  -webkit-transform:translate3d(0,0,0)!important;
 }
