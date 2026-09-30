@@ -6,10 +6,11 @@
   const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const TIER_LABELS={white:'White',purple:'Purple',yellow:'Yellow',green:'Green',blue:'Blue',red:'Red',black:'Black',gold:'Gold'};
   const HIT_BUTTON_IDS=['missBtn','singleBtn','doubleBtn','tripleBtn','doubleMissBtn','doubleHitBtn'];
+  const HIT_LABELS={M:'Bom',S:'Single',D:'Double',T:'Triple'};
   let session=null;
   let hits=[];
   let submitted=false;
-  let pendingCode=null;
+  let pendingCodes=[];
 
   function badgeFor(score){
     if(score>=1250)return'gold';
@@ -62,14 +63,19 @@
     return{phase:3,phaseName:'FERDIG',target:'✓',dart:3,maxDarts:3,kind:'done'};
   }
 
-  function clearPending(){
-    pendingCode=null;
+  function clearButtonSelection(){
     for(const id of HIT_BUTTON_IDS){
       const button=$(id);
       if(!button)continue;
       button.classList.remove('jdc-selected');
       button.setAttribute('aria-pressed','false');
     }
+  }
+
+  function clearPending(){
+    pendingCodes=[];
+    clearButtonSelection();
+    if(!submitted)$('gameMessage').textContent='';
   }
 
   function buttonIdForCode(code){
@@ -79,21 +85,28 @@
     return null;
   }
 
-  function selectPending(code){
+  function queueShanghai(code){
+    if(submitted||position().kind!=='shanghai'||pendingCodes.length>=3)return;
+    pendingCodes.push(code);
+    clearButtonSelection();
     const buttonId=buttonIdForCode(code);
-    if(!buttonId)return;
-    clearPending();
-    pendingCode=code;
-    const button=$(buttonId);
-    button.classList.add('jdc-selected');
-    button.setAttribute('aria-pressed','true');
+    const button=buttonId?$(buttonId):null;
+    if(button){
+      button.classList.add('jdc-selected');
+      button.setAttribute('aria-pressed','true');
+    }
+    $('gameMessage').textContent=`Valgt: ${pendingCodes.map(item=>HIT_LABELS[item]||item).join(' • ')} • Enter registrerer`;
   }
 
-  function commitPending(){
-    if(!pendingCode||submitted)return;
-    const code=pendingCode;
-    clearPending();
-    addHit(code);
+  function commitShanghai(){
+    if(submitted||position().kind!=='shanghai'||!pendingCodes.length)return;
+    const round=[...pendingCodes];
+    while(round.length<3)round.push('M');
+    pendingCodes=[];
+    clearButtonSelection();
+    $('gameMessage').textContent='';
+    hits.push(...round);
+    render();
   }
 
   function render(){
@@ -112,7 +125,7 @@
     $('tierDot').title=`JDC Challenge: ${TIER_LABELS[stats.badge]} • ${stats.score} poeng`;
     $('shanghaiActions').classList.toggle('hidden',pos.kind!=='shanghai');
     $('doubleActions').classList.toggle('hidden',pos.kind!=='double');
-    $('undoBtn').disabled=!hits.length||submitted;
+    $('undoBtn').disabled=(!hits.length&&!pendingCodes.length)||submitted;
     if(pos.kind==='done'&&!submitted)finish();
   }
 
@@ -133,14 +146,14 @@
     const tag=event.target?.tagName;
     if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||event.target?.isContentEditable)return;
 
+    const kind=position().kind;
     if(event.key==='Enter'){
-      if(!pendingCode)return;
+      if(kind!=='shanghai'||!pendingCodes.length)return;
       event.preventDefault();
-      commitPending();
+      commitShanghai();
       return;
     }
 
-    const kind=position().kind;
     let code=null;
     if(event.key==='0')code='M';
     else if(kind==='shanghai'&&event.key==='1')code='S';
@@ -149,7 +162,12 @@
     if(!code)return;
 
     event.preventDefault();
-    selectPending(code);
+    if(kind==='double'){
+      clearPending();
+      addHit(code);
+      return;
+    }
+    if(kind==='shanghai')queueShanghai(code);
   }
 
   async function finish(){
@@ -234,7 +252,11 @@
     $('tripleBtn').onclick=event=>clickHit('T',event);
     $('doubleMissBtn').onclick=event=>clickHit('M',event);
     $('doubleHitBtn').onclick=event=>clickHit('H',event);
-    $('undoBtn').onclick=()=>{if(hits.length&&!submitted){clearPending();hits.pop();render()}};
+    $('undoBtn').onclick=()=>{
+      if(submitted)return;
+      if(pendingCodes.length){clearPending();render();return}
+      if(hits.length){hits.pop();render()}
+    };
     $('restartBtn').onclick=reset;
     document.addEventListener('keydown',handleKeyboard);
     render();
