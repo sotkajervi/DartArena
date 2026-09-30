@@ -50,6 +50,16 @@ body.half-it-solo-page .solo-exact-choices button{
 body.half-it-solo-page .solo-exact-choices .da-key{
   margin-left:9px;
 }
+#halfMissBtn .da-key,#soloMissBtn .da-key{
+  border-color:rgba(255,159,167,.32);
+  background:rgba(255,111,120,.055);
+  color:#ffc1c6;
+}
+#halfUndoBtn .da-key,#soloUndoBtn .da-key{
+  border-color:rgba(193,204,206,.22);
+  background:rgba(193,204,206,.04);
+  color:#cbd5d7;
+}
 
 @media(max-width:700px){
   :is(body.half-it-page,body.half-it-solo-page) .half-quick{
