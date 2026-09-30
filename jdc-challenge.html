@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="dartboard-background.css?v=20260930-jdc1">
   <link rel="stylesheet" href="button-theme.css?v=20260930-jdc1">
   <link rel="stylesheet" href="jdc-tier.css?v=20260930-jdc1">
-  <link rel="stylesheet" href="jdc-challenge.css?v=20260930-jdc2">
+  <link rel="stylesheet" href="jdc-challenge.css?v=20260930-jdc3">
   <link rel="stylesheet" href="shared-results.css?v=20260930-results3">
 </head>
 <body>
@@ -29,20 +29,20 @@
           <div class="jdc-score"><small>TOTALSCORE</small><span id="totalScore">0</span></div>
 
           <div id="shanghaiActions" class="jdc-actions">
-            <button id="missBtn" class="outline" type="button">Bom</button>
-            <button id="singleBtn" class="outline" type="button">Single</button>
-            <button id="doubleBtn" class="outline" type="button">Double</button>
-            <button id="tripleBtn" class="outline" type="button">Triple</button>
+            <button id="missBtn" class="jdc-hit-btn" type="button">Bom</button>
+            <button id="singleBtn" class="jdc-hit-btn" type="button">Single</button>
+            <button id="doubleBtn" class="jdc-hit-btn" type="button">Double</button>
+            <button id="tripleBtn" class="jdc-hit-btn" type="button">Triple</button>
           </div>
           <div id="doubleActions" class="jdc-actions two hidden">
-            <button id="doubleMissBtn" class="outline" type="button">Bom</button>
-            <button id="doubleHitBtn" class="outline" type="button">Treff</button>
+            <button id="doubleMissBtn" class="jdc-hit-btn" type="button">Bom</button>
+            <button id="doubleHitBtn" class="jdc-hit-btn" type="button">Treff</button>
           </div>
           <p class="jdc-shortcuts"><kbd>0</kbd> Bom <span>•</span> <kbd>1</kbd> Single <span>•</span> <kbd>2</kbd> Double <span>•</span> <kbd>3</kbd> Triple <span>•</span> <kbd>Enter</kbd> registrer</p>
 
           <div class="jdc-utility">
-            <button id="undoBtn" class="outline" type="button" disabled>Angre siste</button>
-            <button id="restartBtn" class="outline" type="button">Start på nytt</button>
+            <button id="undoBtn" class="jdc-undo-btn" type="button" disabled>Angre siste</button>
+            <button id="restartBtn" class="jdc-restart-btn" type="button">Start på nytt</button>
           </div>
           <p id="gameMessage" class="message"></p>
         </section>
