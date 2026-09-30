@@ -1,80 +1,174 @@
-/* DartArena button system
-   One visual language across the app:
-   - 12px radius for normal buttons
-   - 10px radius for compact controls
-   - 16px radius for large game actions
-   - semantic colors for primary / neutral / destructive actions
+/* DartArena button system — phase 1
+   Shared visual language for every lobby, match and training game.
+
+   Roles:
+   - primary: important CTA, filled cyan
+   - secondary: normal action, dark with cyan edge glow
+   - neutral: low-priority / undo / utility
+   - danger: destructive / reset / cancel
+   - hit / miss: game feedback actions
+   - compact / large: size variants only; role colors stay semantic
 */
 :root{
   --da-btn-radius:12px;
   --da-btn-radius-compact:10px;
   --da-btn-radius-large:16px;
+  --da-btn-height:44px;
+  --da-btn-height-compact:36px;
+  --da-btn-height-large:72px;
+
+  --da-btn-bg:#0d191c;
+  --da-btn-bg-hover:#112326;
+  --da-btn-border:rgba(35,226,209,.52);
+  --da-btn-border-hover:rgba(35,226,209,.86);
+  --da-btn-text:#eefafa;
+  --da-btn-cyan-glow:rgba(35,226,209,.10);
+
+  --da-btn-neutral-bg:#10191b;
+  --da-btn-neutral-border:#334348;
+  --da-btn-neutral-text:#c1ccce;
+
+  --da-btn-danger-bg:#211316;
+  --da-btn-danger-border:#71323a;
+  --da-btn-danger-text:#ffadb3;
+
+  --da-btn-hit-bg:#102c24;
+  --da-btn-hit-border:#2e8a69;
+  --da-btn-hit-text:#73f2b4;
+
+  --da-btn-miss-bg:#2b1519;
+  --da-btn-miss-border:#873841;
+  --da-btn-miss-text:#ff9fa7;
 }
 
 button{
-  border-radius:var(--da-btn-radius);
-  font-weight:800;
+  font:inherit;
+  font-weight:850;
   border-style:solid;
+  border-width:1px;
   transition:background-color .14s ease,border-color .14s ease,color .14s ease,box-shadow .14s ease,transform .08s ease,opacity .14s ease,filter .14s ease;
 }
 button:focus-visible{outline:2px solid rgba(35,226,209,.88);outline-offset:2px}
 button:not(:disabled):active{transform:translateY(1px)}
+button:disabled{opacity:.46!important;cursor:not-allowed!important;transform:none!important;box-shadow:none!important}
 
-/* Normal application buttons */
-.primary,.outline,.danger,.availability,.tab,.format-btn,.time-chip,.datetime-display,
+/* Base normal-size controls. Legacy classes map onto the same system. */
+.da-btn,.primary,.outline,.danger,.availability,.tab,.format-btn,.time-chip,.datetime-display,
 .jdc-hit-btn,.jdc-undo-btn,.jdc-restart-btn,.cricket-hit,.cricket-entry-actions button{
+  min-height:var(--da-btn-height);
+  padding:10px 16px;
   border-radius:var(--da-btn-radius)!important;
 }
 
-/* Compact utility controls */
-.small-btn,.match-page .top-actions button,.quick button{
+/* Compact utility controls. */
+.da-btn-compact,.small-btn,.match-page .top-actions button,.quick button{
+  min-height:var(--da-btn-height-compact);
+  padding:8px 12px;
   border-radius:var(--da-btn-radius-compact)!important;
 }
 
-/* Large two-choice game actions */
-.sixty-one-main-actions button,.jdc-double-actions button{
+/* Large game actions. */
+.da-btn-large,.sixty-one-main-actions button,.jdc-double-actions button{
+  min-height:var(--da-btn-height-large);
   border-radius:var(--da-btn-radius-large)!important;
 }
 
-/* Edge glow for large game actions. Keep the centre dark and let color fade inward. */
-.sixty-one-hit{
+/* Secondary / standard action: the JDC-style dark cyan button. */
+.da-btn-secondary,.outline,.small-btn{
+  background:linear-gradient(180deg,#0f1d20,#0a1517)!important;
+  border-color:var(--da-btn-border)!important;
+  color:var(--da-btn-text)!important;
+  box-shadow:inset 0 0 18px var(--da-btn-cyan-glow),inset 0 0 38px rgba(35,226,209,.035),0 8px 20px rgba(0,0,0,.14)!important;
+}
+.da-btn-secondary:hover:not(:disabled),.outline:hover:not(:disabled),.small-btn:hover:not(:disabled){
+  background:linear-gradient(180deg,#12262a,#0b191c)!important;
+  border-color:var(--da-btn-border-hover)!important;
+  color:#fff!important;
+  box-shadow:inset 0 0 24px rgba(35,226,209,.16),inset 0 0 48px rgba(35,226,209,.05),0 0 18px rgba(35,226,209,.09),0 10px 24px rgba(0,0,0,.16)!important;
+}
+
+/* Primary CTA: filled cyan, same radius and glow language. */
+.da-btn-primary,.primary{
+  background:linear-gradient(180deg,#2be0d3,#20c9bd)!important;
+  border-color:#39e9dc!important;
+  color:#031113!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 0 18px rgba(35,226,209,.12),0 8px 20px rgba(0,0,0,.14)!important;
+}
+.da-btn-primary:hover:not(:disabled),.primary:hover:not(:disabled){
+  background:linear-gradient(180deg,#50ebdd,#29d6c9)!important;
+  border-color:#6af1e5!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 0 24px rgba(35,226,209,.20),0 10px 24px rgba(0,0,0,.16)!important;
+}
+
+/* Neutral utility / undo. */
+.da-btn-neutral{
+  background:var(--da-btn-neutral-bg)!important;
+  border-color:var(--da-btn-neutral-border)!important;
+  color:var(--da-btn-neutral-text)!important;
+  box-shadow:inset 0 0 16px rgba(180,200,204,.04)!important;
+}
+.da-btn-neutral:hover:not(:disabled){background:#172225!important;border-color:#4b6066!important;color:#f1f6f6!important}
+
+/* Destructive / reset / cancel. */
+.da-btn-danger,.danger{
+  background:var(--da-btn-danger-bg)!important;
+  border-color:var(--da-btn-danger-border)!important;
+  color:var(--da-btn-danger-text)!important;
+  box-shadow:inset 0 0 18px rgba(255,111,120,.07),0 0 14px rgba(255,111,120,.035)!important;
+}
+.da-btn-danger:hover:not(:disabled),.danger:hover:not(:disabled){
+  background:#30191e!important;
+  border-color:#95414b!important;
+  color:#ffd1d4!important;
+  box-shadow:inset 0 0 22px rgba(255,111,120,.11),0 0 18px rgba(255,111,120,.065)!important;
+}
+
+/* Game feedback roles. */
+.da-btn-hit,.sixty-one-hit,.jdc-double-hit{
+  background:var(--da-btn-hit-bg)!important;
+  border-color:var(--da-btn-hit-border)!important;
+  color:var(--da-btn-hit-text)!important;
   box-shadow:inset 0 0 26px rgba(83,227,157,.11),inset 0 0 56px rgba(83,227,157,.035),0 0 18px rgba(83,227,157,.075),0 10px 24px rgba(0,0,0,.16)!important;
 }
-.sixty-one-miss{
+.da-btn-miss,.sixty-one-miss,.jdc-double-miss{
+  background:var(--da-btn-miss-bg)!important;
+  border-color:var(--da-btn-miss-border)!important;
+  color:var(--da-btn-miss-text)!important;
   box-shadow:inset 0 0 26px rgba(255,111,120,.10),inset 0 0 56px rgba(255,111,120,.03),0 0 18px rgba(255,111,120,.065),0 10px 24px rgba(0,0,0,.16)!important;
 }
-.sixty-one-hit:hover:not(:disabled){box-shadow:inset 0 0 34px rgba(83,227,157,.16),inset 0 0 68px rgba(83,227,157,.05),0 0 22px rgba(83,227,157,.11),0 12px 28px rgba(0,0,0,.18)!important}
-.sixty-one-miss:hover:not(:disabled){box-shadow:inset 0 0 34px rgba(255,111,120,.14),inset 0 0 68px rgba(255,111,120,.045),0 0 22px rgba(255,111,120,.095),0 12px 28px rgba(0,0,0,.18)!important}
+.da-btn-hit:hover:not(:disabled),.sixty-one-hit:hover:not(:disabled),.jdc-double-hit:hover:not(:disabled){box-shadow:inset 0 0 34px rgba(83,227,157,.16),inset 0 0 68px rgba(83,227,157,.05),0 0 22px rgba(83,227,157,.11),0 12px 28px rgba(0,0,0,.18)!important}
+.da-btn-miss:hover:not(:disabled),.sixty-one-miss:hover:not(:disabled),.jdc-double-miss:hover:not(:disabled){box-shadow:inset 0 0 34px rgba(255,111,120,.14),inset 0 0 68px rgba(255,111,120,.045),0 0 22px rgba(255,111,120,.095),0 12px 28px rgba(0,0,0,.18)!important}
 
-/* Intentionally circular controls */
-.calendar-nav{border-radius:50%!important}
+/* Keyboard hint badge for future rollout. Use <span class="da-key">…</span>. */
+.da-key{
+  display:inline-grid;
+  place-items:center;
+  min-width:25px;
+  height:23px;
+  margin-left:8px;
+  padding:0 6px;
+  border:1px solid rgba(35,226,209,.30);
+  border-radius:7px;
+  background:rgba(35,226,209,.055);
+  color:#83eee5;
+  font-size:10px;
+  font-weight:950;
+  line-height:1;
+  letter-spacing:0;
+}
+.da-btn-primary .da-key{border-color:rgba(3,17,19,.24);background:rgba(3,17,19,.08);color:#031113}
+.da-btn-danger .da-key,.danger .da-key{border-color:rgba(255,173,179,.32);background:rgba(255,111,120,.055);color:#ffc1c6}
+.da-btn-hit .da-key,.jdc-double-hit .da-key{border-color:rgba(115,242,180,.32);background:rgba(83,227,157,.06);color:#9cf5c9}
+.da-btn-miss .da-key,.jdc-double-miss .da-key{border-color:rgba(255,159,167,.32);background:rgba(255,111,120,.055);color:#ffc1c6}
 
-.primary{background:var(--cyan)!important;border-color:var(--cyan)!important;color:#041010!important;box-shadow:0 6px 18px rgba(35,226,209,.12)}
-.primary:hover:not(:disabled){background:#50ebdd!important;border-color:#50ebdd!important;box-shadow:0 8px 24px rgba(35,226,209,.18)}
+/* Legacy semantic mappings. */
+.small-btn.accept,.challenge-actions .accept{background:linear-gradient(180deg,#2be0d3,#20c9bd)!important;border-color:#39e9dc!important;color:#031113!important}
+.small-btn.decline,.challenge-actions .decline{background:var(--da-btn-danger-bg)!important;border-color:var(--da-btn-danger-border)!important;color:var(--da-btn-danger-text)!important}
+#leaveRoomBtn,#rejectProposalBtn{background:var(--da-btn-danger-bg)!important;color:var(--da-btn-danger-text)!important;border-color:var(--da-btn-danger-border)!important}
 
-.small-btn{background:rgba(35,226,209,.065)!important;border-color:rgba(35,226,209,.38)!important;color:var(--cyan)!important;box-shadow:none}
-.small-btn:hover:not(:disabled){background:rgba(35,226,209,.13)!important;border-color:rgba(35,226,209,.68)!important;color:#6cf1e5!important}
-
-.outline{background:#0e1b1e!important;border-color:#2b4247!important;color:#dce8e9!important;box-shadow:none}
-.outline:hover:not(:disabled){background:#142528!important;border-color:#486269!important;color:#fff!important}
-
-.danger{background:#35171a!important;color:#ff9ba1!important;border-color:#743139!important;box-shadow:none}
-.danger:hover:not(:disabled){background:#481d22!important;border-color:#a0444e!important;color:#ffc0c4!important}
-
-/* Accept is a primary action; decline is destructive. */
-.small-btn.accept,.challenge-actions .accept{background:var(--cyan)!important;border-color:var(--cyan)!important;color:#041010!important}
-.small-btn.accept:hover:not(:disabled),.challenge-actions .accept:hover:not(:disabled){background:#50ebdd!important;border-color:#50ebdd!important;color:#041010!important}
-.small-btn.decline,.challenge-actions .decline{background:#35171a!important;border-color:#743139!important;color:#ff9ba1!important}
-.small-btn.decline:hover:not(:disabled),.challenge-actions .decline:hover:not(:disabled){background:#481d22!important;border-color:#a0444e!important;color:#ffc0c4!important}
-
-/* These actions are semantically destructive even where the legacy markup says outline. */
-#leaveRoomBtn,#rejectProposalBtn{background:#35171a!important;color:#ff9ba1!important;border-color:#743139!important}
-#leaveRoomBtn:hover:not(:disabled),#rejectProposalBtn:hover:not(:disabled){background:#481d22!important;border-color:#a0444e!important;color:#ffc0c4!important}
-
-/* Status/toggle controls keep their own state colors. */
+/* Stateful controls keep their own state colors; only shape/spacing is shared. */
 .availability,.tab,.format-btn,.calendar-nav,.calendar-day,.time-chip,.datetime-display{box-shadow:none}
-
-button:disabled{opacity:.46!important;cursor:not-allowed!important;transform:none!important;box-shadow:none!important}
+.calendar-nav{border-radius:50%!important}
 
 /* Async feedback without interfering with application-owned disabled state. */
 button.ui-busy{opacity:.68!important;cursor:wait!important;pointer-events:none!important;transform:none!important}
