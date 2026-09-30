@@ -26,6 +26,7 @@ function gameLabel(m){
   if(v==='cricket')return'Cricket';
   if(v==='half_it')return halfItMode(m)==='standard'?'Half-It (Standard)':'Half-It (DartCounter)';
   if(v==='sixty_one')return'61';
+  if(v==='jdc')return'JDC Challenge';
   if(v==='x01')return String(m.game||501);
   return v;
 }
@@ -34,6 +35,7 @@ function hasHalfItLegResult(m){
 }
 function scorePair(m){
   const v=variantOf(m);
+  if(v==='jdc')return [Number(m.player1_score||0),Number(m.player2_score||0)];
   if(v==='half_it'){
     if(hasHalfItLegResult(m))return [Number(m.player1_legs||0),Number(m.player2_legs||0)];
     return [Number(m.player1_score||0),Number(m.player2_score||0)];
@@ -43,6 +45,7 @@ function scorePair(m){
 }
 function formatLabel(m){
   const v=variantOf(m);
+  if(v==='jdc')return'57 piler hver • offisiell online-score';
   if(v==='half_it'){
     if(!hasHalfItLegResult(m))return'12 runder • eldre kampformat';
     return `Best of ${m.legs||1} legs • 12 runder/leg`;
@@ -58,6 +61,7 @@ function formatLabel(m){
 }
 function extraLabel(m){
   const v=variantOf(m);
+  if(v==='jdc')return'Poengsummen teller på JDC Top 10 og tier';
   if(v==='half_it'&&hasHalfItLegResult(m))return `Siste leg ${Number(m.player1_score||0)}–${Number(m.player2_score||0)} poeng`;
   if(v==='sixty_one')return `Sluttmål ${Number(m.player1_score||0)}–${Number(m.player2_score||0)}`;
   if(v==='cricket'&&(Number(m.player1_score||0)||Number(m.player2_score||0)))return `Siste leg ${Number(m.player1_score||0)}–${Number(m.player2_score||0)} poeng`;
