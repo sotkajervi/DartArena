@@ -55,6 +55,24 @@
     return true;
   }
 
+  function selectedDartCount(){
+    const host=document.getElementById('halfDarts')||document.getElementById('soloDarts');
+    if(!host)return 0;
+    return [...host.querySelectorAll('.half-dart')].filter(dart=>!dart.classList.contains('empty')).length;
+  }
+
+  function submitWithAutoMiss(event){
+    const count=selectedDartCount();
+    if(count<1)return false;
+
+    for(let i=count;i<3;i++){
+      const miss=firstUsable(['halfMissBtn','soloMissBtn']);
+      if(!clickButton(miss,event))return false;
+    }
+
+    return clickButton(firstUsable(['halfSubmitBtn','soloSubmitBtn']),event);
+  }
+
   function numberedChoice(index,event){
     const groups=[
       '.half-exact-options',
@@ -84,7 +102,7 @@
       return;
     }
     if(event.key==='Enter'){
-      clickButton(firstUsable(['halfSubmitBtn','soloSubmitBtn']),event);
+      submitWithAutoMiss(event);
       return;
     }
     if(event.key==='1'||event.key==='2'||event.key==='3')numberedChoice(Number(event.key)-1,event);
