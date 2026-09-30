@@ -1,0 +1,24 @@
+/* 61: player names are rendered as static card labels, isolated from live re-rendering. */
+.sixty-one-match-page .sixty-one-player{position:relative;padding-top:34px!important}
+.sixty-one-match-page .sixty-one-player::before{
+  content:attr(data-player-name);
+  position:absolute;
+  top:10px;
+  left:13px;
+  right:13px;
+  display:block;
+  color:var(--text);
+  font-size:13px;
+  font-weight:900;
+  line-height:1.15;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  opacity:1!important;
+  visibility:visible!important;
+  animation:none!important;
+  transition:none!important;
+  transform:none!important;
+  pointer-events:none;
+}
+.sixty-one-match-page .sixty-one-player-name{display:none!important}
