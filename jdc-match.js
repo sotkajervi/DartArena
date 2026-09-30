@@ -66,7 +66,7 @@
     if(match.status==='finished'){
       pendingCodes=[];pendingTurnNo=null;clearSelected();
       $('phaseTitle').textContent='KAMP FERDIG';$('targetValue').textContent='✓';$('dartMeta').textContent='66 mål registrert totalt';
-      $('turnText').textContent=match.winner_id?`${names[match.winner_id]||'Vinner'} vant`:'Uavgjort';
+      setStableText('turnText',match.winner_id?`${names[match.winner_id]||'Vinner'} vant`:'Uavgjort');
       $('shanghaiActions').classList.add('hidden');$('doubleActions').classList.add('hidden');$('undoBtn').disabled=true;
       $('cancelMatchBtn').classList.add('hidden');$('closeMatchBtn').classList.remove('hidden');$('finishedBox').classList.remove('hidden');
       $('winnerText').textContent=match.winner_id?`${names[match.winner_id]||'Vinner'} vinner ${match.player1_score}–${match.player2_score}`:`Uavgjort ${match.player1_score}–${match.player2_score}`;
@@ -75,12 +75,12 @@
       return;
     }
     if(match.status==='cancelled'){
-      pendingCodes=[];clearSelected();$('phaseTitle').textContent='AVBRUTT';$('targetValue').textContent='–';$('dartMeta').textContent='Kampen er avbrutt';$('turnText').textContent='Avbrutt';$('shanghaiActions').classList.add('hidden');$('doubleActions').classList.add('hidden');$('undoBtn').disabled=true;return;
+      pendingCodes=[];clearSelected();$('phaseTitle').textContent='AVBRUTT';$('targetValue').textContent='–';$('dartMeta').textContent='Kampen er avbrutt';setStableText('turnText','Avbrutt');$('shanghaiActions').classList.add('hidden');$('doubleActions').classList.add('hidden');$('undoBtn').disabled=true;return;
     }
 
     if(pendingTurnNo!==turnNo||!mine){pendingCodes=[];pendingTurnNo=mine?turnNo:null;clearSelected()}
     $('phaseTitle').textContent=pos.phase;$('targetValue').textContent=pos.target;
-    $('turnText').textContent=mine?'Din tur':`${names[match.turn_player_id]||'Motstanderen'} kaster`;
+    setStableText('turnText',mine?'Din tur':`${names[match.turn_player_id]||'Motstanderen'} kaster`);
     $('dartMeta').textContent=mine&&pos.kind==='shanghai'
       ?`Pil ${Math.min(3,pendingCodes.length+1)} av 3 • mål ${turnNo}/33`
       :`${mine?'Din tur':'Venter på motstander'} • mål ${turnNo}/33`;
