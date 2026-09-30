@@ -36,6 +36,16 @@ button:not(:disabled):active{transform:translateY(1px)}
   border-radius:var(--da-btn-radius-large)!important;
 }
 
+/* Edge glow for large game actions. Keep the centre dark and let color fade inward. */
+.sixty-one-hit{
+  box-shadow:inset 0 0 26px rgba(83,227,157,.11),inset 0 0 56px rgba(83,227,157,.035),0 0 18px rgba(83,227,157,.075),0 10px 24px rgba(0,0,0,.16)!important;
+}
+.sixty-one-miss{
+  box-shadow:inset 0 0 26px rgba(255,111,120,.10),inset 0 0 56px rgba(255,111,120,.03),0 0 18px rgba(255,111,120,.065),0 10px 24px rgba(0,0,0,.16)!important;
+}
+.sixty-one-hit:hover:not(:disabled){box-shadow:inset 0 0 34px rgba(83,227,157,.16),inset 0 0 68px rgba(83,227,157,.05),0 0 22px rgba(83,227,157,.11),0 12px 28px rgba(0,0,0,.18)!important}
+.sixty-one-miss:hover:not(:disabled){box-shadow:inset 0 0 34px rgba(255,111,120,.14),inset 0 0 68px rgba(255,111,120,.045),0 0 22px rgba(255,111,120,.095),0 12px 28px rgba(0,0,0,.18)!important}
+
 /* Intentionally circular controls */
 .calendar-nav{border-radius:50%!important}
 
@@ -57,7 +67,7 @@ button:not(:disabled):active{transform:translateY(1px)}
 .small-btn.decline,.challenge-actions .decline{background:#35171a!important;border-color:#743139!important;color:#ff9ba1!important}
 .small-btn.decline:hover:not(:disabled),.challenge-actions .decline:hover:not(:disabled){background:#481d22!important;border-color:#a0444e!important;color:#ffc0c4!important}
 
-/* These actions are semantically destructive even where legacy markup says outline. */
+/* These actions are semantically destructive even where the legacy markup says outline. */
 #leaveRoomBtn,#rejectProposalBtn{background:#35171a!important;color:#ff9ba1!important;border-color:#743139!important}
 #leaveRoomBtn:hover:not(:disabled),#rejectProposalBtn:hover:not(:disabled){background:#481d22!important;border-color:#a0444e!important;color:#ffc0c4!important}
 
