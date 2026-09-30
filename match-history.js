@@ -2,7 +2,7 @@ const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
 const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
-const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 let me=null;
 let allMatches=[];
 let activeFilter='all';
@@ -15,23 +15,38 @@ function fmtDate(value){
 }
 
 function variantOf(m){return m.game_variant||'x01'}
+function halfItMode(m){return m.game_config?.half_it_mode==='standard'?'standard':'dartcounter'}
+function filterKey(m){
+  const v=variantOf(m);
+  if(v==='half_it')return `half_it_${halfItMode(m)}`;
+  return v;
+}
 function gameLabel(m){
   const v=variantOf(m);
   if(v==='cricket')return'Cricket';
-  if(v==='half_it')return'Half-It';
+  if(v==='half_it')return halfItMode(m)==='standard'?'Half-It (Standard)':'Half-It (DartCounter)';
   if(v==='sixty_one')return'61';
   if(v==='x01')return String(m.game||501);
   return v;
 }
+function hasHalfItLegResult(m){
+  return variantOf(m)==='half_it'&&(Number(m.player1_legs||0)+Number(m.player2_legs||0)>0);
+}
 function scorePair(m){
   const v=variantOf(m);
-  if(v==='half_it')return [Number(m.player1_score||0),Number(m.player2_score||0)];
+  if(v==='half_it'){
+    if(hasHalfItLegResult(m))return [Number(m.player1_legs||0),Number(m.player2_legs||0)];
+    return [Number(m.player1_score||0),Number(m.player2_score||0)];
+  }
   if(v==='x01'&&m.match_mode==='sets')return [Number(m.player1_sets||0),Number(m.player2_sets||0)];
   return [Number(m.player1_legs||0),Number(m.player2_legs||0)];
 }
 function formatLabel(m){
   const v=variantOf(m);
-  if(v==='half_it')return'12 runder';
+  if(v==='half_it'){
+    if(!hasHalfItLegResult(m))return'12 runder • eldre kampformat';
+    return `Best of ${m.legs||1} legs • 12 runder/leg`;
+  }
   if(v==='sixty_one'){
     const mins=Math.round(Number(m.game_config?.duration_seconds||600)/60);
     return `Best of ${m.legs||1} legs • ${mins} min/leg`;
@@ -43,6 +58,7 @@ function formatLabel(m){
 }
 function extraLabel(m){
   const v=variantOf(m);
+  if(v==='half_it'&&hasHalfItLegResult(m))return `Siste leg ${Number(m.player1_score||0)}–${Number(m.player2_score||0)} poeng`;
   if(v==='sixty_one')return `Sluttmål ${Number(m.player1_score||0)}–${Number(m.player2_score||0)}`;
   if(v==='cricket'&&(Number(m.player1_score||0)||Number(m.player2_score||0)))return `Siste leg ${Number(m.player1_score||0)}–${Number(m.player2_score||0)} poeng`;
   return'';
@@ -60,7 +76,7 @@ function canOpenStats(m){
 function render(){
   const mineOnly=$('mineOnly').checked;
   const visible=allMatches.filter(m=>{
-    if(activeFilter!=='all'&&variantOf(m)!==activeFilter)return false;
+    if(activeFilter!=='all'&&filterKey(m)!==activeFilter)return false;
     if(mineOnly&&m.player1_id!==me&&m.player2_id!==me)return false;
     return true;
   });
