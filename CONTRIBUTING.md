@@ -29,15 +29,31 @@ Do not create a new abstraction or directory unless more than one call site bene
 
 DartArena uses `button-theme.css` as the shared button design system. New pages and controls must use it instead of inventing a separate button shape.
 
-- Normal buttons use a 12 px corner radius.
-- Compact controls use a 10 px corner radius.
-- Large game actions use a 16 px corner radius.
-- Primary actions use cyan.
-- Neutral/secondary actions use the dark outline style.
-- Destructive/reset/cancel actions use the red danger style.
-- Green/red game choices such as Treff/Bom may keep semantic game colors, but must use the shared large-action shape.
+- Normal buttons use a 12 px corner radius and 44 px minimum height.
+- Compact controls use a 10 px corner radius and 36 px minimum height.
+- Large game actions use a 16 px corner radius and at least 72 px height.
+- Primary CTA buttons use the filled cyan treatment with a restrained cyan glow.
+- Secondary buttons use the dark treatment with a cyan border and an inward-fading edge glow.
+- Neutral actions such as Undo use the dark grey treatment.
+- Destructive/reset/cancel actions use the dark red danger treatment.
+- Game feedback actions use the shared green `hit` and red `miss` treatments.
+- Keyboard shortcuts inside buttons use `<span class="da-key">…</span>`.
 - Circular controls are only used where the control is intentionally circular, such as calendar navigation.
 - Do not add square browser-default buttons to production UI.
+
+Use the shared semantic classes when adding or migrating controls:
+
+- `.da-btn-primary`
+- `.da-btn-secondary`
+- `.da-btn-neutral`
+- `.da-btn-danger`
+- `.da-btn-hit`
+- `.da-btn-miss`
+- `.da-btn-compact`
+- `.da-btn-large`
+- `.da-key`
+
+Legacy classes such as `.primary`, `.outline`, `.danger` and `.small-btn` are mapped onto the same system while older pages are migrated.
 
 If a page needs a genuinely different button treatment, extend the shared system rather than creating an unrelated local style.
 
