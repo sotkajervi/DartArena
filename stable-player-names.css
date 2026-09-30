@@ -1,0 +1,15 @@
+/* Prevent player-name flicker during live match re-renders. */
+body.match-page .match-name,
+body.match-page .cricket-player-name,
+body.match-page .half-player-name,
+body.match-page .sixty-one-player-name,
+body.match-page .turn-text{
+  opacity:1!important;
+  visibility:visible!important;
+  transition:none!important;
+  animation:none!important;
+  transform:none!important;
+  will-change:auto!important;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+}
