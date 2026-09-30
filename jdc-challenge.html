@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="dartboard-background.css?v=20260930-jdc1">
   <link rel="stylesheet" href="button-theme.css?v=20260930-jdc1">
   <link rel="stylesheet" href="jdc-tier.css?v=20260930-jdc1">
-  <link rel="stylesheet" href="jdc-challenge.css?v=20260930-jdc3">
+  <link rel="stylesheet" href="jdc-challenge.css?v=20260930-jdc4">
   <link rel="stylesheet" href="shared-results.css?v=20260930-results3">
 </head>
 <body>
@@ -29,16 +29,15 @@
           <div class="jdc-score"><small>TOTALSCORE</small><span id="totalScore">0</span></div>
 
           <div id="shanghaiActions" class="jdc-actions">
-            <button id="missBtn" class="jdc-hit-btn" type="button">Bom</button>
-            <button id="singleBtn" class="jdc-hit-btn" type="button">Single</button>
-            <button id="doubleBtn" class="jdc-hit-btn" type="button">Double</button>
-            <button id="tripleBtn" class="jdc-hit-btn" type="button">Triple</button>
+            <button id="missBtn" class="jdc-hit-btn" type="button">Bom <small>0</small></button>
+            <button id="singleBtn" class="jdc-hit-btn" type="button">Single <small>1</small></button>
+            <button id="doubleBtn" class="jdc-hit-btn" type="button">Double <small>2</small></button>
+            <button id="tripleBtn" class="jdc-hit-btn" type="button">Triple <small>3</small></button>
           </div>
-          <div id="doubleActions" class="jdc-actions two hidden">
-            <button id="doubleMissBtn" class="jdc-hit-btn" type="button">Bom</button>
-            <button id="doubleHitBtn" class="jdc-hit-btn" type="button">Treff</button>
+          <div id="doubleActions" class="jdc-actions jdc-double-actions two hidden">
+            <button id="doubleHitBtn" class="jdc-double-hit" type="button">✓ TREFF <small>2</small></button>
+            <button id="doubleMissBtn" class="jdc-double-miss" type="button">✕ BOM <small>0</small></button>
           </div>
-          <p class="jdc-shortcuts"><kbd>0</kbd> Bom <span>•</span> <kbd>1</kbd> Single <span>•</span> <kbd>2</kbd> Double <span>•</span> <kbd>3</kbd> Triple <span>•</span> <kbd>Enter</kbd> registrer</p>
 
           <div class="jdc-utility">
             <button id="undoBtn" class="jdc-undo-btn" type="button" disabled>Angre siste</button>
