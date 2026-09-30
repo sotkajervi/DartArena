@@ -1,0 +1,22 @@
+{
+  "name": "dartarena",
+  "private": true,
+  "version": "0.0.0",
+  "description": "DartArena online darts",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.{ts,md}\" \"*.md\" \"*.json\" \"*.mjs\"",
+    "format:check": "prettier --check \"src/**/*.{ts,md}\" \"*.md\" \"*.json\" \"*.mjs\"",
+    "check": "npm run typecheck && npm run lint && npm run format:check"
+  },
+  "devDependencies": {
+    "eslint": "10.10.0",
+    "prettier": "3.9.9",
+    "typescript": "6.0.2",
+    "typescript-eslint": "8.71.0"
+  }
+}
