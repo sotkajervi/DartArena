@@ -64,7 +64,7 @@ Treat usernames, tournament names, chat text, and any future profile fields as u
 
 ## Dependencies
 
-Authenticated/live entry points pin `@supabase/supabase-js` to an exact version rather than floating on `@2`. When upgrading, change the pinned version deliberately and test login, Realtime, room negotiation, and all game RPCs.
+Core authenticated/live entry points pin `@supabase/supabase-js` to an exact version rather than floating on `@2`. When upgrading, change the pinned version deliberately and test login, Realtime, room negotiation, and all game RPCs.
 
 ## Security review checklist for a new game
 
