@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071012">
+  <title>DartArena • JDC Challenge</title>
+  <link rel="stylesheet" href="style.css?v=20260930-jdc1">
+  <link rel="stylesheet" href="dartboard-background.css?v=20260930-jdc1">
+  <link rel="stylesheet" href="button-theme.css?v=20260930-jdc1">
+  <link rel="stylesheet" href="jdc-tier.css?v=20260930-jdc1">
+  <link rel="stylesheet" href="jdc-challenge.css?v=20260930-jdc1">
+  <link rel="stylesheet" href="shared-results.css?v=20260930-results3">
+</head>
+<body>
+  <header><div class="brand">DART<span>ARENA</span></div><div class="live"><i></i> TRENING</div></header>
+  <main class="shell">
+    <div class="jdc-wrap">
+      <div class="jdc-head">
+        <div><small>TRENINGSSPILL</small><h1>JDC Challenge</h1><p class="muted compact">57 piler • Shanghai 10–15 • Doubles • Shanghai 15–20</p></div>
+        <button id="backBtn" class="outline" type="button">Tilbake til lobby</button>
+      </div>
+
+      <div class="jdc-grid">
+        <section class="card jdc-target-card">
+          <div id="phaseTitle" class="jdc-phase">FASE 1 • SHANGHAI 10–15</div>
+          <div id="targetValue" class="jdc-target">10</div>
+          <div id="dartMeta" class="jdc-dart-meta">Pil 1 av 3 • 0 / 57 totalt</div>
+          <div class="jdc-score"><small>TOTALSCORE</small><span id="totalScore">0</span></div>
+
+          <div id="shanghaiActions" class="jdc-actions">
+            <button id="missBtn" class="outline" type="button">Bom</button>
+            <button id="singleBtn" class="outline" type="button">Single</button>
+            <button id="doubleBtn" class="outline" type="button">Double</button>
+            <button id="tripleBtn" class="primary" type="button">Triple</button>
+          </div>
+          <div id="doubleActions" class="jdc-actions two hidden">
+            <button id="doubleMissBtn" class="outline" type="button">Bom</button>
+            <button id="doubleHitBtn" class="primary" type="button">Treff</button>
+          </div>
+
+          <div class="jdc-utility">
+            <button id="undoBtn" class="outline" type="button" disabled>Angre siste</button>
+            <button id="restartBtn" class="outline" type="button">Start på nytt</button>
+          </div>
+          <p id="gameMessage" class="message"></p>
+        </section>
+
+        <aside class="card">
+          <small>LIVE OVERSIKT</small>
+          <h2>Challenge</h2>
+          <div class="jdc-stats">
+            <div class="jdc-stat"><small>SHANGHAI 1</small><b id="phase1Score">0</b></div>
+            <div class="jdc-stat"><small>DOUBLES</small><b id="doublesScore">0</b></div>
+            <div class="jdc-stat"><small>SHANGHAI 2</small><b id="phase3Score">0</b></div>
+            <div class="jdc-stat"><small>SHANGHAI-BONUS</small><b id="shanghaiCount">0</b></div>
+          </div>
+          <div class="jdc-my-best"><span id="tierDot" class="jdc-tier-dot" data-jdc-tier="white"></span><strong id="tierName">White</strong> tier akkurat nå</div>
+          <p class="muted compact">Single + Double + Triple på samme Shanghai-mål gir +100. I doubles-fasen gir hver double 50 og Bull 100.</p>
+        </aside>
+      </div>
+
+      <section class="card" style="margin-top:16px">
+        <div class="heading"><div><small>TOPP 10</small><h2>JDC Challenge</h2></div></div>
+        <div id="myBest" class="jdc-my-best">Din beste: laster…</div>
+        <div class="jdc-lb-head"><span>#</span><span>Spiller</span><span style="text-align:right">Score</span><span style="text-align:right">Tier</span></div>
+        <div id="leaderboardRows"><div class="jdc-empty">Laster…</div></div>
+      </section>
+    </div>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+  <script src="shared-results.js?v=20260930-results3"></script>
+  <script src="jdc-challenge.js?v=20260930-jdc1"></script>
+  <script src="role-visuals.js?v=20260930-solo1"></script>
+</body>
+</html>
