@@ -24,6 +24,8 @@
   transition:none!important;
   transform:none!important;
   contain:layout paint style;
+  isolation:isolate;
+  z-index:3;
 }
 .sixty-one-match-page .video-slot.local-slot .video-slot-label{color:var(--amber)}
 .sixty-one-match-page .video-slot.remote-slot .video-slot-label{color:var(--text)}
@@ -37,4 +39,8 @@
 .sixty-one-match-page .video-grid.opponent-throwing{
   grid-template-columns:minmax(130px,.16fr) minmax(0,1.84fr);
 }
-.sixty-one-match-page .video-grid.opponent-throwing .local-slot{opacity:.78}
+/* Important: fade only the live video card, never its text label. Applying opacity to
+   the whole slot puts the label in the same compositor layer as <video> and can make
+   Chrome repaint/flicker the name. */
+.sixty-one-match-page .video-grid.opponent-throwing .local-slot{opacity:1!important}
+.sixty-one-match-page .video-grid.opponent-throwing .local-slot .video-card{opacity:.78}
