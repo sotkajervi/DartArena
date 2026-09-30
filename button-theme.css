@@ -263,3 +263,134 @@ body:not(.match-page) .player-row,body:not(.match-page) .challenge-row{min-heigh
   #lobbyView>.lobby-grid{margin-bottom:16px}
   body:not(.match-page) .lobby-top{margin-bottom:18px}
 }
+
+/* Phase 3 — interaction, state, mobile and spacing polish. */
+:root{
+  --da-btn-height:46px;
+  --da-btn-height-compact:40px;
+  --da-btn-height-large:72px;
+  --da-btn-gap:8px;
+}
+
+button{
+  line-height:1.1;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  user-select:none;
+}
+button:not(:disabled){cursor:pointer}
+button:focus-visible{
+  outline:2px solid rgba(70,236,224,.92);
+  outline-offset:3px;
+}
+button:not(:disabled):active{
+  transform:translateY(1px) scale(.99)!important;
+  filter:brightness(.97);
+}
+button:disabled{
+  opacity:.40!important;
+  filter:saturate(.45) brightness(.86);
+  cursor:not-allowed!important;
+}
+
+.da-btn,.primary,.outline,.danger,.availability,.jdc-hit-btn,.jdc-undo-btn,.jdc-restart-btn,
+.small-btn,.history-filter,.format-btn,.tab,.time-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:var(--da-btn-gap);
+  line-height:1.1;
+}
+
+.da-btn,.primary,.outline,.danger,.availability,.jdc-hit-btn,.jdc-undo-btn,.jdc-restart-btn{
+  min-height:var(--da-btn-height);
+  padding:10px 16px!important;
+}
+.da-btn-compact,.small-btn,.match-page .top-actions button,.quick button,.history-filter,.cricket-history-edit{
+  min-height:var(--da-btn-height-compact);
+  padding:8px 12px!important;
+}
+.da-btn-large,body .sixty-one-main-actions button,body .jdc-double-actions button{
+  min-height:var(--da-btn-height-large);
+  padding:14px 18px!important;
+}
+
+/* Buttons that share a row should visually share a baseline and height. */
+.top-actions,.challenge-actions,.camera-controls,.date-picker-actions,.room-actions,
+.jdc-utility,.jdc-actions,.half-actions{
+  align-items:stretch;
+  gap:10px;
+}
+.top-actions>button,.challenge-actions>button,.camera-controls>button,.date-picker-actions>button,
+.room-actions>button,.jdc-utility>button,.jdc-actions>button,.half-actions>button{
+  align-self:stretch;
+}
+
+/* Active/selected state: clear, but less loud than a primary CTA. */
+.tab.active,.format-btn.active,.time-chip.selected,.calendar-day.selected,
+body .sixty-one-time-grid button.active,body .sixty-one-lb-tabs button.active,
+body .half-multiplier button.active,body .solo-exact-choices button.active,
+.history-filter.active,body .jdc-actions button.jdc-selected{
+  transform:none!important;
+  box-shadow:inset 0 0 18px rgba(3,17,19,.08),0 0 18px rgba(35,226,209,.16)!important;
+}
+
+/* Keep semantic disabled buttons readable instead of looking broken. */
+.primary:disabled,.da-btn-primary:disabled{
+  background:linear-gradient(180deg,#167b75,#12645f)!important;
+  border-color:#278f88!important;
+  color:rgba(3,17,19,.72)!important;
+}
+.danger:disabled,.da-btn-danger:disabled,body .jdc-restart-btn:disabled{
+  background:#1b1214!important;
+  border-color:#4a2a2f!important;
+  color:#9b7074!important;
+}
+.outline:disabled,.small-btn:disabled,.da-btn-secondary:disabled{
+  background:#0c1517!important;
+  border-color:#26383c!important;
+  color:#708084!important;
+}
+
+/* Keyboard badges stay compact and vertically centred everywhere. */
+.da-key{
+  flex:0 0 auto;
+  margin-left:2px;
+  vertical-align:middle;
+}
+
+@media(hover:hover) and (pointer:fine){
+  button:hover:not(:disabled){transform:translateY(-1px)}
+  button:hover:not(:disabled):active{transform:translateY(1px) scale(.99)!important}
+}
+
+@media(max-width:700px){
+  :root{
+    --da-btn-height:48px;
+    --da-btn-height-compact:42px;
+    --da-btn-gap:7px;
+  }
+  .top-actions,.challenge-actions,.camera-controls,.date-picker-actions,.room-actions,
+  .jdc-utility,.jdc-actions,.half-actions{gap:8px}
+  .da-btn,.primary,.outline,.danger,.availability,.jdc-hit-btn,.jdc-undo-btn,.jdc-restart-btn{
+    padding:10px 14px!important;
+  }
+  .da-key{
+    min-width:23px;
+    height:22px;
+    padding:0 5px;
+    font-size:9px;
+  }
+}
+
+@media(max-width:480px){
+  .top-actions,.challenge-actions,.date-picker-actions,.room-actions{gap:7px}
+  .top-actions button,.challenge-actions button,.date-picker-actions button,.room-actions button{
+    min-height:44px;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  button{transition:none!important}
+  button.ui-busy::after{animation-duration:1.2s}
+}
