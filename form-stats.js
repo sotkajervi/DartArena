@@ -3,12 +3,21 @@ const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const TIER_LABELS={white:'White',purple:'Purple',yellow:'Yellow',green:'Green',blue:'Blue',red:'Red',black:'Black',gold:'Gold'};
 
 $('backBtn').onclick=()=>location.href='./';
 
 function num(value,digits=2){
   const n=Number(value);
   return Number.isFinite(n)?n.toFixed(digits):'–';
+}
+
+function tierDot(row){
+  if(!row)return'';
+  const badge=String(row.badge||'white');
+  const label=TIER_LABELS[badge]||badge;
+  const score=Number(row.best_score)||0;
+  return `<span class="jdc-tier-dot" data-jdc-tier="${esc(badge)}" title="JDC Challenge: ${esc(label)} • beste ${score}"></span>`;
 }
 
 async function boot(){
@@ -24,12 +33,19 @@ async function boot(){
     return;
   }
 
+  const ids=rows.map(row=>row.player_id).filter(Boolean);
+  const {data:jdcRows,error:jdcError}=ids.length
+    ?await db.from('jdc_challenge_best').select('user_id,best_score,badge').in('user_id',ids)
+    :{data:[],error:null};
+  if(jdcError)console.warn('JDC tiers could not be loaded',jdcError);
+  const jdcByUser=new Map((jdcRows||[]).map(row=>[row.user_id,row]));
+
   $('formTableBody').innerHTML=rows.map((row,index)=>{
     const tournaments=Number(row.tournaments_count||0);
     const tournamentLabel=tournaments===1?'1 turnering':`${tournaments} turneringer`;
     const fastest=Number(row.fastest_leg||0);
     return `<tr>
-      <td><span class="form-rank">${index+1}</span><span class="form-player">${esc(row.username||'Spiller')}</span><span class="form-sub">${tournamentLabel}</span></td>
+      <td><span class="form-rank">${index+1}</span><span class="form-player">${esc(row.username||'Spiller')}</span>${tierDot(jdcByUser.get(row.player_id))}<span class="form-sub">${tournamentLabel}</span></td>
       <td class="form-avg">${num(row.form_avg)}</td>
       <td class="form-first9">${num(row.first9_avg)}</td>
       <td>${Number(row.count_100||0)}</td>
