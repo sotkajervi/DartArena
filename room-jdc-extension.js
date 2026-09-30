@@ -1,8 +1,5 @@
 (()=>{
-  if(typeof pageForVariant!=='function'||typeof showProposal!=='function'||typeof syncGameMode!=='function')return;
-
-  const basePageForVariant=pageForVariant;
-  pageForVariant=variant=>variant==='jdc'?'jdc-match.html':basePageForVariant(variant);
+  if(typeof showProposal!=='function'||typeof syncGameMode!=='function'||typeof send!=='function')return;
 
   const baseShowProposal=showProposal;
   showProposal=proposal=>{
@@ -40,86 +37,45 @@
     gameSelect.onchange=syncJdcMode;
     syncJdcMode();
   }
-})();
 
-// Waiting-room WebRTC stability guard.
-// The old flow could lose an offer while the answering side was still opening its camera,
-// leaving OFFER stuck in have-local-offer until a later ICE failure forced a reconnect.
-(()=>{
-  if(typeof handleSignal!=='function'||typeof connectIfReady!=='function'||typeof destroyPeer!=='function')return;
-
-  let queuedOffer=null;
-  let offerWatchTimer=null;
-  let pumping=false;
-
-  const clearOfferWatch=()=>{
-    if(offerWatchTimer)clearTimeout(offerWatchTimer);
-    offerWatchTimer=null;
-  };
-
-  const baseDestroyPeer=destroyPeer;
-  destroyPeer=function(){
-    clearOfferWatch();
-    return baseDestroyPeer();
-  };
-
-  const baseHandleSignal=handleSignal;
-  handleSignal=async function(signal){
-    if(!signal)return;
-
-    // Do not drop the initial offer just because getUserMedia has not finished yet.
-    if(!localReady||!stream){
-      if(signal.description?.type==='offer'&&!isOfferer())queuedOffer=signal;
-      else if(signal.candidate)pendingCandidates.push(signal.candidate);
+  // room.js predates JDC and routes every unknown variant to match.html.
+  // Keep the legacy router untouched for existing games, but send JDC starts on
+  // a dedicated event so the other player is always sent to jdc-match.html.
+  const baseSend=send;
+  send=async function(event,payload={}){
+    if(event==='match-start'&&payload?.gameVariant==='jdc'){
+      if(channel){
+        await channel.send({
+          type:'broadcast',
+          event:'jdc-match-start',
+          payload:{...payload,from:profile.id}
+        });
+      }
       return;
     }
-
-    if(signal.description?.type==='offer'&&!isOfferer()){
-      queuedOffer=null;
-      // A fresh offer must never be applied to a stale negotiating/failed peer.
-      if(pc&&pc.signalingState!=='stable'){
-        baseDestroyPeer();
-        await new Promise(resolve=>setTimeout(resolve,120));
-      }
-    }
-
-    if(signal.description?.type==='answer'&&isOfferer())clearOfferWatch();
-    return baseHandleSignal(signal);
+    return baseSend(event,payload);
   };
 
-  const baseConnectIfReady=connectIfReady;
-  connectIfReady=async function(){
-    await baseConnectIfReady();
-    if(!isOfferer()||!pc||pc.connectionState==='connected')return;
-
-    clearOfferWatch();
-    const watchedPeer=pc;
-    offerWatchTimer=setTimeout(async()=>{
-      offerWatchTimer=null;
-      if(leaving||pc!==watchedPeer||watchedPeer.connectionState==='connected')return;
-      // No answer/connection arrived. Rebuild one clean peer instead of waiting for
-      // the browser to eventually report ICE failed.
-      if(watchedPeer.signalingState==='have-local-offer'||['new','connecting','failed','disconnected'].includes(watchedPeer.connectionState)){
-        await restartPeer();
-      }
-    },6500);
+  let routeChannel=null;
+  const installRouteChannel=()=>{
+    if(routeChannel||typeof db==='undefined'||typeof challengeId==='undefined'||!challengeId||!profile?.id)return false;
+    routeChannel=db.channel(`room-${challengeId}`)
+      .on('broadcast',{event:'jdc-match-start'},({payload})=>{
+        if(!payload?.matchId||payload.from===profile.id)return;
+        location.href=`jdc-match.html?id=${encodeURIComponent(payload.matchId)}`;
+      })
+      .subscribe();
+    return true;
   };
 
-  async function pumpQueuedOffer(){
-    if(pumping||!queuedOffer||!localReady||!stream||isOfferer())return;
-    pumping=true;
-    const offer=queuedOffer;
-    queuedOffer=null;
-    try{await handleSignal(offer)}
-    catch(error){
-      console.warn('Kunne ikke behandle ventende WebRTC-offer',error);
-      queuedOffer=offer;
-    }finally{pumping=false}
-  }
+  const routeWait=setInterval(()=>{
+    if(installRouteChannel())clearInterval(routeWait);
+  },100);
+  setTimeout(()=>clearInterval(routeWait),15000);
 
-  const pumpTimer=setInterval(()=>pumpQueuedOffer(),200);
-  window.addEventListener('beforeunload',()=>{
-    clearInterval(pumpTimer);
-    clearOfferWatch();
+  window.addEventListener('pagehide',()=>{
+    clearInterval(routeWait);
+    if(routeChannel){try{db.removeChannel(routeChannel)}catch{}}
+    routeChannel=null;
   },{once:true});
 })();
