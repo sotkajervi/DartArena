@@ -25,10 +25,6 @@
   let leaving=false;
   let publishedSignature='';
   let lastError='';
-  let remoteLastTime=-1;
-  let remoteStalls=0;
-  let remoteRecovering=false;
-  let lastRemoteRecoveryAt=0;
   const log=[];
 
   const setStatus=text=>{if($('cameraStatus'))$('cameraStatus').textContent=text};
@@ -71,11 +67,6 @@
   function remoteHasVideo(){
     const rs=$('remoteVideo')?.srcObject;
     return rs instanceof MediaStream&&rs.getVideoTracks().some(t=>t.readyState==='live');
-  }
-
-  function resetRemoteWatch(){
-    remoteLastTime=-1;
-    remoteStalls=0;
   }
 
   function ensureSfu(){
@@ -131,16 +122,15 @@
     }
   }
 
-  async function subscribe(pub,force=false){
+  async function subscribe(pub){
     if(leaving||subscribing||!pub?.sessionId||!Array.isArray(pub.tracks))return;
-    if(!force&&subscribedPublicationId===pub.sessionId&&remoteHasVideo())return;
+    if(subscribedPublicationId===pub.sessionId&&remoteHasVideo())return;
 
     const client=ensureSfu();
     if(!client)return;
     subscribing=true;
     subscribedPublicationId=pub.sessionId;
     lastError='';
-    resetRemoteWatch();
 
     const video=$('remoteVideo');
     const placeholder=$('remotePlaceholder');
@@ -174,12 +164,11 @@
         if(rs.getVideoTracks().some(t=>t.readyState==='live')){
           placeholder?.classList.add('hidden');
           setStatus(`Video tilkoblet ${names[other]||'motstander'} via Cloudflare`);
-          resetRemoteWatch();
         }
         if(rs.getAudioTracks().some(t=>t.readyState==='live'))$('remoteAudioBtn')?.classList.remove('hidden');
         renderDebug();
       });
-      note('SUBSCRIBE ok',{sessionId:pub.sessionId,tracks:pub.tracks,force});
+      note('SUBSCRIBE ok',{sessionId:pub.sessionId,tracks:pub.tracks});
     }catch(error){
       subscribedPublicationId=null;
       lastError=error?.message||String(error);
@@ -187,33 +176,6 @@
       setStatus('Kunne ikke koble til motstanderens video via Cloudflare. Prøver igjen…');
     }finally{
       subscribing=false;
-    }
-  }
-
-  async function recoverRemote(reason){
-    if(leaving||remoteRecovering||!remotePublication)return;
-    const now=Date.now();
-    if(now-lastRemoteRecoveryAt<6000)return;
-    lastRemoteRecoveryAt=now;
-    remoteRecovering=true;
-    note('REMOTE recovery',reason);
-    setStatus('Motstanderens bilde frøs – kobler video til på nytt…');
-    const placeholder=$('remotePlaceholder');
-    if(placeholder){
-      placeholder.textContent='Kobler video til på nytt…';
-      placeholder.classList.remove('hidden');
-    }
-    try{
-      const client=ensureSfu();
-      client?.closeSubscriber?.();
-      subscribedPublicationId=null;
-      resetRemoteWatch();
-      await subscribe(remotePublication,true);
-    }catch(error){
-      lastError=error?.message||String(error);
-      note('REMOTE recovery error',lastError);
-    }finally{
-      remoteRecovering=false;
     }
   }
 
@@ -293,22 +255,6 @@
         note('LOCAL tracks changed – republish');
         await publish(true);
       }
-
-      const video=$('remoteVideo');
-      if(document.visibilityState!=='visible'||!remotePublication||!remoteHasVideo()||subscribing||remoteRecovering){
-        resetRemoteWatch();
-      }else if(video){
-        const t=Number(video.currentTime||0);
-        if(remoteLastTime<0||t>remoteLastTime+0.01){
-          remoteLastTime=t;
-          remoteStalls=0;
-        }else if(!video.paused&&video.readyState>=2){
-          remoteStalls++;
-          if(remoteStalls>=6){
-            await recoverRemote('video-time-stalled');
-          }
-        }
-      }
       renderDebug();
     },800);
   }
@@ -321,7 +267,6 @@
       `PUBLISHER: ${publication?.sessionId||'none'}`,
       `SUBSCRIBER: ${sfu?.subscriberSessionId||'none'}`,
       `REMOTE PUB: ${remotePublication?.sessionId||'none'}`,
-      `REMOTE WATCH: t=${remoteLastTime<0?'?':remoteLastTime.toFixed(2)} stalls=${remoteStalls} recovering=${remoteRecovering?'yes':'no'}`,
       `LOCAL TRACKS: ${stream instanceof MediaStream?stream.getTracks().map(t=>`${t.kind}:${t.readyState}:${t.enabled?'on':'off'}`).join(', '):'none'}`,
       `REMOTE TRACKS: ${remote instanceof MediaStream?remote.getTracks().map(t=>`${t.kind}:${t.readyState}:${t.muted?'muted':'live'}`).join(', '):'none'}`,
       `LAST ERROR: ${lastError||'none'}`,
