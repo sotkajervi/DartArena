@@ -17,7 +17,7 @@
     const span=document.createElement('span');
     span.className='jdc-turn-player';
     span.textContent=name;
-    span.style.color='#ff9f43';
+    span.style.color='var(--cyan)';
     el.append(span,document.createTextNode(suffix));
   }
 
