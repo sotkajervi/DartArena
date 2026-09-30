@@ -2,6 +2,7 @@ export type JdcBadge = 'white' | 'purple' | 'yellow' | 'green' | 'blue' | 'red' 
 
 export type JdcShanghaiHit = 'M' | 'S' | 'D' | 'T';
 export type JdcDoubleHit = 'M' | 'H';
+export type JdcResultSource = 'solo' | 'online';
 
 export interface JdcChallengeResult {
   score: number;
@@ -11,4 +12,6 @@ export interface JdcChallengeResult {
   doublesHit: number;
   shanghaiCount: number;
   badge: JdcBadge;
+  source?: JdcResultSource;
+  matchId?: string | null;
 }
