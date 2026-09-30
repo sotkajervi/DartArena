@@ -1,15 +1,12 @@
 (()=>{
-  if(window.__dartArenaSharedResults||!window.supabase)return;
+  if(window.__dartArenaSharedResults)return;
   window.__dartArenaSharedResults=true;
 
   const matchId=new URLSearchParams(location.search).get('id');
-  if(!matchId)return;
-
-  const resultDb=window.supabase.createClient(
+  const resultDb=window.supabase?window.supabase.createClient(
     'https://jqpxlbhwvskhjbqrbidk.supabase.co',
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
-  );
-
+  ):null;
   const providers=window.DartArenaResultProviders=window.DartArenaResultProviders||{};
   let shownFor=null,ch=null;
 
@@ -34,11 +31,7 @@
     return{a:num(m?.player1_legs),b:num(m?.player2_legs),label:'LEGS'};
   }
   function playerInitial(name){return String(name||'?').trim().slice(0,1).toUpperCase()||'?'}
-  function fillStats(rows){
-    const out=[...(rows||[])].slice(0,4);
-    while(out.length<4)out.push({label:'–',value:'–'});
-    return out;
-  }
+  function fillStats(rows){const out=[...(rows||[])].slice(0,4);while(out.length<4)out.push({label:'–',value:'–'});return out}
   function cumulativeSummary(items,m){
     let a=0,b=0;
     return(items||[]).map((item,index)=>{
@@ -47,6 +40,7 @@
       return{label:item.label||`Leg ${index+1}`,score:`${a} – ${b}`,winnerId:item.winnerId||null};
     });
   }
+  function hideResult(){document.getElementById('dartArenaResultOverlay')?.remove();document.body.classList.remove('da-result-open')}
 
   async function namesFor(m){
     const{data}=await resultDb.from('profiles').select('id,username').in('id',[m.player1_id,m.player2_id]);
@@ -54,12 +48,9 @@
   }
 
   async function buildX01(m){
-    const{data,error}=await resultDb.from('match_throws')
-      .select('player_id,set_no,leg_no,visit_no,score,darts_used,is_checkout,created_at')
-      .eq('match_id',m.id);
+    const{data,error}=await resultDb.from('match_throws').select('player_id,set_no,leg_no,visit_no,score,darts_used,is_checkout,created_at').eq('match_id',m.id);
     if(error)throw error;
-    const rows=(data||[]).sort(sortTime);
-    const out={};
+    const rows=(data||[]).sort(sortTime),out={};
     for(const id of[m.player1_id,m.player2_id])out[id]={score:0,darts:0,first9Score:0,first9Darts:0,high:0,n180:0};
     for(const r of rows){
       const s=out[r.player_id];if(!s)continue;
@@ -85,9 +76,7 @@
   }
 
   async function buildCricket(m){
-    const{data,error}=await resultDb.from('cricket_visits')
-      .select('player_id,leg_no,visit_no,points_scored,created_at')
-      .eq('match_id',m.id);
+    const{data,error}=await resultDb.from('cricket_visits').select('player_id,leg_no,visit_no,points_scored,created_at').eq('match_id',m.id);
     if(error)throw error;
     const rows=(data||[]).sort(sortTime),out={};
     for(const id of[m.player1_id,m.player2_id])out[id]={visits:0,points:0,pointVisits:0};
@@ -105,9 +94,7 @@
   }
 
   async function buildHalfIt(m){
-    const{data,error}=await resultDb.from('half_it_visits')
-      .select('player_id,leg_no,round_no,success,score_after,created_at')
-      .eq('match_id',m.id);
+    const{data,error}=await resultDb.from('half_it_visits').select('player_id,leg_no,round_no,success,score_after,created_at').eq('match_id',m.id);
     if(error)throw error;
     const rows=(data||[]).sort(sortTime),out={},byLeg=new Map();
     for(const id of[m.player1_id,m.player2_id])out[id]={ok:0,total:0,bestLeg:0};
@@ -117,13 +104,12 @@
       const playerMap=byLeg.get(leg),prev=playerMap.get(r.player_id);
       if(!prev||num(r.round_no)>=num(prev.round_no))playerMap.set(r.player_id,r);
     }
-    const wins=[];
-    for(const leg of[...byLeg.keys()].sort((a,b)=>a-b)){
+    const wins=[],legNumbers=[...byLeg.keys()].sort((a,b)=>a-b),lastLeg=legNumbers.at(-1);
+    for(const leg of legNumbers){
       const pm=byLeg.get(leg),a=pm.get(m.player1_id),b=pm.get(m.player2_id),as=num(a?.score_after),bs=num(b?.score_after);
-      out[m.player1_id].bestLeg=Math.max(out[m.player1_id].bestLeg,as);
-      out[m.player2_id].bestLeg=Math.max(out[m.player2_id].bestLeg,bs);
+      out[m.player1_id].bestLeg=Math.max(out[m.player1_id].bestLeg,as);out[m.player2_id].bestLeg=Math.max(out[m.player2_id].bestLeg,bs);
       let winnerId=as>bs?m.player1_id:bs>as?m.player2_id:null;
-      if(!winnerId&&leg===Math.max(...byLeg.keys())&&m.status==='finished')winnerId=m.winner_id||null;
+      if(!winnerId&&leg===lastLeg&&m.status==='finished')winnerId=m.winner_id||null;
       wins.push({label:`Leg ${leg}`,winnerId});
     }
     const mk=id=>{const s=out[id];return fillStats([
@@ -136,9 +122,7 @@
   }
 
   async function buildSixtyOne(m){
-    const{data,error}=await resultDb.from('sixty_one_visits')
-      .select('player_id,result,target_before,leg_no')
-      .eq('match_id',m.id);
+    const{data,error}=await resultDb.from('sixty_one_visits').select('player_id,result,target_before,leg_no').eq('match_id',m.id);
     if(error)throw error;
     const rows=data||[],out={};
     for(const id of[m.player1_id,m.player2_id])out[id]={high:0,hit:0,miss:0};
@@ -171,12 +155,6 @@
   providers.sixty_one=providers.sixty_one||buildSixtyOne;
   providers.default=providers.default||buildGeneric;
 
-  window.DartArenaResults=Object.assign(window.DartArenaResults||{}, {
-    registerProvider(key,provider){if(key&&typeof provider==='function')providers[key]=provider},
-    getProvider(key){return providers[key]||providers.default},
-    refresh:()=>refresh()
-  });
-
   function statRowsHtml(rows){return fillStats(rows).map(s=>`<div class="da-result-statrow"><span>${esc(s.label)}</span><b>${esc(s.value)}</b></div>`).join('')}
   function playerCardHtml(id,name,m,stats){
     const winner=id===m.winner_id;
@@ -185,46 +163,49 @@
   function summaryHtml(summary,names,m){
     if(!summary?.length)return'';
     const all=summary,visible=all.length>5?all.slice(-5):all;
-    const rows=visible.map(row=>{
-      const name=row.winnerId?names[row.winnerId]||'Vinner':'Uavgjort';
-      return`<div class="da-result-legrow"><span>${esc(row.label)}</span><span class="da-result-legscore">${esc(row.score||'–')}</span><span class="da-result-legwinner ${row.winnerId===m.winner_id?'is-winner':''}">${esc(name)}</span></div>`;
-    }).join('');
+    const rows=visible.map(row=>{const name=row.winnerId?names[row.winnerId]||'Vinner':'Uavgjort';return`<div class="da-result-legrow"><span>${esc(row.label)}</span><span class="da-result-legscore">${esc(row.score||'–')}</span><span class="da-result-legwinner ${row.winnerId===m.winner_id?'is-winner':''}">${esc(name)}</span></div>`}).join('');
     const more=all.length>visible.length?`<div class="da-result-more">+ ${all.length-visible.length} tidligere legs</div>`:'';
     return`<section class="da-result-legs"><div class="da-result-legs-title">LEG-OVERSIKT</div>${rows}${more}</section>`;
   }
+  function mountOverlay(html){
+    hideResult();document.body.classList.add('da-result-open');
+    const overlay=document.createElement('div');overlay.id='dartArenaResultOverlay';overlay.className='da-result-overlay';overlay.innerHTML=html;document.body.appendChild(overlay);return overlay;
+  }
+  function showSolo(options={}){
+    const title=options.title||'Økt ferdig',subtitle=options.subtitle||'',score=options.score??'–',name=options.playerName||'Resultat',stats=fillStats(options.stats||[]),actions=options.actions?.length?options.actions:[{label:'Til lobby',primary:true,onClick:()=>location.href='./'}];
+    const overlay=mountOverlay(`<section class="da-result-card" role="dialog" aria-modal="true" aria-label="Resultat"><div class="da-result-kicker">${esc(options.kicker||'ØKT FERDIG')}</div><h1 class="da-result-title"><span class="da-result-winner-name">${esc(title)}</span></h1>${subtitle?`<div class="da-result-sub">${esc(subtitle)}</div>`:''}<div class="da-result-scorebox da-result-solo-score">${esc(score)}</div><div class="da-result-stats solo"><article class="da-result-statcard solo"><div class="da-result-playerhead"><div class="da-result-playericon">★</div><div class="da-result-stat-name">${esc(name)}</div></div><div class="da-result-statlist">${statRowsHtml(stats)}</div></article></div><div id="daSoloActions" class="da-result-actions"></div><p class="da-result-note">DartArena • treningsresultat</p></section>`);
+    const host=overlay.querySelector('#daSoloActions');
+    actions.slice(0,3).forEach((action,index)=>{const b=document.createElement('button');b.type='button';b.className=action.primary||index===0?'primary':'outline';b.textContent=action.label||'Fortsett';b.onclick=()=>{hideResult();action.onClick?.()};host.appendChild(b)});
+  }
+
+  window.DartArenaResults=Object.assign(window.DartArenaResults||{}, {
+    registerProvider(key,provider){if(key&&typeof provider==='function')providers[key]=provider},
+    getProvider(key){return providers[key]||providers.default},
+    showSolo,
+    hide:hideResult,
+    refresh:()=>refresh()
+  });
 
   async function showResult(m){
     if(!m||m.status!=='finished'||shownFor===m.id)return;
     shownFor=m.id;
-    const names=await namesFor(m);
-    const provider=window.DartArenaResults.getProvider(providerKey(m));
-    let payload;
-    try{payload=await provider(m,resultDb)}catch(e){console.warn('Result provider failed',providerKey(m),e);payload=await buildGeneric(m)}
-    const stats=payload?.stats||{},summary=payload?.summary||[];
-    const n1=names[m.player1_id]||'Spiller 1',n2=names[m.player2_id]||'Spiller 2',winnerName=m.winner_id?names[m.winner_id]||'Vinner':'Kampen';
+    const names=await namesFor(m),provider=window.DartArenaResults.getProvider(providerKey(m));
+    let payload;try{payload=await provider(m,resultDb)}catch(e){console.warn('Result provider failed',providerKey(m),e);payload=await buildGeneric(m)}
+    const stats=payload?.stats||{},summary=payload?.summary||[],n1=names[m.player1_id]||'Spiller 1',n2=names[m.player2_id]||'Spiller 2',winnerName=m.winner_id?names[m.winner_id]||'Vinner':'Kampen';
     const score=scoreInfo(m),label=payload?.label||gameLabel(m),format=payload?.format||formatLabel(m);
-
-    document.body.classList.add('da-result-open');
-    document.getElementById('dartArenaResultOverlay')?.remove();
-    const overlay=document.createElement('div');overlay.id='dartArenaResultOverlay';overlay.className='da-result-overlay';
-    overlay.innerHTML=`<section class="da-result-card" role="dialog" aria-modal="true" aria-label="Kampresultat"><div class="da-result-kicker">KAMP FERDIG</div><h1 class="da-result-title"><span class="da-result-winner-name">${esc(winnerName)}</span>${m.winner_id?' vant!':' er ferdig'}</h1><div class="da-result-sub">${esc(label)} • ${esc(format)}</div><div class="da-result-scorebox">${score.a}<span>–</span>${score.b}</div><div class="da-result-stats">${playerCardHtml(m.player1_id,n1,m,stats[m.player1_id])}${playerCardHtml(m.player2_id,n2,m,stats[m.player2_id])}</div>${summaryHtml(summary,names,m)}<div class="da-result-actions"><button id="daResultLobby" class="primary" type="button">Til lobby</button><button id="daResultClose" class="outline" type="button">Lukk kampfane</button></div><p class="da-result-note">DartArena • resultatet er lagret i kamphistorikken</p></section>`;
-    document.body.appendChild(overlay);
+    const overlay=mountOverlay(`<section class="da-result-card" role="dialog" aria-modal="true" aria-label="Kampresultat"><div class="da-result-kicker">KAMP FERDIG</div><h1 class="da-result-title"><span class="da-result-winner-name">${esc(winnerName)}</span>${m.winner_id?' vant!':' er ferdig'}</h1><div class="da-result-sub">${esc(label)} • ${esc(format)}</div><div class="da-result-scorebox">${score.a}<span>–</span>${score.b}</div><div class="da-result-stats">${playerCardHtml(m.player1_id,n1,m,stats[m.player1_id])}${playerCardHtml(m.player2_id,n2,m,stats[m.player2_id])}</div>${summaryHtml(summary,names,m)}<div class="da-result-actions"><button id="daResultLobby" class="primary" type="button">Til lobby</button><button id="daResultClose" class="outline" type="button">Lukk kampfane</button></div><p class="da-result-note">DartArena • resultatet er lagret i kamphistorikken</p></section>`);
     overlay.querySelector('#daResultLobby').onclick=()=>location.href='./';
     overlay.querySelector('#daResultClose').onclick=()=>{window.close();setTimeout(()=>{if(!window.closed)location.href='./'},120)};
   }
 
-  async function refresh(){
-    const{data,error}=await resultDb.from('matches').select('*').eq('id',matchId).single();
-    if(!error&&data?.status==='finished')await showResult(data);
-  }
+  async function refresh(){if(!matchId||!resultDb)return;const{data,error}=await resultDb.from('matches').select('*').eq('id',matchId).single();if(!error&&data?.status==='finished')await showResult(data)}
   async function boot(){
+    if(!matchId||!resultDb)return;
     const{data:{session}}=await resultDb.auth.getSession();if(!session)return;
     await refresh();
-    ch=resultDb.channel('shared-result-'+matchId)
-      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{if(p.new?.status==='finished')showResult(p.new)})
-      .subscribe();
+    ch=resultDb.channel('shared-result-'+matchId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{if(p.new?.status==='finished')showResult(p.new)}).subscribe();
   }
 
-  window.addEventListener('pagehide',()=>{if(ch)resultDb.removeChannel(ch)});
+  window.addEventListener('pagehide',()=>{if(ch&&resultDb)resultDb.removeChannel(ch)});
   boot().catch(e=>console.warn('Shared result screen failed',e));
 })();
