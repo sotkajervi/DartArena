@@ -70,6 +70,7 @@
     $('doublesScore').textContent=stats.doubles;
     $('phase3Score').textContent=stats.phase3;
     $('shanghaiCount').textContent=stats.shanghai;
+    if($('doublesHit'))$('doublesHit').textContent=stats.doublesHit;
     $('tierName').textContent=TIER_LABELS[stats.badge];
     $('tierDot').dataset.jdcTier=stats.badge;
     $('tierDot').title=`JDC Challenge: ${TIER_LABELS[stats.badge]} • ${stats.score} poeng`;
@@ -93,10 +94,11 @@
     if(error){
       console.error('JDC submit failed',error);
       submitted=false;
-      $('gameMessage').textContent='Kunne ikke lagre resultatet. Prøv igjen.';
+      $('undoBtn').disabled=false;
+      $('gameMessage').textContent='Kunne ikke lagre resultatet. Angre siste pil og registrer den på nytt for å prøve igjen.';
       return;
     }
-    const result=data||local;
+    const result=(Array.isArray(data)?data[0]:data)||local;
     $('gameMessage').textContent=`Lagret • ${TIER_LABELS[result.badge]||TIER_LABELS[local.badge]}`;
     await loadLeaderboard();
     if(window.DartArenaResults?.showSolo){
@@ -107,7 +109,7 @@
         playerName:`${TIER_LABELS[result.badge||local.badge]} tier`,
         stats:[
           {label:'SHANGHAI 1',value:Number(result.phase1_score??local.phase1)},
-          {label:'DOUBLES',value:Number(result.doubles_score??local.doubles)},
+          {label:'DOUBLES TREFF',value:Number(result.doubles_hit??local.doublesHit)},
           {label:'SHANGHAI 2',value:Number(result.phase3_score??local.phase3)},
           {label:'BONUSER',value:Number(result.shanghai_count??local.shanghai)}
         ],
@@ -137,7 +139,7 @@
     host.innerHTML='<div class="jdc-empty">Laster…</div>';
     const{data,error}=await db.from('jdc_challenge_best').select('user_id,username,best_score,badge,achieved_at').order('best_score',{ascending:false}).order('achieved_at',{ascending:true}).limit(10);
     if(error){host.innerHTML='<div class="jdc-empty">Kunne ikke laste topplisten.</div>';return}
-    if(!data?.length){host.innerHTML='<div class="jdc-empty">Ingen registrerte resultater ennå.</div>';return}
+    if(!data?.length){host.innerHTML='<div class="jdc-empty">Ingen registrerte resultater ennå.</div>';renderMyBest(null);return}
     host.innerHTML=data.map((row,index)=>`<div class="jdc-lb-row"><b>${index+1}</b><strong>${esc(row.username||'Spiller')}${tierDot(row.badge,row.best_score)}</strong><span class="score">${Number(row.best_score)||0}</span><span class="tier">${esc(TIER_LABELS[row.badge]||row.badge||'')}</span></div>`).join('');
     const mine=data.find(row=>row.user_id===session?.user?.id);
     if(mine)renderMyBest(mine);
