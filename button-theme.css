@@ -1,7 +1,43 @@
-/* DartArena button hierarchy: primary action, secondary action, neutral, destructive. */
-button{transition:background-color .14s ease,border-color .14s ease,color .14s ease,box-shadow .14s ease,transform .08s ease,opacity .14s ease}
+/* DartArena button system
+   One visual language across the app:
+   - 12px radius for normal buttons
+   - 10px radius for compact controls
+   - 16px radius for large game actions
+   - semantic colors for primary / neutral / destructive actions
+*/
+:root{
+  --da-btn-radius:12px;
+  --da-btn-radius-compact:10px;
+  --da-btn-radius-large:16px;
+}
+
+button{
+  border-radius:var(--da-btn-radius);
+  font-weight:800;
+  border-style:solid;
+  transition:background-color .14s ease,border-color .14s ease,color .14s ease,box-shadow .14s ease,transform .08s ease,opacity .14s ease,filter .14s ease;
+}
 button:focus-visible{outline:2px solid rgba(35,226,209,.88);outline-offset:2px}
 button:not(:disabled):active{transform:translateY(1px)}
+
+/* Normal application buttons */
+.primary,.outline,.danger,.availability,.tab,.format-btn,.time-chip,.datetime-display,
+.jdc-hit-btn,.jdc-undo-btn,.jdc-restart-btn,.cricket-hit,.cricket-entry-actions button{
+  border-radius:var(--da-btn-radius)!important;
+}
+
+/* Compact utility controls */
+.small-btn,.match-page .top-actions button,.quick button{
+  border-radius:var(--da-btn-radius-compact)!important;
+}
+
+/* Large two-choice game actions */
+.sixty-one-main-actions button,.jdc-double-actions button{
+  border-radius:var(--da-btn-radius-large)!important;
+}
+
+/* Intentionally circular controls */
+.calendar-nav{border-radius:50%!important}
 
 .primary{background:var(--cyan)!important;border-color:var(--cyan)!important;color:#041010!important;box-shadow:0 6px 18px rgba(35,226,209,.12)}
 .primary:hover:not(:disabled){background:#50ebdd!important;border-color:#50ebdd!important;box-shadow:0 8px 24px rgba(35,226,209,.18)}
@@ -21,7 +57,7 @@ button:not(:disabled):active{transform:translateY(1px)}
 .small-btn.decline,.challenge-actions .decline{background:#35171a!important;border-color:#743139!important;color:#ff9ba1!important}
 .small-btn.decline:hover:not(:disabled),.challenge-actions .decline:hover:not(:disabled){background:#481d22!important;border-color:#a0444e!important;color:#ffc0c4!important}
 
-/* These actions are semantically destructive even where the legacy markup says outline. */
+/* These actions are semantically destructive even where legacy markup says outline. */
 #leaveRoomBtn,#rejectProposalBtn{background:#35171a!important;color:#ff9ba1!important;border-color:#743139!important}
 #leaveRoomBtn:hover:not(:disabled),#rejectProposalBtn:hover:not(:disabled){background:#481d22!important;border-color:#a0444e!important;color:#ffc0c4!important}
 
