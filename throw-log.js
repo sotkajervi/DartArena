@@ -22,22 +22,20 @@ async function boot(){
   const raw=prompt('Ny score (0–180):',String(t.score));if(raw===null)return;const score=Number(raw);if(!Number.isInteger(score)||score<0||score>180){alert('Score må være 0–180.');return}
   const mine=throws.filter(x=>x.player_id===me),allowed=mine.slice(-3).some(x=>x.id===t.id);if(!allowed){alert('Bare dine tre siste kast i aktivt leg kan korrigeres.');return}
   if(t.is_checkout){alert('Checkout-kast korrigeres ikke her ennå.');return}
-  const delta=score-Number(t.score),scoreKey=me===match.player1_id?'player1_score':'player2_score',oldRemaining=Number(match[scoreKey]),newRemaining=oldRemaining-delta;
+  const scoreKey=me===match.player1_id?'player1_score':'player2_score',oldRemaining=Number(match[scoreKey]),newRemaining=oldRemaining-(score-Number(t.score));
   if(newRemaining===0){
    const darts=await chooseCheckoutDarts(score);if(!darts)return;
    const {data:updated,error}=await db.rpc('correct_throw_to_checkout',{p_throw_id:t.id,p_score:score,p_darts:darts});
    if(error||!updated){alert('Checkout-korrigeringen kunne ikke lagres: '+(error?.message||'ukjent feil'));return}
    match=updated;syncScoreDisplay(updated);const msg=$('matchMessage');if(msg)msg.textContent=`Korrigert til checkout ${score} på ${darts} ${darts===1?'pil':'piler'}.`;await load();return
   }
-  if(newRemaining<2){alert('Denne korrigeringen gir ugyldig restscore.');return}
-  const {data:updated,error:matchErr}=await db.from('matches').update({[scoreKey]:newRemaining,updated_at:new Date().toISOString()}).eq('id',match.id).eq(scoreKey,oldRemaining).select().single();
-  if(matchErr||!updated){alert('Restscore kunne ikke korrigeres. Prøv igjen.');return}
-  const {error}=await db.from('match_throws').update({score,updated_at:new Date().toISOString()}).eq('id',t.id).eq('player_id',me);
-  if(error){await db.from('matches').update({[scoreKey]:oldRemaining,updated_at:new Date().toISOString()}).eq('id',match.id);alert(error.message);return}
+  const {data:updated,error}=await db.rpc('correct_x01_throw',{p_throw_id:t.id,p_score:score});
+  if(error||!updated){alert('Korrigeringen kunne ikke lagres: '+(error?.message||'ukjent feil'));return}
   match=updated;syncScoreDisplay(updated);await load();
  }
  db.channel('throw-log-'+matchId).on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:`match_id=eq.${matchId}`},()=>load()).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{const oldSet=match.current_set,oldLeg=match.current_leg;match=p.new;syncScoreDisplay(match);if(oldSet!==match.current_set||oldLeg!==match.current_leg)load()}).subscribe();
  await load();
- window.DartArenaThrowLog={async record(score,dartsUsed=3,isCheckout=false,context={}){const setNo=Number(context.setNo??match.current_set??1),legNo=Number(context.legNo??match.current_leg??1);const {count}=await db.from('match_throws').select('*',{count:'exact',head:true}).eq('match_id',matchId).eq('player_id',me).eq('set_no',setNo).eq('leg_no',legNo);const visitNo=Number(count||0)+1;return db.from('match_throws').insert({match_id:matchId,player_id:me,set_no:setNo,leg_no:legNo,visit_no:visitNo,score,darts_used:dartsUsed,is_checkout:isCheckout})}};
+ // Kept as a compatibility surface. New X01 visits are written atomically by submit_x01_visit/submit_match_checkout.
+ window.DartArenaThrowLog={refresh:load};
 }
 })();
