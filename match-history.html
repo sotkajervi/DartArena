@@ -15,13 +15,14 @@
 <body>
   <header><div class="brand">DART<span>ARENA</span></div><div class="live"><i></i> Kamphistorikk</div></header>
   <main class="shell"><div class="history-wrap">
-    <div class="history-head"><div><small>ALLE ONLINEKAMPER</small><h1>Kamphistorikk</h1><p class="muted compact">Ferdige kamper mellom DartArena-spillere – X01, Cricket, Half-It og 61.</p></div><button id="backBtn" class="outline">Tilbake til lobby</button></div>
+    <div class="history-head"><div><small>ALLE ONLINEKAMPER</small><h1>Kamphistorikk</h1><p class="muted compact">Ferdige kamper mellom DartArena-spillere – X01, Cricket, begge Half-It-variantene og 61.</p></div><button id="backBtn" class="outline">Tilbake til lobby</button></div>
     <div class="history-toolbar">
       <div class="history-filters" id="historyFilters">
         <button class="outline history-filter active" data-filter="all">Alle</button>
         <button class="outline history-filter" data-filter="x01">X01</button>
         <button class="outline history-filter" data-filter="cricket">Cricket</button>
-        <button class="outline history-filter" data-filter="half_it">Half-It</button>
+        <button class="outline history-filter" data-filter="half_it_dartcounter">Half-It (DartCounter)</button>
+        <button class="outline history-filter" data-filter="half_it_standard">Half-It (Standard)</button>
         <button class="outline history-filter" data-filter="sixty_one">61</button>
       </div>
       <label class="history-mine"><input id="mineOnly" type="checkbox"> Vis bare mine kamper</label>
@@ -30,7 +31,7 @@
     <section class="card"><div id="historyList" class="history-list"><p class="muted history-empty">Laster kamper…</p></div></section>
   </div></main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="match-history.js?v=20260929-globalhistory1"></script>
+  <script src="match-history.js?v=20260930-halfitvariants1"></script>
   <script src="role-visuals.js?v=20260929-roleflash2"></script>
 </body>
 </html>
