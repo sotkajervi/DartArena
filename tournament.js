@@ -10,6 +10,8 @@ let tournament=null;
 let members=[];
 let names={};
 let drawnGroups=null;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function getDialog(){for(let i=0;i<40&&!window.DartArenaDialog;i++)await sleep(50);return window.DartArenaDialog||null}
 
 function esc(v=''){
   return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -319,7 +321,11 @@ function matchHtml(m){
 
 async function startGroups(){
   if(!drawnGroups||tournament?.owner_id!==me)return;
-  if(!confirm('Starte puljespillet med denne trekningen? Etter start er puljene låst.'))return;
+  const dialog=await getDialog();
+  const ok=dialog
+    ?await dialog.confirm('Starte puljespillet med denne trekningen?\n\nEtter start er puljene låst.',{title:'Start puljespill',confirmText:'Start puljespill'})
+    :confirm('Starte puljespillet med denne trekningen? Etter start er puljene låst.');
+  if(!ok)return;
   const btn=$('startGroupsBtn');
   btn.disabled=true;
   btn.textContent='Starter…';
@@ -399,7 +405,11 @@ async function leave(){
 }
 
 async function closeRegistration(){
-  if(!confirm('Stenge påmeldingen? Spillere kan ikke melde seg av etter dette.'))return;
+  const dialog=await getDialog();
+  const ok=dialog
+    ?await dialog.confirm('Stenge påmeldingen?\n\nSpillere kan ikke melde seg av etter dette.',{title:'Steng påmelding',tone:'warning',confirmText:'Steng påmelding'})
+    :confirm('Stenge påmeldingen? Spillere kan ikke melde seg av etter dette.');
+  if(!ok)return;
   const b=$('closeRegistrationBtn'),old=b.textContent;
   b.disabled=true;b.textContent='Stenger…';
   try{
@@ -416,7 +426,11 @@ async function closeRegistration(){
 
 async function cancelTournament(){
   if(!tournament||['finished','cancelled'].includes(tournament.status))return;
-  const ok=confirm('Er du sikker på at du vil avbryte turneringen?\n\nTurneringen avsluttes og kan ikke fortsettes. Data slettes ikke.');
+  const dialog=await getDialog();
+  const text='Er du sikker på at du vil avbryte turneringen?\n\nTurneringen avsluttes og kan ikke fortsettes. Data slettes ikke.';
+  const ok=dialog
+    ?await dialog.confirm(text,{title:'Avbryt turnering',tone:'danger',confirmText:'Avbryt turnering'})
+    :confirm(text);
   if(!ok)return;
   const b=$('cancelTournamentBtn'),old=b.textContent;
   b.disabled=true;b.textContent='Avbryter…';
