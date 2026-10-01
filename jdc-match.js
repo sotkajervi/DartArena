@@ -5,7 +5,7 @@
   const $=id=>document.getElementById(id);
   const matchId=new URLSearchParams(location.search).get('id');
   const TIER_LABELS={white:'White',purple:'Purple',yellow:'Yellow',green:'Green',blue:'Blue',red:'Red',black:'Black',gold:'Gold'};
-  const HIT_LABELS={M:'Bom',S:'Single',D:'Double',T:'Triple'};
+  const HIT_LABELS={M:'Bom',S:'Single',D:'Double',T:'Triple',H:'Treff'};
   let session=null,match=null,turns=[],names={},pendingCodes=[],pendingTurnNo=null,busy=false,pollTimer=null;
 
   const badgeFor=score=>score>=1250?'gold':score>=850?'black':score>=700?'red':score>=600?'blue':score>=450?'green':score>=300?'yellow':score>=150?'purple':'white';
@@ -18,18 +18,28 @@
     const id=match.turn_player_id||match.player1_id;
     return Math.min(33,countFor(id)+1);
   };
+  const doubleTargetFor=turnNo=>turnNo===27?'BULL':`D${turnNo-6}`;
+  function doubleBlockFor(turnNo){
+    const blockStart=7+Math.floor((turnNo-7)/3)*3;
+    const blockEnd=Math.min(27,blockStart+2);
+    const first=Math.max(turnNo,blockStart);
+    const targets=[];
+    for(let n=first;n<=blockEnd;n++)targets.push(doubleTargetFor(n));
+    return{blockStart,blockEnd,first,targets,max:targets.length};
+  }
   function positionFor(turnNo){
     if(turnNo<=6)return{kind:'shanghai',phase:'FASE 1 • SHANGHAI 10–15',target:String(9+turnNo),max:3};
-    if(turnNo<=26)return{kind:'double',phase:'FASE 2 • DOUBLES',target:`D${turnNo-6}`,max:1};
-    if(turnNo===27)return{kind:'double',phase:'FASE 2 • DOUBLES',target:'BULL',max:1};
+    if(turnNo<=27){const block=doubleBlockFor(turnNo);return{kind:'double',phase:'FASE 2 • DOUBLES',target:block.targets[0],max:block.max,...block};}
     return{kind:'shanghai',phase:'FASE 3 • SHANGHAI 15–20',target:String(turnNo-13),max:3};
   }
   function clearSelected(){document.querySelectorAll('.jdc-online-actions button').forEach(b=>b.classList.remove('jdc-selected'))}
   function selectLast(){
     clearSelected();
     if(!pendingCodes.length)return;
-    const map={M:'missBtn',S:'singleBtn',D:'doubleBtn',T:'tripleBtn'};
-    $(map[pendingCodes[pendingCodes.length-1]])?.classList.add('jdc-selected');
+    const pos=positionFor(currentTurnNo());
+    const last=pendingCodes[pendingCodes.length-1];
+    const map=pos.kind==='double'?{M:'doubleMissBtn',H:'doubleHitBtn'}:{M:'missBtn',S:'singleBtn',D:'doubleBtn',T:'tripleBtn'};
+    $(map[last])?.classList.add('jdc-selected');
   }
   function setMessage(text=''){$('matchMessage').textContent=text}
   function setStableText(id,text){const el=$(id);if(el&&el.textContent!==text)el.textContent=text}
@@ -79,23 +89,39 @@
     }
 
     if(pendingTurnNo!==turnNo||!mine){pendingCodes=[];pendingTurnNo=mine?turnNo:null;clearSelected()}
-    $('phaseTitle').textContent=pos.phase;$('targetValue').textContent=pos.target;
+    $('phaseTitle').textContent=pos.phase;
+    if(pos.kind==='double'){
+      const targetIndex=Math.min(pendingCodes.length,pos.targets.length-1);
+      $('targetValue').textContent=pos.targets[targetIndex];
+    }else $('targetValue').textContent=pos.target;
     setStableText('turnText',mine?'Din tur':`${names[match.turn_player_id]||'Motstanderen'} kaster`);
-    $('dartMeta').textContent=mine&&pos.kind==='shanghai'
-      ?`Pil ${Math.min(3,pendingCodes.length+1)} av 3 • mål ${turnNo}/33`
-      :`${mine?'Din tur':'Venter på motstander'} • mål ${turnNo}/33`;
+    if(mine&&pos.kind==='shanghai'){
+      $('dartMeta').textContent=`Pil ${Math.min(3,pendingCodes.length+1)} av 3 • mål ${turnNo}/33`;
+    }else if(mine&&pos.kind==='double'){
+      const first=doubleTargetFor(pos.first),last=doubleTargetFor(pos.blockEnd);
+      $('dartMeta').textContent=`Pil ${Math.min(pos.max,pendingCodes.length+1)} av ${pos.max} • blokk ${first}–${last}`;
+    }else{
+      $('dartMeta').textContent=`Venter på motstander • mål ${turnNo}/33`;
+    }
     $('shanghaiActions').classList.toggle('hidden',pos.kind!=='shanghai');
     $('doubleActions').classList.toggle('hidden',pos.kind!=='double');
-    document.querySelectorAll('#shanghaiActions button,#doubleActions button').forEach(b=>b.disabled=!mine||busy||(pos.kind==='shanghai'&&pendingCodes.length>=3));
+    document.querySelectorAll('#shanghaiActions button,#doubleActions button').forEach(b=>b.disabled=!mine||busy||pendingCodes.length>=pos.max);
     $('undoBtn').disabled=busy||(!pendingCodes.length&&!turns.some(t=>t.player_id===myId()));
     selectLast();
-    if(pendingCodes.length)setMessage(`Valgt: ${pendingCodes.map(c=>HIT_LABELS[c]||c).join(' • ')} • Enter registrerer`);
-    else if(!busy&&$('matchMessage').textContent.startsWith('Valgt:'))setMessage('');
+    if(pendingCodes.length){
+      const selected=pendingCodes.map((c,i)=>pos.kind==='double'?`${pos.targets[i]}: ${HIT_LABELS[c]||c}`:(HIT_LABELS[c]||c)).join(' • ');
+      setMessage(`Valgt: ${selected}${pos.kind==='double'&&pendingCodes.length<pos.max?'':' • Enter registrerer'}`);
+    }else if(!busy&&$('matchMessage').textContent.startsWith('Valgt:'))setMessage('');
   }
 
   function queueShanghai(code){
     if(!isMyTurn()||busy)return;
     const pos=positionFor(currentTurnNo());if(pos.kind!=='shanghai'||pendingCodes.length>=3)return;
+    pendingTurnNo=currentTurnNo();pendingCodes.push(code);render();
+  }
+  function queueDouble(code){
+    if(!isMyTurn()||busy)return;
+    const pos=positionFor(currentTurnNo());if(pos.kind!=='double'||pendingCodes.length>=pos.max)return;
     pendingTurnNo=currentTurnNo();pendingCodes.push(code);render();
   }
   async function submitHits(codes){
@@ -110,7 +136,12 @@
     if(!isMyTurn()||!pendingCodes.length)return;
     const codes=[...pendingCodes];while(codes.length<3)codes.push('M');submitHits(codes);
   }
-  function doubleHit(code){if(isMyTurn()&&!busy&&positionFor(currentTurnNo()).kind==='double')submitHits([code])}
+  function commitDouble(){
+    if(!isMyTurn())return;
+    const pos=positionFor(currentTurnNo());
+    if(pos.kind!=='double'||pendingCodes.length!==pos.max){setMessage(`Registrer alle ${pos.max} pilene før Enter.`);return}
+    submitHits([...pendingCodes]);
+  }
   async function undo(){
     if(busy)return;
     if(pendingCodes.length){pendingCodes.pop();render();return}
@@ -127,10 +158,14 @@
     if(event.key==='Backspace'){event.preventDefault();undo();return}
     if(!isMyTurn()||busy)return;
     const pos=positionFor(currentTurnNo());
-    if(event.key==='Enter'&&pos.kind==='shanghai'){event.preventDefault();commitShanghai();return}
+    if(event.key==='Enter'){
+      event.preventDefault();
+      if(pos.kind==='shanghai')commitShanghai();else commitDouble();
+      return;
+    }
     if(pos.kind==='double'){
-      if(event.key==='0'){event.preventDefault();doubleHit('M')}
-      else if(event.key==='2'){event.preventDefault();doubleHit('H')}
+      if(event.key==='0'){event.preventDefault();queueDouble('M')}
+      else if(event.key==='2'){event.preventDefault();queueDouble('H')}
       return;
     }
     const code=event.key==='0'?'M':event.key==='1'?'S':event.key==='2'?'D':event.key==='3'?'T':null;
@@ -140,7 +175,7 @@
   async function boot(){
     const {data:{session:s}}=await db.auth.getSession();session=s;if(!session)return location.replace('./');
     $('missBtn').onclick=()=>queueShanghai('M');$('singleBtn').onclick=()=>queueShanghai('S');$('doubleBtn').onclick=()=>queueShanghai('D');$('tripleBtn').onclick=()=>queueShanghai('T');
-    $('doubleMissBtn').onclick=()=>doubleHit('M');$('doubleHitBtn').onclick=()=>doubleHit('H');$('undoBtn').onclick=undo;
+    $('doubleMissBtn').onclick=()=>queueDouble('M');$('doubleHitBtn').onclick=()=>queueDouble('H');$('undoBtn').onclick=undo;
     $('closeMatchBtn').onclick=()=>{try{window.opener?.postMessage({type:'dartarena-match-ended',id:matchId},location.origin)}catch{}window.close();setTimeout(()=>{if(!window.closed)location.href='./'},150)};
     document.addEventListener('keydown',keydown);
     await refresh();
