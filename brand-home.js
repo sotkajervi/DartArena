@@ -14,11 +14,17 @@
     });
   }
 
-  const needsReconnect=()=>!!document.querySelector('#remoteVideo,#spectateVideo2,#p2Video');
-  if(needsReconnect()&&!document.querySelector('script[data-dartarena-reconnect]')){
-    const script=document.createElement('script');
-    script.src='reconnect-status.js?v=20261001-reconnect1';
-    script.dataset.dartarenaReconnect='1';
-    document.body.appendChild(script);
+  function loadScript(src,key){
+    if(document.querySelector(`script[data-dartarena-${key}]`))return;
+    const script=document.createElement('script');script.src=src;script.dataset[`dartarena${key[0].toUpperCase()+key.slice(1)}`]='1';document.body.appendChild(script);
   }
+
+  const needsReconnect=()=>!!document.querySelector('#remoteVideo,#spectateVideo2,#p2Video');
+  if(needsReconnect())loadScript('reconnect-status.js?v=20261001-reconnect1','reconnect');
+  if(window.supabase)loadScript('client-error-log.js?v=20261001-errors1','errorlog');
+  if(document.getElementById('lobbyView')&&window.supabase){
+    loadScript('admin-active-cleanup.js?v=20261001-cleanup1','cleanup');
+    loadScript('admin-error-log.js?v=20261001-errors1','adminerrorlog');
+  }
+  if(location.pathname.endsWith('/match-history.html')||location.pathname.endsWith('match-history.html'))loadScript('match-history-export.js?v=20261001-csv1','historyexport');
 })();
