@@ -17,7 +17,6 @@
     const style=document.createElement('style');
     style.id='dartarena-admin-styles';
     style.textContent=`
-      .admin-badge{display:inline-flex;align-items:center;margin-left:9px;padding:3px 7px;border:1px solid rgba(244,196,93,.45);border-radius:999px;background:rgba(244,196,93,.09);color:var(--amber);font-size:10px;font-weight:950;letter-spacing:.1em;vertical-align:middle}
       .admin-delete-tournament{color:#ff9ba1!important;border-color:#743139!important;background:#35171a!important}
       .admin-delete-tournament.admin-force-delete{font-weight:900;border-color:#a33f49!important;background:#491b20!important}
       .dart-chat-delete{margin-left:auto;border:0;background:transparent;color:#ff8f96;padding:0 2px;font-size:15px;line-height:1;cursor:pointer;opacity:.78}
@@ -27,31 +26,14 @@
     document.head.appendChild(style);
   }
 
-  function addBadge(){
-    document.querySelector('#tName .admin-badge')?.remove();
-    const title=document.getElementById('welcomeName');
-    if(!title)return;
-    if(isOwner){
-      title.querySelector('.admin-badge')?.remove();
-      return;
-    }
-    if(title.querySelector('.admin-badge,.owner-badge'))return;
-    const badge=document.createElement('span');
-    badge.className='admin-badge';
-    badge.textContent='ADMIN';
-    title.appendChild(badge);
-  }
-
   async function inspectTournament(id,{fresh=false}={}){
     if(!fresh&&deleteModeCache.has(id))return deleteModeCache.get(id);
-
     const [tResult,mResult]=await Promise.all([
       db.from('tournaments').select('id,name,status').eq('id',id).single(),
       db.from('tournament_matches').select('status,live_match_id').eq('tournament_id',id)
     ]);
     if(tResult.error)throw tResult.error;
     if(mResult.error)throw mResult.error;
-
     const matches=mResult.data||[];
     const hasPlayed=matches.some(m=>m.live_match_id||['live','finished','wo'].includes(m.status));
     const info={id,name:tResult.data.name,status:tResult.data.status,force:tResult.data.status==='finished'||hasPlayed};
@@ -155,7 +137,7 @@
     deleteChannel=db.channel('dartarena-chat-deletes-'+Math.random().toString(36).slice(2)).on('postgres_changes',{event:'DELETE',schema:'public',table:'lobby_messages'},payload=>{const id=payload?.old?.id;if(id)removeChatMessage(id)}).subscribe();
   }
 
-  function decorate(){addBadge();decorateTournamentRows();decorateCurrentTournament();decorateChat()}
+  function decorate(){decorateTournamentRows();decorateCurrentTournament();decorateChat()}
 
   function observe(){
     if(observer)return;
