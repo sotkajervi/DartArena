@@ -15,7 +15,11 @@
 
   async function cancelTournamentMatch(){
     if(cancelling)return;
-    if(!confirm('Vil du avbryte denne turneringskampen? Kampen nullstilles og kan startes på nytt.'))return;
+    const text='Vil du avbryte denne turneringskampen?\n\nKampen nullstilles og kan startes på nytt.';
+    const ok=window.DartArenaDialog
+      ?await window.DartArenaDialog.confirm(text,{title:'Avbryt turneringskamp',tone:'danger',confirmText:'Avbryt kamp'})
+      :confirm(text);
+    if(!ok)return;
     cancelling=true;
     if(cancelBtn){cancelBtn.disabled=true;cancelBtn.textContent='Avbryter…'}
     const {data,error}=await client.rpc('cancel_tournament_match',{
