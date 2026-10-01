@@ -2,6 +2,21 @@
   if(window.__dartArenaSecureCancel)return;
   window.__dartArenaSecureCancel=true;
 
+  let dialogPromise=null;
+  function ensureDialog(){
+    if(window.DartArenaDialog)return Promise.resolve(window.DartArenaDialog);
+    if(dialogPromise)return dialogPromise;
+    dialogPromise=new Promise((resolve,reject)=>{
+      const script=document.createElement('script');
+      script.src='dartarena-dialog.js?v=20261002-dialog1';
+      script.onload=()=>resolve(window.DartArenaDialog);
+      script.onerror=()=>reject(new Error('Kunne ikke laste DartArena-dialog.'));
+      document.head.appendChild(script);
+    });
+    return dialogPromise;
+  }
+  ensureDialog().catch(()=>{});
+
   const brand=document.querySelector('header .brand');
   if(brand&&brand.dataset.homeLinkReady!=='1'){
     brand.dataset.homeLinkReady='1';
@@ -39,7 +54,11 @@
       event.preventDefault();
       event.stopImmediatePropagation();
       if(busy)return;
-      if(!confirm('Vil du avbryte kampen?'))return;
+      const dialog=await ensureDialog().catch(()=>null);
+      const ok=dialog
+        ?await dialog.confirm('Vil du avbryte kampen?\n\nKampen avsluttes for begge spillere.',{title:'Avbryt kamp',tone:'danger',confirmText:'Avbryt kamp'})
+        :confirm('Vil du avbryte kampen?');
+      if(!ok)return;
       busy=true;
       const old=button.textContent;
       button.disabled=true;
