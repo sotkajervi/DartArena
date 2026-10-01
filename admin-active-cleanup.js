@@ -15,10 +15,18 @@
     if(!data?.length){host.innerHTML='<p class="muted">Ingen aktive eller hengende kamper.</p>';return}
     host.innerHTML=data.map(r=>`<article style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;background:#091416"><div><strong>${esc(r.player1_name)} vs ${esc(r.player2_name)}</strong><div class="muted" style="font-size:12px;margin-top:4px">${esc(gameLabel(r))} • ${esc(r.status)} • ${Number(r.age_minutes||0)} min siden siste oppdatering</div></div><button class="danger" data-admin-cancel="${esc(r.id)}">Avbryt</button></article>`).join('');
     host.querySelectorAll('[data-admin-cancel]').forEach(btn=>btn.onclick=async()=>{
-      if(!confirm('Avbryte denne aktive kampen? Bruk dette bare på en hengende/testkamp.'))return;
+      const dialog=window.DartArenaDialog;
+      const ok=dialog
+        ?await dialog.confirm('Avbryte denne aktive kampen?\n\nBruk dette bare på en hengende eller testkamp.',{title:'Avbryt aktiv kamp',tone:'danger',confirmText:'Avbryt kamp'})
+        :confirm('Avbryte denne aktive kampen? Bruk dette bare på en hengende/testkamp.');
+      if(!ok)return;
       btn.disabled=true;btn.textContent='Avbryter…';
       const {error}=await db.rpc('admin_cancel_active_match',{p_match_id:btn.dataset.adminCancel});
-      if(error){alert('Kunne ikke avbryte: '+error.message);btn.disabled=false;btn.textContent='Avbryt';return}
+      if(error){
+        const message='Kunne ikke avbryte: '+error.message;
+        if(dialog)await dialog.alert(message,{title:'Kunne ikke avbryte',tone:'danger'});else alert(message);
+        btn.disabled=false;btn.textContent='Avbryt';return;
+      }
       await load();
     });
   }
