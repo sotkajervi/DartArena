@@ -23,15 +23,6 @@
     document.head.appendChild(style);
   }
 
-  function syncOwnerBadge(isOwner){
-    if(!isOwner)return;
-    document.querySelectorAll('.admin-badge').forEach(badge=>{
-      badge.textContent='OWNER';
-      badge.classList.add('owner-badge');
-      badge.title='DartArena Owner';
-    });
-  }
-
   async function boot(){
     ensureStyles();
     const {data:{session}}=await db.auth.getSession();
@@ -54,15 +45,6 @@
       }else{
         document.documentElement.classList.add('da-admin-no-result-override');
       }
-    }
-
-    syncOwnerBadge(isOwner===true);
-    if(isOwner===true){
-      let timer=null;
-      new MutationObserver(()=>{
-        clearTimeout(timer);
-        timer=setTimeout(()=>syncOwnerBadge(true),40);
-      }).observe(document.body,{childList:true,subtree:true});
     }
   }
 
