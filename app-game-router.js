@@ -17,6 +17,32 @@
     });
   }
 
+  function ensureLiveMatches(){
+    if(!document.getElementById('active-matches-style')){
+      const link=document.createElement('link');
+      link.id='active-matches-style';
+      link.rel='stylesheet';
+      link.href='active-matches.css?v=20261001-live1';
+      document.head.appendChild(link);
+    }
+    const lobby=document.getElementById('lobbyView');
+    const activeCard=document.getElementById('activeMatchCard');
+    if(lobby&&!document.getElementById('liveMatchesSection')){
+      const section=document.createElement('section');
+      section.id='liveMatchesSection';
+      section.className='card live-matches-section';
+      section.innerHTML='<div class="heading"><div><small>PÅGÅENDE KAMPER</small><h2>Live nå</h2></div></div><p class="muted compact">Se spilltype, Best of og live resultat. Åpne Spectate for å følge kampen uten å påvirke scoringen.</p><div id="liveMatchesList" class="live-matches-list"><p class="muted">Laster pågående kamper…</p></div>';
+      if(activeCard)activeCard.insertAdjacentElement('afterend',section);else lobby.prepend(section);
+    }
+    if(!document.querySelector('script[data-dartarena-live-matches]')){
+      const script=document.createElement('script');
+      script.src='active-matches.js?v=20261001-live1';
+      script.dataset.dartarenaLiveMatches='1';
+      document.body.appendChild(script);
+    }
+  }
+  ensureLiveMatches();
+
   const boot=setInterval(()=>{
     if(!window.DartArenaGames||typeof openMatch!=='function')return;
     clearInterval(boot);
