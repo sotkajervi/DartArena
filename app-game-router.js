@@ -26,13 +26,13 @@
       document.head.appendChild(link);
     }
     const lobby=document.getElementById('lobbyView');
-    const activeCard=document.getElementById('activeMatchCard');
     if(lobby&&!document.getElementById('liveMatchesSection')){
       const section=document.createElement('section');
       section.id='liveMatchesSection';
       section.className='card live-matches-section';
       section.innerHTML='<div class="heading"><div><small>PÅGÅENDE KAMPER</small><h2>Live nå</h2></div></div><p class="muted compact">Se spilltype, Best of og live resultat. Åpne Spectate for å følge kampen uten å påvirke scoringen.</p><div id="liveMatchesList" class="live-matches-list"><p class="muted">Laster pågående kamper…</p></div>';
-      if(activeCard)activeCard.insertAdjacentElement('afterend',section);else lobby.prepend(section);
+      const archiveSection=[...lobby.querySelectorAll('.tournament-section')].find(el=>el.querySelector('h2')?.textContent.trim()==='Tidligere turneringer');
+      if(archiveSection)archiveSection.insertAdjacentElement('beforebegin',section);else lobby.appendChild(section);
     }
     if(!document.querySelector('script[data-dartarena-live-matches]')){
       const script=document.createElement('script');
