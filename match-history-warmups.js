@@ -1,6 +1,7 @@
 (()=>{
   const wait=setInterval(()=>{
-    if(typeof db==='undefined'||typeof allMatches==='undefined'||typeof render!=='function'||!document.getElementById('showWarmups'))return;
+    const count=document.getElementById('historyCount');
+    if(typeof db==='undefined'||typeof allMatches==='undefined'||typeof render!=='function'||!document.getElementById('showWarmups')||!count||count.textContent==='Laster…')return;
     clearInterval(wait);
     install();
   },50);
