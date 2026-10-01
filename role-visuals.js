@@ -11,6 +11,8 @@
   const NAME_SELECTOR='.player-name,.video-name,.match-name,.cricket-player-name,.half-player-name,.sixty-one-player-name,.spectate-name,.spectator-name,.history-player,.results-player,.highlight-name,.jdc-online-player span';
 
   function revealWelcome(){
+    const title=document.getElementById('welcomeName');
+    if(title)title.style.visibility='visible';
     document.documentElement.classList.remove('da-role-pending');
   }
 
