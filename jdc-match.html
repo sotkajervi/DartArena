@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="dartboard-background.css?v=20260928-ui2">
   <link rel="stylesheet" href="button-theme.css?v=20260930-buttons4">
   <link rel="stylesheet" href="jdc-tier.css?v=20260930-jdc1">
-  <link rel="stylesheet" href="jdc-match.css?v=20261001-headspace1">
+  <link rel="stylesheet" href="jdc-match.css?v=20261001-cancelmodal1">
 </head>
 <body class="match-page jdc-match-page">
 <header><div class="brand">DART<span>ARENA</span></div><div class="live"><i></i> OFFISIELL JDC ONLINE</div></header>
@@ -65,10 +65,19 @@
     </aside>
   </div>
 </main>
+<div id="cancelledMatchModal" class="jdc-cancel-modal hidden" role="dialog" aria-modal="true" aria-labelledby="cancelledMatchTitle">
+  <div class="jdc-cancel-backdrop"></div>
+  <section class="card jdc-cancel-card">
+    <small>KAMP AVBRUTT</small>
+    <h2 id="cancelledMatchTitle">Kampen er avbrutt</h2>
+    <p id="cancelledMatchText" class="muted">Motstanderen har avbrutt kampen.</p>
+    <button id="cancelledLobbyBtn" class="primary wide" type="button">Til lobby</button>
+  </section>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
 <script src="sfu-config.js?v=20260930-sfu1"></script>
 <script src="sfu-client.js?v=20260930-sfu1"></script>
-<script src="jdc-match.js?v=20261001-roleheader1"></script>
+<script src="jdc-match.js?v=20261001-cancelmodal1"></script>
 <script src="jdc-match-media.js?v=20260930-jdcsfu3"></script>
 <script src="secure-match-cancel.js?v=20260930-security1"></script>
 <script src="role-visuals.js?v=20261001-jdcscorebadge1"></script>
