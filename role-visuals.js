@@ -35,6 +35,9 @@
       .player-role-badge.owner{color:${OWNER};border:1px solid rgba(35,226,209,.5);background:rgba(35,226,209,.09)}
       .player-role-badge.admin{color:${ADMIN};border:1px solid rgba(255,159,67,.5);background:rgba(255,159,67,.09)}
       #matchTitle .player-role-badge{transform:translateY(-1px)}
+      .jdc-online-player span.da-jdc-owner::after,.jdc-online-player span.da-jdc-admin::after{display:inline-block;margin-left:7px;padding:2px 6px;border-radius:999px;font-size:9px;font-weight:950;letter-spacing:.08em;vertical-align:2px;line-height:1.25}
+      .jdc-online-player span.da-jdc-owner::after{content:'OWNER';color:${OWNER};border:1px solid rgba(35,226,209,.5);background:rgba(35,226,209,.09)}
+      .jdc-online-player span.da-jdc-admin::after{content:'ADMIN';color:${ADMIN};border:1px solid rgba(255,159,67,.5);background:rgba(255,159,67,.09)}
     `;
     document.head.appendChild(style);
   }
@@ -93,6 +96,9 @@
     el.classList.toggle('da-role-owner',role==='owner');
     el.classList.toggle('da-role-admin',role==='admin');
     el.classList.toggle('da-role-leader',role==='leader');
+    const isJdcScore=!!el.closest?.('.jdc-online-player');
+    el.classList.toggle('da-jdc-owner',isJdcScore&&role==='owner');
+    el.classList.toggle('da-jdc-admin',isJdcScore&&role==='admin');
     syncPlayerBadge(el,role);
   }
 
