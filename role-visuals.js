@@ -31,6 +31,9 @@
       .admin-badge,.owner-badge{display:inline-flex;align-items:center;margin-left:9px;padding:3px 7px;border-radius:999px;font-size:10px;font-weight:950;letter-spacing:.1em;vertical-align:middle}
       .admin-badge{color:${ADMIN}!important;border:1px solid rgba(255,159,67,.5)!important;background:rgba(255,159,67,.1)!important}
       .owner-badge{color:${OWNER}!important;border:1px solid rgba(35,226,209,.55)!important;background:rgba(35,226,209,.1)!important}
+      .player-role-badge{display:inline-flex;align-items:center;margin-left:7px;padding:2px 6px;border-radius:999px;font-size:9px;font-weight:950;letter-spacing:.08em;vertical-align:middle;line-height:1.25}
+      .player-role-badge.owner{color:${OWNER};border:1px solid rgba(35,226,209,.5);background:rgba(35,226,209,.09)}
+      .player-role-badge.admin{color:${ADMIN};border:1px solid rgba(255,159,67,.5);background:rgba(255,159,67,.09)}
     `;
     document.head.appendChild(style);
   }
@@ -62,12 +65,32 @@
     return null;
   }
 
+  function syncPlayerBadge(el,role){
+    if(!el?.classList?.contains('player-name'))return;
+    const host=el.parentElement;
+    if(!host)return;
+    let badge=host.querySelector(':scope > .player-role-badge');
+    if(role==='owner'||role==='admin'){
+      if(!badge){
+        badge=document.createElement('span');
+        badge.className='player-role-badge';
+        el.insertAdjacentElement('afterend',badge);
+      }
+      badge.className=`player-role-badge ${role}`;
+      badge.textContent=role==='owner'?'OWNER':'ADMIN';
+      badge.title=role==='owner'?'DartArena Owner':'DartArena Admin';
+    }else if(badge){
+      badge.remove();
+    }
+  }
+
   function applyRole(el){
     if(!el)return;
     const role=roleFor(el.textContent);
     el.classList.toggle('da-role-owner',role==='owner');
     el.classList.toggle('da-role-admin',role==='admin');
     el.classList.toggle('da-role-leader',role==='leader');
+    syncPlayerBadge(el,role);
   }
 
   function syncWelcome(){
@@ -113,6 +136,17 @@
     }
   }
 
+  function hookPlayerRendering(){
+    if(window.__dartArenaRolePlayerHook||typeof loadPlayers!=='function')return;
+    window.__dartArenaRolePlayerHook=true;
+    const baseLoadPlayers=loadPlayers;
+    loadPlayers=async function(...args){
+      const result=await baseLoadPlayers.apply(this,args);
+      scanNames();
+      return result;
+    };
+  }
+
   async function loadRoles(){
     const {data:{session}}=await db.auth.getSession();
     if(!session?.user)return false;
@@ -147,10 +181,12 @@
       if(!loaded)await new Promise(resolve=>setTimeout(resolve,150));
     }
 
+    hookPlayerRendering();
     scanNames();
     let attempts=0;
     const timer=setInterval(()=>{
       ensureLobbyNavButtons();
+      hookPlayerRendering();
       scanNames();
       attempts+=1;
       if(syncWelcome()||attempts>=20){
