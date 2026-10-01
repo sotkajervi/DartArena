@@ -8,7 +8,7 @@
   );
   const OWNER='#23e2d1',ADMIN='#ff9f43',LEADER='#4da3ff';
   const roleByName=new Map();
-  const NAME_SELECTOR='.player-name,.video-name,.match-name,.cricket-player-name,.half-player-name,.sixty-one-player-name,.spectate-name,.spectator-name,.history-player,.results-player,.highlight-name,.jdc-online-player span';
+  const NAME_SELECTOR='.player-name,.video-name,.match-name,.cricket-player-name,.half-player-name,.sixty-one-player-name,.spectate-name,.spectator-name,.history-player,.results-player,.highlight-name,.jdc-online-player span,#matchPlayer1Name,#matchPlayer2Name';
 
   function revealWelcome(){
     const title=document.getElementById('welcomeName');
@@ -34,6 +34,7 @@
       .player-role-badge{display:inline-flex;align-items:center;margin-left:7px;padding:2px 6px;border-radius:999px;font-size:9px;font-weight:950;letter-spacing:.08em;vertical-align:middle;line-height:1.25}
       .player-role-badge.owner{color:${OWNER};border:1px solid rgba(35,226,209,.5);background:rgba(35,226,209,.09)}
       .player-role-badge.admin{color:${ADMIN};border:1px solid rgba(255,159,67,.5);background:rgba(255,159,67,.09)}
+      #matchTitle .player-role-badge{transform:translateY(-1px)}
     `;
     document.head.appendChild(style);
   }
@@ -66,10 +67,12 @@
   }
 
   function syncPlayerBadge(el,role){
-    if(!el?.classList?.contains('player-name'))return;
+    const isPlayerName=el?.classList?.contains('player-name');
+    const isMatchHeader=el?.id==='matchPlayer1Name'||el?.id==='matchPlayer2Name';
+    if(!isPlayerName&&!isMatchHeader)return;
     const host=el.parentElement;
     if(!host)return;
-    let badge=host.querySelector(':scope > .player-role-badge');
+    let badge=el.nextElementSibling?.classList?.contains('player-role-badge')?el.nextElementSibling:null;
     if(role==='owner'||role==='admin'){
       if(!badge){
         badge=document.createElement('span');
