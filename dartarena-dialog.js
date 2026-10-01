@@ -1,6 +1,14 @@
 (()=>{
   if(window.DartArenaDialog)return;
 
+  if(!document.querySelector('link[data-dartarena-dialog-style]')){
+    const link=document.createElement('link');
+    link.rel='stylesheet';
+    link.href='dartarena-dialog.css?v=20261002-dialog1';
+    link.dataset.dartarenaDialogStyle='1';
+    document.head.appendChild(link);
+  }
+
   let queue=Promise.resolve();
   let activeLayer=null;
   let previousFocus=null;
@@ -142,8 +150,8 @@
 
   window.DartArenaDialog=api;
 
-  // Native alert() can safely be replaced because callers do not receive a value.
-  // confirm() and prompt() stay native unless their call sites are migrated to the async API.
+  // alert() has no return value, so it can be safely themed globally.
+  // confirm() and prompt() require explicit async migration at their call sites.
   window.__dartArenaNativeAlert=window.alert.bind(window);
   window.alert=message=>{api.alert(String(message??''));};
 })();
