@@ -43,6 +43,11 @@
   }
   function setMessage(text=''){$('matchMessage').textContent=text}
   function setStableText(id,text){const el=$(id);if(el&&el.textContent!==text)el.textContent=text}
+  function goLobby(){
+    try{window.opener?.postMessage({type:'dartarena-match-ended',id:matchId},location.origin)}catch{}
+    window.close();
+    setTimeout(()=>{if(!window.closed)location.href='./'},150);
+  }
 
   async function refresh(){
     if(!matchId)return location.replace('./');
@@ -78,16 +83,21 @@
       $('phaseTitle').textContent='KAMP FERDIG';$('targetValue').textContent='✓';$('dartMeta').textContent='66 mål registrert totalt';
       setStableText('turnText',match.winner_id?`${names[match.winner_id]||'Vinner'} vant`:'Uavgjort');
       $('shanghaiActions').classList.add('hidden');$('doubleActions').classList.add('hidden');$('undoBtn').disabled=true;
-      $('cancelMatchBtn').classList.add('hidden');$('closeMatchBtn').classList.remove('hidden');$('finishedBox').classList.remove('hidden');
+      $('cancelMatchBtn').classList.add('hidden');$('closeMatchBtn').classList.remove('hidden');$('closeMatchBtn').textContent='Lukk kampfane';$('finishedBox').classList.remove('hidden');
       $('winnerText').textContent=match.winner_id?`${names[match.winner_id]||'Vinner'} vinner ${match.player1_score}–${match.player2_score}`:`Uavgjort ${match.player1_score}–${match.player2_score}`;
       const mineScore=myId()===match.player1_id?Number(match.player1_score||0):Number(match.player2_score||0),badge=badgeFor(mineScore);
       $('tierText').textContent=`Din offisielle score: ${mineScore} • ${TIER_LABELS[badge]} tier`;
       return;
     }
     if(match.status==='cancelled'){
-      pendingCodes=[];clearSelected();$('phaseTitle').textContent='AVBRUTT';$('targetValue').textContent='–';$('dartMeta').textContent='Kampen er avbrutt';setStableText('turnText','Avbrutt');$('shanghaiActions').classList.add('hidden');$('doubleActions').classList.add('hidden');$('undoBtn').disabled=true;return;
+      pendingCodes=[];pendingTurnNo=null;clearSelected();
+      $('phaseTitle').textContent='AVBRUTT';$('targetValue').textContent='–';$('dartMeta').textContent='Kampen er avbrutt';setStableText('turnText','Avbrutt');
+      $('shanghaiActions').classList.add('hidden');$('doubleActions').classList.add('hidden');$('undoBtn').disabled=true;
+      $('cancelMatchBtn').classList.add('hidden');$('closeMatchBtn').classList.remove('hidden');$('closeMatchBtn').textContent='Til lobby';
+      return;
     }
 
+    $('cancelMatchBtn').classList.remove('hidden');$('closeMatchBtn').classList.add('hidden');
     if(pendingTurnNo!==turnNo||!mine){pendingCodes=[];pendingTurnNo=mine?turnNo:null;clearSelected()}
     $('phaseTitle').textContent=pos.phase;
     if(pos.kind==='double'){
@@ -176,7 +186,7 @@
     const {data:{session:s}}=await db.auth.getSession();session=s;if(!session)return location.replace('./');
     $('missBtn').onclick=()=>queueShanghai('M');$('singleBtn').onclick=()=>queueShanghai('S');$('doubleBtn').onclick=()=>queueShanghai('D');$('tripleBtn').onclick=()=>queueShanghai('T');
     $('doubleMissBtn').onclick=()=>queueDouble('M');$('doubleHitBtn').onclick=()=>queueDouble('H');$('undoBtn').onclick=undo;
-    $('closeMatchBtn').onclick=()=>{try{window.opener?.postMessage({type:'dartarena-match-ended',id:matchId},location.origin)}catch{}window.close();setTimeout(()=>{if(!window.closed)location.href='./'},150)};
+    $('closeMatchBtn').onclick=goLobby;
     document.addEventListener('keydown',keydown);
     await refresh();
     pollTimer=setInterval(()=>refresh().catch(()=>{}),900);
