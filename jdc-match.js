@@ -18,6 +18,7 @@
     const id=match.turn_player_id||match.player1_id;
     return Math.min(33,countFor(id)+1);
   };
+  const myNextTurnNo=()=>Math.min(33,countFor(myId())+1);
   const doubleTargetFor=turnNo=>turnNo===27?'BULL':`D${turnNo-6}`;
   function doubleBlockFor(turnNo){
     const blockStart=7+Math.floor((turnNo-7)/3)*3;
@@ -67,7 +68,7 @@
 
   function render(){
     if(!match)return;
-    const p1=countFor(match.player1_id),p2=countFor(match.player2_id),turnNo=currentTurnNo(),pos=positionFor(turnNo),mine=isMyTurn();
+    const p1=countFor(match.player1_id),p2=countFor(match.player2_id),mine=isMyTurn(),activeTurnNo=currentTurnNo(),displayTurnNo=mine?activeTurnNo:myNextTurnNo(),pos=positionFor(displayTurnNo);
     setStableText('matchPlayer1Name',names[match.player1_id]||'Spiller 1');
     setStableText('matchPlayer2Name',names[match.player2_id]||'Spiller 2');
     setStableText('player1Name',names[match.player1_id]||'Spiller 1');
@@ -99,20 +100,20 @@
     }
 
     $('cancelMatchBtn').classList.remove('hidden');$('closeMatchBtn').classList.add('hidden');
-    if(pendingTurnNo!==turnNo||!mine){pendingCodes=[];pendingTurnNo=mine?turnNo:null;clearSelected()}
+    if(pendingTurnNo!==activeTurnNo||!mine){pendingCodes=[];pendingTurnNo=mine?activeTurnNo:null;clearSelected()}
     $('phaseTitle').textContent=pos.phase;
     if(pos.kind==='double'){
-      const targetIndex=Math.min(pendingCodes.length,pos.targets.length-1);
+      const targetIndex=mine?Math.min(pendingCodes.length,pos.targets.length-1):0;
       $('targetValue').textContent=pos.targets[targetIndex];
     }else $('targetValue').textContent=pos.target;
     setStableText('turnText',mine?'Din tur':`${names[match.turn_player_id]||'Motstanderen'} kaster`);
     if(mine&&pos.kind==='shanghai'){
-      $('dartMeta').textContent=`Pil ${Math.min(3,pendingCodes.length+1)} av 3 • mål ${turnNo}/33`;
+      $('dartMeta').textContent=`Pil ${Math.min(3,pendingCodes.length+1)} av 3 • mål ${activeTurnNo}/33`;
     }else if(mine&&pos.kind==='double'){
       const first=doubleTargetFor(pos.first),last=doubleTargetFor(pos.blockEnd);
       $('dartMeta').textContent=`Pil ${Math.min(pos.max,pendingCodes.length+1)} av ${pos.max} • blokk ${first}–${last}`;
     }else{
-      $('dartMeta').textContent=`Venter på motstander • mål ${turnNo}/33`;
+      $('dartMeta').textContent=`Neste for deg • mål ${displayTurnNo}/33 • venter på motstander`;
     }
     $('shanghaiActions').classList.toggle('hidden',pos.kind!=='shanghai');
     $('doubleActions').classList.toggle('hidden',pos.kind!=='double');
