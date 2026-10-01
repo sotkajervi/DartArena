@@ -24,6 +24,10 @@
       .da-role-owner{color:${OWNER}!important;font-weight:850}
       .da-role-admin{color:${ADMIN}!important;font-weight:850}
       .da-role-leader,.role-leader,.role-leader-label{color:${LEADER}!important;font-weight:850}
+      #welcomeName{display:inline-block;vertical-align:middle}
+      #welcomeRoleBadge{display:inline-flex;align-items:center;margin-left:9px;padding:3px 7px;border-radius:999px;font-size:10px;font-weight:950;letter-spacing:.1em;vertical-align:middle}
+      #welcomeRoleBadge.admin-badge{color:${ADMIN}!important;border:1px solid rgba(255,159,67,.5)!important;background:rgba(255,159,67,.1)!important}
+      #welcomeRoleBadge.owner-badge{color:${OWNER}!important;border:1px solid rgba(35,226,209,.55)!important;background:rgba(35,226,209,.1)!important}
       .admin-badge,.owner-badge{display:inline-flex;align-items:center;margin-left:9px;padding:3px 7px;border-radius:999px;font-size:10px;font-weight:950;letter-spacing:.1em;vertical-align:middle}
       .admin-badge{color:${ADMIN}!important;border:1px solid rgba(255,159,67,.5)!important;background:rgba(255,159,67,.1)!important}
       .owner-badge{color:${OWNER}!important;border:1px solid rgba(35,226,209,.55)!important;background:rgba(35,226,209,.1)!important}
@@ -78,12 +82,18 @@
     title.classList.toggle('da-role-leader',role==='leader');
 
     title.querySelectorAll('.admin-badge,.owner-badge').forEach(el=>el.remove());
+    let badge=document.getElementById('welcomeRoleBadge');
     if(role==='owner'||role==='admin'){
-      const badge=document.createElement('span');
+      if(!badge){
+        badge=document.createElement('span');
+        badge.id='welcomeRoleBadge';
+        title.insertAdjacentElement('afterend',badge);
+      }
       badge.className=role==='owner'?'owner-badge':'admin-badge';
       badge.textContent=role==='owner'?'OWNER':'ADMIN';
       badge.title=role==='owner'?'DartArena Owner':'DartArena Admin';
-      title.appendChild(badge);
+    }else if(badge){
+      badge.remove();
     }
 
     revealWelcome();
