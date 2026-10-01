@@ -9,6 +9,21 @@ let allMatches=[];
 let deletedMatches=[];
 let activeFilter='all';
 let trashMode=false;
+let dialogPromise=null;
+
+function ensureDialog(){
+  if(window.DartArenaDialog)return Promise.resolve(window.DartArenaDialog);
+  if(dialogPromise)return dialogPromise;
+  dialogPromise=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='dartarena-dialog.js?v=20261002-dialog1';
+    script.onload=()=>resolve(window.DartArenaDialog);
+    script.onerror=()=>reject(new Error('Kunne ikke laste DartArena-dialog.'));
+    document.head.appendChild(script);
+  });
+  return dialogPromise;
+}
+ensureDialog().catch(error=>console.warn('DartArena dialog preload failed',error));
 
 $('backBtn').onclick=()=>location.href='./';
 
@@ -87,7 +102,12 @@ async function deleteMatch(id){
   if(!match)return;
   const [a,b]=scorePair(match);
   const label=`${match.player1_name||'Spiller 1'} ${a}–${b} ${match.player2_name||'Spiller 2'}`;
-  if(!confirm(`Slette denne kampen fra kamphistorikken?\n\n${label}\n\nKampen blir også utelatt fra spillerstatistikk og avg.`))return;
+  const dialog=await ensureDialog().catch(()=>null);
+  const text=`Slette denne kampen fra kamphistorikken?\n\n${label}\n\nKampen blir også utelatt fra spillerstatistikk og avg.`;
+  const ok=dialog
+    ?await dialog.confirm(text,{title:'Slett kamp',tone:'danger',confirmText:'Slett kamp'})
+    :confirm(text);
+  if(!ok)return;
 
   const button=document.querySelector(`[data-delete-id="${CSS.escape(id)}"]`);
   if(button){button.disabled=true;button.textContent='Sletter…'}
@@ -113,7 +133,12 @@ async function restoreMatch(id){
   if(!match)return;
   const [a,b]=scorePair(match);
   const label=`${match.player1_name||'Spiller 1'} ${a}–${b} ${match.player2_name||'Spiller 2'}`;
-  if(!confirm(`Gjenopprette denne kampen?\n\n${label}\n\nKampen blir synlig igjen og teller i statistikk dersom den ikke er Oppvarming.`))return;
+  const dialog=await ensureDialog().catch(()=>null);
+  const text=`Gjenopprette denne kampen?\n\n${label}\n\nKampen blir synlig igjen og teller i statistikk dersom den ikke er Oppvarming.`;
+  const ok=dialog
+    ?await dialog.confirm(text,{title:'Gjenopprett kamp',confirmText:'Gjenopprett'})
+    :confirm(text);
+  if(!ok)return;
 
   const button=document.querySelector(`[data-restore-id="${CSS.escape(id)}"]`);
   if(button){button.disabled=true;button.textContent='Gjenoppretter…'}
