@@ -74,6 +74,11 @@
       const tier=String(value.textContent||'').trim().split(/\s+/)[0].toLowerCase();
       if(COLORS[tier])value.style.color=COLORS[tier];
     });
+
+    const lobbyBtn=overlay.querySelector('#daResultLobby');
+    if(lobbyBtn)lobbyBtn.remove();
+    const closeBtn=overlay.querySelector('#daResultClose');
+    if(closeBtn){closeBtn.textContent='Lukk kampfane';closeBtn.classList.remove('outline');closeBtn.classList.add('primary')}
     return true;
   }
 
