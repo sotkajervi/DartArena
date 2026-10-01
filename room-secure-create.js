@@ -57,6 +57,19 @@
         const {data:match,error}=await db.rpc('accept_challenge_match_proposal',{p_proposal_id:pendingProposal.proposalId});
         if(error||!match)throw error||new Error('Kampen kunne ikke opprettes.');
         const variant=match.game_variant||pendingProposal.gameVariant||'x01';
+        if(pendingProposal.starter==='random'&&window.DartArenaCoinFlipSync){
+          accept.textContent='Kaster mynt…';
+          await window.DartArenaCoinFlipSync.start({
+            matchId:match.id,
+            gameVariant:variant,
+            player1Id:match.player1_id,
+            player2Id:match.player2_id,
+            player1Name:names[match.player1_id]||'Spiller 1',
+            player2Name:names[match.player2_id]||'Spiller 2',
+            starterId:match.match_starter_id||match.turn_player_id
+          });
+          return;
+        }
         await send('match-start',{matchId:match.id,gameVariant:variant});
         const page=window.DartArenaGames?.pageForVariant?.(variant)||pageForVariant(variant);
         location.href=`${page}?id=${encodeURIComponent(match.id)}`;
