@@ -7,8 +7,9 @@
 
   const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
   const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
-  const BUILD='20260930-noflicker1';
+  const BUILD='20261001-ownercolor1';
   const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  const OWNER='#23e2d1';
   const ADMIN='#ff9f43';
   const LEADER='#4da3ff';
   let roleMap=new Map();
@@ -41,9 +42,11 @@
     style.textContent=`
       html.${ROLE_PENDING_CLASS} #welcomeName{visibility:hidden}
       .da-role-name{font-weight:850}
+      .da-role-owner-name,.da-role-owner-static{color:${OWNER}!important}
       .da-role-admin-name,.da-role-admin-static{color:${ADMIN}!important}
       .da-role-leader-name,.da-role-leader-static,.role-leader,.role-leader-label{color:${LEADER}!important}
       .admin-badge{color:${ADMIN}!important;border-color:rgba(255,159,67,.5)!important;background:rgba(255,159,67,.1)!important}
+      .owner-badge{display:inline-flex;align-items:center;margin-left:9px;padding:3px 7px;border:1px solid rgba(35,226,209,.55);border-radius:999px;background:rgba(35,226,209,.1);color:${OWNER};font-size:10px;font-weight:950;letter-spacing:.1em;vertical-align:middle}
       .form-stats-badge{display:inline-flex;align-items:center;padding:3px 7px;border:1px solid rgba(35,226,209,.45);border-radius:999px;background:rgba(35,226,209,.08);color:var(--cyan);font-size:10px;font-weight:950;line-height:1;letter-spacing:.055em;text-transform:uppercase;white-space:nowrap}
       .form-stats-badge.off{border-color:rgba(142,159,163,.32);background:rgba(142,159,163,.07);color:#8e9fa3}
     `;
@@ -102,6 +105,7 @@
     root?.querySelectorAll?.(STATIC_MATCH_NAME_SELECTOR).forEach(el=>nodes.push(el));
     for(const el of nodes){
       const role=roleForText(el.textContent);
+      el.classList.toggle('da-role-owner-static',role==='owner');
       el.classList.toggle('da-role-admin-static',role==='admin');
       el.classList.toggle('da-role-leader-static',role==='leader');
     }
@@ -122,7 +126,11 @@
     for(const part of parts){
       const role=roleMap.get(part);
       if(!role){frag.appendChild(document.createTextNode(part));continue}
-      const span=document.createElement('span');span.className=`da-role-name ${role==='admin'?'da-role-admin-name':'da-role-leader-name'}`;span.textContent=part;span.title=role==='admin'?'Admin':'Turneringsleder';frag.appendChild(span)
+      const span=document.createElement('span');
+      span.className=`da-role-name ${role==='owner'?'da-role-owner-name':role==='admin'?'da-role-admin-name':'da-role-leader-name'}`;
+      span.textContent=part;
+      span.title=role==='owner'?'Owner':role==='admin'?'Admin':'Turneringsleder';
+      frag.appendChild(span)
     }
     node.replaceWith(frag);
   }
@@ -146,8 +154,17 @@
     const title=document.getElementById('welcomeName');if(!title)return false;
     const text=title.textContent.trim();if(!text||text==='Lobby')return false;
     scan(title);
-    const adminName=[...roleMap.entries()].find(([name,role])=>role==='admin'&&title.textContent.includes(name))?.[0];
-    if(adminName&&!title.querySelector('.admin-badge')){const badge=document.createElement('span');badge.className='admin-badge';badge.textContent='ADMIN';title.appendChild(badge)}
+    title.querySelector('.admin-badge,.owner-badge')?.remove();
+    const current=[...roleMap.entries()].find(([name])=>title.textContent.includes(name));
+    if(current){
+      const [,role]=current;
+      if(role==='owner'||role==='admin'){
+        const badge=document.createElement('span');
+        badge.className=role==='owner'?'owner-badge':'admin-badge';
+        badge.textContent=role==='owner'?'OWNER':'ADMIN';
+        title.appendChild(badge)
+      }
+    }
     document.documentElement.classList.remove(ROLE_PENDING_CLASS);return true;
   }
   function scheduleScan(){clearTimeout(scanTimer);scanTimer=setTimeout(()=>scan(document.body),50)}
@@ -155,8 +172,13 @@
   async function loadRoles(){
     const {data:{session}}=await db.auth.getSession();if(!session?.user)return;
     const {data:roles,error}=await db.rpc('get_public_user_roles');if(error){console.warn('Role visuals: role lookup failed',error);return}
-    const admins=(roles||[]).filter(r=>r.role==='admin').map(r=>r.user_id);
-    if(admins.length){const {data:profiles}=await db.from('profiles').select('id,username').in('id',admins);(profiles||[]).forEach(p=>{if(p.username)roleMap.set(p.username,'admin')})}
+    const privileged=(roles||[]).filter(r=>r.role==='owner'||r.role==='admin');
+    const ids=privileged.map(r=>r.user_id);
+    if(ids.length){
+      const {data:profiles}=await db.from('profiles').select('id,username').in('id',ids);
+      const roleById=new Map(privileged.map(r=>[r.user_id,r.role]));
+      (profiles||[]).forEach(p=>{if(p.username)roleMap.set(p.username,roleById.get(p.id)||'admin')})
+    }
     const params=new URLSearchParams(location.search);const tournamentId=params.get('id');
     if(tournamentId&&location.pathname.toLowerCase().includes('tournament')){
       const {data:t}=await db.from('tournaments').select('owner_id,stats_enabled').eq('id',tournamentId).maybeSingle();if(t)showTournamentFormStatsBadge(t.stats_enabled);
