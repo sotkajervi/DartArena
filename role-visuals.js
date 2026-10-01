@@ -10,6 +10,10 @@
   const roleByName=new Map();
   const NAME_SELECTOR='.player-name,.video-name,.match-name,.cricket-player-name,.half-player-name,.sixty-one-player-name,.spectate-name,.spectator-name,.history-player,.results-player,.highlight-name,.jdc-online-player span';
 
+  function revealWelcome(){
+    document.documentElement.classList.remove('da-role-pending');
+  }
+
   function ensureStyles(){
     if(document.getElementById('dartarena-role-visuals-style'))return;
     const style=document.createElement('style');
@@ -62,13 +66,15 @@
 
   function syncWelcome(){
     const title=document.getElementById('welcomeName');
-    if(!title)return true;
+    if(!title){revealWelcome();return true;}
     const text=title.textContent.trim();
     if(!text||text==='Lobby')return false;
+
     const role=roleFor(text);
     title.classList.toggle('da-role-owner',role==='owner');
     title.classList.toggle('da-role-admin',role==='admin');
     title.classList.toggle('da-role-leader',role==='leader');
+
     title.querySelectorAll('.admin-badge,.owner-badge').forEach(el=>el.remove());
     if(role==='owner'||role==='admin'){
       const badge=document.createElement('span');
@@ -77,7 +83,8 @@
       badge.title=role==='owner'?'DartArena Owner':'DartArena Admin';
       title.appendChild(badge);
     }
-    title.style.visibility='';
+
+    revealWelcome();
     return true;
   }
 
@@ -121,8 +128,6 @@
   async function boot(){
     ensureStyles();
     ensureLobbyNavButtons();
-    const welcome=document.getElementById('welcomeName');
-    if(welcome)welcome.style.visibility='hidden';
 
     let loaded=false;
     for(let i=0;i<12&&!loaded;i++){
@@ -136,17 +141,15 @@
       ensureLobbyNavButtons();
       scanNames();
       attempts+=1;
-      const ready=syncWelcome();
-      if(ready||attempts>=20){
+      if(syncWelcome()||attempts>=20){
         clearInterval(timer);
-        if(welcome)welcome.style.visibility='';
+        revealWelcome();
       }
     },100);
   }
 
   boot().catch(error=>{
-    const welcome=document.getElementById('welcomeName');
-    if(welcome)welcome.style.visibility='';
+    revealWelcome();
     console.warn('Role visuals init failed',error);
   });
 })();
