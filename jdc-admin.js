@@ -8,6 +8,20 @@
   let isAdmin=false;
   let decorating=false;
   let queued=false;
+  let dialogPromise=null;
+
+  function ensureDialog(){
+    if(window.DartArenaDialog)return Promise.resolve(window.DartArenaDialog);
+    if(dialogPromise)return dialogPromise;
+    dialogPromise=new Promise((resolve,reject)=>{
+      const script=document.createElement('script');
+      script.src='dartarena-dialog.js?v=20261002-dialog1';
+      script.onload=()=>resolve(window.DartArenaDialog);
+      script.onerror=()=>reject(new Error('Kunne ikke laste DartArena-dialog.'));
+      document.head.appendChild(script);
+    });
+    return dialogPromise;
+  }
 
   const tierLabel=badge=>({white:'White',purple:'Purple',yellow:'Yellow',green:'Green',blue:'Blue',red:'Red',black:'Black',gold:'Gold'})[badge]||badge||'White';
 
@@ -25,7 +39,12 @@
   async function removeResult(row,button){
     const name=row.username||'spilleren';
     const score=Number(row.best_score)||0;
-    if(!confirm(`Slette ${score} poeng for ${name}?\n\nHvis spilleren har et lavere JDC-resultat, blir det automatisk ny beste score og tier-fargen oppdateres.`))return;
+    const dialog=await ensureDialog().catch(()=>null);
+    const text=`Slette ${score} poeng for ${name}?\n\nHvis spilleren har et lavere JDC-resultat, blir det automatisk ny beste score og tier-fargen oppdateres.`;
+    const ok=dialog
+      ?await dialog.confirm(text,{title:'Slett JDC-resultat',tone:'danger',confirmText:'Slett resultat'})
+      :confirm(text);
+    if(!ok)return;
 
     button.disabled=true;
     button.classList.add('ui-busy');
@@ -33,7 +52,8 @@
     if(error){
       button.disabled=false;
       button.classList.remove('ui-busy');
-      alert(`Kunne ikke slette resultatet: ${error.message||'ukjent feil'}`);
+      const message=`Kunne ikke slette resultatet: ${error.message||'ukjent feil'}`;
+      if(dialog)await dialog.alert(message,{title:'Kunne ikke slette',tone:'danger'});else alert(message);
       return;
     }
 
@@ -109,6 +129,7 @@
     const {data,error}=await db.rpc('is_admin');
     isAdmin=!error&&data===true;
     if(!isAdmin)return;
+    ensureDialog().catch(()=>{});
     showNotice();
     await decorate();
     const host=document.getElementById('leaderboardRows');
