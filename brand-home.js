@@ -21,7 +21,10 @@
 
   const needsReconnect=()=>!!document.querySelector('#remoteVideo,#spectateVideo2,#p2Video');
   if(needsReconnect())loadScript('reconnect-status.js?v=20261001-reconnect1','reconnect');
-  if(window.supabase)loadScript('client-error-log.js?v=20261001-errors1','errorlog');
+  if(window.supabase){
+    loadScript('owner-ui-gates.js?v=20261001-owner1','ownergates');
+    loadScript('client-error-log.js?v=20261001-errors1','errorlog');
+  }
   if(document.getElementById('lobbyView')&&window.supabase){
     loadScript('admin-active-cleanup.js?v=20261001-cleanup1','cleanup');
     loadScript('admin-error-log.js?v=20261001-errors1','adminerrorlog');
