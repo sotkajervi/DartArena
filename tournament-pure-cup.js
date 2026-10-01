@@ -5,6 +5,8 @@
   const BEST_OF_OPTIONS=Array.from({length:10},(_,i)=>i*2+3);
   const FORMAT_KEY=`dartarena-pure-cup-format-${tournamentId||''}`;
   let simCup=null;
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  async function getDialog(){for(let i=0;i<40&&!window.DartArenaDialog;i++)await sleep(50);return window.DartArenaDialog||null}
 
   function isPureCup(){try{return !!tournament&&tournament.tournament_type==='cup'}catch{return false}}
   function isSimulation(){try{return !!simulation}catch{return false}}
@@ -117,11 +119,25 @@
     $('cupBracket').innerHTML=Array.from({length:simCup.totalRounds},(_,i)=>i+1).map(r=>{const rm=simCup.matches.filter(m=>m.round===r).sort((a,b)=>a.index-b.index),bo=rm[0]?.best;return `<div class="cup-round"><div class="cup-round-title">${roundName(r,simCup.totalRounds)} • Bo${bo}</div>${rm.map(m=>{const score=m.wo?'WO':m.status==='finished'?`${m.p1}–${m.p2}`:'vs',aBye=m.round===1&&m.wo&&!m.a,bBye=m.round===1&&m.wo&&!m.b;return `<div class="cup-match simulation-cup-match pure-cup-sim-match" role="button" tabindex="0" data-pure-sim-id="${m.id}"><div class="cup-player ${m.winner&&m.a&&m.winner.id===m.a.id?'winner':''}">${simPlayer(m.a,{bye:aBye})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner&&m.b&&m.winner.id===m.b.id?'winner':''}">${simPlayer(m.b,{bye:bBye})}</div></div>`}).join('')}</div>`}).join('');
     if(scroll)$('cupLobby')?.scrollIntoView({behavior:'smooth',block:'start'});
   }
-  function editSimMatch(m){
-    if(!m||m.wo)return;if(!m.a||!m.b)return alert('Kampen venter på spillere fra forrige runde.');
-    const win=targetWins(m.best),current=m.status==='finished'?`${m.p1}-${m.p2}`:`${win}-0`,input=prompt(`${m.a.name} vs ${m.b.name}\n${roundName(m.round,simCup.totalRounds)} • Best av ${m.best}\n\nSkriv sluttresultat:`,current);if(input===null)return;
-    const x=input.trim().match(/^(\d+)\s*[-–:]\s*(\d+)$/);if(!x)return alert('Skriv resultat som for eksempel 3-1.');const p1=Number(x[1]),p2=Number(x[2]);if(!((p1===win&&p2<win)||(p2===win&&p1<win)))return alert(`Ugyldig resultat. I Best av ${m.best} må vinneren ha ${win} legs.`);
-    const newWinner=p1>p2?m.a:m.b;if(m.winner&&newWinner.id!==m.winner.id&&m.round<simCup.totalRounds){const target=simCup.matches.find(t=>t.round===m.round+1&&t.index===Math.floor(m.index/2));if(target&&target.status==='finished'&&!target.wo)return alert('Kan ikke bytte vinner fordi neste cupkamp allerede er ferdig.');}
+  async function editSimMatch(m){
+    if(!m||m.wo)return;
+    if(!m.a||!m.b)return alert('Kampen venter på spillere fra forrige runde.');
+    const win=targetWins(m.best),current=m.status==='finished'?`${m.p1}-${m.p2}`:`${win}-0`;
+    const message=`${m.a.name} vs ${m.b.name}\n${roundName(m.round,simCup.totalRounds)} • Best av ${m.best}\n\nSkriv sluttresultat:`;
+    const dialog=await getDialog();
+    const input=dialog
+      ?await dialog.prompt(message,{title:'Testresultat',value:current,inputLabel:'SLUTTRESULTAT',confirmText:'Lagre resultat'})
+      :prompt(message,current);
+    if(input===null)return;
+    const x=input.trim().match(/^(\d+)\s*[-–:]\s*(\d+)$/);
+    if(!x)return alert('Skriv resultat som for eksempel 3-1.');
+    const p1=Number(x[1]),p2=Number(x[2]);
+    if(!((p1===win&&p2<win)||(p2===win&&p1<win)))return alert(`Ugyldig resultat. I Best av ${m.best} må vinneren ha ${win} legs.`);
+    const newWinner=p1>p2?m.a:m.b;
+    if(m.winner&&newWinner.id!==m.winner.id&&m.round<simCup.totalRounds){
+      const target=simCup.matches.find(t=>t.round===m.round+1&&t.index===Math.floor(m.index/2));
+      if(target&&target.status==='finished'&&!target.wo)return alert('Kan ikke bytte vinner fordi neste cupkamp allerede er ferdig.');
+    }
     m.p1=p1;m.p2=p2;m.winner=newWinner;m.status='finished';advanceSim();renderSim(false);
   }
   function randomSimResult(m){if(!m||!m.a||!m.b||m.status==='finished')return;const win=targetWins(m.best),loser=Math.floor(Math.random()*win);if(Math.random()<.5){m.p1=win;m.p2=loser;m.winner=m.a}else{m.p1=loser;m.p2=win;m.winner=m.b}m.status='finished'}
