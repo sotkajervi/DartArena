@@ -32,6 +32,29 @@
     });
   }
 
+  function installCloseGuard(){
+    const close=document.getElementById('closeMatchBtn');
+    const cancel=document.getElementById('cancelMatchBtn');
+    if(!close||close.dataset.dartArenaCloseGuard==='1')return !!close;
+    close.dataset.dartArenaCloseGuard='1';
+    close.addEventListener('click',async event=>{
+      // Finished/cancelled matches should close immediately. A visible cancel button means the match is still active.
+      if(!cancel||cancel.classList.contains('hidden'))return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const dialog=await ensureDialog().catch(()=>null);
+      const ok=dialog
+        ?await dialog.confirm('Kampen pågår fortsatt.\n\nVil du lukke kampfanen uten å avbryte kampen?',{title:'Lukk kampfane?',tone:'warning',confirmText:'Lukk kampfane'})
+        :confirm('Kampen pågår fortsatt. Lukk kampfanen?');
+      if(ok)window.close();
+    },true);
+    return true;
+  }
+  if(!installCloseGuard()){
+    const closeTimer=setInterval(()=>{if(installCloseGuard())clearInterval(closeTimer)},80);
+    setTimeout(()=>clearInterval(closeTimer),10000);
+  }
+
   const params=new URLSearchParams(location.search);
   // Tournament matches have their own RPC that resets the bracket match for restart.
   if(params.get('tournamentMatch'))return;
