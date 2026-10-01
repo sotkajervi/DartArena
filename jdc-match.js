@@ -49,6 +49,46 @@
     window.close();
     setTimeout(()=>{if(!window.closed)location.href='./'},150);
   }
+  function ensureFinalOverlay(){
+    let overlay=$('jdcFinalOverlay');
+    if(overlay)return overlay;
+    overlay=document.createElement('div');
+    overlay.id='jdcFinalOverlay';
+    overlay.className='jdc-final-overlay hidden';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    overlay.innerHTML=`<section class="jdc-final-card">
+      <div class="jdc-final-brand">DART<span>ARENA</span></div>
+      <small class="jdc-final-kicker">JDC CHALLENGE • ONLINE-VERIFISERT</small>
+      <h1 id="jdcFinalTitle">KAMP FERDIG</h1>
+      <div id="jdcFinalWinner" class="jdc-final-winner"></div>
+      <div class="jdc-final-scores">
+        <article><span id="jdcFinalName1">Spiller 1</span><strong id="jdcFinalScore1">0</strong></article>
+        <article><span id="jdcFinalName2">Spiller 2</span><strong id="jdcFinalScore2">0</strong></article>
+      </div>
+      <div class="jdc-final-tier"><small>DIN OFFISIELLE SCORE</small><strong id="jdcFinalOwnScore">0</strong><span id="jdcFinalTier">White tier</span></div>
+      <div class="jdc-final-actions"><button id="jdcFinalLobby" class="primary" type="button">Til lobby <span class="da-key">Enter</span></button><button id="jdcFinalClose" class="outline" type="button">Se kampbildet</button></div>
+    </section>`;
+    document.body.appendChild(overlay);
+    $('jdcFinalLobby').onclick=goLobby;
+    $('jdcFinalClose').onclick=()=>overlay.classList.add('hidden');
+    return overlay;
+  }
+  function showFinalOverlay(){
+    if(!match||match.status!=='finished')return;
+    const overlay=ensureFinalOverlay();
+    const n1=names[match.player1_id]||'Spiller 1',n2=names[match.player2_id]||'Spiller 2';
+    const s1=Number(match.player1_score||0),s2=Number(match.player2_score||0);
+    const mineScore=myId()===match.player1_id?s1:s2;
+    const tier=badgeFor(mineScore);
+    $('jdcFinalName1').textContent=n1;$('jdcFinalName2').textContent=n2;
+    $('jdcFinalScore1').textContent=String(s1);$('jdcFinalScore2').textContent=String(s2);
+    $('jdcFinalWinner').textContent=match.winner_id?`${names[match.winner_id]||'Vinner'} vinner`:'Uavgjort';
+    $('jdcFinalOwnScore').textContent=String(mineScore);
+    $('jdcFinalTier').textContent=`${TIER_LABELS[tier]} tier`;
+    overlay.dataset.tier=tier;
+    overlay.classList.remove('hidden');
+  }
 
   async function refresh(){
     if(!matchId)return location.replace('./');
@@ -90,6 +130,7 @@
       $('winnerText').textContent=match.winner_id?`${names[match.winner_id]||'Vinner'} vinner ${match.player1_score}–${match.player2_score}`:`Uavgjort ${match.player1_score}–${match.player2_score}`;
       const mineScore=myId()===match.player1_id?Number(match.player1_score||0):Number(match.player2_score||0),badge=badgeFor(mineScore);
       $('tierText').textContent=`Din offisielle score: ${mineScore} • ${TIER_LABELS[badge]} tier`;
+      showFinalOverlay();
       return;
     }
     if(match.status==='cancelled'){
@@ -190,6 +231,7 @@
     const {data:{session:s}}=await db.auth.getSession();session=s;if(!session)return location.replace('./');
     $('missBtn').onclick=()=>queueShanghai('M');$('singleBtn').onclick=()=>queueShanghai('S');$('doubleBtn').onclick=()=>queueShanghai('D');$('tripleBtn').onclick=()=>queueShanghai('T');
     $('doubleMissBtn').onclick=()=>queueDouble('M');$('doubleHitBtn').onclick=()=>queueDouble('H');$('undoBtn').onclick=undo;
+    $('confirmTurnBtn').onclick=()=>{if(match?.status==='finished')goLobby()};
     $('closeMatchBtn').onclick=goLobby;
     document.addEventListener('keydown',keydown);
     await refresh();
