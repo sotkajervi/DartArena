@@ -68,7 +68,8 @@
   function render(){
     if(!match)return;
     const p1=countFor(match.player1_id),p2=countFor(match.player2_id),turnNo=currentTurnNo(),pos=positionFor(turnNo),mine=isMyTurn();
-    setStableText('matchTitle',`${names[match.player1_id]||'Spiller 1'} vs ${names[match.player2_id]||'Spiller 2'}`);
+    setStableText('matchPlayer1Name',names[match.player1_id]||'Spiller 1');
+    setStableText('matchPlayer2Name',names[match.player2_id]||'Spiller 2');
     setStableText('player1Name',names[match.player1_id]||'Spiller 1');
     setStableText('player2Name',names[match.player2_id]||'Spiller 2');
     $('player1Score').textContent=String(match.player1_score||0);
