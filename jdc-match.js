@@ -85,7 +85,8 @@
       $('phaseTitle').textContent='KAMP FERDIG';$('targetValue').textContent='✓';$('dartMeta').textContent='66 mål registrert totalt';
       setStableText('turnText',match.winner_id?`${names[match.winner_id]||'Vinner'} vant`:'Uavgjort');
       $('shanghaiActions').classList.add('hidden');$('doubleActions').classList.add('hidden');$('undoBtn').disabled=true;
-      $('cancelMatchBtn').classList.add('hidden');$('closeMatchBtn').classList.remove('hidden');$('closeMatchBtn').textContent='Lukk kampfane';$('finishedBox').classList.remove('hidden');
+      $('confirmTurnBtn').disabled=false;$('confirmTurnBtn').innerHTML='Til lobby <span class="da-key">Enter</span>';
+      $('cancelMatchBtn').classList.add('hidden');$('closeMatchBtn').classList.remove('hidden');$('closeMatchBtn').textContent='Til lobby';$('finishedBox').classList.remove('hidden');
       $('winnerText').textContent=match.winner_id?`${names[match.winner_id]||'Vinner'} vinner ${match.player1_score}–${match.player2_score}`:`Uavgjort ${match.player1_score}–${match.player2_score}`;
       const mineScore=myId()===match.player1_id?Number(match.player1_score||0):Number(match.player2_score||0),badge=badgeFor(mineScore);
       $('tierText').textContent=`Din offisielle score: ${mineScore} • ${TIER_LABELS[badge]} tier`;
@@ -167,6 +168,7 @@
   function keydown(event){
     if(event.repeat||event.ctrlKey||event.metaKey||event.altKey)return;
     const tag=event.target?.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||event.target?.isContentEditable)return;
+    if(event.key==='Enter'&&match?.status==='finished'){event.preventDefault();goLobby();return}
     if(event.key==='Backspace'){event.preventDefault();undo();return}
     if(!isMyTurn()||busy)return;
     const pos=positionFor(currentTurnNo());
