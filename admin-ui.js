@@ -6,6 +6,29 @@
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
   );
 
+  let dialogPromise=null;
+  function ensureDialog(){
+    if(window.DartArenaDialog)return Promise.resolve(window.DartArenaDialog);
+    if(dialogPromise)return dialogPromise;
+    dialogPromise=new Promise((resolve,reject)=>{
+      const existing=document.querySelector('script[data-dartarena-dialog]');
+      if(existing){
+        if(window.DartArenaDialog)return resolve(window.DartArenaDialog);
+        existing.addEventListener('load',()=>resolve(window.DartArenaDialog),{once:true});
+        existing.addEventListener('error',()=>reject(new Error('Kunne ikke laste DartArena-dialog.')),{once:true});
+        return;
+      }
+      const script=document.createElement('script');
+      script.src='dartarena-dialog.js?v=20261002-dialog1';
+      script.dataset.dartarenaDialog='1';
+      script.onload=()=>resolve(window.DartArenaDialog);
+      script.onerror=()=>reject(new Error('Kunne ikke laste DartArena-dialog.'));
+      document.head.appendChild(script);
+    });
+    return dialogPromise;
+  }
+  ensureDialog().catch(error=>console.warn('DartArena dialog preload failed',error));
+
   let isAdmin=false;
   let isOwner=false;
   let observer=null;
@@ -55,15 +78,20 @@
     button.disabled=true;
     try{
       const info=await inspectTournament(id,{fresh:true});
+      const dialog=await ensureDialog();
       button.textContent=info.force?'Tvangssletter…':'Sletter…';
       if(info.force){
-        const typed=prompt(`TVANGSSLETT TURNERING\n\nDette sletter ${info.name} permanent, inkludert turneringsdata og tilknyttede live-kamper/statistikk.\n\nSkriv turneringsnavnet nøyaktig for å bekrefte:\n${info.name}`,'');
+        const typed=await dialog.prompt(
+          `Dette sletter ${info.name} permanent, inkludert turneringsdata og tilknyttede live-kamper/statistikk.\n\nSkriv turneringsnavnet nøyaktig for å bekrefte:\n${info.name}`,
+          {title:'Tvangsslett turnering',tone:'danger',confirmText:'Tvangsslett',inputLabel:'TURNERINGSNAVN',backdropCancel:false}
+        );
         if(typed===null)return;
-        if(typed!==info.name){alert('Navnet stemmer ikke. Turneringen ble ikke slettet.');return;}
+        if(typed!==info.name){await dialog.alert('Navnet stemmer ikke. Turneringen ble ikke slettet.',{title:'Ikke slettet',tone:'warning'});return;}
         const {error}=await db.rpc('admin_force_delete_tournament',{p_tournament_id:id,p_confirm_name:typed});
         if(error)throw error;
       }else{
-        if(!confirm(`Slette ${info.name}?\n\nDette kan ikke angres.`))return;
+        const ok=await dialog.confirm(`Slette ${info.name}?\n\nDette kan ikke angres.`,{title:'Slett turnering',tone:'danger',confirmText:'Slett'});
+        if(!ok)return;
         const {error}=await db.rpc('admin_delete_tournament',{p_tournament_id:id});
         if(error){
           if(String(error.message||'').includes('Tournament requires force delete')){
@@ -75,7 +103,8 @@
       deleteModeCache.delete(id);row?.remove();if(typeof afterDelete==='function')afterDelete();
     }catch(error){
       const msg=String(error?.message||'Kunne ikke slette turneringen.').replace('Tournament requires force delete','Turneringen inneholder kampdata og må tvangsslettes.').replace('Tournament name confirmation does not match','Turneringsnavnet stemmer ikke.').replace('Tournament not found','Turneringen finnes ikke lenger.').replace('Admin access required','Adminrettigheter kreves.');
-      alert(msg);
+      const dialog=await ensureDialog().catch(()=>null);
+      if(dialog)await dialog.alert(msg,{title:'Kunne ikke slette',tone:'danger'});else window.__dartArenaNativeAlert?.(msg);
     }finally{
       if(document.body.contains(button)){button.disabled=false;setDeleteButtonMode(button,id)}
     }
@@ -115,10 +144,12 @@
   function removeChatMessage(id){if(!id)return;document.querySelector(`.dart-chat-message[data-message-id="${CSS.escape(String(id))}"]`)?.remove();ensureChatEmpty()}
 
   async function deleteChatMessage(id,item,button){
-    if(!confirm('Slette denne chatmeldingen?'))return;
+    const dialog=await ensureDialog();
+    const ok=await dialog.confirm('Slette denne chatmeldingen?\n\nMeldingen fjernes for alle i chatten.',{title:'Slett chatmelding',tone:'danger',confirmText:'Slett'});
+    if(!ok)return;
     button.disabled=true;
     try{const {error}=await db.rpc('admin_delete_chat_message',{p_message_id:id});if(error)throw error;item.remove();ensureChatEmpty()}
-    catch(error){alert(String(error?.message||'Kunne ikke slette meldingen.').replace('Admin access required','Adminrettigheter kreves.'));button.disabled=false}
+    catch(error){await dialog.alert(String(error?.message||'Kunne ikke slette meldingen.').replace('Admin access required','Adminrettigheter kreves.'),{title:'Kunne ikke slette',tone:'danger'});button.disabled=false}
   }
 
   function decorateChat(){
