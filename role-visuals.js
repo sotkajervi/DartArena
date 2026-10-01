@@ -25,6 +25,25 @@
     document.head.appendChild(style);
   }
 
+  function ensureLobbyNavButtons(){
+    const host=document.getElementById('lobbyStatsActions');
+    if(!host)return;
+    const add=(id,label,href)=>{
+      let button=document.getElementById(id);
+      if(!button){
+        button=document.createElement('button');
+        button.id=id;
+        button.type='button';
+        button.textContent=label;
+        button.onclick=()=>location.href=href;
+      }
+      button.className='small-btn lobby-utility-btn';
+      if(button.parentElement!==host)host.appendChild(button);
+    };
+    add('formStatsBtn','Form stats','form-stats.html');
+    add('matchHistoryBtn','Kamphistorikk','match-history.html');
+  }
+
   function roleFor(text){
     const clean=String(text||'').trim();
     for(const [name,role] of roleByName){
@@ -98,10 +117,12 @@
 
   async function boot(){
     ensureStyles();
+    ensureLobbyNavButtons();
     await loadRoles();
     scan();
     let runs=0;
     const timer=setInterval(()=>{
+      ensureLobbyNavButtons();
       scan();
       runs+=1;
       if(runs>=8)clearInterval(timer);
