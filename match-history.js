@@ -6,7 +6,9 @@ const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'
 let me=null;
 let isAdmin=false;
 let allMatches=[];
+let deletedMatches=[];
 let activeFilter='all';
+let trashMode=false;
 
 $('backBtn').onclick=()=>location.href='./';
 
@@ -69,6 +71,7 @@ function extraLabel(m){
   return'';
 }
 function contextLabel(m){
+  if(m.is_warmup)return'Oppvarming';
   if(!m.tournament_id)return'Onlinekamp';
   const stage=m.tournament_stage==='group'?'Pulje':'Cup';
   return `${m.tournament_name||'Turnering'} • ${stage}`;
@@ -100,19 +103,79 @@ async function deleteMatch(id){
     return;
   }
   allMatches=allMatches.filter(m=>m.id!==id);
+  deletedMatches=[];
   render();
+}
+
+async function restoreMatch(id){
+  if(!isAdmin||!id)return;
+  const match=deletedMatches.find(m=>m.id===id);
+  if(!match)return;
+  const [a,b]=scorePair(match);
+  const label=`${match.player1_name||'Spiller 1'} ${a}–${b} ${match.player2_name||'Spiller 2'}`;
+  if(!confirm(`Gjenopprette denne kampen?\n\n${label}\n\nKampen blir synlig igjen og teller i statistikk dersom den ikke er Oppvarming.`))return;
+
+  const button=document.querySelector(`[data-restore-id="${CSS.escape(id)}"]`);
+  if(button){button.disabled=true;button.textContent='Gjenoppretter…'}
+  const {data,error}=await db.rpc('admin_restore_match',{p_match_id:id});
+  if(error){
+    if(button){button.disabled=false;button.textContent='Gjenopprett'}
+    alert('Kunne ikke gjenopprette kampen: '+(error.message||error));
+    return;
+  }
+  if(data!==true){
+    if(button){button.disabled=false;button.textContent='Gjenopprett'}
+    alert('Kampen kunne ikke gjenopprettes.');
+    return;
+  }
+  deletedMatches=deletedMatches.filter(m=>m.id!==id);
+  if(!match.is_warmup&&!allMatches.some(m=>m.id===id)){
+    const restored={...match,deleted_at:null,deleted_by:null};
+    allMatches.push(restored);
+    allMatches.sort((a,b)=>new Date(b.finished_at||b.created_at)-new Date(a.finished_at||a.created_at));
+  }
+  render();
+}
+
+async function loadTrash(){
+  const {data,error}=await db.rpc('admin_get_deleted_matches',{p_limit:300});
+  if(error)throw error;
+  deletedMatches=data||[];
+}
+
+async function toggleTrash(){
+  if(!isAdmin)return;
+  const button=$('historyTrashBtn');
+  if(button){button.disabled=true;button.textContent='Laster…'}
+  try{
+    trashMode=!trashMode;
+    activeFilter='all';
+    document.querySelectorAll('.history-filter[data-filter]').forEach(x=>x.classList.toggle('active',x.dataset.filter==='all'));
+    if(trashMode)await loadTrash();
+    if(button){button.classList.toggle('active',trashMode);button.textContent=trashMode?'Til historikk':'Papirkurv'}
+    render();
+  }catch(error){
+    trashMode=false;
+    if(button){button.classList.remove('active');button.textContent='Papirkurv'}
+    alert('Kunne ikke laste papirkurven: '+(error.message||error));
+  }finally{
+    if(button)button.disabled=false;
+  }
 }
 
 function render(){
   const mineOnly=$('mineOnly').checked;
-  const visible=allMatches.filter(m=>{
+  const source=trashMode?deletedMatches:allMatches;
+  const visible=source.filter(m=>{
     if(activeFilter!=='all'&&filterKey(m)!==activeFilter)return false;
     if(mineOnly&&m.player1_id!==me&&m.player2_id!==me)return false;
     return true;
   });
-  $('historyCount').textContent=`${visible.length} ${visible.length===1?'kamp':'kamper'}`;
+  $('historyCount').textContent=trashMode
+    ?`${visible.length} ${visible.length===1?'slettet kamp':'slettede kamper'}`
+    :`${visible.length} ${visible.length===1?'kamp':'kamper'}`;
   if(!visible.length){
-    $('historyList').innerHTML='<p class="muted history-empty">Ingen ferdige kamper i dette utvalget ennå.</p>';
+    $('historyList').innerHTML=`<p class="muted history-empty">${trashMode?'Papirkurven er tom.':'Ingen ferdige kamper i dette utvalget ennå.'}</p>`;
     return;
   }
 
@@ -122,8 +185,10 @@ function render(){
     const p2Winner=m.winner_id&&m.winner_id===m.player2_id;
     const draw=!m.winner_id&&a===b;
     const extra=extraLabel(m);
-    const stats=canOpenStats(m)?`<button class="small-btn" data-stats-id="${m.id}">Se statistikk</button>`:'';
-    const del=isAdmin?`<button class="small-btn danger" data-delete-id="${m.id}">Slett</button>`:'';
+    const stats=!trashMode&&canOpenStats(m)?`<button class="small-btn" data-stats-id="${m.id}">Se statistikk</button>`:'';
+    const del=!trashMode&&isAdmin?`<button class="small-btn danger" data-delete-id="${m.id}">Slett</button>`:'';
+    const restore=trashMode&&isAdmin?`<button class="small-btn primary" data-restore-id="${m.id}">Gjenopprett</button>`:'';
+    const deleted=trashMode?`<span class="history-tag">Slettet ${fmtDate(m.deleted_at)}</span>`:'';
     return `<article class="history-row">
       <div class="history-main">
         <div class="history-title">
@@ -132,15 +197,17 @@ function render(){
           <span class="history-result">${a}–${b}</span>
           <span class="history-player${p2Winner?' winner':''}">${esc(m.player2_name||'Spiller 2')}</span>
           ${draw?'<span class="history-tag">Uavgjort</span>':''}
+          ${m.is_warmup?'<span class="history-tag">OPPVARMING</span>':''}
         </div>
         <div class="history-meta">
           <span>${fmtDate(m.finished_at||m.created_at)}</span>
           <span>${esc(formatLabel(m))}</span>
           <span class="history-tag">${esc(contextLabel(m))}</span>
+          ${deleted}
           ${extra?`<span class="history-extra">${esc(extra)}</span>`:''}
         </div>
       </div>
-      <div class="history-actions">${stats}${del}</div>
+      <div class="history-actions">${stats}${del}${restore}</div>
     </article>`;
   }).join('');
 
@@ -148,6 +215,7 @@ function render(){
     window.open(`match-stats.html?id=${encodeURIComponent(button.dataset.statsId)}`,`dartarena-match-stats-${button.dataset.statsId}`);
   });
   document.querySelectorAll('[data-delete-id]').forEach(button=>button.onclick=()=>deleteMatch(button.dataset.deleteId));
+  document.querySelectorAll('[data-restore-id]').forEach(button=>button.onclick=()=>restoreMatch(button.dataset.restoreId));
 }
 
 async function boot(){
@@ -159,12 +227,22 @@ async function boot(){
   if(adminError)console.warn('Could not check admin role',adminError);
   isAdmin=adminFlag===true;
 
-  document.querySelectorAll('.history-filter').forEach(button=>button.onclick=()=>{
+  document.querySelectorAll('.history-filter[data-filter]').forEach(button=>button.onclick=()=>{
     activeFilter=button.dataset.filter;
-    document.querySelectorAll('.history-filter').forEach(x=>x.classList.toggle('active',x===button));
+    document.querySelectorAll('.history-filter[data-filter]').forEach(x=>x.classList.toggle('active',x===button));
     render();
   });
   $('mineOnly').onchange=render;
+
+  if(isAdmin&&!$('historyTrashBtn')){
+    const trash=document.createElement('button');
+    trash.id='historyTrashBtn';
+    trash.className='outline history-filter';
+    trash.type='button';
+    trash.textContent='Papirkurv';
+    trash.onclick=toggleTrash;
+    $('historyFilters')?.appendChild(trash);
+  }
 
   const {data,error}=await db.rpc('get_global_match_history',{p_limit:300});
   if(error)throw error;
