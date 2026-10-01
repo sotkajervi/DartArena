@@ -62,25 +62,27 @@
 
   function syncWelcome(){
     const title=document.getElementById('welcomeName');
-    if(!title)return;
-    const role=roleFor(title.textContent);
-    applyRole(title);
-    let badge=title.querySelector('.admin-badge,.owner-badge');
+    if(!title)return true;
+    const text=title.textContent.trim();
+    if(!text||text==='Lobby')return false;
+    const role=roleFor(text);
+    title.classList.toggle('da-role-owner',role==='owner');
+    title.classList.toggle('da-role-admin',role==='admin');
+    title.classList.toggle('da-role-leader',role==='leader');
+    title.querySelectorAll('.admin-badge,.owner-badge').forEach(el=>el.remove());
     if(role==='owner'||role==='admin'){
-      const wantedClass=role==='owner'?'owner-badge':'admin-badge';
-      const wantedText=role==='owner'?'OWNER':'ADMIN';
-      if(!badge){badge=document.createElement('span');title.appendChild(badge)}
-      if(badge.className!==wantedClass)badge.className=wantedClass;
-      if(badge.textContent!==wantedText)badge.textContent=wantedText;
+      const badge=document.createElement('span');
+      badge.className=role==='owner'?'owner-badge':'admin-badge';
+      badge.textContent=role==='owner'?'OWNER':'ADMIN';
       badge.title=role==='owner'?'DartArena Owner':'DartArena Admin';
-    }else if(badge){
-      badge.remove();
+      title.appendChild(badge);
     }
+    title.style.visibility='';
+    return true;
   }
 
-  function scan(){
+  function scanNames(){
     document.querySelectorAll(NAME_SELECTOR).forEach(applyRole);
-    syncWelcome();
     if(document.getElementById('tName')){
       document.querySelectorAll('#participantList .player-name').forEach(name=>{
         const status=name.parentElement?.querySelector('.status');
@@ -94,7 +96,7 @@
 
   async function loadRoles(){
     const {data:{session}}=await db.auth.getSession();
-    if(!session?.user)return;
+    if(!session?.user)return false;
     const {data:roles,error}=await db.rpc('get_public_user_roles');
     if(error)throw error;
     const privileged=(roles||[]).filter(r=>['owner','admin'].includes(r.role));
@@ -113,21 +115,38 @@
         if(p?.username&&!roleByName.has(p.username))roleByName.set(p.username,'leader');
       }
     }
+    return true;
   }
 
   async function boot(){
     ensureStyles();
     ensureLobbyNavButtons();
-    await loadRoles();
-    scan();
-    let runs=0;
+    const welcome=document.getElementById('welcomeName');
+    if(welcome)welcome.style.visibility='hidden';
+
+    let loaded=false;
+    for(let i=0;i<12&&!loaded;i++){
+      loaded=await loadRoles();
+      if(!loaded)await new Promise(resolve=>setTimeout(resolve,150));
+    }
+
+    scanNames();
+    let attempts=0;
     const timer=setInterval(()=>{
       ensureLobbyNavButtons();
-      scan();
-      runs+=1;
-      if(runs>=8)clearInterval(timer);
-    },500);
+      scanNames();
+      attempts+=1;
+      const ready=syncWelcome();
+      if(ready||attempts>=20){
+        clearInterval(timer);
+        if(welcome)welcome.style.visibility='';
+      }
+    },100);
   }
 
-  boot().catch(error=>console.warn('Role visuals init failed',error));
+  boot().catch(error=>{
+    const welcome=document.getElementById('welcomeName');
+    if(welcome)welcome.style.visibility='';
+    console.warn('Role visuals init failed',error);
+  });
 })();
