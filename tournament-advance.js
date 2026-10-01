@@ -19,7 +19,11 @@
   }
   async function advance(){
     const b=ensureButton();if(!b||b.classList.contains('hidden'))return;
-    if(!confirm('Alle puljekampene er ferdige. Gå videre til oppsett av cup?'))return;
+    const text='Alle puljekampene er ferdige.\n\nGå videre til oppsett av cup?';
+    const ok=window.DartArenaDialog
+      ?await window.DartArenaDialog.confirm(text,{title:'Gå videre til cup',confirmText:'Gå videre'})
+      :confirm(text);
+    if(!ok)return;
     b.disabled=true;b.textContent='Går videre…';
     const {error}=await client.from('tournaments').update({status:'cup_setup',updated_at:new Date().toISOString()}).eq('id',tournamentId).eq('owner_id',me).eq('status','groups');
     if(error){alert('Kunne ikke gå videre til cup: '+error.message);b.disabled=false;b.textContent='Gå videre til cup';return}
