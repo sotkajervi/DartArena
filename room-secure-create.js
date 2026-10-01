@@ -23,28 +23,29 @@
       const legs=jdc?1:Number(document.getElementById('roomLegs').value),mode=special?'legs':matchMode;
       const sets=special?1:(mode==='sets'?Number(document.getElementById('roomSets').value):1);
       const durationMinutes=sixty?Number(document.getElementById('room61Time').value):null;
+      const warmup=!!document.getElementById('roomWarmup')?.checked;
       if(legs<1||legs>21||legs%2===0||sets<1||sets>11||sets%2===0){document.getElementById('roomMessage').textContent='Best of må være et gyldig oddetall.';return}
       if(sixty&&![10,20,30,45,60].includes(durationMinutes)){document.getElementById('roomMessage').textContent='Velg gyldig tid per leg.';return}
       const starterChoice=document.getElementById('roomStarter').value;
       const starterId=starterChoice==='me'?profile.id:starterChoice==='opponent'?other:null;
-      const gameConfig=sixty?{duration_seconds:durationMinutes*60}:half?{half_it_mode:halfModeFor(raw)}:jdc?{ranked:true}:{};
+      const gameConfig=sixty?{duration_seconds:durationMinutes*60}:half?{half_it_mode:halfModeFor(raw)}:jdc?{ranked:!warmup}:{};
       const game=special?501:Number(raw);
       propose.disabled=true;propose.textContent='Sender…';
       try{
         const {data,error}=await db.rpc('propose_challenge_match',{
           p_challenge_id:challengeId,p_game_variant:variant,p_game:game,p_legs:legs,
-          p_match_mode:mode,p_best_of_sets:sets,p_starter_id:starterId,p_game_config:gameConfig
+          p_match_mode:mode,p_best_of_sets:sets,p_starter_id:starterId,p_game_config:gameConfig,p_is_warmup:warmup
         });
         if(error||!data)throw error||new Error('Forslaget kunne ikke lagres.');
-        const payload={proposalId:data.id,game:raw,gameVariant:variant,halfItMode:half?halfModeFor(raw):null,legs:Number(data.legs),sets:Number(data.best_of_sets),mode:data.match_mode,starter:data.starter_id||'random',durationMinutes};
+        const payload={proposalId:data.id,game:raw,gameVariant:variant,halfItMode:half?halfModeFor(raw):null,legs:Number(data.legs),sets:Number(data.best_of_sets),mode:data.match_mode,starter:data.starter_id||'random',durationMinutes,isWarmup:!!data.is_warmup};
         await send('proposal',payload);
-        const label=labelFor(raw);
+        const label=labelFor(raw),prefix=warmup?'Oppvarming • ':'';
         document.getElementById('roomMessage').textContent=half
-          ?`Forslag sendt: ${label} • Best of ${legs} legs • 12 runder/leg`
-          :sixty?`Forslag sendt: 61 • Best of ${legs} legs • ${durationMinutes} min/leg`
-          :jdc?'Forslag sendt: JDC Challenge • 57 piler hver • offisiell online-score'
-          :mode==='sets'?`Forslag sendt: ${label} • Best of ${sets} sets • Best of ${legs} legs`
-          :`Forslag sendt: ${label} • Best of ${legs} legs`;
+          ?`Forslag sendt: ${prefix}${label} • Best of ${legs} legs • 12 runder/leg`
+          :sixty?`Forslag sendt: ${prefix}61 • Best of ${legs} legs • ${durationMinutes} min/leg`
+          :jdc?`Forslag sendt: ${prefix}JDC Challenge • 57 piler hver${warmup?' • teller ikke på Top 10/tier':' • offisiell online-score'}`
+          :mode==='sets'?`Forslag sendt: ${prefix}${label} • Best of ${sets} sets • Best of ${legs} legs`
+          :`Forslag sendt: ${prefix}${label} • Best of ${legs} legs`;
       }catch(error){document.getElementById('roomMessage').textContent=error?.message||'Forslaget kunne ikke sendes.'}
       finally{propose.disabled=false;propose.textContent='Send kampforslag'}
     };
