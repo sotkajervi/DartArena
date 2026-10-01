@@ -1,6 +1,6 @@
 (()=>{
   if(window.DartArenaCancelledMatchModal)return;
-  let shown=false;
+  let shown=false,ownCancel=false,watchTimer=null;
 
   function goLobby(){
     const matchId=new URLSearchParams(location.search).get('id');
@@ -51,15 +51,37 @@
     return modal;
   }
 
-  window.DartArenaCancelledMatchModal={
-    show(){
-      if(shown||window.__dartArenaOwnCancel)return;
-      shown=true;
-      const modal=ensureModal();
-      const text=document.getElementById('cancelledMatchText');
-      if(text)text.textContent='Motstanderen har avbrutt kampen.';
-      modal.classList.remove('hidden');
-      try{document.getElementById('cancelledLobbyBtn')?.focus({preventScroll:true})}catch{}
-    }
-  };
+  function show(){
+    if(shown||ownCancel||window.__dartArenaOwnCancel)return;
+    shown=true;
+    const modal=ensureModal();
+    const text=document.getElementById('cancelledMatchText');
+    if(text)text.textContent='Motstanderen har avbrutt kampen.';
+    modal.classList.remove('hidden');
+    try{document.getElementById('cancelledLobbyBtn')?.focus({preventScroll:true})}catch{}
+  }
+
+  function looksCancelled(){
+    const ids=['matchStatus','turnText','phaseTitle','halfRoundLabel'];
+    return ids.some(id=>{
+      const text=(document.getElementById(id)?.textContent||'').trim().toLowerCase();
+      return text==='avbrutt'||text==='kampen er avbrutt.'||text==='kampen er avbrutt';
+    });
+  }
+
+  document.addEventListener('click',event=>{
+    const button=event.target?.closest?.('#cancelMatchBtn');
+    if(!button)return;
+    setTimeout(()=>{
+      if(button.disabled||/avbryter/i.test(button.textContent||'')){
+        ownCancel=true;
+        window.__dartArenaOwnCancel=true;
+      }
+    },0);
+  },true);
+
+  window.DartArenaCancelledMatchModal={show};
+  ensureModal();
+  watchTimer=setInterval(()=>{if(!shown&&!ownCancel&&looksCancelled())show()},250);
+  window.addEventListener('pagehide',()=>clearInterval(watchTimer));
 })();
