@@ -4,6 +4,7 @@ const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 let me=null;
+let isAdmin=false;
 let allMatches=[];
 let activeFilter='all';
 
@@ -77,6 +78,31 @@ function canOpenStats(m){
   return !!m.tournament_id||m.player1_id===me||m.player2_id===me;
 }
 
+async function deleteMatch(id){
+  if(!isAdmin||!id)return;
+  const match=allMatches.find(m=>m.id===id);
+  if(!match)return;
+  const [a,b]=scorePair(match);
+  const label=`${match.player1_name||'Spiller 1'} ${a}–${b} ${match.player2_name||'Spiller 2'}`;
+  if(!confirm(`Slette denne kampen fra kamphistorikken?\n\n${label}\n\nKampen blir også utelatt fra spillerstatistikk og avg.`))return;
+
+  const button=document.querySelector(`[data-delete-id="${CSS.escape(id)}"]`);
+  if(button){button.disabled=true;button.textContent='Sletter…'}
+  const {data,error}=await db.rpc('admin_delete_match',{p_match_id:id});
+  if(error){
+    if(button){button.disabled=false;button.textContent='Slett'}
+    alert('Kunne ikke slette kampen: '+(error.message||error));
+    return;
+  }
+  if(data!==true){
+    if(button){button.disabled=false;button.textContent='Slett'}
+    alert('Kampen kunne ikke slettes. Den kan allerede være slettet.');
+    return;
+  }
+  allMatches=allMatches.filter(m=>m.id!==id);
+  render();
+}
+
 function render(){
   const mineOnly=$('mineOnly').checked;
   const visible=allMatches.filter(m=>{
@@ -96,7 +122,8 @@ function render(){
     const p2Winner=m.winner_id&&m.winner_id===m.player2_id;
     const draw=!m.winner_id&&a===b;
     const extra=extraLabel(m);
-    const stats=canOpenStats(m)?`<button class="small-btn" data-match-id="${m.id}">Se statistikk</button>`:'';
+    const stats=canOpenStats(m)?`<button class="small-btn" data-stats-id="${m.id}">Se statistikk</button>`:'';
+    const del=isAdmin?`<button class="small-btn danger" data-delete-id="${m.id}">Slett</button>`:'';
     return `<article class="history-row">
       <div class="history-main">
         <div class="history-title">
@@ -113,19 +140,24 @@ function render(){
           ${extra?`<span class="history-extra">${esc(extra)}</span>`:''}
         </div>
       </div>
-      <div class="history-actions">${stats}</div>
+      <div class="history-actions">${stats}${del}</div>
     </article>`;
   }).join('');
 
-  document.querySelectorAll('[data-match-id]').forEach(button=>button.onclick=()=>{
-    window.open(`match-stats.html?id=${encodeURIComponent(button.dataset.matchId)}`,`dartarena-match-stats-${button.dataset.matchId}`);
+  document.querySelectorAll('[data-stats-id]').forEach(button=>button.onclick=()=>{
+    window.open(`match-stats.html?id=${encodeURIComponent(button.dataset.statsId)}`,`dartarena-match-stats-${button.dataset.statsId}`);
   });
+  document.querySelectorAll('[data-delete-id]').forEach(button=>button.onclick=()=>deleteMatch(button.dataset.deleteId));
 }
 
 async function boot(){
   const {data:{session}}=await db.auth.getSession();
   if(!session)return location.replace('./');
   me=session.user.id;
+
+  const {data:adminFlag,error:adminError}=await db.rpc('is_admin');
+  if(adminError)console.warn('Could not check admin role',adminError);
+  isAdmin=adminFlag===true;
 
   document.querySelectorAll('.history-filter').forEach(button=>button.onclick=()=>{
     activeFilter=button.dataset.filter;
