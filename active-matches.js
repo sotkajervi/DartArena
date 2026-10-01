@@ -27,7 +27,7 @@
       const {data:{session}}=await db.auth.getSession();
       currentUserId=session?.user?.id||null;
       if(!currentUserId)return;
-      const {data:matches,error}=await db.from('matches').select('id,player1_id,player2_id,status,game,game_variant,legs,player1_legs,player2_legs,player1_score,player2_score,created_at').eq('status','playing').order('created_at',{ascending:false});
+      const {data:matches,error}=await db.from('matches').select('id,player1_id,player2_id,status,game,game_variant,legs,player1_legs,player2_legs,player1_score,player2_score,created_at,is_warmup').eq('status','playing').order('created_at',{ascending:false});
       if(error)throw error;
       const rows=matches||[];
       if(!rows.length){$('liveMatchesList').innerHTML='<p class="muted">Ingen pågående kamper akkurat nå.</p>';return}
@@ -41,7 +41,8 @@
       });
       $('liveMatchesList').innerHTML=sorted.map(m=>{
         const mine=[m.player1_id,m.player2_id].includes(currentUserId),p1=names[m.player1_id]||'Spiller 1',p2=names[m.player2_id]||'Spiller 2';
-        return `<article class="live-match-row${mine?' is-mine':''}"><div class="live-match-main"><div class="live-match-title"><span>${esc(p1)} vs ${esc(p2)}</span>${mine?'<span class="live-match-badge">MIN KAMP</span>':''}</div><div class="live-match-meta"><span><i class="live-dot"></i>Pågår</span><span>${esc(gameLabel(m))}</span><span>${esc(formatLabel(m))}</span><span class="live-match-score">${esc(resultLabel(m))}</span></div></div><div class="live-match-actions"><button class="${mine?'primary':'outline'}" data-live-match="${esc(m.id)}" data-live-own="${mine?'1':'0'}">${mine?'Gå til kamp':'Spectate'}</button></div></article>`;
+        const warmup=m.is_warmup?'<span class="live-match-badge">OPPVARMING</span>':'';
+        return `<article class="live-match-row${mine?' is-mine':''}"><div class="live-match-main"><div class="live-match-title"><span>${esc(p1)} vs ${esc(p2)}</span>${mine?'<span class="live-match-badge">MIN KAMP</span>':''}${warmup}</div><div class="live-match-meta"><span><i class="live-dot"></i>Pågår</span><span>${esc(gameLabel(m))}</span><span>${esc(formatLabel(m))}</span><span class="live-match-score">${esc(resultLabel(m))}</span></div></div><div class="live-match-actions"><button class="${mine?'primary':'outline'}" data-live-match="${esc(m.id)}" data-live-own="${mine?'1':'0'}">${mine?'Gå til kamp':'Spectate'}</button></div></article>`;
       }).join('');
       $('liveMatchesList').querySelectorAll('[data-live-match]').forEach(btn=>btn.onclick=()=>{
         const id=btn.dataset.liveMatch;if(btn.dataset.liveOwn==='1'){
