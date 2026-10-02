@@ -52,8 +52,11 @@
   let lastSignature='';
   async function tick(){
     if(typeof profile==='undefined'||!profile?.id)return;
-    const signature=[...document.querySelectorAll('#challengeList [data-id],#sentChallengeList [data-id]')].map(x=>x.dataset.id).join('|');
-    if(signature!==lastSignature||document.querySelectorAll('.challenge-row .challenge-time').length===0){
+    const controls=[...document.querySelectorAll('#challengeList .challenge-actions button[data-id],#sentChallengeList .withdraw-challenge[data-id]')];
+    const signature=controls.map(x=>x.dataset.id).join('|');
+    const rows=[...new Set(controls.map(x=>x.closest('.challenge-row')).filter(Boolean))];
+    const missingTime=rows.some(row=>!row.querySelector('.challenge-time'));
+    if(signature!==lastSignature||missingTime){
       lastSignature=signature;
       await refresh().catch(()=>{});
     }
