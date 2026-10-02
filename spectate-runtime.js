@@ -13,10 +13,7 @@
 
   async function start(){
     const ready=await waitForSupabase();
-    if(!ready){
-      if(title)title.textContent='Kunne ikke starte Spectate • Supabase mangler';
-      return;
-    }
+    if(!ready){if(title)title.textContent='Kunne ikke starte Spectate • Supabase mangler';return}
 
     const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
     const matchId=new URLSearchParams(location.search).get('id');
@@ -26,44 +23,58 @@
     const isX01=m=>!['jdc','cricket','half_it','sixty_one'].includes(m?.game_variant||'x01');
     function gameLabel(m){if(m.game_variant==='jdc')return'JDC Challenge';if(m.game_variant==='cricket')return'Cricket';if(m.game_variant==='half_it')return'Half-It';if(m.game_variant==='sixty_one')return'61';return String(m.game||501)}
     function formatLabel(m){if(m.game_variant==='jdc')return'57 piler hver';if(m.game_variant==='half_it')return'12 runder';return`Best of ${Number(m.legs||1)}`}
+    function setText(id,value){const el=$(id);if(el)el.textContent=String(value)}
+    function setX01Stats(index,m){
+      setText(`spectateAvg${index}`,Number(m[`player${index}_avg`]||0).toFixed(2));
+      setText(`spectate100P${index}`,Number(m[`player${index}_100`]||0));
+      setText(`spectate140P${index}`,Number(m[`player${index}_140`]||0));
+      setText(`spectate180P${index}`,Number(m[`player${index}_180`]||0));
+      setText(`spectateCheckout${index}`,Number(m[`player${index}_high_checkout`]||0));
+      $(`spectateStats${index}`)?.classList.remove('hidden');
+    }
     function render(){
       if(!match)return;
       const p1=names[match.player1_id]||'Spiller 1',p2=names[match.player2_id]||'Spiller 2';
-      $('spectateTitle').textContent=`${p1} vs ${p2}`;
-      $('spectateName1').textContent=p1;$('spectateName2').textContent=p2;
-      $('spectatePlayer1').textContent=p1;$('spectatePlayer2').textContent=p2;
-      $('spectateGame').textContent=gameLabel(match);
-      $('spectateFormat').textContent=(match.is_warmup?'Oppvarming • ':'')+formatLabel(match);
-      $('spectateStatus').textContent=match.status==='playing'?(match.is_warmup?'Pågår • Oppvarming':'Pågår'):match.status==='finished'?'Ferdig':'Avbrutt';
-      if(match.game_variant==='jdc'){
-        $('spectateResult1').textContent=String(Number(match.player1_score||0));
-        $('spectateResult2').textContent=String(Number(match.player2_score||0));
-        $('spectateSub1').textContent='poeng';$('spectateSub2').textContent='poeng';
+      setText('spectateTitle',`${p1} vs ${p2}`);
+      setText('spectateName1',p1);setText('spectateName2',p2);
+      setText('spectatePlayer1',p1);setText('spectatePlayer2',p2);
+      setText('spectateGame',gameLabel(match));
+      setText('spectateFormat',(match.is_warmup?'Oppvarming • ':'')+formatLabel(match));
+      setText('spectateStatus',match.status==='playing'?(match.is_warmup?'Pågår • Oppvarming':'Pågår'):match.status==='finished'?'Ferdig':'Avbrutt');
+
+      if(isX01(match)){
+        setText('spectateResult1',Number(match.player1_score||0));
+        setText('spectateResult2',Number(match.player2_score||0));
+        setText('spectateSub1',`${Number(match.player1_legs||0)} LEGS`);
+        setText('spectateSub2',`${Number(match.player2_legs||0)} LEGS`);
+        setX01Stats(1,match);setX01Stats(2,match);
+      }else if(match.game_variant==='jdc'){
+        setText('spectateResult1',Number(match.player1_score||0));
+        setText('spectateResult2',Number(match.player2_score||0));
+        setText('spectateSub1','POENG');setText('spectateSub2','POENG');
+        $('spectateStats1')?.classList.add('hidden');$('spectateStats2')?.classList.add('hidden');
       }else{
-        $('spectateResult1').textContent=String(Number(match.player1_legs||0));
-        $('spectateResult2').textContent=String(Number(match.player2_legs||0));
-        $('spectateSub1').textContent=`${Number(match.player1_score||0)} gjenstår`;
-        $('spectateSub2').textContent=`${Number(match.player2_score||0)} gjenstår`;
+        setText('spectateResult1',Number(match.player1_legs||0));
+        setText('spectateResult2',Number(match.player2_legs||0));
+        setText('spectateSub1','LEGS');setText('spectateSub2','LEGS');
+        $('spectateStats1')?.classList.add('hidden');$('spectateStats2')?.classList.add('hidden');
       }
+
       if(!isX01(match)){
         [$('spectatePlaceholder1'),$('spectatePlaceholder2')].forEach(el=>{if(el){el.textContent='Live video er foreløpig ikke koblet til denne spilltypen.';el.classList.remove('hidden')}});
       }
     }
     function stopVideo(){clients.forEach(c=>{try{c.close()}catch{}});clients.clear();publications.clear();if(channel){db.removeChannel(channel).catch(()=>{});channel=null}}
-    function blockPrivate(){match=null;stopVideo();$('spectateTitle').textContent='Kampen finnes ikke eller er ikke offentlig live';document.querySelectorAll('.spectate-grid,.spectate-score,.spectate-meta').forEach(el=>el.style.display='none')}
+    function blockPrivate(){match=null;stopVideo();setText('spectateTitle','Kampen finnes ikke eller er ikke offentlig live');document.querySelectorAll('.spectate-grid,.spectate-meta').forEach(el=>el.style.display='none')}
     async function refresh(){
-      if(!matchId){$('spectateTitle').textContent='Mangler kamp-ID';return false}
+      if(!matchId){setText('spectateTitle','Mangler kamp-ID');return false}
       const {data,error}=await db.rpc('get_spectate_match',{p_match_id:matchId});
-      if(error){
-        console.error('Spectate match load failed',error);
-        $('spectateTitle').textContent=`Kunne ikke laste kampen • ${error.code||'RPC-feil'}`;
-        return false;
-      }
+      if(error){console.error('Spectate match load failed',error);setText('spectateTitle',`Kunne ikke laste kampen • ${error.code||'RPC-feil'}`);return false}
       const m=Array.isArray(data)?data[0]:data;
       if(!m){blockPrivate();return false}
       match=m;
       names={[m.player1_id]:m.player1_name||'Spiller 1',[m.player2_id]:m.player2_name||'Spiller 2'};
-      document.querySelectorAll('.spectate-grid,.spectate-score,.spectate-meta').forEach(el=>el.style.removeProperty('display'));
+      document.querySelectorAll('.spectate-grid,.spectate-meta').forEach(el=>el.style.removeProperty('display'));
       render();
       return true;
     }
@@ -94,8 +105,8 @@
     }
     async function boot(){
       const{data:{session},error}=await db.auth.getSession();
-      if(error){$('spectateTitle').textContent='Kunne ikke lese innlogging';return}
-      if(!session){$('spectateTitle').textContent='Du må være innlogget';return}
+      if(error){setText('spectateTitle','Kunne ikke lese innlogging');return}
+      if(!session){setText('spectateTitle','Du må være innlogget');return}
       const allowed=await refresh();if(!allowed)return;
       await setupVideo();
       timer=setInterval(async()=>{const ok=await refresh();if(ok&&!channel)await setupVideo()},1500);
