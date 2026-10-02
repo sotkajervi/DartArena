@@ -1,5 +1,5 @@
 class DartArenaSFU {
-  constructor(workerUrl){this.workerUrl=workerUrl.replace(/\/$/,'');this.publisher=null;this.subscriber=null;this.publisherSessionId=null;this.subscriberSessionId=null;}
+  constructor(workerUrl){this.workerUrl=workerUrl.replace(/\/$/,'');this.publisher=null;this.subscriber=null;this.publisherSessionId=null;this.subscriberSessionId=null;window.__DartArenaLastSFU=this;}
   async request(path,body,method='POST'){const r=await fetch(this.workerUrl+path,{method,headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});const d=await r.json().catch(()=>({}));if(!r.ok||d.ok===false)throw new Error(d?.sfu?.errorDescription||d?.sfu?.error||d?.error||`HTTP ${r.status}`);return d.sfu??d;}
   async waitForIce(pc,timeout=5000){if(pc.iceGatheringState==='complete')return;await new Promise(resolve=>{const done=()=>{clearTimeout(timer);pc.removeEventListener('icegatheringstatechange',check);resolve()};const check=()=>pc.iceGatheringState==='complete'&&done();const timer=setTimeout(done,timeout);pc.addEventListener('icegatheringstatechange',check)});}
   newPeer(){return new RTCPeerConnection({iceServers:[{urls:'stun:stun.cloudflare.com:3478'}]});}
