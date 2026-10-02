@@ -135,9 +135,9 @@
     return true;
   }
 
-  function scanNames(){
-    document.querySelectorAll(NAME_SELECTOR).forEach(applyRole);
-    if(document.getElementById('tName')){
+  function scanNames(root=document){
+    root.querySelectorAll(NAME_SELECTOR).forEach(applyRole);
+    if(root===document&&document.getElementById('tName')){
       document.querySelectorAll('#participantList .player-name').forEach(name=>{
         const status=name.parentElement?.querySelector('.status');
         if(status?.textContent.includes('Turneringsleder')){
@@ -159,14 +159,50 @@
     };
   }
 
+  function makeChallengeStage(id){
+    const live=document.getElementById(id);
+    if(!live||live.dataset.daRoleStage==='1')return null;
+    const stage=live.cloneNode(false);
+    const liveId=`${id}-role-live`;
+    live.id=liveId;
+    stage.id=id;
+    stage.dataset.daRoleStage='1';
+    stage.style.display='none';
+    live.insertAdjacentElement('afterend',stage);
+    return{live,stage,id};
+  }
+
+  function commitChallengeStage(state){
+    if(!state)return;
+    const{live,stage}=state;
+    if(!stage.isConnected){
+      live.id=state.id;
+      return;
+    }
+    scanNames(stage);
+    stage.style.removeProperty('display');
+    delete stage.dataset.daRoleStage;
+    live.replaceWith(stage);
+  }
+
   function hookChallengeRendering(){
     if(window.__dartArenaRoleChallengeHook||typeof loadChallenges!=='function')return;
     window.__dartArenaRoleChallengeHook=true;
     const baseLoadChallenges=loadChallenges;
     loadChallenges=async function(...args){
-      const result=await baseLoadChallenges.apply(this,args);
-      scanNames();
-      return result;
+      const incomingStage=makeChallengeStage('challengeList');
+      const sentStage=makeChallengeStage('sentChallengeList');
+      try{
+        const result=await baseLoadChallenges.apply(this,args);
+        commitChallengeStage(incomingStage);
+        commitChallengeStage(sentStage);
+        scanNames();
+        return result;
+      }catch(error){
+        commitChallengeStage(incomingStage);
+        commitChallengeStage(sentStage);
+        throw error;
+      }
     };
   }
 
