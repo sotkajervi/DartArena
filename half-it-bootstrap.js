@@ -22,7 +22,7 @@
     await loadScript('sfu-client.js?v=20260929-halfit1');
     await loadScript('half-it.js?v=20260929-online1');
     await loadScript('half-it-multileg.js?v=20260930-halfitlegs2');
-    await loadScript('half-it-exact-choice.js?v=20260930-exact3');
+    await loadScript('half-it-exact-choice.js?v=20261002-exact4');
     await loadScript('half-it-ui.js?v=20260929-halfit3');
     await loadScript('role-visuals.js?v=20261002-matchrooms1');
     await loadScript('match-room-polish.js?v=20261002-matchrooms2');
