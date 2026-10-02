@@ -28,9 +28,15 @@
         section.id='liveMatchesSection';section.className='card live-matches-section';
         section.innerHTML='<div class="heading"><div><small>PÅGÅENDE KAMPER</small><h2>Pågår nå</h2></div></div><p class="muted compact">Alle pågående kamper vises her. Bare kamper merket LIVE kan åpnes av tilskuere.</p><div id="liveMatchesList" class="live-matches-list"><p class="muted">Laster pågående kamper…</p></div>';
       }
-      const lobbyGrid=lobby.querySelector('.lobby-grid');
-      if(lobbyGrid&&section.previousElementSibling!==lobbyGrid)lobbyGrid.insertAdjacentElement('afterend',section);
-      else if(!section.isConnected)lobby.appendChild(section);
+      const archive=[...lobby.querySelectorAll('.tournament-section')].find(el=>el.querySelector('h2')?.textContent.trim()==='Tidligere turneringer');
+      const training=lobby.querySelector('.training-games-section');
+      if(archive&&section.nextElementSibling!==archive){
+        archive.insertAdjacentElement('beforebegin',section);
+      }else if(!archive&&training&&section.previousElementSibling!==training){
+        training.insertAdjacentElement('afterend',section);
+      }else if(!section.isConnected){
+        lobby.appendChild(section);
+      }
     }
     if(!document.querySelector('script[data-dartarena-live-matches]')){
       const script=document.createElement('script');
