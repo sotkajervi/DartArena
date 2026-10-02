@@ -19,6 +19,9 @@ let localReady=false;
 let remoteReady=false;
 let starting=false;
 let starterChoice='random';
+let coinFlipRunning=false;
+let coinFlipFinished=false;
+let coinFlipFallback=null;
 
 function setStatus(text){$('cameraStatus').textContent=text;}
 function starterValueForLocal(){
@@ -26,7 +29,7 @@ function starterValueForLocal(){
   return starterChoice===me?'me':'opponent';
 }
 function starterText(){
-  if(starterChoice==='random')return'Tilfeldig';
+  if(starterChoice==='random')return'Myntkast';
   return names[starterChoice]||'Spiller';
 }
 function setStarterUi(){
@@ -57,6 +60,66 @@ function cameraErrorText(e){
 }
 function matchUrl(liveId){return `match.html?id=${encodeURIComponent(liveId)}&tournamentMatch=${encodeURIComponent(tournamentMatchId)}`;}
 function goToMatch(liveId){cleanup();location.href=matchUrl(liveId);}
+
+async function loadLiveMatch(liveId){
+  const {data,error}=await db.from('matches')
+    .select('id,player1_id,player2_id,match_starter_id,turn_player_id')
+    .eq('id',liveId)
+    .single();
+  if(error)throw error;
+  return data;
+}
+
+async function playTournamentCoinFlip(payload){
+  if(coinFlipRunning||coinFlipFinished||!payload?.liveMatchId||!payload?.starterId)return;
+  clearTimeout(coinFlipFallback);
+  coinFlipFallback=null;
+  coinFlipRunning=true;
+  starting=true;
+  $('readyBtn').disabled=true;
+  $('starterChoice').disabled=true;
+  $('roomMessage').textContent='Kaster mynt…';
+  try{
+    await window.DartArenaCoinFlip?.play({
+      player1Id:payload.player1Id,
+      player2Id:payload.player2Id,
+      player1Name:names[payload.player1Id]||payload.player1Name||'Spiller 1',
+      player2Name:names[payload.player2Id]||payload.player2Name||'Spiller 2',
+      winnerId:payload.starterId,
+      duration:3300
+    });
+  }finally{
+    coinFlipRunning=false;
+    coinFlipFinished=true;
+    goToMatch(payload.liveMatchId);
+  }
+}
+
+async function recoverCoinFlip(liveId){
+  if(coinFlipRunning||coinFlipFinished||!liveId)return;
+  try{
+    const match=await loadLiveMatch(liveId);
+    const starterId=match.match_starter_id||match.turn_player_id;
+    if(!starterId)return goToMatch(liveId);
+    await playTournamentCoinFlip({
+      liveMatchId:liveId,
+      player1Id:match.player1_id,
+      player2Id:match.player2_id,
+      starterId
+    });
+  }catch(e){
+    console.warn('Coin flip recovery failed',e);
+    goToMatch(liveId);
+  }
+}
+
+function armCoinFlipFallback(liveId){
+  if(coinFlipRunning||coinFlipFinished||coinFlipFallback)return;
+  coinFlipFallback=setTimeout(()=>{
+    coinFlipFallback=null;
+    recoverCoinFlip(liveId);
+  },1400);
+}
 
 async function boot(){
   const {data:{session}}=await db.auth.getSession();
@@ -128,12 +191,19 @@ function setupChannel(){
       resetReadyForStarterChange(`Hvem som begynner er endret til ${starterText()}. Klarstatus er nullstilt.`);
       await sendState();
     })
+    .on('broadcast',{event:'coin-flip-start'},async({payload})=>{
+      if(!payload?.liveMatchId||!payload?.starterId)return;
+      await playTournamentCoinFlip(payload);
+    })
     .on('broadcast',{event:'match-start'},({payload})=>{
       if(payload.liveMatchId)goToMatch(payload.liveMatchId);
     })
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'tournament_matches',filter:`id=eq.${tournamentMatchId}`},payload=>{
       tm=payload.new;
-      if(tm.status==='live'&&tm.live_match_id)goToMatch(tm.live_match_id);
+      if(tm.status==='live'&&tm.live_match_id){
+        if(starterChoice==='random'&&!coinFlipFinished){armCoinFlipFallback(tm.live_match_id);return;}
+        goToMatch(tm.live_match_id);
+      }
     })
     .subscribe(async status=>{
       if(status!=='SUBSCRIBED')return;
@@ -276,10 +346,11 @@ async function maybeStart(){
   starting=true;
   $('readyBtn').disabled=true;
   $('starterChoice').disabled=true;
-  $('roomMessage').textContent=`Begge er klare. Starter kampen – ${starterText()} begynner…`;
+  $('roomMessage').textContent=starterChoice==='random'?'Begge er klare. Gjør klart myntkast…':`Begge er klare. Starter kampen – ${starterText()} begynner…`;
+  const useCoinFlip=starterChoice==='random';
   const {data,error}=await db.rpc('start_tournament_match',{
     p_tournament_match_id:tournamentMatchId,
-    p_starter_id:starterChoice==='random'?null:starterChoice
+    p_starter_id:useCoinFlip?null:starterChoice
   });
   if(error){
     console.error(error);
@@ -290,6 +361,31 @@ async function maybeStart(){
     return;
   }
   const liveMatchId=data;
+
+  if(useCoinFlip){
+    try{
+      const match=await loadLiveMatch(liveMatchId);
+      const starterId=match.match_starter_id||match.turn_player_id;
+      if(!starterId)throw new Error('Fant ikke vinner av myntkastet.');
+      const payload={
+        from:me,
+        liveMatchId,
+        player1Id:match.player1_id,
+        player2Id:match.player2_id,
+        player1Name:names[match.player1_id]||'Spiller 1',
+        player2Name:names[match.player2_id]||'Spiller 2',
+        starterId
+      };
+      await channel.send({type:'broadcast',event:'coin-flip-start',payload});
+      await playTournamentCoinFlip(payload);
+      return;
+    }catch(e){
+      console.error('Tournament coin flip failed',e);
+      goToMatch(liveMatchId);
+      return;
+    }
+  }
+
   await channel.send({type:'broadcast',event:'match-start',payload:{from:me,liveMatchId}});
   goToMatch(liveMatchId);
 }
@@ -304,6 +400,8 @@ async function toggleRemoteAudio(){
 function cleanup(){
   clearInterval(heartbeat);
   heartbeat=null;
+  clearTimeout(coinFlipFallback);
+  coinFlipFallback=null;
   try{sfu?.close();}catch{}
   sfu=null;
   stream?.getTracks().forEach(t=>t.stop());
