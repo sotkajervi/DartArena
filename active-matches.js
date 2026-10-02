@@ -97,7 +97,7 @@
       const {data:{session}}=await db.auth.getSession();
       currentUserId=session?.user?.id||null;
       if(!currentUserId)return;
-      const {data:matches,error}=await db.from('matches').select('id,player1_id,player2_id,status,game,game_variant,legs,player1_legs,player2_legs,player1_score,player2_score,created_at,is_warmup').eq('status','playing').order('created_at',{ascending:false});
+      const {data:matches,error}=await db.from('matches').select('id,player1_id,player2_id,status,game,game_variant,legs,player1_legs,player2_legs,player1_score,player2_score,created_at,is_warmup,is_live').eq('status','playing').eq('is_live',true).order('created_at',{ascending:false});
       if(error)throw error;
       const rows=matches||[];
       syncViewerChannels(rows);
