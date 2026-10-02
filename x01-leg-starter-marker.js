@@ -18,20 +18,20 @@
       align-items:center;
       justify-content:center;
       flex:0 0 auto;
-      width:27px;
-      height:16px;
+      width:24px;
+      height:24px;
       color:var(--cyan,#23e2d1);
       filter:drop-shadow(0 0 5px rgba(35,226,209,.55));
       opacity:.96;
       vertical-align:middle;
     }
-    .da-leg-starter-dart svg{display:block;width:27px;height:16px;overflow:visible}
-    .da-leg-starter-dart .dart-shaft{stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+    .da-leg-starter-dart svg{display:block;width:24px;height:24px;overflow:visible}
+    .da-leg-starter-dart .dart-shaft{stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
     .da-leg-starter-dart .dart-tip{fill:currentColor}
-    .da-leg-starter-dart .dart-flight{fill:rgba(35,226,209,.2);stroke:currentColor;stroke-width:1.35;stroke-linejoin:round}
+    .da-leg-starter-dart .dart-flight{fill:rgba(35,226,209,.18);stroke:currentColor;stroke-width:1.1;stroke-linejoin:round}
     @media(max-width:600px){
       .match-name{gap:6px}
-      .da-leg-starter-dart,.da-leg-starter-dart svg{width:23px;height:14px}
+      .da-leg-starter-dart,.da-leg-starter-dart svg{width:21px;height:21px}
     }
   `;
   document.head.appendChild(style);
@@ -61,10 +61,22 @@
     el.className='da-leg-starter-dart';
     el.title='Startet dette legget';
     el.setAttribute('aria-label','Startet dette legget');
-    el.innerHTML=`<svg viewBox="0 0 34 16" aria-hidden="true" focusable="false">
-      <path class="dart-flight" d="M2.5 8 7 2.2h5.2L15.8 8l-3.6 5.8H7Z"/>
-      <path class="dart-shaft" d="M14.5 8h11.2"/>
-      <path class="dart-tip" d="m25 5.6 7 2.4-7 2.4 1.5-2.4Z"/>
+    el.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <g transform="translate(1.5 0)">
+        <path class="dart-flight" d="M2.2 2.5 5.5 4.2 3.9 7.2 2.2 5.8.5 7.2-1.1 4.2Z"/>
+        <path class="dart-shaft" d="M2.2 6.4v10.1"/>
+        <path class="dart-tip" d="m.7 16.2 1.5 5.3 1.5-5.3-1.5.8Z"/>
+      </g>
+      <g transform="translate(9.8 -1.2)">
+        <path class="dart-flight" d="M2.2 2.5 5.5 4.2 3.9 7.2 2.2 5.8.5 7.2-1.1 4.2Z"/>
+        <path class="dart-shaft" d="M2.2 6.4v10.1"/>
+        <path class="dart-tip" d="m.7 16.2 1.5 5.3 1.5-5.3-1.5.8Z"/>
+      </g>
+      <g transform="translate(18.1 0)">
+        <path class="dart-flight" d="M2.2 2.5 5.5 4.2 3.9 7.2 2.2 5.8.5 7.2-1.1 4.2Z"/>
+        <path class="dart-shaft" d="M2.2 6.4v10.1"/>
+        <path class="dart-tip" d="m.7 16.2 1.5 5.3 1.5-5.3-1.5.8Z"/>
+      </g>
     </svg>`;
     return el;
   }
