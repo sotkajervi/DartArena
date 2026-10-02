@@ -5,7 +5,7 @@
   let timer=null,loading=false,currentUserId=null,activeFilter='all',lastRows=[],lastNames={};
   const viewerChannels=new Map(),viewerCounts=new Map();
 
-  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function gameLabel(m){
     if(m.game_variant==='jdc')return'JDC Challenge';
     if(m.game_variant==='cricket')return'Cricket';
