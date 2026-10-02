@@ -17,7 +17,7 @@
   function ensureLiveMatches(){
     if(!document.getElementById('active-matches-style')){
       const link=document.createElement('link');
-      link.id='active-matches-style';link.rel='stylesheet';link.href='active-matches.css?v=20261002-liveprivacy3';
+      link.id='active-matches-style';link.rel='stylesheet';link.href='active-matches.css?v=20261002-tournament1';
       document.head.appendChild(link);
     }
     const lobby=document.getElementById('lobbyView');
@@ -40,7 +40,7 @@
     }
     if(!document.querySelector('script[data-dartarena-live-matches]')){
       const script=document.createElement('script');
-      script.src='active-matches.js?v=20261002-liveprivacy8';
+      script.src='active-matches.js?v=20261002-tournament1';
       script.dataset.dartarenaLiveMatches='1';document.body.appendChild(script);
     }
   }
