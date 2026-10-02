@@ -11,6 +11,7 @@
     if(mode==='standard'){
       document.body.dataset.halfItMode='standard';
       await loadScript('half-it-standard.js?v=20260930-standard1');
+      await loadScript('match-media-telemetry.js?v=20261002-peer3');
       await loadScript('half-it-standard-41-buttons.js?v=20261002-hitmiss1');
       await loadScript('half-it-standard-audio.js?v=20260930-standard1');
       await loadScript('role-visuals.js?v=20261002-matchrooms1');
@@ -19,8 +20,10 @@
     }
     document.body.dataset.halfItMode='dartcounter';
     await loadScript('sfu-config.js?v=20260929-halfit1');
-    await loadScript('sfu-client.js?v=20260929-halfit1');
+    await loadScript('sfu-client.js?v=20261002-telemetry1');
     await loadScript('half-it.js?v=20260929-online1');
+    await loadScript('one-to-one-media.js?v=20261002-peer1');
+    await loadScript('match-media-telemetry.js?v=20261002-peer3');
     await loadScript('half-it-multileg.js?v=20260930-halfitlegs2');
     await loadScript('half-it-exact-choice.js?v=20261002-exact4');
     await loadScript('half-it-ui.js?v=20260929-halfit3');
