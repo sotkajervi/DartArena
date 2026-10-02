@@ -43,7 +43,7 @@
     }
     if(!document.querySelector('script[data-dartarena-live-matches]')){
       const script=document.createElement('script');
-      script.src='active-matches.js?v=20261002-liveprivacy4';
+      script.src='active-matches.js?v=20261002-liveprivacy5';
       script.dataset.dartarenaLiveMatches='1';
       document.body.appendChild(script);
     }
