@@ -39,7 +39,7 @@ body.match-page.da-result-open .video-slot-label{opacity:0!important;visibility:
  function names(){return[$('matchName1')?.textContent||'Spiller 1',$('matchName2')?.textContent||'Spiller 2']}
  function statRows(s){return[['3-DART AVG',s.avg.toFixed(2)],['FIRST 9 AVG',s.first9.toFixed(2)],['HØYESTE UT',s.high||'–'],['RASKESTE LEG',s.fast?`${s.fast} piler`:'–'],['100+',s.c100],['140+',s.c140],['170+',s.c170],['180',s.c180]]}
  function grid(){const a=window.DartArenaX01Stats.statsFor(throws,match.player1_id),b=window.DartArenaX01Stats.statsFor(throws,match.player2_id),[n1,n2]=names(),rows=[['3-dart avg',a.avg.toFixed(2),b.avg.toFixed(2)],['First 9 AVG',a.first9.toFixed(2),b.first9.toFixed(2)],['Høyeste checkout',a.high||'–',b.high||'–'],['Raskeste leg',a.fast?`${a.fast} piler`:'–',b.fast?`${b.fast} piler`:'–'],['100+',a.c100,b.c100],['140+',a.c140,b.c140],['170+',a.c170,b.c170],['180',a.c180,b.c180]];return'<div class="stats-grid"><div></div><div class="val head">'+esc(n1)+'</div><div class="val head">'+esc(n2)+'</div>'+rows.map(r=>`<div class="label">${r[0]}</div><div class="val">${r[1]}</div><div class="val">${r[2]}</div>`).join('')+'</div>'}
- function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]))}
+ function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
  function resultStatHtml(s){return statRows(s).map(([label,value])=>`<div class="da-result-statrow"><span>${esc(label)}</span><b>${esc(value)}</b></div>`).join('')}
  function enhanceResultStats(overlay){
    const cards=[...overlay.querySelectorAll('.da-result-statcard')];
