@@ -39,7 +39,7 @@ body.match-page.da-result-open .video-slot-label{opacity:0!important;visibility:
  function names(){return[$('matchName1')?.textContent||'Spiller 1',$('matchName2')?.textContent||'Spiller 2']}
  function statRows(s){return[['3-DART AVG',s.avg.toFixed(2)],['FIRST 9 AVG',s.first9.toFixed(2)],['HØYESTE UT',s.high||'–'],['RASKESTE LEG',s.fast?`${s.fast} piler`:'–'],['100+',s.c100],['140+',s.c140],['170+',s.c170],['180',s.c180]]}
  function grid(){const a=window.DartArenaX01Stats.statsFor(throws,match.player1_id),b=window.DartArenaX01Stats.statsFor(throws,match.player2_id),[n1,n2]=names(),rows=[['3-dart avg',a.avg.toFixed(2),b.avg.toFixed(2)],['First 9 AVG',a.first9.toFixed(2),b.first9.toFixed(2)],['Høyeste checkout',a.high||'–',b.high||'–'],['Raskeste leg',a.fast?`${a.fast} piler`:'–',b.fast?`${b.fast} piler`:'–'],['100+',a.c100,b.c100],['140+',a.c140,b.c140],['170+',a.c170,b.c170],['180',a.c180,b.c180]];return'<div class="stats-grid"><div></div><div class="val head">'+esc(n1)+'</div><div class="val head">'+esc(n2)+'</div>'+rows.map(r=>`<div class="label">${r[0]}</div><div class="val">${r[1]}</div><div class="val">${r[2]}</div>`).join('')+'</div>'}
- function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+ function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]))}
  function resultStatHtml(s){return statRows(s).map(([label,value])=>`<div class="da-result-statrow"><span>${esc(label)}</span><b>${esc(value)}</b></div>`).join('')}
  function enhanceResultStats(overlay){
    const cards=[...overlay.querySelectorAll('.da-result-statcard')];
@@ -55,33 +55,16 @@ body.match-page.da-result-open .video-slot-label{opacity:0!important;visibility:
      list.innerHTML=resultStatHtml(values[index]);
    });
  }
- function matchScoreFor(id){
-   const sets=match.match_mode==='sets';
-   if(id===match.player1_id)return Number(sets?match.player1_sets:match.player1_legs)||0;
-   if(id===match.player2_id)return Number(sets?match.player2_sets:match.player2_legs)||0;
-   return 0;
- }
  function applySelfFirstResult(overlay){
    if(!overlay||![match.player1_id,match.player2_id].includes(me))return;
    const cards=[...overlay.querySelectorAll('.da-result-stats>.da-result-statcard')];
-   if(cards.length>=2){
-     cards[0].classList.remove('da-result-self-card','da-result-opponent-card');
-     cards[1].classList.remove('da-result-self-card','da-result-opponent-card');
-     const selfIndex=me===match.player1_id?0:1;
-     cards[selfIndex].classList.add('da-result-self-card');
-     cards[selfIndex===0?1:0].classList.add('da-result-opponent-card');
-   }
-   const opponentId=me===match.player1_id?match.player2_id:match.player1_id;
-   const scorebox=overlay.querySelector('.da-result-scorebox');
-   if(scorebox)scorebox.innerHTML=`${matchScoreFor(me)}<span>–</span>${matchScoreFor(opponentId)}`;
-   if(me===match.player2_id&&overlay.dataset.selfFirstLegScores!=='1'){
-     overlay.querySelectorAll('.da-result-legscore').forEach(el=>{
-       const hit=el.textContent.trim().match(/^(\d+)\s*[–-]\s*(\d+)$/);
-       if(hit)el.textContent=`${hit[2]} – ${hit[1]}`;
-     });
-     overlay.dataset.selfFirstLegScores='1';
-   }
-   overlay.dataset.selfFirst='1';
+   if(cards.length<2)return;
+   cards[0].classList.remove('da-result-self-card','da-result-opponent-card');
+   cards[1].classList.remove('da-result-self-card','da-result-opponent-card');
+   const selfIndex=me===match.player1_id?0:1;
+   cards[selfIndex].classList.add('da-result-self-card');
+   cards[selfIndex===0?1:0].classList.add('da-result-opponent-card');
+   overlay.dataset.selfFirstStats='1';
  }
  function applyResultRoles(attempt=0){
    if(window.DartArenaRoleVisuals?.scan){window.DartArenaRoleVisuals.scan();return}
