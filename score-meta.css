@@ -10,7 +10,8 @@ body.match-page .match-player{
   column-gap:14px;
   align-items:center;
   position:relative;
-  padding-right:58px!important;
+  /* Dedicated side pocket for AVG so it never sits over score/legs. */
+  padding-right:84px!important;
 }
 
 body.match-page .match-player .match-name{
@@ -55,41 +56,53 @@ body.match-page .match-player .match-legs{
   z-index:2;
 }
 
-/* X01 live average: vertical strip on the right side, clear of score and legs. */
+/* X01 live average: value above AVG, in its own block to the right of remaining score. */
 body.match-page .match-player .live-avg{
   position:absolute!important;
   right:8px!important;
-  top:50%!important;
+  top:54%!important;
   bottom:auto!important;
   left:auto!important;
-  transform:translateY(-50%) rotate(180deg)!important;
-  writing-mode:vertical-rl;
+  transform:translateY(-50%)!important;
+  writing-mode:horizontal-tb!important;
   text-orientation:mixed;
   display:flex!important;
+  flex-direction:column-reverse!important;
   align-items:center;
   justify-content:center;
-  gap:6px;
-  padding:8px 6px;
-  min-height:82px;
-  border-radius:9px;
+  gap:3px;
+  width:68px;
+  min-height:58px;
+  padding:7px 5px;
+  border-radius:10px;
   border:1px solid rgba(35,226,209,.16);
   background:rgba(0,0,0,.38);
   color:var(--muted);
-  font-size:12px!important;
+  font-size:10px!important;
   font-weight:950;
   line-height:1;
-  letter-spacing:.065em;
+  letter-spacing:.10em;
   white-space:nowrap;
   pointer-events:none;
   z-index:4;
 }
+body.match-page .match-player .live-avg span{
+  display:block;
+  color:var(--muted)!important;
+  font-size:10px!important;
+  font-weight:950!important;
+  line-height:1!important;
+  letter-spacing:.12em;
+}
 body.match-page .match-player .live-avg b,
 body.match-page .match-player.active .live-avg b{
+  display:block;
   color:var(--text)!important;
-  font-size:18px!important;
+  font-size:19px!important;
   font-weight:950;
+  line-height:1!important;
   font-variant-numeric:tabular-nums;
-  letter-spacing:0;
+  letter-spacing:-.02em;
 }
 
 /* Active thrower: neutral AVG, visible turquoise frame/glow. */
@@ -111,9 +124,9 @@ body.match-page .match-player:has(.match-sets.hidden) .match-legs{
   margin:0 4px 0 0!important;
 }
 
-/* Slightly larger meta in the left TV sidebar, while leaving room for both sets and legs. */
+/* TV sidebar: retain a clear AVG pocket on narrow player cards. */
 body.match-page.match-tv-layout .match-player{
-  padding-right:56px!important;
+  padding-right:82px!important;
 }
 body.match-page.match-tv-layout .match-player .match-sets,
 body.match-page.match-tv-layout .match-player .match-legs{
@@ -121,12 +134,13 @@ body.match-page.match-tv-layout .match-player .match-legs{
 }
 body.match-page.match-tv-layout .match-player .live-avg{
   right:7px!important;
-  min-height:78px;
+  width:66px;
+  min-height:56px;
 }
 
 @media(max-height:820px){
   body.match-page .match-player{
-    padding-right:52px!important;
+    padding-right:76px!important;
   }
   body.match-page .match-player .match-sets,
   body.match-page .match-player .match-legs{
@@ -134,9 +148,10 @@ body.match-page.match-tv-layout .match-player .live-avg{
   }
   body.match-page .match-player .live-avg{
     right:6px!important;
-    min-height:70px;
-    font-size:11px!important;
-    padding:6px 5px;
+    width:62px;
+    min-height:52px;
+    padding:6px 4px;
   }
-  body.match-page .match-player .live-avg b{font-size:16px!important}
+  body.match-page .match-player .live-avg span{font-size:9px!important}
+  body.match-page .match-player .live-avg b{font-size:17px!important}
 }
