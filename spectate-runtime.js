@@ -24,6 +24,12 @@
     function gameLabel(m){if(m.game_variant==='jdc')return'JDC Challenge';if(m.game_variant==='cricket')return'Cricket';if(m.game_variant==='half_it')return'Half-It';if(m.game_variant==='sixty_one')return'61';return String(m.game||501)}
     function formatLabel(m){if(m.game_variant==='jdc')return'57 piler hver';if(m.game_variant==='half_it')return'12 runder';return`Best of ${Number(m.legs||1)}`}
     function setText(id,value){const el=$(id);if(el)el.textContent=String(value)}
+    function hardMuteVideo(video){
+      if(!video)return;
+      video.muted=true;
+      video.defaultMuted=true;
+      video.volume=0;
+    }
     function setX01Stats(index,m){
       setText(`spectateAvg${index}`,Number(m[`player${index}_avg`]||0).toFixed(2));
       setText(`spectate100P${index}`,Number(m[`player${index}_100`]||0));
@@ -60,6 +66,7 @@
         $('spectateStats1')?.classList.add('hidden');$('spectateStats2')?.classList.add('hidden');
       }
 
+      hardMuteVideo($('spectateVideo1'));hardMuteVideo($('spectateVideo2'));
       if(!isX01(match)){
         [$('spectatePlaceholder1'),$('spectatePlaceholder2')].forEach(el=>{if(el){el.textContent='Live video er foreløpig ikke koblet til denne spilltypen.';el.classList.remove('hidden')}});
       }
@@ -86,14 +93,21 @@
       publications.set(playerId,pub.sessionId);
       try{clients.get(playerId)?.close()}catch{}
       const client=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);clients.set(playerId,client);
-      const video=$(`spectateVideo${index}`),placeholder=$(`spectatePlaceholder${index}`);video.srcObject=new MediaStream();
+      const video=$(`spectateVideo${index}`),placeholder=$(`spectatePlaceholder${index}`);video.srcObject=new MediaStream();hardMuteVideo(video);
       try{
         await client.subscribe(pub,async event=>{
           if(leaving)return;
           let rs=video.srcObject;if(!(rs instanceof MediaStream)){rs=new MediaStream();video.srcObject=rs}
           const tracks=event.streams?.[0]?.getTracks?.()||[event.track];
-          tracks.forEach(track=>{if(track&&!rs.getTracks().some(t=>t.id===track.id))rs.addTrack(track)});
-          video.muted=true;await video.play().catch(()=>{});
+          tracks.forEach(track=>{
+            if(!track)return;
+            if(track.kind==='audio'){
+              track.enabled=false;
+              return;
+            }
+            if(track.kind==='video'&&!rs.getTracks().some(t=>t.id===track.id))rs.addTrack(track);
+          });
+          hardMuteVideo(video);await video.play().catch(()=>{});
           if(rs.getVideoTracks().some(t=>t.readyState==='live'))placeholder?.classList.add('hidden');
         });
       }catch(e){console.warn('Spectator subscribe failed',e);publications.delete(playerId)}
@@ -108,6 +122,7 @@
       const{data:{session},error}=await db.auth.getSession();
       if(error){setText('spectateTitle','Kunne ikke lese innlogging');return}
       if(!session){setText('spectateTitle','Du må være innlogget');return}
+      hardMuteVideo($('spectateVideo1'));hardMuteVideo($('spectateVideo2'));
       const allowed=await refresh();if(!allowed)return;
       await setupVideo();
       timer=setInterval(async()=>{const ok=await refresh();if(ok&&!channel)await setupVideo()},1500);
