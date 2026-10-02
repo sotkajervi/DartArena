@@ -22,8 +22,8 @@
   async function submitExact41(hit){
     if(!canThrow()||submitting||!isExact41())return;
 
-    // Backend still validates the official Standard Half-It rule.
-    // A hit is represented by three legal, non-miss darts totalling exactly 41.
+    // Keep the existing server-side Half-It Standard validation unchanged.
+    // TREFF is represented by three legal, non-miss darts totalling exactly 41.
     selectedDarts=hit
       ?[{n:20,mult:1},{n:20,mult:1},{n:1,mult:1}]
       :[{n:0,mult:0},{n:0,mult:0},{n:0,mult:0}];
@@ -81,4 +81,6 @@
       $('halfExact41Miss')?.click();
     }
   },true);
+
+  setTimeout(()=>{try{renderEntry()}catch{}},0);
 })();
