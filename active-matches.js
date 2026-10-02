@@ -49,12 +49,13 @@
     viewerChannels.set(matchId,ch);
   }
   function syncViewerChannels(rows){
-    const activeIds=new Set(rows.map(m=>m.id));
+    const liveRows=rows.filter(m=>m.is_live!==false);
+    const activeIds=new Set(liveRows.map(m=>m.id));
     for(const [id,ch] of viewerChannels){
       if(activeIds.has(id))continue;
       viewerChannels.delete(id);viewerCounts.delete(id);db.removeChannel(ch).catch(()=>{});
     }
-    rows.forEach(m=>ensureViewerChannel(m.id));
+    liveRows.forEach(m=>ensureViewerChannel(m.id));
   }
   function ensureFilters(){
     const section=$('liveMatchesSection');
@@ -81,8 +82,12 @@
     host.innerHTML=rows.map(m=>{
       const mine=[m.player1_id,m.player2_id].includes(currentUserId),p1=lastNames[m.player1_id]||'Spiller 1',p2=lastNames[m.player2_id]||'Spiller 2';
       const warmup=m.is_warmup?'<span class="live-match-badge">OPPVARMING</span>':'';
-      const viewers=viewerCounts.get(m.id)||0;
-      return `<article class="live-match-row${mine?' is-mine':''}"><div class="live-match-main"><div class="live-match-title"><span>${esc(p1)} vs ${esc(p2)}</span>${mine?'<span class="live-match-badge">MIN KAMP</span>':''}${warmup}</div><div class="live-match-meta"><span><i class="live-dot"></i>Pågår</span><span>${esc(gameLabel(m))}</span><span>${esc(formatLabel(m))}</span><span class="live-match-score">${esc(resultLabel(m))}</span><span class="live-match-viewers" data-viewer-count="${esc(m.id)}">👁 ${viewers} ser på</span></div></div><div class="live-match-actions"><button class="${mine?'primary':'outline'}" data-live-match="${esc(m.id)}" data-live-own="${mine?'1':'0'}">${mine?'Gå til kamp':'Spectate'}</button></div></article>`;
+      const isLive=m.is_live!==false;
+      const liveBadge=`<span class="live-state-badge ${isLive?'is-live':'is-private'}">${isLive?'LIVE':'IKKE LIVE'}</span>`;
+      const viewers=isLive?viewerCounts.get(m.id)||0:0;
+      const viewerMeta=isLive?`<span class="live-match-viewers" data-viewer-count="${esc(m.id)}">👁 ${viewers} ser på</span>`:'';
+      const action=isLive?`<div class="live-match-actions"><button class="${mine?'primary':'outline'}" data-live-match="${esc(m.id)}" data-live-own="${mine?'1':'0'}">${mine?'Gå til kamp':'Spectate'}</button></div>`:'';
+      return `<article class="live-match-row${mine?' is-mine':''}${isLive?'':' is-private'}"><div class="live-match-main"><div class="live-match-title"><span>${esc(p1)} vs ${esc(p2)}</span>${mine?'<span class="live-match-badge">MIN KAMP</span>':''}${warmup}</div><div class="live-match-meta"><span><i class="live-dot"></i>Pågår</span>${liveBadge}<span>${esc(gameLabel(m))}</span><span>${esc(formatLabel(m))}</span><span class="live-match-score">${esc(resultLabel(m))}</span>${viewerMeta}</div></div>${action}</article>`;
     }).join('');
     host.querySelectorAll('[data-live-match]').forEach(btn=>btn.onclick=()=>{
       const id=btn.dataset.liveMatch;if(btn.dataset.liveOwn==='1'){
@@ -97,7 +102,7 @@
       const {data:{session}}=await db.auth.getSession();
       currentUserId=session?.user?.id||null;
       if(!currentUserId)return;
-      const {data:matches,error}=await db.from('matches').select('id,player1_id,player2_id,status,game,game_variant,legs,player1_legs,player2_legs,player1_score,player2_score,created_at,is_warmup,is_live').eq('status','playing').eq('is_live',true).order('created_at',{ascending:false});
+      const {data:matches,error}=await db.from('matches').select('id,player1_id,player2_id,status,game,game_variant,legs,player1_legs,player2_legs,player1_score,player2_score,created_at,is_warmup,is_live').eq('status','playing').order('created_at',{ascending:false});
       if(error)throw error;
       const rows=matches||[];
       syncViewerChannels(rows);
