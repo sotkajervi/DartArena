@@ -14,6 +14,9 @@
     if(arr.length===3)return arr;
     return state?.exact_target?[Number(state.exact_target)]:[];
   };
+  const is121Plus=n=>Number(n)===121;
+  const targetLabel=n=>is121Plus(n)?'121+':String(Number(n));
+  const optionList=opts=>opts.map(targetLabel).join(' / ');
   const key=()=>`${Number(m?.current_leg||1)}:${m?.turn_player_id||''}:${currentRoundNo()}`;
   const syncKey=()=>{const k=key();if(k!==exactKey){exactKey=k;selectedExactTarget=null;}};
   const isExact=()=>currentRound()?.type==='exact'&&m?.status==='playing';
@@ -25,18 +28,18 @@
     const opts=options();
     const mine=m.turn_player_id===profile?.id;
     if(!mine){
-      host.innerHTML=`<div class="half-exact-wait"><small>3 MÅLTALL</small><strong>${opts.join(' / ')||'–'}</strong><span>${esc(names[m.turn_player_id]||'Motstanderen')} velger ett mål</span></div>`;
+      host.innerHTML=`<div class="half-exact-wait"><small>3 MÅLTALL</small><strong>${optionList(opts)||'–'}</strong><span>${esc(names[m.turn_player_id]||'Motstanderen')} velger ett mål</span></div>`;
       return;
     }
     if(!selectedExactTarget){
-      host.innerHTML=`<div class="half-exact-choice"><small>VELG ETT MÅLTALL</small><div class="half-exact-options">${opts.map(n=>`<button type="button" class="outline half-exact-option" data-target="${n}">${n}</button>`).join('')}</div><p>Velg målet før du registrerer de tre pilene.</p></div>`;
+      host.innerHTML=`<div class="half-exact-choice"><small>VELG ETT MÅLTALL</small><div class="half-exact-options">${opts.map(n=>`<button type="button" class="outline half-exact-option" data-target="${n}">${targetLabel(n)}</button>`).join('')}</div><p>De to første må treffes eksakt. 121+ teller alle summer på 121 eller mer.</p></div>`;
       host.querySelectorAll('.half-exact-option').forEach(b=>b.onclick=()=>{selectedExactTarget=Number(b.dataset.target);selectedDarts=[];renderEntry();render()});
       return;
     }
     baseBuildPad();
     const bar=document.createElement('div');
     bar.className='half-exact-selected';
-    bar.innerHTML=`<span>VALGT MÅL <strong>${selectedExactTarget}</strong></span><button type="button" class="outline">Bytt mål</button>`;
+    bar.innerHTML=`<span>VALGT MÅL <strong>${targetLabel(selectedExactTarget)}</strong></span><button type="button" class="outline">Bytt mål</button>`;
     bar.querySelector('button').disabled=selectedDarts.length>0;
     bar.querySelector('button').onclick=()=>{if(selectedDarts.length)return;selectedExactTarget=null;renderEntry();render()};
     host.prepend(bar);
@@ -63,8 +66,8 @@
     if(!row)return;
     const cells=row.querySelectorAll('td');
     if(cells[0])cells[0].textContent='8. Eksakt score';
-    if(a&&cells[1])cells[1].innerHTML=`${Number(a.score_after)}<small class="half-history-target">mål ${Number(a.exact_target||state?.exact_target||0)}</small>`;
-    if(b&&cells[2])cells[2].innerHTML=`${Number(b.score_after)}<small class="half-history-target">mål ${Number(b.exact_target||state?.exact_target||0)}</small>`;
+    if(a&&cells[1])cells[1].innerHTML=`${Number(a.score_after)}<small class="half-history-target">mål ${targetLabel(a.exact_target||state?.exact_target||0)}</small>`;
+    if(b&&cells[2])cells[2].innerHTML=`${Number(b.score_after)}<small class="half-history-target">mål ${targetLabel(b.exact_target||state?.exact_target||0)}</small>`;
   };
 
   render=function(){
@@ -73,11 +76,13 @@
     if(!isExact())return;
     const opts=options();
     const mine=m.turn_player_id===profile?.id;
-    $('halfTarget').textContent=mine?(selectedExactTarget?`Eksakt ${selectedExactTarget}`:'Velg måltall'):`Eksakt: ${opts.join(' / ')}`;
+    $('halfTarget').textContent=mine?(selectedExactTarget?`Eksakt ${targetLabel(selectedExactTarget)}`:'Velg måltall'):`Eksakt: ${optionList(opts)}`;
     $('halfHelp').textContent=mine
-      ?(selectedExactTarget?`Tre piler skal gi nøyaktig ${selectedExactTarget}.`:'Velg ett av de tre måltallene. Deretter skal de tre pilene gi nøyaktig den summen.')
-      :`${names[m.turn_player_id]||'Motstanderen'} velger ett av de tre målene og skal treffe summen nøyaktig.`;
-    if($('exactTarget'))$('exactTarget').textContent=selectedExactTarget?`Valgt ${selectedExactTarget} • ${opts.join(' / ')}`:opts.join(' / ');
+      ?(selectedExactTarget
+        ?(is121Plus(selectedExactTarget)?'Tre piler skal gi 121 eller mer. Hele summen teller.':`Tre piler skal gi nøyaktig ${selectedExactTarget}.`)
+        :'Velg ett av de tre måltallene. De to første er eksakte; 121+ teller alle summer på 121 eller mer.')
+      :`${names[m.turn_player_id]||'Motstanderen'} velger ett av de tre målene. 121+ betyr 121 eller mer.`;
+    if($('exactTarget'))$('exactTarget').textContent=selectedExactTarget?`Valgt ${targetLabel(selectedExactTarget)} • ${optionList(opts)}`:optionList(opts);
     renderEntry();
   };
 
@@ -90,11 +95,13 @@
       const darts=selectedDarts.map((d,i)=>i===0?{...d,exact_target:selectedExactTarget}:{...d});
       const{data,error}=await db.rpc('submit_half_it_visit',{p_match_id:matchId,p_darts:darts});
       if(error)throw error;
+      const chosen=selectedExactTarget;
       selectedDarts=[];selectedMult=1;selectedExactTarget=null;await refreshGame();
       if(data?.finished)$('matchMessage').textContent=`${names[data.winner_id]||'Vinner'} vant kampen.`;
       else if(data?.leg_finished&&data?.leg_winner_id)$('matchMessage').textContent=`${names[data.leg_winner_id]||'Spiller'} vant leget. Leg ${m.current_leg} starter.`;
       else if(data?.leg_finished)$('matchMessage').textContent='Leget endte likt. Nytt leg starter.';
-      else $('matchMessage').textContent=data?.success?`Eksakt ${Number(data.exact_target)} satt • +${Number(data.points_scored||0)} poeng`:`Bom på eksakt ${Number(data.exact_target)} • score halvert til ${Number(data?.score_after||0)}`;
+      else if(data?.success)$('matchMessage').textContent=`${targetLabel(chosen)} satt • +${Number(data.points_scored||0)} poeng`;
+      else $('matchMessage').textContent=is121Plus(chosen)?`Under 121 • score halvert til ${Number(data?.score_after||0)}`:`Bom på eksakt ${targetLabel(chosen)} • score halvert til ${Number(data?.score_after||0)}`;
       if(m.status==='finished')await setPlayersUnavailable();
     }catch(e){$('matchMessage').textContent=String(e?.message||'Kunne ikke registrere runden.').replace('Choose one of the three exact targets','Velg ett av de tre måltallene.').replace('It is not your turn','Det er ikke din tur.')}finally{submitting=false;renderEntry()}
   };
