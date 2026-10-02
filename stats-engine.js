@@ -26,6 +26,8 @@ body.match-page.da-result-open .video-slot-label{opacity:0!important;visibility:
 .da-result-statlist.x01-expanded-statlist .da-result-statrow{min-width:0;padding:6px 2px}
 .da-result-statlist.x01-expanded-statlist .da-result-statrow span{min-width:0;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .da-result-statlist.x01-expanded-statlist .da-result-statrow b{font-size:14px;white-space:nowrap}
+.da-result-statcard.da-result-self-card{order:1}
+.da-result-statcard.da-result-opponent-card{order:2}
 @media(max-width:600px){
  .stats-grid{grid-template-columns:100px 1fr 1fr}.stats-grid>*{padding:7px 5px;font-size:12px}
  .da-result-actions.x01-result-actions{grid-template-columns:1fr}.da-result-actions.x01-result-actions #daResultClose{grid-column:auto}
@@ -53,6 +55,34 @@ body.match-page.da-result-open .video-slot-label{opacity:0!important;visibility:
      list.innerHTML=resultStatHtml(values[index]);
    });
  }
+ function matchScoreFor(id){
+   const sets=match.match_mode==='sets';
+   if(id===match.player1_id)return Number(sets?match.player1_sets:match.player1_legs)||0;
+   if(id===match.player2_id)return Number(sets?match.player2_sets:match.player2_legs)||0;
+   return 0;
+ }
+ function applySelfFirstResult(overlay){
+   if(!overlay||![match.player1_id,match.player2_id].includes(me))return;
+   const cards=[...overlay.querySelectorAll('.da-result-stats>.da-result-statcard')];
+   if(cards.length>=2){
+     cards[0].classList.remove('da-result-self-card','da-result-opponent-card');
+     cards[1].classList.remove('da-result-self-card','da-result-opponent-card');
+     const selfIndex=me===match.player1_id?0:1;
+     cards[selfIndex].classList.add('da-result-self-card');
+     cards[selfIndex===0?1:0].classList.add('da-result-opponent-card');
+   }
+   const opponentId=me===match.player1_id?match.player2_id:match.player1_id;
+   const scorebox=overlay.querySelector('.da-result-scorebox');
+   if(scorebox)scorebox.innerHTML=`${matchScoreFor(me)}<span>–</span>${matchScoreFor(opponentId)}`;
+   if(me===match.player2_id&&overlay.dataset.selfFirstLegScores!=='1'){
+     overlay.querySelectorAll('.da-result-legscore').forEach(el=>{
+       const hit=el.textContent.trim().match(/^(\d+)\s*[–-]\s*(\d+)$/);
+       if(hit)el.textContent=`${hit[2]} – ${hit[1]}`;
+     });
+     overlay.dataset.selfFirstLegScores='1';
+   }
+   overlay.dataset.selfFirst='1';
+ }
  function applyResultRoles(attempt=0){
    if(window.DartArenaRoleVisuals?.scan){window.DartArenaRoleVisuals.scan();return}
    if(attempt<30)setTimeout(()=>applyResultRoles(attempt+1),100);
@@ -63,11 +93,12 @@ body.match-page.da-result-open .video-slot-label{opacity:0!important;visibility:
    const overlay=$('dartArenaResultOverlay'),actions=overlay?.querySelector('.da-result-actions');
    if(!overlay||!actions){if(attempt<50)setTimeout(()=>enhanceFinalResult(attempt+1),100);return}
    enhanceResultStats(overlay);
+   applySelfFirstResult(overlay);
    overlay.querySelector('#daResultLobby')?.remove();
    if(actions.dataset.x01Enhanced==='1'){applyResultRoles();return}
    actions.dataset.x01Enhanced='1';actions.classList.add('x01-result-actions');
    const screenshot=document.createElement('button');screenshot.type='button';screenshot.className='outline';screenshot.textContent='Skjermbilde';
-   screenshot.onclick=()=>{enhanceResultStats(overlay);applyResultRoles();setTimeout(()=>window.DartArenaResultScreenshot?.open?.(overlay.querySelector('.da-result-card'),{returnFocus:screenshot}),0)};
+   screenshot.onclick=()=>{enhanceResultStats(overlay);applySelfFirstResult(overlay);applyResultRoles();setTimeout(()=>window.DartArenaResultScreenshot?.open?.(overlay.querySelector('.da-result-card'),{returnFocus:screenshot}),0)};
    const full=document.createElement('button');full.type='button';full.className='outline';full.textContent='Full kampstatistikk';
    full.onclick=()=>window.open(`match-stats.html?id=${encodeURIComponent(matchId)}`,`dartarena-match-stats-${matchId}`);
    actions.prepend(full);actions.prepend(screenshot);applyResultRoles();
