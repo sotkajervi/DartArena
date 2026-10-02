@@ -80,7 +80,7 @@
     if(!lastRows.length){host.innerHTML='<p class="muted">Ingen pågående kamper akkurat nå.</p>';return}
     if(!rows.length){host.innerHTML='<p class="muted">Ingen pågående kamper i dette filteret.</p>';return}
     host.innerHTML=rows.map(m=>{
-      const mine=[m.player1_id,m.player2_id].includes(currentUserId),p1=lastNames[m.player1_id]||'Spiller 1',p2=lastNames[m.player2_id]||'Spiller 2';
+      const mine=[m.player1_id,m.player2_id].includes(currentUserId),p1=lastNames[m.player1_id]||m.player1_name||'Spiller 1',p2=lastNames[m.player2_id]||m.player2_name||'Spiller 2';
       const warmup=m.is_warmup?'<span class="live-match-badge">OPPVARMING</span>':'';
       const isLive=m.is_live!==false;
       const liveBadge=`<span class="live-state-badge ${isLive?'is-live':'is-private'}">${isLive?'LIVE':'IKKE LIVE'}</span>`;
@@ -109,13 +109,15 @@
       const {data:{session}}=await db.auth.getSession();
       currentUserId=session?.user?.id||null;
       if(!currentUserId)return;
-      const {data:matches,error}=await db.from('matches').select('id,player1_id,player2_id,status,game,game_variant,legs,player1_legs,player2_legs,player1_score,player2_score,created_at,is_warmup,is_live').eq('status','playing').order('created_at',{ascending:false});
+      const {data:matches,error}=await db.rpc('get_lobby_active_matches');
       if(error)throw error;
       const rows=matches||[];
       syncViewerChannels(rows);
-      const ids=[...new Set(rows.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))];
-      const {data:people}=ids.length?await db.from('profiles').select('id,username').in('id',ids):{data:[]};
-      lastNames=Object.fromEntries((people||[]).map(p=>[p.id,p.username]));
+      lastNames={};
+      rows.forEach(m=>{
+        if(m.player1_id&&m.player1_name)lastNames[m.player1_id]=m.player1_name;
+        if(m.player2_id&&m.player2_name)lastNames[m.player2_id]=m.player2_name;
+      });
       lastRows=[...rows].sort((a,b)=>{
         const am=[a.player1_id,a.player2_id].includes(currentUserId)?0:1;
         const bm=[b.player1_id,b.player2_id].includes(currentUserId)?0:1;
