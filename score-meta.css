@@ -71,14 +71,23 @@ body.match-page .match-player .live-avg{
   pointer-events:none;
   z-index:2;
 }
-body.match-page .match-player .live-avg b{
-  color:var(--text);
+body.match-page .match-player .live-avg b,
+body.match-page .match-player.active .live-avg b{
+  color:var(--text)!important;
   font-size:18px;
   font-weight:950;
   font-variant-numeric:tabular-nums;
   letter-spacing:0;
 }
-body.match-page .match-player.active .live-avg b{color:var(--cyan)}
+
+/* Active thrower: keep AVG neutral and use the card itself as the turn indicator. */
+body.match-page .match-player.active{
+  border-color:rgba(35,226,209,.92)!important;
+  box-shadow:
+    inset 0 0 0 1px rgba(35,226,209,.28),
+    inset 0 0 22px rgba(35,226,209,.055),
+    0 0 11px rgba(35,226,209,.18)!important;
+}
 
 /* No-set formats: use the right side for legs only, vertically centered beside score. */
 body.match-page .match-player:has(.match-sets.hidden) .match-legs{
