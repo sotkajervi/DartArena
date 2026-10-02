@@ -22,7 +22,7 @@
       const link=document.createElement('link');
       link.id='active-matches-style';
       link.rel='stylesheet';
-      link.href='active-matches.css?v=20261001-filters1';
+      link.href='active-matches.css?v=20261002-liveprivacy2';
       document.head.appendChild(link);
     }
     const lobby=document.getElementById('lobbyView');
@@ -36,7 +36,7 @@
     }
     if(!document.querySelector('script[data-dartarena-live-matches]')){
       const script=document.createElement('script');
-      script.src='active-matches.js?v=20261002-liveprivacy1';
+      script.src='active-matches.js?v=20261002-liveprivacy2';
       script.dataset.dartarenaLiveMatches='1';
       document.body.appendChild(script);
     }
