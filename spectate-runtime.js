@@ -63,6 +63,7 @@
       if(!isX01(match)){
         [$('spectatePlaceholder1'),$('spectatePlaceholder2')].forEach(el=>{if(el){el.textContent='Live video er foreløpig ikke koblet til denne spilltypen.';el.classList.remove('hidden')}});
       }
+      window.DartArenaSpectateRolePolish?.apply?.(p1,p2);
     }
     function stopVideo(){clients.forEach(c=>{try{c.close()}catch{}});clients.clear();publications.clear();if(channel){db.removeChannel(channel).catch(()=>{});channel=null}}
     function blockPrivate(){match=null;stopVideo();setText('spectateTitle','Kampen finnes ikke eller er ikke offentlig live');document.querySelectorAll('.spectate-grid,.spectate-meta').forEach(el=>el.style.display='none')}
