@@ -13,6 +13,8 @@
   let syncing=false;
   let syncAgain=false;
   let nextSyncKnownChange=false;
+  let reconcileTimer=null;
+  let liveChannel=null;
 
   const stableRows=(rows,fields)=>(rows||[])
     .map(row=>fields.map(field=>row?.[field]??null))
@@ -67,8 +69,6 @@
         console.error('Tournament full refresh failed',err);
       }
     }
-    // A draw writes match rows and tournament status as separate realtime changes.
-    // Refresh extensions only after the base load has the latest status.
     await refreshMatchViews();
   }
 
@@ -149,6 +149,11 @@
     },100);
   }
 
+  function realtimeChange(){
+    if(document.visibilityState==='hidden')hiddenDirty=true;
+    else scheduleSync(true);
+  }
+
   window.addEventListener('message',event=>{
     if(event.origin!==location.origin)return;
     if(
@@ -165,17 +170,34 @@
     scheduleSync(hadHiddenChange);
   });
 
-  client.channel(`tournament-live-refresh-${tournamentId}`)
+  liveChannel=client.channel(`tournament-live-refresh-${tournamentId}`)
+    .on('postgres_changes',{
+      event:'*',schema:'public',table:'tournaments',filter:`id=eq.${tournamentId}`
+    },realtimeChange)
+    .on('postgres_changes',{
+      event:'*',schema:'public',table:'tournament_members',filter:`tournament_id=eq.${tournamentId}`
+    },realtimeChange)
     .on('postgres_changes',{
       event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${tournamentId}`
-    },()=>{
-      if(document.visibilityState==='hidden')hiddenDirty=true;
-      else scheduleSync(true);
-    })
-    .subscribe();
+    },realtimeChange)
+    .subscribe(status=>{
+      if(status==='SUBSCRIBED')scheduleSync(true);
+    });
+
+  // Safety net for missed Realtime events. It only reloads the UI when the
+  // database snapshot actually changed, so idle tournament pages stay quiet.
+  reconcileTimer=setInterval(()=>scheduleSync(false),2500);
 
   setTimeout(async()=>{
-    try{snapshot=await readSnapshot()}
-    catch(err){console.warn('Tournament refresh baseline failed',err)}
+    try{
+      if(!snapshot)snapshot=await readSnapshot();
+      scheduleSync(true);
+    }catch(err){console.warn('Tournament refresh baseline failed',err)}
   },500);
+
+  window.addEventListener('pagehide',()=>{
+    clearTimeout(syncTimer);
+    clearInterval(reconcileTimer);
+    if(liveChannel)client.removeChannel(liveChannel).catch?.(()=>{});
+  },{once:true});
 })();
