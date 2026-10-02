@@ -1,4 +1,4 @@
-/* DartArena 501/301 score card meta: big score left, legs/sets right. */
+/* DartArena X01 score card meta: big score left, legs/sets right. */
 body.match-page .match-player{
   display:grid!important;
   grid-template-columns:minmax(0,1fr) auto;
@@ -53,23 +53,31 @@ body.match-page .match-player .match-legs{
 
 body.match-page .match-player .live-avg{
   position:absolute;
-  top:10px;
-  right:11px;
+  right:12px;
+  bottom:11px;
+  top:auto;
   display:flex;
   align-items:baseline;
-  gap:5px;
-  padding:4px 7px;
-  border-radius:7px;
-  background:rgba(0,0,0,.28);
+  gap:6px;
+  padding:5px 8px;
+  border-radius:8px;
+  background:rgba(0,0,0,.32);
   color:var(--muted);
-  font-size:10px;
-  font-weight:850;
+  font-size:12px;
+  font-weight:900;
   line-height:1;
-  letter-spacing:.04em;
+  letter-spacing:.05em;
   white-space:nowrap;
   pointer-events:none;
+  z-index:2;
 }
-body.match-page .match-player .live-avg b{color:var(--text);font-size:14px;font-weight:950;font-variant-numeric:tabular-nums;letter-spacing:0}
+body.match-page .match-player .live-avg b{
+  color:var(--text);
+  font-size:18px;
+  font-weight:950;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:0;
+}
 body.match-page .match-player.active .live-avg b{color:var(--cyan)}
 
 /* No-set formats: use the right side for legs only, vertically centered beside score. */
@@ -85,11 +93,22 @@ body.match-page.match-tv-layout .match-player .match-sets,
 body.match-page.match-tv-layout .match-player .match-legs{
   font-size:26px!important;
 }
-body.match-page.match-tv-layout .match-player .live-avg{top:8px;right:9px}
+body.match-page.match-tv-layout .match-player .live-avg{
+  top:auto;
+  right:10px;
+  bottom:9px;
+}
 
 @media(max-height:820px){
   body.match-page .match-player .match-sets,
   body.match-page .match-player .match-legs{
     font-size:22px!important;
   }
+  body.match-page .match-player .live-avg{
+    right:10px;
+    bottom:9px;
+    font-size:11px;
+    padding:4px 7px;
+  }
+  body.match-page .match-player .live-avg b{font-size:16px}
 }
