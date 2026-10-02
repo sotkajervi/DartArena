@@ -105,16 +105,38 @@
     syncPlayerBadge(el,role);
   }
 
+  function ensureWelcomeParts(title){
+    let user=title.querySelector('.da-welcome-user');
+    if(user)return user;
+    const text=title.textContent.trim();
+    const match=text.match(/^Hei,\s*(.+)$/i);
+    if(!match)return null;
+    const greeting=document.createElement('span');
+    greeting.className='da-welcome-greeting';
+    greeting.textContent='Hei,';
+    user=document.createElement('span');
+    user.className='da-welcome-user';
+    user.textContent=match[1].trim();
+    title.replaceChildren(greeting,document.createTextNode(' '),user);
+    return user;
+  }
+
   function syncWelcome(){
     const title=document.getElementById('welcomeName');
     if(!title){revealWelcome();return true;}
     const text=title.textContent.trim();
     if(!text||text==='Lobby')return false;
 
-    const role=roleFor(text);
+    const user=ensureWelcomeParts(title);
+    const role=roleFor(user?.textContent||text);
     title.classList.toggle('da-role-owner',role==='owner');
     title.classList.toggle('da-role-admin',role==='admin');
     title.classList.toggle('da-role-leader',role==='leader');
+    if(user){
+      user.classList.toggle('da-role-owner',role==='owner');
+      user.classList.toggle('da-role-admin',role==='admin');
+      user.classList.toggle('da-role-leader',role==='leader');
+    }
 
     title.querySelectorAll('.admin-badge,.owner-badge').forEach(el=>el.remove());
     let badge=document.getElementById('welcomeRoleBadge');
