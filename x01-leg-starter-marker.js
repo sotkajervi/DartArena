@@ -18,20 +18,22 @@
       align-items:center;
       justify-content:center;
       flex:0 0 auto;
-      width:24px;
-      height:24px;
+      width:34px;
+      height:30px;
       color:var(--cyan,#23e2d1);
-      filter:drop-shadow(0 0 5px rgba(35,226,209,.55));
-      opacity:.96;
+      filter:drop-shadow(0 0 5px rgba(35,226,209,.6));
+      opacity:.98;
       vertical-align:middle;
     }
-    .da-leg-starter-dart svg{display:block;width:24px;height:24px;overflow:visible}
-    .da-leg-starter-dart .dart-shaft{stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
-    .da-leg-starter-dart .dart-tip{fill:currentColor}
-    .da-leg-starter-dart .dart-flight{fill:rgba(35,226,209,.18);stroke:currentColor;stroke-width:1.1;stroke-linejoin:round}
+    .da-leg-starter-dart svg{display:block;width:34px;height:30px;overflow:visible}
+    .da-leg-starter-dart .dart-flight{fill:rgba(35,226,209,.18);stroke:currentColor;stroke-width:1.05;stroke-linejoin:round}
+    .da-leg-starter-dart .dart-shaft{stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+    .da-leg-starter-dart .dart-barrel{fill:rgba(35,226,209,.35);stroke:currentColor;stroke-width:1}
+    .da-leg-starter-dart .dart-grip{stroke:currentColor;stroke-width:.75;opacity:.8}
+    .da-leg-starter-dart .dart-point{stroke:currentColor;stroke-width:1.15;stroke-linecap:round}
     @media(max-width:600px){
       .match-name{gap:6px}
-      .da-leg-starter-dart,.da-leg-starter-dart svg{width:21px;height:21px}
+      .da-leg-starter-dart,.da-leg-starter-dart svg{width:30px;height:27px}
     }
   `;
   document.head.appendChild(style);
@@ -56,27 +58,25 @@
     return legNo%2===1?setStarter:otherPlayer(setStarter);
   }
 
+  function dartSvg(x,y,angle){
+    return `<g transform="translate(${x} ${y}) rotate(${angle} 0 13)">
+      <path class="dart-flight" d="M0 0 -4.2 2.2 -2.7 6.2 0 4.6 2.7 6.2 4.2 2.2Z"/>
+      <path class="dart-shaft" d="M0 4.5V12"/>
+      <path class="dart-barrel" d="M-1.8 11.5H1.8L2.3 18.4 1.25 21H-1.25L-2.3 18.4Z"/>
+      <path class="dart-grip" d="M-1.65 14.2H1.65M-1.8 16.2H1.8M-1.65 18.2H1.65"/>
+      <path class="dart-point" d="M0 21V28"/>
+    </g>`;
+  }
+
   function marker(){
     const el=document.createElement('span');
     el.className='da-leg-starter-dart';
     el.title='Startet dette legget';
     el.setAttribute('aria-label','Startet dette legget');
-    el.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <g transform="translate(1.5 0)">
-        <path class="dart-flight" d="M2.2 2.5 5.5 4.2 3.9 7.2 2.2 5.8.5 7.2-1.1 4.2Z"/>
-        <path class="dart-shaft" d="M2.2 6.4v10.1"/>
-        <path class="dart-tip" d="m.7 16.2 1.5 5.3 1.5-5.3-1.5.8Z"/>
-      </g>
-      <g transform="translate(9.8 -1.2)">
-        <path class="dart-flight" d="M2.2 2.5 5.5 4.2 3.9 7.2 2.2 5.8.5 7.2-1.1 4.2Z"/>
-        <path class="dart-shaft" d="M2.2 6.4v10.1"/>
-        <path class="dart-tip" d="m.7 16.2 1.5 5.3 1.5-5.3-1.5.8Z"/>
-      </g>
-      <g transform="translate(18.1 0)">
-        <path class="dart-flight" d="M2.2 2.5 5.5 4.2 3.9 7.2 2.2 5.8.5 7.2-1.1 4.2Z"/>
-        <path class="dart-shaft" d="M2.2 6.4v10.1"/>
-        <path class="dart-tip" d="m.7 16.2 1.5 5.3 1.5-5.3-1.5.8Z"/>
-      </g>
+    el.innerHTML=`<svg viewBox="0 0 34 30" aria-hidden="true" focusable="false">
+      ${dartSvg(7.2,1.1,-10)}
+      ${dartSvg(17,0,0)}
+      ${dartSvg(26.8,1.1,10)}
     </svg>`;
     return el;
   }
