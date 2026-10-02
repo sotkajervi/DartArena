@@ -5,7 +5,7 @@
   let timer=null,loading=false,currentUserId=null,activeFilter='all',lastRows=[],lastNames={};
   const viewerChannels=new Map(),viewerCounts=new Map();
 
-  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   function gameLabel(m){
     if(m.game_variant==='jdc')return'JDC Challenge';
     if(m.game_variant==='cricket')return'Cricket';
@@ -90,9 +90,16 @@
       return `<article class="live-match-row${mine?' is-mine':''}${isLive?'':' is-private'}"><div class="live-match-main"><div class="live-match-title"><span>${esc(p1)} vs ${esc(p2)}</span>${mine?'<span class="live-match-badge">MIN KAMP</span>':''}${warmup}</div><div class="live-match-meta"><span><i class="live-dot"></i>Pågår</span>${liveBadge}<span>${esc(gameLabel(m))}</span><span>${esc(formatLabel(m))}</span><span class="live-match-score">${esc(resultLabel(m))}</span>${viewerMeta}</div></div>${action}</article>`;
     }).join('');
     host.querySelectorAll('[data-live-match]').forEach(btn=>btn.onclick=()=>{
-      const id=btn.dataset.liveMatch;if(btn.dataset.liveOwn==='1'){
-        const m=lastRows.find(x=>x.id===id);if(typeof openMatch==='function')openMatch(id,true,m?.game_variant||'x01');
-      }else window.open(`spectate.html?id=${encodeURIComponent(id)}`,`dartarena-spectate-${id}`);
+      const id=btn.dataset.liveMatch;
+      if(btn.dataset.liveOwn==='1'){
+        const m=lastRows.find(x=>x.id===id);
+        const page=window.DartArenaGames?.pageForVariant?.(m?.game_variant||'x01')||'match.html';
+        const w=window.open(`${page}?id=${encodeURIComponent(id)}`,`dartarena-match-${id}`);
+        if(w){try{w.focus()}catch{}}else location.href=`${page}?id=${encodeURIComponent(id)}`;
+      }else{
+        const w=window.open(`spectate.html?id=${encodeURIComponent(id)}`,`dartarena-spectate-${id}`);
+        if(w){try{w.focus()}catch{}}
+      }
     });
   }
   async function load(){
