@@ -8,7 +8,7 @@
   );
   const OWNER='#23e2d1',ADMIN='#ff9f43',LEADER='#4da3ff';
   const roleByName=new Map();
-  const NAME_SELECTOR='.player-name,.video-name,.match-name,.cricket-player-name,.half-player-name,.sixty-one-player-name,.spectate-name,.spectator-name,.history-player,.results-player,.highlight-name,.jdc-online-player span,#matchPlayer1Name,#matchPlayer2Name';
+  const NAME_SELECTOR='.player-name,.video-name,.match-name,.cricket-player-name,.half-player-name,.sixty-one-player-name,.spectate-name,.spectator-name,.history-player,.results-player,.highlight-name,.jdc-online-player span,#matchPlayer1Name,#matchPlayer2Name,.da-result-stat-name,.da-result-winner-name,.da-result-legwinner';
 
   function revealWelcome(){
     const title=document.getElementById('welcomeName');
@@ -35,6 +35,8 @@
       .player-role-badge.owner{color:${OWNER};border:1px solid rgba(35,226,209,.5);background:rgba(35,226,209,.09)}
       .player-role-badge.admin{color:${ADMIN};border:1px solid rgba(255,159,67,.5);background:rgba(255,159,67,.09)}
       #matchTitle .player-role-badge{transform:translateY(-1px)}
+      .da-result-title .player-role-badge{font-size:10px;padding:3px 7px;margin-left:10px;transform:translateY(-5px)}
+      .da-result-playerhead .player-role-badge{margin-left:6px}
       .jdc-online-player span.da-jdc-owner::after,.jdc-online-player span.da-jdc-admin::after{display:inline-block;margin-left:7px;padding:2px 6px;border-radius:999px;font-size:9px;font-weight:950;letter-spacing:.08em;vertical-align:2px;line-height:1.25}
       .jdc-online-player span.da-jdc-owner::after{content:'OWNER';color:${OWNER};border:1px solid rgba(35,226,209,.5);background:rgba(35,226,209,.09)}
       .jdc-online-player span.da-jdc-admin::after{content:'ADMIN';color:${ADMIN};border:1px solid rgba(255,159,67,.5);background:rgba(255,159,67,.09)}
@@ -72,7 +74,8 @@
   function syncPlayerBadge(el,role){
     const isPlayerName=el?.classList?.contains('player-name');
     const isMatchHeader=el?.id==='matchPlayer1Name'||el?.id==='matchPlayer2Name';
-    if(!isPlayerName&&!isMatchHeader)return;
+    const isResultName=el?.classList?.contains('da-result-stat-name')||el?.classList?.contains('da-result-winner-name');
+    if(!isPlayerName&&!isMatchHeader&&!isResultName)return;
     const host=el.parentElement;
     if(!host)return;
     let badge=el.nextElementSibling?.classList?.contains('player-role-badge')?el.nextElementSibling:null;
@@ -192,6 +195,7 @@
 
     hookPlayerRendering();
     scanNames();
+    window.DartArenaRoleVisuals={scan:scanNames,apply:applyRole,roleFor};
     let attempts=0;
     const timer=setInterval(()=>{
       ensureLobbyNavButtons();
