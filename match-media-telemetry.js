@@ -2,8 +2,8 @@
   if(window.__dartArenaMatchMediaTelemetry)return;
   const params=new URLSearchParams(location.search);
   const matchId=params.get('id');
-  const tournamentMatchId=params.get('tournamentMatch');
-  if(!matchId||!tournamentMatchId||!window.supabase)return;
+  const tournamentMatchId=params.get('tournamentMatch')||null;
+  if(!matchId||!window.supabase)return;
   window.__dartArenaMatchMediaTelemetry=true;
 
   const telemetryDb=(()=>{
@@ -32,19 +32,19 @@
     return best;
   }
 
-  function bitrate(direction,bytes){
+  function bitrate(key,bytes){
     if(bytes===null)return null;
     const now=performance.now();
-    const prev=previous.get(direction);
-    previous.set(direction,{bytes,time:now});
+    const prev=previous.get(key);
+    previous.set(key,{bytes,time:now});
     if(!prev||bytes<prev.bytes||now<=prev.time)return null;
     return (bytes-prev.bytes)*8/(now-prev.time);
   }
 
-  async function snapshot(peer,direction){
-    if(!peer||typeof peer.getStats!=='function'||peer.connectionState==='closed')return null;
+  async function snapshot(pc,direction,keyPrefix='media'){
+    if(!pc||typeof pc.getStats!=='function'||pc.connectionState==='closed')return null;
     let report;
-    try{report=await peer.getStats()}catch{return null}
+    try{report=await pc.getStats()}catch{return null}
 
     let rtp=null;
     let remoteInbound=null;
@@ -56,15 +56,16 @@
       if(direction==='publisher'&&s.type==='remote-inbound-rtp')remoteInbound=s;
       if(direction==='subscriber'&&s.type==='inbound-rtp'&&!s.isRemote)rtp=s;
     });
+    if(!rtp)return null;
 
-    const bytes=direction==='publisher'?n(rtp?.bytesSent):n(rtp?.bytesReceived);
-    const emitted=n(rtp?.jitterBufferEmittedCount);
-    const delay=n(rtp?.jitterBufferDelay);
+    const bytes=direction==='publisher'?n(rtp.bytesSent):n(rtp.bytesReceived);
+    const emitted=n(rtp.jitterBufferEmittedCount);
+    const delay=n(rtp.jitterBufferDelay);
     const jitterBufferMs=direction==='subscriber'&&emitted&&delay!==null?delay/emitted*1000:null;
     const rtt=direction==='publisher'
       ?ms(remoteInbound?.roundTripTime??pair?.currentRoundTripTime)
       :ms(pair?.currentRoundTripTime);
-    const jitter=direction==='publisher'?ms(remoteInbound?.jitter):ms(rtp?.jitter);
+    const jitter=direction==='publisher'?ms(remoteInbound?.jitter):ms(rtp.jitter);
 
     return{
       match_id:matchId,
@@ -72,54 +73,53 @@
       player_id:playerId,
       captured_at:new Date().toISOString(),
       direction,
-      connection_state:peer.connectionState||null,
-      ice_state:peer.iceConnectionState||null,
+      connection_state:pc.connectionState||null,
+      ice_state:pc.iceConnectionState||null,
       rtt_ms:rtt,
       jitter_ms:jitter,
-      packets_lost:direction==='publisher'?n(remoteInbound?.packetsLost):n(rtp?.packetsLost),
-      packets_received:direction==='publisher'?n(remoteInbound?.packetsReceived):n(rtp?.packetsReceived),
-      packets_sent:direction==='publisher'?n(rtp?.packetsSent):null,
-      bitrate_kbps:bitrate(direction,bytes),
+      packets_lost:direction==='publisher'?n(remoteInbound?.packetsLost):n(rtp.packetsLost),
+      packets_received:direction==='publisher'?n(remoteInbound?.packetsReceived):n(rtp.packetsReceived),
+      packets_sent:direction==='publisher'?n(rtp.packetsSent):null,
+      bitrate_kbps:bitrate(`${keyPrefix}:${direction}`,bytes),
       available_outgoing_bitrate_kbps:n(pair?.availableOutgoingBitrate)!==null?n(pair.availableOutgoingBitrate)/1000:null,
-      frames_per_second:n(rtp?.framesPerSecond),
-      frames_decoded:direction==='subscriber'?n(rtp?.framesDecoded):null,
-      frames_encoded:direction==='publisher'?n(rtp?.framesEncoded):null,
-      frames_dropped:direction==='subscriber'?n(rtp?.framesDropped):null,
-      freeze_count:direction==='subscriber'?n(rtp?.freezeCount):null,
-      total_freezes_seconds:direction==='subscriber'?n(rtp?.totalFreezesDuration):null,
+      frames_per_second:n(rtp.framesPerSecond),
+      frames_decoded:direction==='subscriber'?n(rtp.framesDecoded):null,
+      frames_encoded:direction==='publisher'?n(rtp.framesEncoded):null,
+      frames_dropped:direction==='subscriber'?n(rtp.framesDropped):null,
+      freeze_count:direction==='subscriber'?n(rtp.freezeCount):null,
+      total_freezes_seconds:direction==='subscriber'?n(rtp.totalFreezesDuration):null,
       jitter_buffer_ms:jitterBufferMs,
-      nack_count:n(rtp?.nackCount),
-      pli_count:n(rtp?.pliCount),
-      quality_limitation_reason:direction==='publisher'?(rtp?.qualityLimitationReason||null):null,
+      nack_count:n(rtp.nackCount),
+      pli_count:n(rtp.pliCount),
+      quality_limitation_reason:direction==='publisher'?(rtp.qualityLimitationReason||null):null,
       visibility_state:document.visibilityState||'visible'
     };
   }
 
-  function mediaPeers(){
-    // In tournament Peer mode both inbound and outbound video live on match.js' pc.
-    try{
-      if(typeof pc!=='undefined'&&pc&&pc.connectionState!=='closed'){
-        return{publisher:pc,subscriber:pc,mode:'peer'};
-      }
-    }catch{}
-
-    // SFU fallback / legacy mode.
-    const client=window.__DartArenaLastSFU;
-    return{
-      publisher:client?.publisher||null,
-      subscriber:client?.subscriber||null,
-      mode:'sfu'
-    };
+  function directPeer(){
+    const exposed=window.DARTARENA_ACTIVE_MEDIA_PC||window.DartArenaOneToOneMedia?.getPeer?.();
+    if(exposed&&exposed.connectionState!=='closed')return exposed;
+    try{if(typeof pc!=='undefined'&&pc&&pc.connectionState!=='closed')return pc}catch{}
+    return null;
   }
 
   async function sample(){
     if(stopped||!playerId)return;
-    const peers=mediaPeers();
-    if(!peers.publisher&&!peers.subscriber)return;
-    const rows=await Promise.all([
-      snapshot(peers.publisher,'publisher'),
-      snapshot(peers.subscriber,'subscriber')
-    ]);
+    const peer=directPeer();
+    let rows=[];
+    if(peer){
+      rows=await Promise.all([
+        snapshot(peer,'publisher','peer'),
+        snapshot(peer,'subscriber','peer')
+      ]);
+    }else{
+      const client=window.__DartArenaLastSFU;
+      if(!client)return;
+      rows=await Promise.all([
+        snapshot(client.publisher,'publisher','sfu'),
+        snapshot(client.subscriber,'subscriber','sfu')
+      ]);
+    }
     rows.filter(Boolean).forEach(row=>buffer.push(row));
     if(buffer.length>600)buffer=buffer.slice(-600);
   }
@@ -146,7 +146,7 @@
     await sample();
     sampleTimer=setInterval(sample,2000);
     flushTimer=setInterval(flush,10000);
-    console.debug('[MEDIA TELEMETRY] recording',matchId,tournamentMatchId);
+    console.debug('[MEDIA TELEMETRY] recording',matchId,tournamentMatchId||'normal-1v1');
   }
 
   async function stop(){
