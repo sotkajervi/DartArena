@@ -97,7 +97,7 @@
         const w=window.open(`${page}?id=${encodeURIComponent(id)}`,`dartarena-match-${id}`);
         if(w){try{w.focus()}catch{}}else location.href=`${page}?id=${encodeURIComponent(id)}`;
       }else{
-        const w=window.open(`spectate.html?id=${encodeURIComponent(id)}`,`dartarena-spectate-${id}`);
+        const w=window.open(`spectate.html?build=20261002-rpc2&id=${encodeURIComponent(id)}`,`dartarena-spectate-${id}`);
         if(w){try{w.focus()}catch{}}
       }
     });
