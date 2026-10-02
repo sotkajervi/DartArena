@@ -23,45 +23,60 @@
     const status=row?.querySelector('.status');
     if(!status||!text)return;
     let el=status.querySelector('.challenge-time');
-    if(!el){el=document.createElement('span');el.className='challenge-time';status.append(' ',el)}
+    if(!el){
+      el=document.createElement('span');
+      el.className='challenge-time';
+      status.append(' ',el);
+    }
     el.textContent=`• ${text}`;
   }
 
-  async function refresh(){
-    if(typeof db==='undefined'||typeof profile==='undefined'||!profile?.id||typeof activeMatch==='undefined'||activeMatch)return;
+  async function fetchTimes(){
+    if(typeof db==='undefined'||typeof profile==='undefined'||!profile?.id||typeof activeMatch==='undefined'||activeMatch)return null;
     const [{data:incoming,error:incomingError},{data:sent,error:sentError}]=await Promise.all([
       db.from('challenges').select('id,created_at').eq('challenged_id',profile.id).eq('status','pending').order('created_at',{ascending:false}),
       db.from('challenges').select('id,created_at').eq('challenger_id',profile.id).eq('status','pending').order('created_at',{ascending:false})
     ]);
-    if(!incomingError){
-      const buttons=[...document.querySelectorAll('#challengeList .challenge-actions button[data-id]')];
-      for(const c of incoming||[]){
-        const button=buttons.find(b=>b.dataset.id===c.id);
-        setTime(button?.closest('.challenge-row'),stamp(c.created_at,'Mottatt'));
-      }
+    return{
+      incoming:incomingError?[]:(incoming||[]),
+      sent:sentError?[]:(sent||[])
+    };
+  }
+
+  function applyTimes(times){
+    if(!times)return;
+    const incomingButtons=[...document.querySelectorAll('#challengeList .challenge-actions button[data-id]')];
+    for(const c of times.incoming){
+      const button=incomingButtons.find(b=>b.dataset.id===c.id);
+      setTime(button?.closest('.challenge-row'),stamp(c.created_at,'Mottatt'));
     }
-    if(!sentError){
-      const buttons=[...document.querySelectorAll('#sentChallengeList .withdraw-challenge[data-id]')];
-      for(const c of sent||[]){
-        const button=buttons.find(b=>b.dataset.id===c.id);
-        setTime(button?.closest('.challenge-row'),stamp(c.created_at,'Sendt'));
-      }
+    const sentButtons=[...document.querySelectorAll('#sentChallengeList .withdraw-challenge[data-id]')];
+    for(const c of times.sent){
+      const button=sentButtons.find(b=>b.dataset.id===c.id);
+      setTime(button?.closest('.challenge-row'),stamp(c.created_at,'Sendt'));
     }
   }
 
-  let lastSignature='';
-  async function tick(){
-    if(typeof profile==='undefined'||!profile?.id)return;
-    const controls=[...document.querySelectorAll('#challengeList .challenge-actions button[data-id],#sentChallengeList .withdraw-challenge[data-id]')];
-    const signature=controls.map(x=>x.dataset.id).join('|');
-    const rows=[...new Set(controls.map(x=>x.closest('.challenge-row')).filter(Boolean))];
-    const missingTime=rows.some(row=>!row.querySelector('.challenge-time'));
-    if(signature!==lastSignature||missingTime){
-      lastSignature=signature;
-      await refresh().catch(()=>{});
-    }
+  function hook(){
+    if(window.__dartArenaChallengeTimestampHook||typeof loadChallenges!=='function')return false;
+    window.__dartArenaChallengeTimestampHook=true;
+    const baseLoadChallenges=loadChallenges;
+    loadChallenges=async function(...args){
+      let times=null;
+      try{times=await fetchTimes()}catch{}
+      const result=await baseLoadChallenges.apply(this,args);
+      applyTimes(times);
+      return result;
+    };
+    return true;
   }
 
-  setInterval(tick,700);
-  setTimeout(tick,100);
+  // Scripts are loaded in order, but keep a few finite retries for slow startup.
+  let attempts=0;
+  const start=()=>{
+    if(hook())return;
+    attempts+=1;
+    if(attempts<20)setTimeout(start,50);
+  };
+  start();
 })();
