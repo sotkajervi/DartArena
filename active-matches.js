@@ -5,7 +5,7 @@
   let timer=null,loading=false,currentUserId=null,activeFilter='all',lastRows=[],lastNames={};
   const viewerChannels=new Map(),viewerCounts=new Map();
 
-  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   function gameLabel(m){
     if(m.game_variant==='jdc')return'JDC Challenge';
     if(m.game_variant==='cricket')return'Cricket';
@@ -87,8 +87,10 @@
       const viewers=isLive?viewerCounts.get(m.id)||0:0;
       const viewerMeta=isLive?`<span class="live-match-viewers" data-viewer-count="${esc(m.id)}">👁 ${viewers} ser på</span>`:'';
       const action=isLive?`<div class="live-match-actions"><button class="${mine?'primary':'outline'}" data-live-match="${esc(m.id)}" data-live-own="${mine?'1':'0'}">${mine?'Gå til kamp':'Spectate'}</button></div>`:'';
-      return `<article class="live-match-row${mine?' is-mine':''}${isLive?'':' is-private'}"><div class="live-match-main"><div class="live-match-title"><span>${esc(p1)} vs ${esc(p2)}</span>${mine?'<span class="live-match-badge">MIN KAMP</span>':''}${warmup}</div><div class="live-match-meta"><span><i class="live-dot"></i>Pågår</span>${liveBadge}<span>${esc(gameLabel(m))}</span><span>${esc(formatLabel(m))}</span><span class="live-match-score">${esc(resultLabel(m))}</span>${viewerMeta}</div></div>${action}</article>`;
+      const title=`<span class="player-name live-match-player-name">${esc(p1)}</span><span class="live-match-vs">vs</span><span class="player-name live-match-player-name">${esc(p2)}</span>${mine?'<span class="live-match-badge">MIN KAMP</span>':''}${warmup}`;
+      return `<article class="live-match-row${mine?' is-mine':''}${isLive?'':' is-private'}"><div class="live-match-main"><div class="live-match-title">${title}</div><div class="live-match-meta"><span><i class="live-dot"></i>Pågår</span>${liveBadge}<span>${esc(gameLabel(m))}</span><span>${esc(formatLabel(m))}</span><span class="live-match-score">${esc(resultLabel(m))}</span>${viewerMeta}</div></div>${action}</article>`;
     }).join('');
+    window.DartArenaRoleVisuals?.scan?.(host);
     host.querySelectorAll('[data-live-match]').forEach(btn=>btn.onclick=()=>{
       const id=btn.dataset.liveMatch;
       if(btn.dataset.liveOwn==='1'){
@@ -97,7 +99,7 @@
         const w=window.open(`${page}?id=${encodeURIComponent(id)}`,`dartarena-match-${id}`);
         if(w){try{w.focus()}catch{}}else location.href=`${page}?id=${encodeURIComponent(id)}`;
       }else{
-        const w=window.open(`spectate.html?build=20261002-stats1&id=${encodeURIComponent(id)}`,`dartarena-spectate-${id}`);
+        const w=window.open(`spectate.html?build=20261002-stats2&id=${encodeURIComponent(id)}`,`dartarena-spectate-${id}`);
         if(w){try{w.focus()}catch{}}
       }
     });
