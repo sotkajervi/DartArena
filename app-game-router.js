@@ -26,13 +26,20 @@
       document.head.appendChild(link);
     }
     const lobby=document.getElementById('lobbyView');
-    if(lobby&&!document.getElementById('liveMatchesSection')){
-      const section=document.createElement('section');
-      section.id='liveMatchesSection';
-      section.className='card live-matches-section';
-      section.innerHTML='<div class="heading"><div><small>PÅGÅENDE KAMPER</small><h2>Pågår nå</h2></div></div><p class="muted compact">Alle pågående kamper vises her. Bare kamper merket LIVE kan åpnes av tilskuere.</p><div id="liveMatchesList" class="live-matches-list"><p class="muted">Laster pågående kamper…</p></div>';
-      const archiveSection=[...lobby.querySelectorAll('.tournament-section')].find(el=>el.querySelector('h2')?.textContent.trim()==='Tidligere turneringer');
-      if(archiveSection)archiveSection.insertAdjacentElement('beforebegin',section);else lobby.appendChild(section);
+    if(lobby){
+      let section=document.getElementById('liveMatchesSection');
+      if(!section){
+        section=document.createElement('section');
+        section.id='liveMatchesSection';
+        section.className='card live-matches-section';
+        section.innerHTML='<div class="heading"><div><small>PÅGÅENDE KAMPER</small><h2>Pågår nå</h2></div></div><p class="muted compact">Alle pågående kamper vises her. Bare kamper merket LIVE kan åpnes av tilskuere.</p><div id="liveMatchesList" class="live-matches-list"><p class="muted">Laster pågående kamper…</p></div>';
+      }
+      const lobbyGrid=lobby.querySelector('.lobby-grid');
+      if(lobbyGrid&&section.previousElementSibling!==lobbyGrid){
+        lobbyGrid.insertAdjacentElement('afterend',section);
+      }else if(!section.isConnected){
+        lobby.appendChild(section);
+      }
     }
     if(!document.querySelector('script[data-dartarena-live-matches]')){
       const script=document.createElement('script');
@@ -42,8 +49,10 @@
     }
   }
   ensureLiveMatches();
+  [100,400,1000,2200].forEach(delay=>setTimeout(ensureLiveMatches,delay));
 
   const boot=setInterval(()=>{
+    ensureLiveMatches();
     if(!window.DartArenaGames||typeof openMatch!=='function')return;
     clearInterval(boot);
     openMatch=function(id,manual,variant='x01'){
@@ -57,7 +66,9 @@
       window.__dartArenaJdcLobbyLabel=true;
       const baseLoadLobby=loadLobby;
       loadLobby=async function(){
+        ensureLiveMatches();
         const result=await baseLoadLobby();
+        ensureLiveMatches();
         if(activeMatch?.game_variant==='jdc'){
           const text=document.getElementById('activeMatchText');
           if(text)text.textContent=text.textContent.replace(/•\s*501\s*•\s*Best of 1\s*$/,'• JDC Challenge • 57 piler hver');
