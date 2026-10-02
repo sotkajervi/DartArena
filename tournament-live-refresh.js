@@ -63,11 +63,12 @@
     if(typeof window.load==='function'){
       try{
         await window.load();
-        return;
       }catch(err){
         console.error('Tournament full refresh failed',err);
       }
     }
+    // A draw writes match rows and tournament status as separate realtime changes.
+    // Refresh extensions only after the base load has the latest status.
     await refreshMatchViews();
   }
 
