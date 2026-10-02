@@ -51,30 +51,32 @@ body.match-page .match-player .match-legs{
   white-space:nowrap;
 }
 
+/* X01 live average: fixed in the lower-right corner of each player card. */
 body.match-page .match-player .live-avg{
-  position:absolute;
-  right:12px;
-  bottom:11px;
-  top:auto;
-  display:flex;
+  position:absolute!important;
+  right:14px!important;
+  bottom:14px!important;
+  top:auto!important;
+  left:auto!important;
+  display:flex!important;
   align-items:baseline;
-  gap:6px;
-  padding:5px 8px;
-  border-radius:8px;
-  background:rgba(0,0,0,.32);
+  gap:7px;
+  padding:6px 10px;
+  border-radius:9px;
+  background:rgba(0,0,0,.36);
   color:var(--muted);
-  font-size:12px;
-  font-weight:900;
+  font-size:14px!important;
+  font-weight:950;
   line-height:1;
-  letter-spacing:.05em;
+  letter-spacing:.055em;
   white-space:nowrap;
   pointer-events:none;
-  z-index:2;
+  z-index:3;
 }
 body.match-page .match-player .live-avg b,
 body.match-page .match-player.active .live-avg b{
   color:var(--text)!important;
-  font-size:18px;
+  font-size:22px!important;
   font-weight:950;
   font-variant-numeric:tabular-nums;
   letter-spacing:0;
@@ -105,9 +107,8 @@ body.match-page.match-tv-layout .match-player .match-legs{
   font-size:26px!important;
 }
 body.match-page.match-tv-layout .match-player .live-avg{
-  top:auto;
-  right:10px;
-  bottom:9px;
+  right:12px!important;
+  bottom:11px!important;
 }
 
 @media(max-height:820px){
@@ -116,10 +117,10 @@ body.match-page.match-tv-layout .match-player .live-avg{
     font-size:22px!important;
   }
   body.match-page .match-player .live-avg{
-    right:10px;
-    bottom:9px;
-    font-size:11px;
-    padding:4px 7px;
+    right:11px!important;
+    bottom:10px!important;
+    font-size:13px!important;
+    padding:5px 8px;
   }
-  body.match-page .match-player .live-avg b{font-size:16px}
+  body.match-page .match-player .live-avg b{font-size:20px!important}
 }
