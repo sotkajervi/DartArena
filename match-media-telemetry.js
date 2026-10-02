@@ -41,10 +41,10 @@
     return (bytes-prev.bytes)*8/(now-prev.time);
   }
 
-  async function snapshot(pc,direction){
-    if(!pc||typeof pc.getStats!=='function'||pc.connectionState==='closed')return null;
+  async function snapshot(peer,direction){
+    if(!peer||typeof peer.getStats!=='function'||peer.connectionState==='closed')return null;
     let report;
-    try{report=await pc.getStats()}catch{return null}
+    try{report=await peer.getStats()}catch{return null}
 
     let rtp=null;
     let remoteInbound=null;
@@ -72,8 +72,8 @@
       player_id:playerId,
       captured_at:new Date().toISOString(),
       direction,
-      connection_state:pc.connectionState||null,
-      ice_state:pc.iceConnectionState||null,
+      connection_state:peer.connectionState||null,
+      ice_state:peer.iceConnectionState||null,
       rtt_ms:rtt,
       jitter_ms:jitter,
       packets_lost:direction==='publisher'?n(remoteInbound?.packetsLost):n(rtp?.packetsLost),
@@ -95,20 +95,37 @@
     };
   }
 
+  function mediaPeers(){
+    // In tournament Peer mode both inbound and outbound video live on match.js' pc.
+    try{
+      if(typeof pc!=='undefined'&&pc&&pc.connectionState!=='closed'){
+        return{publisher:pc,subscriber:pc,mode:'peer'};
+      }
+    }catch{}
+
+    // SFU fallback / legacy mode.
+    const client=window.__DartArenaLastSFU;
+    return{
+      publisher:client?.publisher||null,
+      subscriber:client?.subscriber||null,
+      mode:'sfu'
+    };
+  }
+
   async function sample(){
     if(stopped||!playerId)return;
-    const client=window.__DartArenaLastSFU;
-    if(!client)return;
+    const peers=mediaPeers();
+    if(!peers.publisher&&!peers.subscriber)return;
     const rows=await Promise.all([
-      snapshot(client.publisher,'publisher'),
-      snapshot(client.subscriber,'subscriber')
+      snapshot(peers.publisher,'publisher'),
+      snapshot(peers.subscriber,'subscriber')
     ]);
     rows.filter(Boolean).forEach(row=>buffer.push(row));
     if(buffer.length>600)buffer=buffer.slice(-600);
   }
 
   async function flush(){
-    if(stopped&&buffer.length===0||flushing||!buffer.length)return;
+    if((stopped&&buffer.length===0)||flushing||!buffer.length)return;
     flushing=true;
     const batch=buffer.splice(0,buffer.length);
     try{
