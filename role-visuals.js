@@ -159,6 +159,17 @@
     };
   }
 
+  function hookChallengeRendering(){
+    if(window.__dartArenaRoleChallengeHook||typeof loadChallenges!=='function')return;
+    window.__dartArenaRoleChallengeHook=true;
+    const baseLoadChallenges=loadChallenges;
+    loadChallenges=async function(...args){
+      const result=await baseLoadChallenges.apply(this,args);
+      scanNames();
+      return result;
+    };
+  }
+
   async function loadRoles(){
     const {data:{session}}=await db.auth.getSession();
     if(!session?.user)return false;
@@ -194,12 +205,14 @@
     }
 
     hookPlayerRendering();
+    hookChallengeRendering();
     scanNames();
     window.DartArenaRoleVisuals={scan:scanNames,apply:applyRole,roleFor};
     let attempts=0;
     const timer=setInterval(()=>{
       ensureLobbyNavButtons();
       hookPlayerRendering();
+      hookChallengeRendering();
       scanNames();
       attempts+=1;
       if(syncWelcome()||attempts>=20){
