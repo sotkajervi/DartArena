@@ -33,7 +33,9 @@ async function boot(){
   const input=$('matchScoreInput'),n=Number(input.value);if(!Number.isInteger(n)||n<0||n>180)return;
   const scoreKey=me===match.player1_id?'player1_score':'player2_score',remaining=Number(match[scoreKey]);if(n!==remaining)return;
   const allowed=possibleDarts(remaining);if(!allowed.length){$('matchMessage').textContent=`${remaining} kan ikke avsluttes på tre piler.`;return}
-  const darts=await askDarts(remaining);if(darts)await finishCheckout(remaining,darts)
+  // If only one dart count is mathematically possible, do not ask the player to
+  // correct a redundant selection. Example: 2 remaining is D1 on dart 1.
+  const darts=allowed.length===1?allowed[0]:await askDarts(remaining);if(darts)await finishCheckout(remaining,darts)
  }
  function shouldIntercept(){if(busy||match.status!=='playing'||match.turn_player_id!==me)return false;const n=Number($('matchScoreInput').value);if(!Number.isInteger(n)||n<0||n>180)return false;const scoreKey=me===match.player1_id?'player1_score':'player2_score';return n===Number(match[scoreKey])}
  const btn=$('matchScoreBtn'),input=$('matchScoreInput');
