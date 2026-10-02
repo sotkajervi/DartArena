@@ -12,7 +12,8 @@
       document.body.dataset.halfItMode='standard';
       await loadScript('half-it-standard.js?v=20260930-standard1');
       await loadScript('half-it-standard-audio.js?v=20260930-standard1');
-      await loadScript('role-visuals.js?v=20260930-lobbyheader1');
+      await loadScript('role-visuals.js?v=20261002-matchrooms1');
+      await loadScript('match-room-polish.js?v=20261002-matchrooms2');
       return;
     }
     document.body.dataset.halfItMode='dartcounter';
@@ -22,7 +23,8 @@
     await loadScript('half-it-multileg.js?v=20260930-halfitlegs2');
     await loadScript('half-it-exact-choice.js?v=20260930-exact3');
     await loadScript('half-it-ui.js?v=20260929-halfit3');
-    await loadScript('role-visuals.js?v=20260930-lobbyheader1');
+    await loadScript('role-visuals.js?v=20261002-matchrooms1');
+    await loadScript('match-room-polish.js?v=20261002-matchrooms2');
     await loadScript('match-controls.js?v=20260930-cam2');
   })().catch(e=>{const m=document.getElementById('matchMessage');if(m)m.textContent=e?.message||'Kunne ikke laste Half-It.';console.error(e)});
 })();
