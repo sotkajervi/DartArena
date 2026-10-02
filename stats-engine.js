@@ -11,18 +11,22 @@ async function boot(){
  function names(){return[$('matchName1')?.textContent||'Spiller 1',$('matchName2')?.textContent||'Spiller 2']}
  function grid(){const a=window.DartArenaX01Stats.statsFor(throws,match.player1_id),b=window.DartArenaX01Stats.statsFor(throws,match.player2_id),[n1,n2]=names(),rows=[['3-dart avg',a.avg.toFixed(2),b.avg.toFixed(2)],['First 9 AVG',a.first9.toFixed(2),b.first9.toFixed(2)],['Høyeste checkout',a.high||'–',b.high||'–'],['Raskeste leg',a.fast?`${a.fast} piler`:'–',b.fast?`${b.fast} piler`:'–'],['100+',a.c100,b.c100],['140+',a.c140,b.c140],['170+',a.c170,b.c170],['180',a.c180,b.c180]];return'<div class="stats-grid"><div></div><div class="val head">'+esc(n1)+'</div><div class="val head">'+esc(n2)+'</div>'+rows.map(r=>`<div class="label">${r[0]}</div><div class="val">${r[1]}</div><div class="val">${r[2]}</div>`).join('')+'</div>'}
  function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+ function applyResultRoles(attempt=0){
+   if(window.DartArenaRoleVisuals?.scan){window.DartArenaRoleVisuals.scan();return}
+   if(attempt<30)setTimeout(()=>applyResultRoles(attempt+1),100);
+ }
  function enhanceFinalResult(attempt=0){
    if(match.status!=='finished')return;
    document.getElementById('finalStatsOverlay')?.remove();
    const overlay=$('dartArenaResultOverlay'),actions=overlay?.querySelector('.da-result-actions');
    if(!overlay||!actions){if(attempt<50)setTimeout(()=>enhanceFinalResult(attempt+1),100);return}
-   if(actions.dataset.x01Enhanced==='1')return;
+   if(actions.dataset.x01Enhanced==='1'){applyResultRoles();return}
    actions.dataset.x01Enhanced='1';actions.classList.add('x01-result-actions');
    const screenshot=document.createElement('button');screenshot.type='button';screenshot.className='outline';screenshot.textContent='Skjermbilde';
-   screenshot.onclick=()=>window.DartArenaResultScreenshot?.open?.(overlay.querySelector('.da-result-card'),{returnFocus:screenshot});
+   screenshot.onclick=()=>{applyResultRoles();setTimeout(()=>window.DartArenaResultScreenshot?.open?.(overlay.querySelector('.da-result-card'),{returnFocus:screenshot}),0)};
    const full=document.createElement('button');full.type='button';full.className='outline';full.textContent='Full kampstatistikk';
    full.onclick=()=>window.open(`match-stats.html?id=${encodeURIComponent(matchId)}`,`dartarena-match-stats-${matchId}`);
-   actions.prepend(full);actions.prepend(screenshot);
+   actions.prepend(full);actions.prepend(screenshot);applyResultRoles();
  }
  function draw(){const html=grid();if($('liveStats'))$('liveStats').innerHTML=html;if(match.status==='finished')enhanceFinalResult()}
  async function loadThrows(){const {data,error}=await db.from('match_throws').select('*').eq('match_id',matchId).order('created_at',{ascending:true});if(!error)throws=data||[];draw()}
