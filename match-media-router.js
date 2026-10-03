@@ -73,7 +73,7 @@
       placeholder.classList.remove('hidden');
     }
     const script=document.createElement('script');
-    script.src='match-sfu-media.js?v=20261003-novideo1';
+    script.src='match-sfu-media.js?v=20261003-novideo2';
     script.async=false;
     script.onerror=()=>console.error('[MEDIA ROUTER] Could not load SFU fallback');
     document.head.appendChild(script);
@@ -119,9 +119,6 @@
 
       if(bothReady()&&!remoteCameraExplicitlyOff()&&!remoteHasUsableVideo()){
         if(!missingVideoSince)missingVideoSince=now;
-        // A working audio path with no rendered video is the exact failure mode
-        // we want to escape quickly. Allow a little more time if even audio has
-        // not arrived yet, because the first video frames can take longer.
         const limit=remoteHasAudio()?5000:8000;
         if(now-missingVideoSince>=limit)requestFallback(remoteHasAudio()?'peer-audio-no-video':'peer-no-video');
       }else{
@@ -144,8 +141,6 @@
       return;
     }
 
-    // Let the existing Peer recovery logic try first. If it cannot recover,
-    // switch both players back to the proven SFU transport.
     if(!outageSince)outageSince=now;
     if(now-outageSince>=20000)requestFallback('peer-recovery-timeout');
   },500);
