@@ -19,6 +19,8 @@
   let pendingDing=false;
   let connected=false;
   let disconnectedSince=0;
+  let audioWanted=false;
+  window.__DARTARENA_REMOTE_AUDIO_WANTED=false;
 
   function ensureAudioContext(){
     if(ctx)return ctx;
@@ -77,9 +79,21 @@
 
   function syncButton(){
     if(audioBtn.classList.contains('hidden'))return;
-    const on=!remoteVideo.muted;
+    const on=audioWanted&&!remoteVideo.muted;
     audioBtn.classList.toggle('audio-on',on);
     audioBtn.textContent=on?'🔊 LYD PÅ':'🔊 SLÅ PÅ LYD';
+  }
+
+  async function enforceWantedAudio(){
+    if(!audioWanted||!buttonAvailable()||!remoteVideo.muted)return;
+    remoteVideo.muted=false;
+    try{
+      await remoteVideo.play();
+    }catch{
+      remoteVideo.muted=true;
+      audioWanted=false;
+      window.__DARTARENA_REMOTE_AUDIO_WANTED=false;
+    }
   }
 
   function markConnected(){
@@ -92,10 +106,11 @@
     remoteCard?.classList.add('waiting-connect-flash');
   }
 
-  function poll(){
+  async function poll(){
     const ready=buttonAvailable();
     if(ready){
       markConnected();
+      await enforceWantedAudio();
       syncButton();
       return;
     }
@@ -109,7 +124,14 @@
   }
 
   ['pointerdown','keydown','touchstart'].forEach(type=>window.addEventListener(type,unlockAudio,{once:true,capture:true}));
-  audioBtn.addEventListener('click',()=>setTimeout(syncButton,0));
+  audioBtn.addEventListener('click',()=>{
+    setTimeout(async()=>{
+      audioWanted=!remoteVideo.muted;
+      window.__DARTARENA_REMOTE_AUDIO_WANTED=audioWanted;
+      await enforceWantedAudio();
+      syncButton();
+    },0);
+  });
   remoteVideo.addEventListener('loadeddata',poll);
   remoteVideo.addEventListener('playing',poll);
   const obs=new MutationObserver(poll);
