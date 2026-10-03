@@ -39,7 +39,7 @@
     if(!box)return;
     if(!acceptedRoomId){box.hidden=true;box.innerHTML='';return}
     box.hidden=false;
-    box.innerHTML=`<div class="challenge-row"><div><div class="player-name">Utfordringen er godtatt</div><div class="status">Venterommet er klart i egen fane.</div></div><div class="challenge-actions"><button id="openAcceptedRoomBtn" class="small-btn accept">Åpne venterom</button></div></div>`;
+    box.innerHTML=`<div class="challenge-row"><div><div class="player-name">Utfordringen er godtatt</div><div class="status">Venterommet kunne ikke åpnes automatisk.</div></div><div class="challenge-actions"><button id="openAcceptedRoomBtn" class="small-btn accept">Åpne venterom</button></div></div>`;
     box.querySelector('#openAcceptedRoomBtn').onclick=()=>openAcceptedRoom(acceptedRoomId,true);
   }
 
@@ -67,7 +67,14 @@
     return false;
   }
 
-  enterAcceptedRoom=function(id){openAcceptedRoom(id,false)};
+  // Når motstanderen godtar skal lobbyen vise en stabil "Åpne"-knapp.
+  // Ikke forsøk popup automatisk; nettlesere blokkerer ofte slike vinduer.
+  enterAcceptedRoom=function(id){
+    if(!id)return;
+    acceptedRoomId=null;
+    renderAcceptedRoomPrompt();
+    Promise.resolve().then(()=>loadSentChallenges()).catch(()=>{});
+  };
 
   function applySentButtonState(){
     document.querySelectorAll('.challenge-btn').forEach(b=>{
@@ -83,14 +90,23 @@
     renderAcceptedRoomPrompt();
     if(!host||!profile)return;
     if(activeMatch){pendingSentIds=new Set();host.innerHTML='<p class="muted">Du er i kamp.</p>';return}
-    const{data,error}=await db.from('challenges').select('id,challenged_id,status,created_at').eq('challenger_id',profile.id).eq('status','pending').order('created_at',{ascending:false});
+    const{data,error}=await db.from('challenges')
+      .select('id,challenged_id,status,created_at')
+      .eq('challenger_id',profile.id)
+      .in('status',['pending','room'])
+      .order('created_at',{ascending:false});
     if(error){host.innerHTML=`<p class="muted">${esc(error.message)}</p>`;return}
     pendingSentIds=new Set((data||[]).map(c=>c.challenged_id));
     applySentButtonState();
     if(!data?.length){host.innerHTML='<p class="muted">Ingen sendte utfordringer.</p>';return}
-    const ids=[...pendingSentIds],{data:people}=await db.from('profiles').select('id,username').in('id',ids),names=Object.fromEntries((people||[]).map(p=>[p.id,p.username]));
-    host.innerHTML=data.map(c=>`<div class="challenge-row"><div><div class="player-name">${esc(names[c.challenged_id]||'Spiller')}</div><div class="status">Venter på svar</div></div><div class="challenge-actions"><button class="small-btn decline withdraw-challenge" data-id="${c.id}">Trekk tilbake</button></div></div>`).join('');
+    const ids=[...new Set((data||[]).map(c=>c.challenged_id))],{data:people}=await db.from('profiles').select('id,username').in('id',ids),names=Object.fromEntries((people||[]).map(p=>[p.id,p.username]));
+    host.innerHTML=data.map(c=>{
+      const name=esc(names[c.challenged_id]||'Spiller');
+      if(c.status==='room')return `<div class="challenge-row"><div><div class="player-name">${name}</div><div class="status">Godtatt · venterom klart</div></div><div class="challenge-actions"><button class="small-btn accept open-room-challenge" data-id="${c.id}">Åpne</button></div></div>`;
+      return `<div class="challenge-row"><div><div class="player-name">${name}</div><div class="status">Venter på svar</div></div><div class="challenge-actions"><button class="small-btn decline withdraw-challenge" data-id="${c.id}">Trekk tilbake</button></div></div>`;
+    }).join('');
     host.querySelectorAll('.withdraw-challenge').forEach(b=>b.onclick=()=>withdrawChallenge(b));
+    host.querySelectorAll('.open-room-challenge').forEach(b=>b.onclick=()=>openAcceptedRoom(b.dataset.id,true));
   }
 
   async function withdrawChallenge(button){
@@ -156,12 +172,6 @@
     sentChannel=db.channel('lobby-sent-challenges-'+profile.id)
       .on('postgres_changes',{event:'UPDATE',schema:'public',table:'challenges',filter:`challenger_id=eq.${profile.id}`},payload=>{
         const row=payload.new;
-        if(row.status==='room'){
-          openAcceptedRoom(row.id,false);
-          loadSentChallenges();
-          loadPlayers();
-          return;
-        }
         if(row.status!=='room'){
           roomTabs.delete(row.id);
           if(acceptedRoomId===row.id){
