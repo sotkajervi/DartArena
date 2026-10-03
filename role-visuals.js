@@ -59,6 +59,7 @@
       button.className='small-btn lobby-utility-btn';
       if(button.parentElement!==host)host.appendChild(button);
     };
+    add('playersBtn','Spillere','players.html');
     add('formStatsBtn','Form stats','form-stats.html');
     add('matchHistoryBtn','Kamphistorikk','match-history.html');
   }
