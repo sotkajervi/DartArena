@@ -10,8 +10,7 @@
   audioBtn.classList.add('waiting-audio-button');
 
   let ctx=null;
-  let pendingDing=false;
-  let pendingVoice=false;
+  let pendingChime=false;
   let connected=false;
   let disconnectedSince=0;
   let audioWanted=false;
@@ -25,63 +24,47 @@
     return ctx;
   }
 
-  function speakSoundPrompt(){
-    if(!('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window)){
-      playDing();
-      return;
-    }
-    try{
-      window.speechSynthesis.cancel();
-      const u=new SpeechSynthesisUtterance('Game on!');
-      u.lang='en-GB';
-      u.rate=1;
-      u.pitch=1;
-      u.volume=1;
-      pendingVoice=false;
-      window.speechSynthesis.speak(u);
-    }catch{
-      pendingVoice=true;
-      playDing();
-    }
-  }
-
   async function unlockAudio(){
     const c=ensureAudioContext();
-    if(c){
-      try{if(c.state==='suspended')await c.resume()}catch{}
-      if(pendingDing&&c.state==='running'){
-        pendingDing=false;
-        playDing();
-      }
-    }
-    if(pendingVoice){
-      pendingVoice=false;
-      speakSoundPrompt();
+    if(!c)return;
+    try{if(c.state==='suspended')await c.resume()}catch{}
+    if(pendingChime&&c.state==='running'){
+      pendingChime=false;
+      playConnectionChime();
     }
   }
 
-  function playDing(){
+  function playTone(c,frequency,start,duration,peak){
+    const osc=c.createOscillator();
+    const gain=c.createGain();
+    osc.type='sine';
+    osc.frequency.setValueAtTime(frequency,start);
+    gain.gain.setValueAtTime(.0001,start);
+    gain.gain.exponentialRampToValueAtTime(peak,start+.018);
+    gain.gain.exponentialRampToValueAtTime(.0001,start+duration);
+    osc.connect(gain);
+    gain.connect(c.destination);
+    osc.start(start);
+    osc.stop(start+duration+.02);
+  }
+
+  function playConnectionChime(){
     const c=ensureAudioContext();
     if(!c)return;
     if(c.state!=='running'){
-      pendingDing=true;
-      c.resume?.().then(()=>{if(pendingDing&&c.state==='running'){pendingDing=false;playDing()}}).catch(()=>{});
+      pendingChime=true;
+      c.resume?.().then(()=>{
+        if(pendingChime&&c.state==='running'){
+          pendingChime=false;
+          playConnectionChime();
+        }
+      }).catch(()=>{});
       return;
     }
     try{
-      const now=c.currentTime;
-      const gain=c.createGain();
-      const o1=c.createOscillator();
-      const o2=c.createOscillator();
-      o1.type='sine';o2.type='sine';
-      o1.frequency.setValueAtTime(660,now);
-      o2.frequency.setValueAtTime(880,now+.09);
-      gain.gain.setValueAtTime(.0001,now);
-      gain.gain.exponentialRampToValueAtTime(.12,now+.015);
-      gain.gain.exponentialRampToValueAtTime(.0001,now+.34);
-      o1.connect(gain);o2.connect(gain);gain.connect(c.destination);
-      o1.start(now);o1.stop(now+.18);
-      o2.start(now+.09);o2.stop(now+.34);
+      const now=c.currentTime+.015;
+      playTone(c,620,now,.20,.10);
+      playTone(c,880,now+.19,.28,.12);
     }catch{}
   }
 
@@ -120,7 +103,7 @@
     if(connected)return;
     connected=true;
     disconnectedSince=0;
-    speakSoundPrompt();
+    playConnectionChime();
     remoteCard?.classList.remove('waiting-connect-flash');
     void remoteCard?.offsetWidth;
     remoteCard?.classList.add('waiting-connect-flash');
@@ -157,5 +140,9 @@
   const obs=new MutationObserver(poll);
   obs.observe(audioBtn,{attributes:true,attributeFilter:['class']});
   const timer=setInterval(poll,250);
-  window.addEventListener('pagehide',()=>{clearInterval(timer);obs.disconnect();try{ctx?.close()}catch{};try{window.speechSynthesis?.cancel()}catch{}},{once:true});
+  window.addEventListener('pagehide',()=>{
+    clearInterval(timer);
+    obs.disconnect();
+    try{ctx?.close()}catch{}
+  },{once:true});
 })();
