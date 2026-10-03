@@ -1,6 +1,7 @@
 (()=>{
   const $=id=>document.getElementById(id);
   let db,me,profile,channel,viewMonth,selectedDate,selectedTime='19:00',loading=false;
+  let authBound=false,bound=false,bootRetry=null,startedUser=null;
 
   function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
   function fmt(d){try{return new Intl.DateTimeFormat('nb-NO',{dateStyle:'short',timeStyle:'short'}).format(new Date(d))}catch{return d}}
@@ -8,20 +9,50 @@
   function localValue(d,time){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${time}`}
   function pretty(d,time){if(!d)return'Velg dato og klokkeslett';const day=new Intl.DateTimeFormat('nb-NO',{weekday:'short',day:'2-digit',month:'short'}).format(d).replace('.','').toUpperCase();return `${day} · ${time}`}
 
-  async function boot(){
-    if(!window.supabase||!$('tournamentList'))return;
-    ensureFormStatsUi();
-    db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
-    const {data:{session}}=await db.auth.getSession();if(!session)return;
-    me=session.user.id;
-    const {data:p}=await db.from('profiles').select('id,username').eq('id',me).single();profile=p;
-    bind();
+  async function startForSession(session){
+    const userId=session?.user?.id;
+    if(!userId)return;
+    if(startedUser===userId&&profile){await load();return}
+    if(channel){try{await db.removeChannel(channel)}catch{}channel=null}
+    loading=false;
+    me=userId;
+    const {data:p,error}=await db.from('profiles').select('id,username').eq('id',me).single();
+    if(error||!p){console.error('Tournament profile load failed',error);return}
+    profile=p;
+    if(!bound){bind();bound=true}
+    startedUser=me;
     await load();
-    channel=db.channel('tournament-lobby')
+    channel=db.channel(`tournament-lobby-${me}`)
       .on('postgres_changes',{event:'*',schema:'public',table:'tournaments'},()=>setTimeout(load,80))
       .on('postgres_changes',{event:'*',schema:'public',table:'tournament_members'},()=>setTimeout(load,80))
       .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches'},()=>setTimeout(load,80))
       .subscribe();
+  }
+
+  function resetSession(){
+    startedUser=null;me=null;profile=null;loading=false;
+    if(channel){const old=channel;channel=null;try{db?.removeChannel(old)}catch{}}
+  }
+
+  async function boot(){
+    if(!window.supabase||!$('tournamentList'))return;
+    ensureFormStatsUi();
+    if(!db)db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
+    if(!authBound){
+      authBound=true;
+      db.auth.onAuthStateChange((event,s)=>{
+        if(event==='SIGNED_OUT'||!s){resetSession();return}
+        setTimeout(()=>startForSession(s).catch(err=>console.error('Tournament auth refresh failed',err)),0);
+      });
+    }
+    const {data:{session}}=await db.auth.getSession();
+    if(!session){
+      clearTimeout(bootRetry);
+      bootRetry=setTimeout(boot,300);
+      return;
+    }
+    clearTimeout(bootRetry);bootRetry=null;
+    await startForSession(session);
   }
 
   function ensureFormStatsUi(){
@@ -97,7 +128,7 @@
   }
 
   async function load(){
-    if(loading||!db)return;loading=true;
+    if(loading||!db||!me)return;loading=true;
     try{
       const {data:t,error}=await db.from('tournaments').select('*').neq('status','cancelled').order('starts_at',{ascending:true});
       if(error)throw error;
