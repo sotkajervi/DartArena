@@ -31,6 +31,14 @@
     if(tm)return[num(tm.player1_legs),num(tm.player2_legs)];
     return[num(match.player1_legs),num(match.player2_legs)];
   }
+  function displayOrder(match,winnerId){
+    if(winnerId===match?.player2_id)return[match.player2_id,match.player1_id];
+    return[match?.player1_id,match?.player2_id];
+  }
+  function orderedPair(match,winnerId,a,b){
+    const[leftId]=displayOrder(match,winnerId);
+    return leftId===match.player2_id?[b,a]:[a,b];
+  }
   function dartsFor(row){
     if(window.DartArenaX01Stats?.dartsFor)return window.DartArenaX01Stats.dartsFor(row);
     return row?.is_checkout?(Math.max(1,num(row.darts_used)||3)):3;
@@ -99,7 +107,7 @@
   }
   function playerCard(id,name,winnerId,stats,hasData){
     const winner=id===winnerId;
-    return `<article class="premium-player-card${winner?' winner':''}">
+    return `<article class="premium-player-card${winner?' winner':''}" data-player-id="${esc(id)}">
       <div class="premium-player-head"><div class="premium-player-icon">${winner?'♛':esc(initial(name))}</div><div style="min-width:0"><div class="premium-player-name">${esc(name)}</div>${winner?'<span class="premium-winner-badge">VINNER</span>':''}</div></div>
       <div class="premium-stat-grid">${statRows(stats,hasData).map(([label,value])=>`<div class="premium-stat"><span>${esc(label)}</span><b>${esc(value)}</b></div>`).join('')}</div>
     </article>`;
@@ -116,36 +124,36 @@
     }
     return legs.sort((a,b)=>new Date(a.createdAt||0)-new Date(b.createdAt||0));
   }
-  function legRows(legs,names,match,matchWinnerId){
-    let a=0,b=0;
+  function legRows(legs,names,leftId,rightId,matchWinnerId){
+    let left=0,right=0;
     return legs.map((leg,index)=>{
-      if(leg.winnerId===match.player1_id)a++;
-      else if(leg.winnerId===match.player2_id)b++;
+      if(leg.winnerId===leftId)left++;
+      else if(leg.winnerId===rightId)right++;
       const winnerName=names[leg.winnerId]||'Vinner';
       return `<div class="premium-leg-row">
         <span class="premium-leg-label">Leg ${num(leg.legNo)||index+1}</span>
-        <span class="premium-leg-score">${a}–${b}</span>
+        <span class="premium-leg-score">${left}–${right}</span>
         <span class="premium-leg-winner${leg.winnerId===matchWinnerId?' match-winner':''}">${esc(winnerName)}</span>
         <span class="premium-leg-meta">${leg.darts} piler · checkout ${leg.checkout}</span>
       </div>`;
     }).join('');
   }
   function legSection(all,names,match,matchWinnerId){
-    const legs=completedLegs(all);
+    const legs=completedLegs(all),[leftId,rightId]=displayOrder(match,matchWinnerId);
     if(!legs.length)return'<section class="premium-leg-section"><div class="premium-leg-title">LEG-OVERSIKT</div><div class="premium-empty">Ingen ferdige legs registrert.</div></section>';
     if(match.match_mode!=='sets'){
-      return `<section class="premium-leg-section"><div class="premium-leg-title">LEG-OVERSIKT</div><div class="premium-leg-list">${legRows(legs,names,match,matchWinnerId)}</div></section>`;
+      return `<section class="premium-leg-section"><div class="premium-leg-title">LEG-OVERSIKT</div><div class="premium-leg-list">${legRows(legs,names,leftId,rightId,matchWinnerId)}</div></section>`;
     }
     const setMap=new Map();
     for(const leg of legs){if(!setMap.has(leg.setNo))setMap.set(leg.setNo,[]);setMap.get(leg.setNo).push(leg)}
     const blocks=[...setMap.entries()].map(([setNo,setLegs])=>{
-      let a=0,b=0;
-      for(const leg of setLegs){if(leg.winnerId===match.player1_id)a++;else if(leg.winnerId===match.player2_id)b++}
-      const setWinnerId=a===b?null:a>b?match.player1_id:match.player2_id;
+      let left=0,right=0;
+      for(const leg of setLegs){if(leg.winnerId===leftId)left++;else if(leg.winnerId===rightId)right++}
+      const setWinnerId=left===right?null:left>right?leftId:rightId;
       const setWinner=setWinnerId?names[setWinnerId]||'Vinner':'Uavgjort';
       return `<div class="premium-set-block">
-        <div class="premium-set-head"><strong>SETT ${setNo}</strong><span><span class="set-winner">${esc(setWinner)}</span> · ${a}–${b}</span></div>
-        <div class="premium-leg-list">${legRows(setLegs,names,match,matchWinnerId)}</div>
+        <div class="premium-set-head"><strong>SETT ${setNo}</strong><span><span class="set-winner">${esc(setWinner)}</span> · ${left}–${right}</span></div>
+        <div class="premium-leg-list">${legRows(setLegs,names,leftId,rightId,matchWinnerId)}</div>
       </div>`;
     }).join('');
     return `<section class="premium-leg-section"><div class="premium-leg-title">SETT FOR SETT · LEGS</div>${blocks}</section>`;
@@ -159,10 +167,12 @@
     return parts.join(' • ');
   }
   function renderWo(tm,tournament,names){
-    const n1=names[tm.player1_id]||'Spiller 1',n2=names[tm.player2_id]||'Spiller 2';
-    const winnerId=tm.winner_id||inferredWinner(tm.player1_id,tm.player2_id,num(tm.player1_legs),num(tm.player2_legs));
+    const rawA=num(tm.player1_legs),rawB=num(tm.player2_legs);
+    const winnerId=tm.winner_id||inferredWinner(tm.player1_id,tm.player2_id,rawA,rawB);
+    const pseudo={player1_id:tm.player1_id,player2_id:tm.player2_id};
+    const[leftId,rightId]=displayOrder(pseudo,winnerId),leftName=names[leftId]||'Spiller 1',rightName=names[rightId]||'Spiller 2';
     const winnerName=winnerId?names[winnerId]||'Vinner':'Kampen';
-    $('statsTitle').textContent=`${n1} vs ${n2}`;
+    $('statsTitle').textContent=`${leftName} vs ${rightName}`;
     $('statsMeta').textContent=tournament?`${tournament.name||'Turnering'} • ${tm.stage==='group'?'Puljespill':'Cup'}`:'Turneringskamp';
     $('statsView').innerHTML=`<section class="premium-result-card"><div class="premium-result-kicker">KAMP FERDIG</div><h2 class="premium-result-title"><span class="winner-name">${esc(winnerName)}</span>${winnerId?' vant!':' er ferdig'}</h2><div class="premium-result-sub">Kampen ble avgjort uten registrerte kast</div><div class="premium-result-score">WO</div><div class="premium-empty">Det finnes derfor ingen kast- eller legstatistikk for denne kampen.</div></section>`;
   }
@@ -172,29 +182,39 @@
     const names=await profilesFor(ids);
     if(!match){renderWo(tm,tournament,names);return}
     const n1=names[match.player1_id]||'Spiller 1',n2=names[match.player2_id]||'Spiller 2';
-    $('statsTitle').textContent=`${n1} vs ${n2}`;
     $('statsMeta').textContent=contextText(match,tm,tournament);
     if((match.game_variant||'x01')!=='x01'){
-      const [a,b]=resultScore(match,tm),winnerId=tm?.winner_id||match.winner_id||inferredWinner(match.player1_id,match.player2_id,a,b),winnerName=winnerId?names[winnerId]||'Vinner':'Kampen';
-      $('statsView').innerHTML=`<section class="premium-result-card"><div class="premium-result-kicker">KAMP FERDIG</div><h2 class="premium-result-title"><span class="winner-name">${esc(winnerName)}</span>${winnerId?' vant!':' er ferdig'}</h2><div class="premium-result-sub">${esc(gameLabel(match))} • ${esc(formatLabel(match))}</div><div class="premium-result-score">${a}<span>–</span>${b}</div><div class="premium-empty">Denne detaljvisningen viser foreløpig full kaststatistikk for X01. Resultatet er lagret.</div></section>`;
+      const[a,b]=resultScore(match,tm),winnerId=tm?.winner_id||match.winner_id||inferredWinner(match.player1_id,match.player2_id,a,b),winnerName=winnerId?names[winnerId]||'Vinner':'Kampen';
+      const[leftId,rightId]=displayOrder(match,winnerId),[leftScore,rightScore]=orderedPair(match,winnerId,a,b);
+      $('statsTitle').textContent=`${names[leftId]||n1} vs ${names[rightId]||n2}`;
+      $('statsView').innerHTML=`<section class="premium-result-card"><div class="premium-result-kicker">KAMP FERDIG</div><h2 class="premium-result-title"><span class="winner-name">${esc(winnerName)}</span>${winnerId?' vant!':' er ferdig'}</h2><div class="premium-result-sub">${esc(gameLabel(match))} • ${esc(formatLabel(match))}</div><div class="premium-result-score">${leftScore}<span>–</span>${rightScore}</div><div class="premium-empty">Denne detaljvisningen viser foreløpig full kaststatistikk for X01. Resultatet er lagret.</div></section>`;
       return;
     }
     const {data:throws,error}=await db.from('match_throws').select('player_id,set_no,leg_no,visit_no,score,darts_used,is_checkout,created_at').eq('match_id',match.id).order('created_at',{ascending:true});
     if(error)throw error;
     const all=throws||[],stats=window.DartArenaX01Stats;
-    const aStats=stats?.statsFor?stats.statsFor(all,match.player1_id):null,bStats=stats?.statsFor?stats.statsFor(all,match.player2_id):null;
-    const aHas=all.some(r=>r.player_id===match.player1_id),bHas=all.some(r=>r.player_id===match.player2_id);
-    const [a,b]=resultScore(match,tm);
+    const statsById={
+      [match.player1_id]:stats?.statsFor?stats.statsFor(all,match.player1_id):null,
+      [match.player2_id]:stats?.statsFor?stats.statsFor(all,match.player2_id):null
+    };
+    const hasById={
+      [match.player1_id]:all.some(r=>r.player_id===match.player1_id),
+      [match.player2_id]:all.some(r=>r.player_id===match.player2_id)
+    };
+    const[a,b]=resultScore(match,tm);
     const winnerId=tm?.winner_id||match.winner_id||inferredWinner(match.player1_id,match.player2_id,a,b);
     const winnerName=winnerId?names[winnerId]||'Vinner':'Kampen';
+    const[leftId,rightId]=displayOrder(match,winnerId),[leftScore,rightScore]=orderedPair(match,winnerId,a,b);
+    const leftName=names[leftId]||'Spiller 1',rightName=names[rightId]||'Spiller 2';
+    $('statsTitle').textContent=`${leftName} vs ${rightName}`;
     const corrected=tm?.result_corrected_at?'<div class="premium-note">Resultatet er korrigert av turneringsleder. Kast- og legstatistikken viser de registrerte kastene fra kampen.</div>':'';
     const scoreLabel=match.match_mode==='sets'?'<div class="premium-result-score-label">SETS</div>':'';
     $('statsView').innerHTML=`<section class="premium-result-card">
       <div class="premium-result-kicker">KAMP FERDIG</div>
       <h2 class="premium-result-title"><span class="winner-name">${esc(winnerName)}</span>${winnerId?' vant!':' er ferdig'}</h2>
       <div class="premium-result-sub">${esc(gameLabel(match))} • ${esc(formatLabel(match))}</div>
-      <div class="premium-result-score">${a}<span>–</span>${b}</div>${scoreLabel}
-      <div class="premium-player-grid">${playerCard(match.player1_id,n1,winnerId,aStats,aHas)}${playerCard(match.player2_id,n2,winnerId,bStats,bHas)}</div>
+      <div class="premium-result-score">${leftScore}<span>–</span>${rightScore}</div>${scoreLabel}
+      <div class="premium-player-grid">${playerCard(leftId,leftName,winnerId,statsById[leftId],hasById[leftId])}${playerCard(rightId,rightName,winnerId,statsById[rightId],hasById[rightId])}</div>
       ${legSection(all,names,match,winnerId)}${corrected}
     </section>`;
   }
