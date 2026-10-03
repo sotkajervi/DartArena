@@ -15,7 +15,6 @@
   let connected=false;
   let disconnectedSince=0;
   let audioWanted=false;
-  let cachedVoices=[];
   window.__DARTARENA_REMOTE_AUDIO_WANTED=false;
 
   function ensureAudioContext(){
@@ -26,78 +25,20 @@
     return ctx;
   }
 
-  function refreshVoices(){
-    try{cachedVoices=window.speechSynthesis?.getVoices?.()||[]}catch{cachedVoices=[]}
-    return cachedVoices;
-  }
-
-  function waitForVoices(timeout=900){
-    const existing=refreshVoices();
-    if(existing.length)return Promise.resolve(existing);
-    return new Promise(resolve=>{
-      if(!window.speechSynthesis)return resolve([]);
-      let done=false;
-      const finish=()=>{
-        if(done)return;
-        done=true;
-        window.speechSynthesis.removeEventListener?.('voiceschanged',finish);
-        resolve(refreshVoices());
-      };
-      window.speechSynthesis.addEventListener?.('voiceschanged',finish,{once:true});
-      setTimeout(finish,timeout);
-    });
-  }
-
-  function chooseAnnouncerVoice(voices){
-    const preferredNames=[
-      /google uk english male/i,
-      /microsoft george/i,
-      /microsoft ryan/i,
-      /microsoft guy/i,
-      /microsoft mark/i,
-      /microsoft david/i,
-      /microsoft christopher/i,
-      /microsoft eric/i,
-      /daniel/i,
-      /arthur/i,
-      /oliver/i
-    ];
-    for(const pattern of preferredNames){
-      const hit=voices.find(v=>pattern.test(v.name||'')&&/^en/i.test(v.lang||''));
-      if(hit)return hit;
-    }
-    const english=voices.filter(v=>/^en/i.test(v.lang||''));
-    const nonDefault=english.find(v=>!v.default&&/male|man|george|david|mark|ryan|guy|daniel|arthur|oliver|christopher|eric/i.test(v.name||''));
-    return nonDefault||english.find(v=>/^en-GB/i.test(v.lang||''))||english.find(v=>!v.default)||english[0]||null;
-  }
-
-  async function speakSoundPrompt(){
+  function speakSoundPrompt(){
     if(!('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window)){
       playDing();
       return;
     }
     try{
-      const voices=await waitForVoices();
-      const voice=chooseAnnouncerVoice(voices);
       window.speechSynthesis.cancel();
-
-      const intro=new SpeechSynthesisUtterance('Opponent connected.');
-      intro.lang='en-GB';
-      intro.rate=.84;
-      intro.pitch=.72;
-      intro.volume=1;
-      if(voice)intro.voice=voice;
-
-      const command=new SpeechSynthesisUtterance('TURN YOUR SOUND ON!');
-      command.lang='en-GB';
-      command.rate=.66;
-      command.pitch=.42;
-      command.volume=1;
-      if(voice)command.voice=voice;
-
+      const u=new SpeechSynthesisUtterance('Game on!');
+      u.lang='en-GB';
+      u.rate=1;
+      u.pitch=1;
+      u.volume=1;
       pendingVoice=false;
-      window.speechSynthesis.speak(intro);
-      window.speechSynthesis.speak(command);
+      window.speechSynthesis.speak(u);
     }catch{
       pendingVoice=true;
       playDing();
@@ -202,8 +143,6 @@
     }
   }
 
-  refreshVoices();
-  window.speechSynthesis?.addEventListener?.('voiceschanged',refreshVoices);
   ['pointerdown','keydown','touchstart'].forEach(type=>window.addEventListener(type,unlockAudio,{once:true,capture:true}));
   audioBtn.addEventListener('click',()=>{
     setTimeout(async()=>{
