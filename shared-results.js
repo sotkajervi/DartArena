@@ -30,14 +30,22 @@
     if(m?.match_mode==='sets'&&providerKey(m)==='x01')return{a:num(m.player1_sets),b:num(m.player2_sets),label:'SETS'};
     return{a:num(m?.player1_legs),b:num(m?.player2_legs),label:'LEGS'};
   }
+  function displayOrder(m){
+    if(m?.winner_id===m?.player2_id)return[m.player2_id,m.player1_id];
+    return[m?.player1_id,m?.player2_id];
+  }
+  function orderedScore(m,score){
+    const[leftId]=displayOrder(m);
+    return leftId===m.player2_id?{left:score.b,right:score.a}:{left:score.a,right:score.b};
+  }
   function playerInitial(name){return String(name||'?').trim().slice(0,1).toUpperCase()||'?'}
   function fillStats(rows){const out=[...(rows||[])].slice(0,4);while(out.length<4)out.push({label:'–',value:'–'});return out}
   function cumulativeSummary(items,m){
-    let a=0,b=0;
+    const[leftId,rightId]=displayOrder(m);let left=0,right=0;
     return(items||[]).map((item,index)=>{
-      if(item.winnerId===m.player1_id)a++;
-      else if(item.winnerId===m.player2_id)b++;
-      return{label:item.label||`Leg ${index+1}`,score:`${a} – ${b}`,winnerId:item.winnerId||null};
+      if(item.winnerId===leftId)left++;
+      else if(item.winnerId===rightId)right++;
+      return{label:item.label||`Leg ${index+1}`,score:`${left} – ${right}`,winnerId:item.winnerId||null};
     });
   }
   function hideResult(){document.getElementById('dartArenaResultOverlay')?.remove();document.body.classList.remove('da-result-open')}
@@ -158,7 +166,7 @@
   function statRowsHtml(rows){return fillStats(rows).map(s=>`<div class="da-result-statrow"><span>${esc(s.label)}</span><b>${esc(s.value)}</b></div>`).join('')}
   function playerCardHtml(id,name,m,stats){
     const winner=id===m.winner_id;
-    return`<article class="da-result-statcard ${winner?'winner':''}"><div class="da-result-playerhead"><div class="da-result-playericon">${winner?'♛':esc(playerInitial(name))}</div><div style="min-width:0"><div class="da-result-stat-name">${esc(name)}</div>${winner?'<span class="da-result-winner-badge">VINNER</span>':''}</div></div><div class="da-result-statlist">${statRowsHtml(stats)}</div></article>`;
+    return`<article class="da-result-statcard ${winner?'winner':''}" data-player-id="${esc(id)}"><div class="da-result-playerhead"><div class="da-result-playericon">${winner?'♛':esc(playerInitial(name))}</div><div style="min-width:0"><div class="da-result-stat-name">${esc(name)}</div>${winner?'<span class="da-result-winner-badge">VINNER</span>':''}</div></div><div class="da-result-statlist">${statRowsHtml(stats)}</div></article>`;
   }
   function summaryHtml(summary,names,m){
     if(!summary?.length)return'';
@@ -191,9 +199,10 @@
     shownFor=m.id;
     const names=await namesFor(m),provider=window.DartArenaResults.getProvider(providerKey(m));
     let payload;try{payload=await provider(m,resultDb)}catch(e){console.warn('Result provider failed',providerKey(m),e);payload=await buildGeneric(m)}
-    const stats=payload?.stats||{},summary=payload?.summary||[],n1=names[m.player1_id]||'Spiller 1',n2=names[m.player2_id]||'Spiller 2',winnerName=m.winner_id?names[m.winner_id]||'Vinner':'Kampen';
-    const score=scoreInfo(m),label=payload?.label||gameLabel(m),format=payload?.format||formatLabel(m);
-    const overlay=mountOverlay(`<section class="da-result-card" role="dialog" aria-modal="true" aria-label="Kampresultat"><div class="da-result-kicker">KAMP FERDIG</div><h1 class="da-result-title"><span class="da-result-winner-name">${esc(winnerName)}</span>${m.winner_id?' vant!':' er ferdig'}</h1><div class="da-result-sub">${esc(label)} • ${esc(format)}</div><div class="da-result-scorebox">${score.a}<span>–</span>${score.b}</div><div class="da-result-stats">${playerCardHtml(m.player1_id,n1,m,stats[m.player1_id])}${playerCardHtml(m.player2_id,n2,m,stats[m.player2_id])}</div>${summaryHtml(summary,names,m)}<div class="da-result-actions"><button id="daResultLobby" class="primary" type="button">Til lobby</button><button id="daResultClose" class="outline" type="button">Lukk kampfane</button></div><p class="da-result-note">DartArena • resultatet er lagret i kamphistorikken</p></section>`);
+    const stats=payload?.stats||{},summary=payload?.summary||[],winnerName=m.winner_id?names[m.winner_id]||'Vinner':'Kampen';
+    const score=scoreInfo(m),ordered=orderedScore(m,score),label=payload?.label||gameLabel(m),format=payload?.format||formatLabel(m);
+    const[leftId,rightId]=displayOrder(m),leftName=names[leftId]||'Spiller 1',rightName=names[rightId]||'Spiller 2';
+    const overlay=mountOverlay(`<section class="da-result-card" role="dialog" aria-modal="true" aria-label="Kampresultat"><div class="da-result-kicker">KAMP FERDIG</div><h1 class="da-result-title"><span class="da-result-winner-name">${esc(winnerName)}</span>${m.winner_id?' vant!':' er ferdig'}</h1><div class="da-result-sub">${esc(label)} • ${esc(format)}</div><div class="da-result-scorebox">${ordered.left}<span>–</span>${ordered.right}</div><div class="da-result-stats">${playerCardHtml(leftId,leftName,m,stats[leftId])}${playerCardHtml(rightId,rightName,m,stats[rightId])}</div>${summaryHtml(summary,names,m)}<div class="da-result-actions"><button id="daResultLobby" class="primary" type="button">Til lobby</button><button id="daResultClose" class="outline" type="button">Lukk kampfane</button></div><p class="da-result-note">DartArena • resultatet er lagret i kamphistorikken</p></section>`);
     overlay.querySelector('#daResultLobby').onclick=()=>location.href='./';
     overlay.querySelector('#daResultClose').onclick=()=>{window.close();setTimeout(()=>{if(!window.closed)location.href='./'},120)};
   }
