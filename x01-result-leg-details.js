@@ -54,18 +54,20 @@
     const ids=[match.player1_id,match.player2_id].filter(Boolean);
     const {data:profiles}=await db.from('profiles').select('id,username').in('id',ids);
     const names=Object.fromEntries((profiles||[]).map(p=>[p.id,p.username]));
+    const leftId=match.winner_id===match.player2_id?match.player2_id:match.player1_id;
+    const rightId=leftId===match.player1_id?match.player2_id:match.player1_id;
     const groups=new Map();
     for(const leg of completed){if(!groups.has(leg.setNo))groups.set(leg.setNo,[]);groups.get(leg.setNo).push(leg)}
     const html=[...groups.entries()].map(([setNo,legs])=>{
-      let a=0,b=0;
+      let left=0,right=0;
       const rows=legs.map((leg,index)=>{
-        if(leg.winnerId===match.player1_id)a++;else if(leg.winnerId===match.player2_id)b++;
+        if(leg.winnerId===leftId)left++;else if(leg.winnerId===rightId)right++;
         const winner=names[leg.winnerId]||'Vinner';
-        return `<div class="da-result-setlegrow"><span>Leg ${n(leg.legNo)||index+1}</span><span class="set-leg-score">${a}–${b}</span><span class="da-result-legwinner">${escapeHtml(winner)}</span><span class="da-result-legmeta">${leg.darts} piler · checkout ${leg.checkout}</span></div>`;
+        return `<div class="da-result-setlegrow"><span>Leg ${n(leg.legNo)||index+1}</span><span class="set-leg-score">${left}–${right}</span><span class="da-result-legwinner">${escapeHtml(winner)}</span><span class="da-result-legmeta">${leg.darts} piler · checkout ${leg.checkout}</span></div>`;
       }).join('');
-      const setWinnerId=a===b?null:a>b?match.player1_id:match.player2_id;
+      const setWinnerId=left===right?null:left>right?leftId:rightId;
       const setWinner=setWinnerId?names[setWinnerId]||'Vinner':'Uavgjort';
-      return `<div class="da-result-setblock"><div class="da-result-sethead"><strong>SETT ${setNo}</strong><span><b>${escapeHtml(setWinner)}</b> · ${a}–${b}</span></div>${rows}</div>`;
+      return `<div class="da-result-setblock"><div class="da-result-sethead"><strong>SETT ${setNo}</strong><span><b>${escapeHtml(setWinner)}</b> · ${left}–${right}</span></div>${rows}</div>`;
     }).join('');
     section.innerHTML=`<div class="da-result-legs-title">SETT FOR SETT · LEGS</div>${html}`;
   }
@@ -79,7 +81,7 @@
     busy=true;
     try{
       const [{data:match,error:matchError},{data:throws,error:throwError}]=await Promise.all([
-        db.from('matches').select('id,game_variant,match_mode,player1_id,player2_id').eq('id',matchId).maybeSingle(),
+        db.from('matches').select('id,game_variant,match_mode,player1_id,player2_id,winner_id').eq('id',matchId).maybeSingle(),
         db.from('match_throws').select('player_id,set_no,leg_no,visit_no,score,darts_used,is_checkout,created_at').eq('match_id',matchId)
       ]);
       if(matchError||throwError||!match)return;
