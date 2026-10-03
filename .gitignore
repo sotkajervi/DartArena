@@ -3,3 +3,12 @@ dist/
 coverage/
 *.tsbuildinfo
 .DS_Store
+
+# Never commit local secrets or private credentials.
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
