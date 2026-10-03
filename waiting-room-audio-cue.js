@@ -2,6 +2,9 @@
   if(window.__DartArenaWaitingRoomAudioCue)return;
   window.__DartArenaWaitingRoomAudioCue=true;
 
+  // Kill any speech queued by older cached versions of this script.
+  try{window.speechSynthesis?.cancel()}catch{}
+
   const remoteVideo=document.getElementById('remoteVideo');
   const audioBtn=document.getElementById('remoteAudioBtn');
   if(!remoteVideo||!audioBtn)return;
@@ -144,5 +147,6 @@
     clearInterval(timer);
     obs.disconnect();
     try{ctx?.close()}catch{}
+    try{window.speechSynthesis?.cancel()}catch{}
   },{once:true});
 })();
