@@ -3,7 +3,7 @@ const $=id=>document.getElementById(id),wait=setInterval(()=>{if(!window.supabas
 async function boot(){
  const matchId=new URLSearchParams(location.search).get('id');if(!matchId)return;
  const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
- const {data:{session}}=await db.auth.getSession();if(!session)return;const me=session.user.id;
+ const {data:{session}}=await db.auth.getSession();if(!session)return;
  let {data:match}=await db.from('matches').select('*').eq('id',matchId).single();if(!match)return;
  let throws=[];
  const style=document.createElement('style');style.textContent=`
@@ -26,8 +26,8 @@ body.match-page.da-result-open .video-slot-label{opacity:0!important;visibility:
 .da-result-statlist.x01-expanded-statlist .da-result-statrow{min-width:0;padding:6px 2px}
 .da-result-statlist.x01-expanded-statlist .da-result-statrow span{min-width:0;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .da-result-statlist.x01-expanded-statlist .da-result-statrow b{font-size:14px;white-space:nowrap}
-.da-result-statcard.da-result-self-card{order:1}
-.da-result-statcard.da-result-opponent-card{order:2}
+.da-result-statcard.da-result-winner-first{order:1}
+.da-result-statcard.da-result-runner-up{order:2}
 @media(max-width:600px){
  .stats-grid{grid-template-columns:100px 1fr 1fr}.stats-grid>*{padding:7px 5px;font-size:12px}
  .da-result-actions.x01-result-actions{grid-template-columns:1fr}.da-result-actions.x01-result-actions #daResultClose{grid-column:auto}
@@ -44,27 +44,26 @@ body.match-page.da-result-open .video-slot-label{opacity:0!important;visibility:
  function enhanceResultStats(overlay){
    const cards=[...overlay.querySelectorAll('.da-result-statcard')];
    if(cards.length<2)return;
-   const values=[
-     window.DartArenaX01Stats.statsFor(throws,match.player1_id),
-     window.DartArenaX01Stats.statsFor(throws,match.player2_id)
-   ];
-   cards.slice(0,2).forEach((card,index)=>{
+   cards.slice(0,2).forEach(card=>{
+     const pid=card.dataset.playerId;
+     if(!pid)return;
      const list=card.querySelector('.da-result-statlist');
      if(!list)return;
+     const value=window.DartArenaX01Stats.statsFor(throws,pid);
      list.classList.add('x01-expanded-statlist');
-     list.innerHTML=resultStatHtml(values[index]);
+     list.innerHTML=resultStatHtml(value);
    });
  }
- function applySelfFirstResult(overlay){
-   if(!overlay||![match.player1_id,match.player2_id].includes(me))return;
+ function applyWinnerFirstResult(overlay){
+   if(!overlay)return;
    const cards=[...overlay.querySelectorAll('.da-result-stats>.da-result-statcard')];
    if(cards.length<2)return;
-   cards[0].classList.remove('da-result-self-card','da-result-opponent-card');
-   cards[1].classList.remove('da-result-self-card','da-result-opponent-card');
-   const selfIndex=me===match.player1_id?0:1;
-   cards[selfIndex].classList.add('da-result-self-card');
-   cards[selfIndex===0?1:0].classList.add('da-result-opponent-card');
-   overlay.dataset.selfFirstStats='1';
+   cards.forEach(card=>card.classList.remove('da-result-winner-first','da-result-runner-up','da-result-self-card','da-result-opponent-card'));
+   const winnerCard=cards.find(card=>card.dataset.playerId===match.winner_id)||cards.find(card=>card.classList.contains('winner'))||cards[0];
+   const otherCard=cards.find(card=>card!==winnerCard);
+   winnerCard?.classList.add('da-result-winner-first');
+   otherCard?.classList.add('da-result-runner-up');
+   overlay.dataset.winnerFirstStats='1';
  }
  function applyResultRoles(attempt=0){
    if(window.DartArenaRoleVisuals?.scan){window.DartArenaRoleVisuals.scan();return}
@@ -76,12 +75,12 @@ body.match-page.da-result-open .video-slot-label{opacity:0!important;visibility:
    const overlay=$('dartArenaResultOverlay'),actions=overlay?.querySelector('.da-result-actions');
    if(!overlay||!actions){if(attempt<50)setTimeout(()=>enhanceFinalResult(attempt+1),100);return}
    enhanceResultStats(overlay);
-   applySelfFirstResult(overlay);
+   applyWinnerFirstResult(overlay);
    overlay.querySelector('#daResultLobby')?.remove();
    if(actions.dataset.x01Enhanced==='1'){applyResultRoles();return}
    actions.dataset.x01Enhanced='1';actions.classList.add('x01-result-actions');
    const screenshot=document.createElement('button');screenshot.type='button';screenshot.className='outline';screenshot.textContent='Skjermbilde';
-   screenshot.onclick=()=>{enhanceResultStats(overlay);applySelfFirstResult(overlay);applyResultRoles();setTimeout(()=>window.DartArenaResultScreenshot?.open?.(overlay.querySelector('.da-result-card'),{returnFocus:screenshot}),0)};
+   screenshot.onclick=()=>{enhanceResultStats(overlay);applyWinnerFirstResult(overlay);applyResultRoles();setTimeout(()=>window.DartArenaResultScreenshot?.open?.(overlay.querySelector('.da-result-card'),{returnFocus:screenshot}),0)};
    const full=document.createElement('button');full.type='button';full.className='outline';full.textContent='Full kampstatistikk';
    full.onclick=()=>window.open(`match-stats.html?id=${encodeURIComponent(matchId)}`,`dartarena-match-stats-${matchId}`);
    actions.prepend(full);actions.prepend(screenshot);applyResultRoles();
