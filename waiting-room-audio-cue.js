@@ -25,6 +25,23 @@
     return ctx;
   }
 
+  function chooseAnnouncerVoice(){
+    const voices=window.speechSynthesis.getVoices?.()||[];
+    const preferredNames=[
+      /google uk english male/i,
+      /microsoft george/i,
+      /microsoft ryan/i,
+      /microsoft david/i,
+      /daniel/i,
+      /arthur/i
+    ];
+    for(const pattern of preferredNames){
+      const hit=voices.find(v=>pattern.test(v.name)&&/^en/i.test(v.lang||''));
+      if(hit)return hit;
+    }
+    return voices.find(v=>/^en-GB/i.test(v.lang||''))||voices.find(v=>/^en/i.test(v.lang||''))||null;
+  }
+
   function speakSoundPrompt(){
     if(!('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window)){
       playDing();
@@ -32,13 +49,12 @@
     }
     try{
       window.speechSynthesis.cancel();
-      const u=new SpeechSynthesisUtterance('Opponent connected. Please turn on sound.');
+      const u=new SpeechSynthesisUtterance('Opponent connected... turn your sound ON!');
       u.lang='en-GB';
-      u.rate=.92;
-      u.pitch=1;
-      u.volume=.95;
-      const voices=window.speechSynthesis.getVoices?.()||[];
-      const preferred=voices.find(v=>/^en-GB/i.test(v.lang))||voices.find(v=>/^en/i.test(v.lang));
+      u.rate=.78;
+      u.pitch=.68;
+      u.volume=1;
+      const preferred=chooseAnnouncerVoice();
       if(preferred)u.voice=preferred;
       pendingVoice=false;
       window.speechSynthesis.speak(u);
