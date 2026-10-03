@@ -2,18 +2,12 @@
   if(window.__DartArenaWaitingRoomAudioCue)return;
   window.__DartArenaWaitingRoomAudioCue=true;
 
-  const localVideo=document.getElementById('localVideo');
   const remoteVideo=document.getElementById('remoteVideo');
   const audioBtn=document.getElementById('remoteAudioBtn');
-  if(!localVideo||!remoteVideo||!audioBtn)return;
+  if(!remoteVideo||!audioBtn)return;
 
-  const localCard=localVideo.closest('.video-card');
   const remoteCard=remoteVideo.closest('.video-card');
-  if(localCard){
-    localCard.classList.add('waiting-local-audio-card');
-    localCard.appendChild(audioBtn);
-    audioBtn.classList.add('waiting-audio-overlay');
-  }
+  audioBtn.classList.add('waiting-audio-button');
 
   let ctx=null;
   let pendingDing=false;
