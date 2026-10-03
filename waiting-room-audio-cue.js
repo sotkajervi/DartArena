@@ -17,6 +17,7 @@
 
   let ctx=null;
   let pendingDing=false;
+  let pendingVoice=false;
   let connected=false;
   let disconnectedSince=0;
   let audioWanted=false;
@@ -30,13 +31,41 @@
     return ctx;
   }
 
+  function speakSoundPrompt(){
+    if(!('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window)){
+      playDing();
+      return;
+    }
+    try{
+      window.speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance('Opponent connected. Please turn on sound.');
+      u.lang='en-GB';
+      u.rate=.92;
+      u.pitch=1;
+      u.volume=.95;
+      const voices=window.speechSynthesis.getVoices?.()||[];
+      const preferred=voices.find(v=>/^en-GB/i.test(v.lang))||voices.find(v=>/^en/i.test(v.lang));
+      if(preferred)u.voice=preferred;
+      pendingVoice=false;
+      window.speechSynthesis.speak(u);
+    }catch{
+      pendingVoice=true;
+      playDing();
+    }
+  }
+
   async function unlockAudio(){
     const c=ensureAudioContext();
-    if(!c)return;
-    try{if(c.state==='suspended')await c.resume()}catch{}
-    if(pendingDing&&c.state==='running'){
-      pendingDing=false;
-      playDing();
+    if(c){
+      try{if(c.state==='suspended')await c.resume()}catch{}
+      if(pendingDing&&c.state==='running'){
+        pendingDing=false;
+        playDing();
+      }
+    }
+    if(pendingVoice){
+      pendingVoice=false;
+      speakSoundPrompt();
     }
   }
 
@@ -100,7 +129,7 @@
     if(connected)return;
     connected=true;
     disconnectedSince=0;
-    playDing();
+    speakSoundPrompt();
     remoteCard?.classList.remove('waiting-connect-flash');
     void remoteCard?.offsetWidth;
     remoteCard?.classList.add('waiting-connect-flash');
@@ -137,5 +166,5 @@
   const obs=new MutationObserver(poll);
   obs.observe(audioBtn,{attributes:true,attributeFilter:['class']});
   const timer=setInterval(poll,250);
-  window.addEventListener('pagehide',()=>{clearInterval(timer);obs.disconnect();try{ctx?.close()}catch{}},{once:true});
+  window.addEventListener('pagehide',()=>{clearInterval(timer);obs.disconnect();try{ctx?.close()}catch{};try{window.speechSynthesis?.cancel()}catch{}},{once:true});
 })();
