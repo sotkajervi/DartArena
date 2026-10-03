@@ -1,0 +1,9 @@
+.video-card.waiting-local-audio-card{position:relative}
+.waiting-audio-overlay{position:absolute!important;left:50%;top:50%;transform:translate(-50%,-50%);z-index:12;min-width:min(82%,320px);padding:16px 22px!important;border:1px solid rgba(35,226,209,.62)!important;border-radius:16px!important;background:rgba(5,18,20,.58)!important;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);box-shadow:0 8px 34px rgba(0,0,0,.34),0 0 28px rgba(35,226,209,.12);color:#ecffff!important;font-size:17px!important;font-weight:950!important;letter-spacing:.035em;text-align:center;cursor:pointer;transition:transform .16s ease,background .16s ease,border-color .16s ease}
+.waiting-audio-overlay:hover{transform:translate(-50%,-50%) scale(1.025);background:rgba(5,22,24,.72)!important;border-color:rgba(35,226,209,.9)!important}
+.waiting-audio-overlay.audio-on{background:rgba(5,18,20,.34)!important;border-color:rgba(255,255,255,.26)!important;font-size:14px!important;min-width:0;padding:10px 14px!important;left:auto;right:12px;top:12px;transform:none}
+.waiting-audio-overlay.audio-on:hover{transform:none}
+.waiting-audio-overlay.hidden{display:none!important}
+.waiting-connect-flash{animation:waitingConnectFlash .8s ease-out}
+@keyframes waitingConnectFlash{0%{box-shadow:inset 0 0 0 2px rgba(35,226,209,.95),0 0 0 0 rgba(35,226,209,.45)}100%{box-shadow:inset 0 0 0 1px rgba(35,226,209,0),0 0 0 18px rgba(35,226,209,0)}}
+@media(max-width:700px){.waiting-audio-overlay{min-width:78%;padding:14px 16px!important;font-size:16px!important}.waiting-audio-overlay.audio-on{right:9px;top:9px;font-size:13px!important}}
