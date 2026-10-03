@@ -35,7 +35,7 @@
     if(typeof db==='undefined'||typeof profile==='undefined'||!profile?.id||typeof activeMatch==='undefined'||activeMatch)return null;
     const [{data:incoming,error:incomingError},{data:sent,error:sentError}]=await Promise.all([
       db.from('challenges').select('id,created_at').eq('challenged_id',profile.id).eq('status','pending').order('created_at',{ascending:false}),
-      db.from('challenges').select('id,created_at').eq('challenger_id',profile.id).eq('status','pending').order('created_at',{ascending:false})
+      db.from('challenges').select('id,created_at,status').eq('challenger_id',profile.id).in('status',['pending','room']).order('created_at',{ascending:false})
     ]);
     return{
       incoming:incomingError?[]:(incoming||[]),
@@ -50,7 +50,7 @@
       const button=incomingButtons.find(b=>b.dataset.id===c.id);
       setTime(button?.closest('.challenge-row'),stamp(c.created_at,'Mottatt'));
     }
-    const sentButtons=[...document.querySelectorAll('#sentChallengeList .withdraw-challenge[data-id]')];
+    const sentButtons=[...document.querySelectorAll('#sentChallengeList .challenge-actions button[data-id]')];
     for(const c of times.sent){
       const button=sentButtons.find(b=>b.dataset.id===c.id);
       setTime(button?.closest('.challenge-row'),stamp(c.created_at,'Sendt'));
