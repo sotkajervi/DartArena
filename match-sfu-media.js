@@ -10,6 +10,8 @@
   let publication=null;
   let remotePublication=null;
   let subscribedPublicationId=null;
+  let subscribedAt=0;
+  let lastRemoteTrackAt=0;
   let publishedSignature='';
   let publishing=false;
   let subscribing=false;
@@ -46,9 +48,14 @@
     return !!s&&s.getTracks().some(t=>t.readyState==='live');
   }
 
+  function remoteMedia(){return el('remoteVideo')?.srcObject}
   function remoteHasLiveVideo(){
-    const s=el('remoteVideo')?.srcObject;
+    const s=remoteMedia();
     return s instanceof MediaStream&&s.getVideoTracks().some(t=>t.readyState==='live');
+  }
+  function remoteHasLiveAudio(){
+    const s=remoteMedia();
+    return s instanceof MediaStream&&s.getAudioTracks().some(t=>t.readyState==='live');
   }
 
   function setStatus(text){
@@ -104,15 +111,26 @@
     }
   }
 
-  async function subscribe(pub){
+  async function subscribe(pub,force=false){
     const o=safeOther();
     if(stopped||subscribing||!pub?.sessionId||!Array.isArray(pub.tracks)||!o)return;
-    if(subscribedPublicationId===pub.sessionId&&remoteHasLiveVideo())return;
+
+    const samePublication=subscribedPublicationId===pub.sessionId;
+    const age=Date.now()-subscribedAt;
+    // Do not tear down a fresh SFU subscriber just because audio arrived before the
+    // first video frames. This was causing an audio-only reconnect loop.
+    if(!force&&samePublication){
+      if(remoteHasLiveVideo())return;
+      if(age<8000)return;
+    }
+
     const client=ensureClient();
     if(!client)return;
 
     subscribing=true;
     subscribedPublicationId=pub.sessionId;
+    subscribedAt=Date.now();
+    lastRemoteTrackAt=0;
     lastError='';
     const video=el('remoteVideo');
     const placeholder=el('remotePlaceholder');
@@ -138,12 +156,23 @@
         }
         const tracks=event.streams?.[0]?.getTracks?.()||[event.track];
         for(const track of tracks){
-          if(track&&!rs.getTracks().some(t=>t.id===track.id))rs.addTrack(track);
+          if(track&&!rs.getTracks().some(t=>t.id===track.id)){
+            rs.addTrack(track);
+            lastRemoteTrackAt=Date.now();
+            note(`REMOTE ${track.kind} track`,{id:track.id,state:track.readyState,muted:track.muted});
+          }
+          if(track?.kind==='video'){
+            track.onunmute=async()=>{
+              lastRemoteTrackAt=Date.now();
+              try{await video.play()}catch{}
+              if(track.readyState==='live')placeholder?.classList.add('hidden');
+            };
+          }
         }
         video.muted=true;
         video.playsInline=true;
         await video.play().catch(()=>{});
-        if(rs.getVideoTracks().some(t=>t.readyState==='live')&&video.readyState>=2){
+        if(rs.getVideoTracks().some(t=>t.readyState==='live')){
           placeholder?.classList.add('hidden');
         }
         if(rs.getAudioTracks().some(t=>t.readyState==='live'))el('remoteAudioBtn')?.classList.remove('hidden');
@@ -152,6 +181,7 @@
       note('SUBSCRIBE ok',{sessionId:pub.sessionId,tracks:pub.tracks});
     }catch(error){
       subscribedPublicationId=null;
+      subscribedAt=0;
       lastError=error?.message||String(error);
       note('SUBSCRIBE error',lastError);
       if(placeholder){
@@ -173,9 +203,14 @@
     mediaChannel=clientDb.channel(`match-player-sfu-${id}`)
       .on('broadcast',{event:'media-state'},async({payload})=>{
         if(!payload||payload.from!==o)return;
+        const changed=payload.publication?.sessionId&&payload.publication.sessionId!==remotePublication?.sessionId;
         remotePublication=payload.publication||null;
         note('REMOTE publication',remotePublication?.sessionId||'none');
-        if(remotePublication)await subscribe(remotePublication);
+        if(changed){
+          subscribedPublicationId=null;
+          subscribedAt=0;
+        }
+        if(remotePublication)await subscribe(remotePublication,changed);
       })
       .subscribe(async status=>{
         note('CHANNEL',status);
@@ -187,7 +222,7 @@
           if(stopped)return;
           await publish();
           await announce();
-          if(remotePublication&&(!subscribedPublicationId||!remoteHasLiveVideo()))await subscribe(remotePublication);
+          if(remotePublication&&!subscribedPublicationId)await subscribe(remotePublication);
         },1800);
       });
     return true;
@@ -213,7 +248,7 @@
 
   function debugText(){
     const local=safeStream();
-    const remote=el('remoteVideo')?.srcObject;
+    const remote=remoteMedia();
     return [
       'MEDIA: CLOUDFLARE SFU',
       `LOCAL READY: ${(()=>{try{return !!localReady}catch{return false}})()}`,
@@ -221,8 +256,12 @@
       `PUBLISHER: ${publication?.sessionId||'none'}`,
       `SUBSCRIBER: ${sfu?.subscriberSessionId||'none'}`,
       `REMOTE PUB: ${remotePublication?.sessionId||'none'}`,
+      `SUB AGE: ${subscribedAt?Math.round((Date.now()-subscribedAt)/1000)+'s':'none'}`,
       `LOCAL TRACKS: ${local instanceof MediaStream?local.getTracks().map(t=>`${t.kind}:${t.readyState}:${t.enabled?'on':'off'}`).join(', '):'none'}`,
       `REMOTE TRACKS: ${remote instanceof MediaStream?remote.getTracks().map(t=>`${t.kind}:${t.readyState}:${t.muted?'muted':'live'}`).join(', '):'none'}`,
+      `REMOTE AUDIO: ${remoteHasLiveAudio()?'yes':'no'}`,
+      `REMOTE VIDEO: ${remoteHasLiveVideo()?'yes':'no'}`,
+      `LAST TRACK: ${lastRemoteTrackAt?Math.round((Date.now()-lastRemoteTrackAt)/1000)+'s ago':'none'}`,
       `LAST ERROR: ${lastError||'none'}`,
       '',
       ...log
@@ -253,9 +292,17 @@
     setupChannel();
     const signature=trackSignature();
     if(hasPublishableTracks()&&signature!==publishedSignature)await publish(true);
-    if(remotePublication&&(!subscribedPublicationId||!remoteHasLiveVideo()))await subscribe(remotePublication);
+
+    if(remotePublication){
+      if(!subscribedPublicationId){
+        await subscribe(remotePublication);
+      }else if(!remoteHasLiveVideo()&&Date.now()-subscribedAt>=8000){
+        note('VIDEO timeout – resubscribe',{audio:remoteHasLiveAudio(),age:Date.now()-subscribedAt});
+        await subscribe(remotePublication,true);
+      }
+    }
     renderDebug();
-  },800);
+  },1000);
 
   window.DartArenaMatchMedia={mode:'sfu',republish:()=>publish(true),reconnect:async()=>{
     try{sfu?.close()}catch{}
@@ -263,6 +310,7 @@
     publication=null;
     remotePublication=null;
     subscribedPublicationId=null;
+    subscribedAt=0;
     publishedSignature='';
     await publish(true);
     await announce();
