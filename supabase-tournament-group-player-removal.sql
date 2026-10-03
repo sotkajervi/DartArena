@@ -10,6 +10,7 @@ as $function$
 declare
   v_tournament public.tournaments%rowtype;
   v_live_ids uuid[];
+  v_active_live_ids uuid[];
   v_removed_matches integer := 0;
   v_removed_played integer := 0;
 begin
@@ -48,15 +49,16 @@ begin
 
   select
     coalesce(array_agg(distinct live_match_id) filter (where live_match_id is not null), array[]::uuid[]),
+    coalesce(array_agg(distinct live_match_id) filter (where live_match_id is not null and status = 'live'), array[]::uuid[]),
     count(*)::integer,
     count(*) filter (where status in ('live','finished','wo'))::integer
-  into v_live_ids, v_removed_matches, v_removed_played
+  into v_live_ids, v_active_live_ids, v_removed_matches, v_removed_played
   from public.tournament_matches
   where tournament_id = p_tournament_id
     and stage = 'group'
     and (player1_id = p_user_id or player2_id = p_user_id);
 
-  if cardinality(v_live_ids) > 0 then
+  if cardinality(v_active_live_ids) > 0 then
     update public.profiles p
        set status = 'unavailable',
            last_seen = now()
@@ -64,14 +66,22 @@ begin
        and exists (
          select 1
            from public.matches m
-          where m.id = any(v_live_ids)
+          where m.id = any(v_active_live_ids)
+            and m.status in ('waiting','playing')
             and (m.player1_id = p.id or m.player2_id = p.id)
        );
 
     update public.matches
-       set status = case when status in ('waiting','playing') then 'cancelled' else status end,
-           finished_at = case when status in ('waiting','playing') then coalesce(finished_at,now()) else finished_at end,
-           deleted_at = coalesce(deleted_at,now()),
+       set status = 'cancelled',
+           finished_at = coalesce(finished_at,now()),
+           updated_at = now()
+     where id = any(v_active_live_ids)
+       and status in ('waiting','playing');
+  end if;
+
+  if cardinality(v_live_ids) > 0 then
+    update public.matches
+       set deleted_at = coalesce(deleted_at,now()),
            deleted_by = coalesce(deleted_by,auth.uid()),
            updated_at = now()
      where id = any(v_live_ids);
@@ -90,12 +100,6 @@ begin
    where tournament_id = p_tournament_id
      and user_id = p_user_id
      and role = 'participant';
-
-  update public.profiles
-     set status = 'unavailable',
-         last_seen = now()
-   where id = p_user_id
-     and status = 'in_game';
 
   return jsonb_build_object(
     'removed_user_id', p_user_id,
