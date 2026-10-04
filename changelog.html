@@ -16,23 +16,71 @@
 <header><div class="brand">DART<span>ARENA</span></div><div class="live"><i></i> CHANGELOG</div></header>
 <main class="changelog-shell">
   <div class="changelog-head"><div><small>UTVIKLING</small><h1>Hva er nytt?</h1><p class="muted">Brukerrettede endringer i DartArena, fra den første prototypen og fram til i dag.</p></div><button class="outline" onclick="location.href='./'">Til lobby</button></div>
-  <p class="changelog-note">Listen samler funksjoner og merkbare rettelser. Små interne database-, cache- og kodeendringer er slått sammen til forståelige punkter.</p>
+  <p class="changelog-note">DartArena er fortsatt i BETA. Gi gjerne beskjed hvis noe ikke fungerer eller du har forslag til forbedringer.</p>
   <section class="timeline">
-    <article class="card release"><div class="release-head"><div class="release-date">1. oktober 2026</div><span class="release-badge">NYEST</span></div><ul><li>Lobby: Ny oversikt over pågående kamper med spillere, spilltype, Best of-format, live resultat og direkte Spectate-knapp.</li><li>Pågående kamper kan filtreres på X01, Cricket, Half-It, 61 og JDC.</li><li>Spectate: Antall aktive tilskuere vises live i oversikten, og spectator-modus er read-only.</li><li>Oppvarming: Onlinekamper kan merkes som oppvarming før start. De spilles normalt, men teller ikke i AVG, form, ranking eller Top 10.</li><li>Kamphistorikk: Oppvarmingskamper er skjult som standard og kan vises med eget filter.</li><li>Kamphistorikk: Admin kan soft-slette testkamper. Slettede kamper påvirker ikke spillerstatistikk eller AVG.</li><li>Kamphistorikk: Ny Papirkurv for admin med mulighet til å gjenopprette slettede kamper.</li><li>Kamphistorikk kan eksporteres til CSV med gjeldende filtre.</li><li>Video: Tydeligere reconnect-status viser når DartArena kobler til, mister nett eller prøver å hente videostrømmen tilbake.</li><li>Admin: Ny ryddefunksjon for hengende waiting/playing-kamper, slik at fastlåste testkamper kan avsluttes uten databasearbeid.</li><li>Admin: Ny feillogg samler relevante klientfeil fra DartArena for enklere feilsøking.</li><li>Navigasjon: DARTARENA-logoen i toppmenyen fungerer nå som hjemknapp til hovedlobbyen på alle sider.</li><li>JDC online fikk stabilitetsforbedringer i kamprommet og opprydding av kode som kunne føre til at siden sluttet å svare.</li></ul></article>
+    <article class="card release"><div class="release-head"><div class="release-date">4. oktober 2026</div><span class="release-badge">NYEST</span></div><ul>
+      <li><strong>Beta:</strong> Etter to komplette testturneringer er DartArena åpnet for flere brukere.</li>
+      <li><strong>Spillere:</strong> Ny søkbar spilleroversikt med egne spillerprofiler.</li>
+      <li><strong>Karrierestatistikk:</strong> Se kamper, seire, seiersprosent, X01 AVG, First 9, beste kamp-AVG, høyeste checkout, raskeste leg, 100+, 140+, 170+, 180 og full kamphistorikk.</li>
+      <li><strong>Spectator:</strong> Kampstatistikk og live resultat er forbedret, og det vises hvem som følger kampen.</li>
+      <li><strong>Turneringer:</strong> Cupflyt og liveoppdatering er forbedret etter testturneringene. Ferdige turneringer beholdes i arkivet med resultater og statistikk.</li>
+      <li><strong>Turneringsledelse:</strong> Turneringsleder/Admin kan fjerne spillere fra puljespill, og cupoppsett er låst til turneringsleder/Admin/Owner.</li>
+      <li><strong>Utfordringer:</strong> Ny utfordring får tydelig visuelt varsel og et kort lydsignal i lobbyen.</li>
+      <li><strong>Video:</strong> Onlinekamper forsøker direkte P2P-tilkobling først, med fallback ved behov. Valgt kamera og mikrofon huskes.</li>
+      <li><strong>Spill og statistikk:</strong> Flere rettelser i Half-It, JDC, checkout, resultatvisning og sluttstatistikk.</li>
+      <li><strong>Sikkerhet:</strong> Tilgangskontroll, databasebeskyttelse og beskyttelse mot spam/misbruk er strammet kraftig inn før betaslippen.</li>
+    </ul></article>
 
-    <article class="card release"><div class="release-head"><div class="release-date">30. september 2026</div></div><ul><li>Kampresultat: X01, Cricket, begge Half-It-variantene og 61 bruker nå samme kompakte DartArena-sluttskjerm med spilltilpasset statistikk og leg-oversikt der dataene støtter det.</li><li>Fremtidige online spill får automatisk samme sluttskjerm og kan koble på egne statistikkfelt uten å bygge en ny resultatside.</li><li>Half-It: Støtte for Best of flere legs er rettet, med automatisk neste leg og sluttskjerm når kampen faktisk er ferdig.</li><li>Half-It (DartCounter): Eksakt-score gir nå tre måltall å velge mellom før kastet.</li><li>Half-It (Standard): Ny variant med 13, 14, Dobbel, 15, 16, Trippel, 17, 18, 41, 19, 20 og Bull.</li><li>Half-It (Standard): Direkte WebRTC-video med automatisk recovery er tatt i bruk i kamprommet.</li><li>Spill alene: Både Half-It (DartCounter) og Half-It (Standard) er lagt til som treningsspill.</li><li>Lobby: Topplinjen er ryddet, og Form stats, Kamphistorikk og spillstatus er flyttet til en mer oversiktlig struktur.</li><li>61: Felles serverstyrt starttid og kampklokke for begge spillere.</li><li>61: HØYESTE UT viser høyeste faktisk satte checkout.</li><li>61: Separate Top 10-lister for 10, 20, 30, 45 og 60 minutter.</li><li>61: Sudden death følger hvert sitt aktuelle checkout-mål og avgjøres først når én treffer og den andre bommer i samme runde.</li><li>Kamprom: Start/stopp kamera forbedret på tvers av X01, Cricket, Half-It og 61.</li><li>Cricket: Turen kan sendes videre etter 1 eller 2 registrerte piler uten å fylle resten med Miss.</li></ul></article>
+    <article class="card release"><div class="release-head"><div class="release-date">1. oktober 2026</div></div><ul>
+      <li>Ny oversikt over pågående kamper med spillere, spilltype, live resultat og Spectate-knapp.</li>
+      <li>Pågående kamper kan filtreres på X01, Cricket, Half-It, 61 og JDC.</li>
+      <li>Oppvarmingskamper kan merkes før start og holdes utenfor AVG, form, ranking og Top 10.</li>
+      <li>Kamphistorikk fikk filtre, CSV-eksport og admin-papirkurv for testkamper.</li>
+      <li>Video fikk tydeligere reconnect-status og bedre automatisk recovery.</li>
+      <li>Admin fikk ryddefunksjon for hengende kamper og egen feillogg.</li>
+      <li>DARTARENA-logoen fungerer som hjemknapp på alle sider.</li>
+    </ul></article>
 
-    <article class="card release"><div class="release-head"><div class="release-date">29. september 2026</div></div><ul><li>Half-It lagt til som online spill med 12 runder, historikk og webcam.</li><li>61 lagt til som både solo treningsspill og online kamp.</li><li>61 fikk tastatursnarveier og pausefunksjon.</li><li>X01: Kampgjennomsnitt vises live og beregnes over hele kampen.</li><li>X01: Videotilkoblingen fikk kraftigere automatisk recovery ved brudd.</li><li>Lobby: Online-status oppdateres automatisk uten manuell refresh.</li><li>Cam-test forbedret med valg av kamera og mikrofon samt nivåmåler.</li></ul></article>
+    <article class="card release"><div class="release-head"><div class="release-date">30. september 2026</div></div><ul>
+      <li>Felles kompakt sluttskjerm for X01, Cricket, Half-It og 61 med spilltilpasset statistikk.</li>
+      <li>Half-It fikk støtte for flere legs, Eksakt-score og ny Standard-variant.</li>
+      <li>Begge Half-It-variantene ble lagt til som treningsspill.</li>
+      <li>61 fikk serverstyrt kampklokke, Top 10 per tidsformat og forbedret sudden death.</li>
+      <li>Kamera/start-stopp og kampflyt ble forbedret på tvers av spillmodusene.</li>
+    </ul></article>
 
-    <article class="card release"><div class="release-head"><div class="release-date">28. september 2026</div></div><ul><li>Cricket ferdigstilt som online kampmodus med webcam.</li><li>Cricket fikk tastaturbasert scoring, kastlogg og korrigering av siste kast.</li><li>Cricket-oppsettet ble komprimert og gjort bedre egnet til vanlig PC-skjerm og kasteavstand.</li><li>Motstanderens video fikk tydeligere fokus når det er motstanderens tur.</li><li>Lobby og kamprom fikk flere stabilitets- og layoutforbedringer.</li></ul></article>
+    <article class="card release"><div class="release-head"><div class="release-date">29. september 2026</div></div><ul>
+      <li>Half-It og 61 lagt til som online spill.</li>
+      <li>61 lagt til som solo treningsspill med tastatursnarveier og pause.</li>
+      <li>X01 fikk live kampgjennomsnitt.</li>
+      <li>Lobby-status oppdateres automatisk, og Cam-test fikk valg av kamera/mikrofon og nivåmåler.</li>
+    </ul></article>
 
-    <article class="card release"><div class="release-head"><div class="release-date">27. september 2026</div></div><ul><li>Turneringsarkiv og visning av tidligere resultater ble bygget ut.</li><li>Cupflyt, kampresultater og sluttstatistikk fikk flere rettelser.</li><li>Administrasjon av turneringer ble utvidet, blant annet med sikre slettekontroller.</li><li>Turneringsoppsettet fikk flere valg for format og runder.</li><li>Lobbyen ble ryddet og organiseringen av spillere, utfordringer og turneringer ble forbedret.</li></ul></article>
+    <article class="card release"><div class="release-head"><div class="release-date">28. september 2026</div></div><ul>
+      <li>Cricket ferdigstilt som online kampmodus med scoring, kastlogg og korrigering.</li>
+      <li>Motstanderens video og kamprommet fikk flere stabilitets- og layoutforbedringer.</li>
+    </ul></article>
 
-    <article class="card release"><div class="release-head"><div class="release-date">26. september 2026</div></div><ul><li>Turneringssystemet ble lansert med opprettelse, påmelding og egen turneringsside.</li><li>Puljespill og cup fikk databasegrunnlag og automatisk kampoppsett.</li><li>Turneringer fikk dato-/tidsvelger og mulighet for avlysning.</li><li>Spectator-rom for turneringskamper ble lagt til med sanntidsoppdatering.</li><li>Live-kamper ble koblet tilbake til turneringsresultatene automatisk.</li><li>Venterom for turneringsspillere og støtte for valg av hvem som starter ble lagt til.</li></ul></article>
+    <article class="card release"><div class="release-head"><div class="release-date">27. september 2026</div></div><ul>
+      <li>Turneringsarkiv, tidligere resultater, cupflyt og sluttstatistikk ble bygget videre ut.</li>
+      <li>Turneringsadministrasjon og lobbyoppsett ble ryddet og forbedret.</li>
+    </ul></article>
 
-    <article class="card release"><div class="release-head"><div class="release-date">25. september 2026</div></div><ul><li>Online kampflyt og venterom ble kraftig utvidet.</li><li>Kampformat fikk støtte for legs og sets.</li><li>Avbryt kamp, lydkontroller og flere feil i kamprommet ble rettet.</li><li>Spillerne ble tydelig vist mot hverandre i venterommet før kampstart.</li></ul></article>
+    <article class="card release"><div class="release-head"><div class="release-date">26. september 2026</div></div><ul>
+      <li>Turneringssystemet ble lansert med opprettelse, påmelding, puljespill og cup.</li>
+      <li>Spectator-rom, live resultatkobling og venterom for turneringskamper ble lagt til.</li>
+    </ul></article>
 
-    <article class="card release origin"><div class="release-head"><div class="release-date">24. september 2026</div><span class="release-badge">STARTEN</span></div><ul><li>Første versjon ble lagt ut av DartArena.</li><li>Den første prototypen hadde lokal webcam-visning og 501 for to spillere.</li><li>Best of 5 legs, score 0–180, Bust og angre siste ble bygget inn.</li><li>Responsivt mørkt/turkist design og mobilvennlig grunnlayout ble etablert.</li><li>Dette var grunnmuren som senere ble bygget om til DartArena med online lobby, profiler, WebRTC-video, turneringer og flere spillmoduser.</li></ul></article>
+    <article class="card release"><div class="release-head"><div class="release-date">25. september 2026</div></div><ul>
+      <li>Online kampflyt og venterom ble kraftig utvidet.</li>
+      <li>Støtte for legs/sets, avbryt kamp og flere forbedringer i kamprommet.</li>
+    </ul></article>
+
+    <article class="card release origin"><div class="release-head"><div class="release-date">24. september 2026</div><span class="release-badge">STARTEN</span></div><ul>
+      <li>Første versjon av DartArena ble lagt ut.</li>
+      <li>Prototypen startet med 501 for to spillere, webcam, Best of 5, Bust og angre.</li>
+      <li>Det mørke/turkise DartArena-designet og grunnlayouten ble etablert.</li>
+    </ul></article>
   </section>
   <div class="back-row"><button class="primary" onclick="location.href='./'">Tilbake til DartArena</button></div>
 </main>
