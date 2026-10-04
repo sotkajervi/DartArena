@@ -6,7 +6,7 @@
     'https://jqpxlbhwvskhjbqrbidk.supabase.co',
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
   );
-  const OWNER='#23e2d1',ADMIN='#ff9f43',LEADER='#4da3ff',GOLD='#F2C14E';
+  const OWNER='#23e2d1',ADMIN='#ff9f43',LEADER='#4da3ff';
   const roleByName=new Map();
   const NAME_SELECTOR='.player-name,.video-name,.match-name,.cricket-player-name,.half-player-name,.sixty-one-player-name,.spectate-name,.spectator-name,.history-player,.results-player,.highlight-name,.jdc-online-player span,#matchPlayer1Name,#matchPlayer2Name,.da-result-stat-name,.da-result-winner-name,.da-result-legwinner';
 
@@ -21,15 +21,9 @@
     const style=document.createElement('style');
     style.id='dartarena-role-visuals-style';
     style.textContent=`
-      .da-role-owner,.da-role-admin{color:var(--text)!important;font-weight:850}
-      .da-role-leader,.role-leader{color:var(--text)!important;font-weight:850}
-      .role-leader-label{color:${LEADER}!important;font-weight:850}
-      .history-player.winner,
-      .da-result-winner-name,
-      .da-result-statcard.winner .da-result-stat-name,
-      .da-result-legwinner.is-winner,
-      .results-player.winner,
-      .results-player.is-winner{color:${GOLD}!important}
+      .da-role-owner{color:${OWNER}!important;font-weight:850}
+      .da-role-admin{color:${ADMIN}!important;font-weight:850}
+      .da-role-leader,.role-leader,.role-leader-label{color:${LEADER}!important;font-weight:850}
       #welcomeName{display:inline-block;vertical-align:middle}
       #welcomeRoleBadge{display:inline-flex;align-items:center;margin-left:9px;padding:3px 7px;border-radius:999px;font-size:10px;font-weight:950;letter-spacing:.1em;vertical-align:middle}
       #welcomeRoleBadge.admin-badge{color:${ADMIN}!important;border:1px solid rgba(255,159,67,.5)!important;background:rgba(255,159,67,.1)!important}
@@ -80,9 +74,10 @@
 
   function syncPlayerBadge(el,role){
     const isPlayerName=el?.classList?.contains('player-name');
+    const isHistoryName=el?.classList?.contains('history-player');
     const isMatchHeader=el?.id==='matchPlayer1Name'||el?.id==='matchPlayer2Name';
     const isResultName=el?.classList?.contains('da-result-stat-name')||el?.classList?.contains('da-result-winner-name');
-    if(!isPlayerName&&!isMatchHeader&&!isResultName)return;
+    if(!isPlayerName&&!isHistoryName&&!isMatchHeader&&!isResultName)return;
     const host=el.parentElement;
     if(!host)return;
     let badge=el.nextElementSibling?.classList?.contains('player-role-badge')?el.nextElementSibling:null;
