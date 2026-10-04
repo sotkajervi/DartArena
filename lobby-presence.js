@@ -1,6 +1,6 @@
 (()=>{
   let profileChannel=null,refreshTimer=null,heartbeatTimer=null,lastRefresh=0;
-  const CHANGELOG_VERSION='2026-09-30';
+  const CHANGELOG_VERSION='2026-10-04';
   const lobbyVisible=()=>{const v=document.getElementById('lobbyView');return v&&!v.classList.contains('hidden')};
   const ready=()=>typeof db!=='undefined'&&typeof profile!=='undefined'&&profile?.id&&lobbyVisible();
   function installChangelogLink(){
