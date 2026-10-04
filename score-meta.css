@@ -105,6 +105,53 @@ body.match-page .match-player.active .live-avg b{
   letter-spacing:-.02em;
 }
 
+/* Current leg dart count: mirrors AVG on the left side of remaining score. */
+body.match-page .match-player .live-darts{
+  position:absolute!important;
+  left:8px!important;
+  top:54%!important;
+  right:auto!important;
+  bottom:auto!important;
+  transform:translateY(-50%)!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  width:68px;
+  min-height:58px;
+  padding:7px 5px;
+  border-radius:10px;
+  border:1px solid rgba(35,226,209,.16);
+  background:rgba(0,0,0,.38);
+  color:var(--muted);
+  font-size:10px!important;
+  font-weight:950;
+  line-height:1;
+  letter-spacing:.10em;
+  white-space:nowrap;
+  pointer-events:none;
+  z-index:4;
+}
+body.match-page .match-player .live-darts span{
+  display:block;
+  color:var(--muted)!important;
+  font-size:10px!important;
+  font-weight:950!important;
+  line-height:1!important;
+  letter-spacing:.12em;
+}
+body.match-page .match-player .live-darts b,
+body.match-page .match-player.active .live-darts b{
+  display:block;
+  color:var(--text)!important;
+  font-size:19px!important;
+  font-weight:950;
+  line-height:1!important;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-.02em;
+}
+
 /* Active thrower: neutral AVG, visible turquoise frame/glow. */
 body.match-page .match-player.active{
   border-color:#23e2d1!important;
@@ -124,7 +171,7 @@ body.match-page .match-player:has(.match-sets.hidden) .match-legs{
   margin:0 4px 0 0!important;
 }
 
-/* TV sidebar: retain a clear AVG pocket on narrow player cards. */
+/* TV sidebar: retain clear stat pockets on narrow player cards. */
 body.match-page.match-tv-layout .match-player{
   padding-right:82px!important;
 }
@@ -134,6 +181,11 @@ body.match-page.match-tv-layout .match-player .match-legs{
 }
 body.match-page.match-tv-layout .match-player .live-avg{
   right:7px!important;
+  width:66px;
+  min-height:56px;
+}
+body.match-page.match-tv-layout .match-player .live-darts{
+  left:7px!important;
   width:66px;
   min-height:56px;
 }
@@ -152,6 +204,14 @@ body.match-page.match-tv-layout .match-player .live-avg{
     min-height:52px;
     padding:6px 4px;
   }
-  body.match-page .match-player .live-avg span{font-size:9px!important}
-  body.match-page .match-player .live-avg b{font-size:17px!important}
+  body.match-page .match-player .live-darts{
+    left:6px!important;
+    width:62px;
+    min-height:52px;
+    padding:6px 4px;
+  }
+  body.match-page .match-player .live-avg span,
+  body.match-page .match-player .live-darts span{font-size:9px!important}
+  body.match-page .match-player .live-avg b,
+  body.match-page .match-player .live-darts b{font-size:17px!important}
 }
