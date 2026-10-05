@@ -26,6 +26,7 @@
   let canManage=false;
   let ready=false;
   let building=false;
+  let reviewing=false;
   let syncBusy=false;
   let syncQueued=false;
   let observer=null;
@@ -38,6 +39,18 @@
     style.textContent=`
       html.da-cup-setup-denied #cupSetup{display:none!important}
       .cup-manager-note{margin:8px 0 0;color:var(--muted);font-size:12px}
+      .da-cup-review-overlay{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:rgba(2,8,10,.82);backdrop-filter:blur(7px);padding:18px}
+      .da-cup-review-card{width:min(560px,100%);max-height:min(720px,calc(100vh - 36px));overflow:auto;background:linear-gradient(155deg,#12282b,#081416 72%);border:1px solid rgba(35,226,209,.48);box-shadow:0 28px 100px #000c,0 0 28px rgba(35,226,209,.08);border-radius:20px;padding:24px;color:var(--text)}
+      .da-cup-review-card h2{margin:5px 0 8px;font-size:24px}.da-cup-review-card p{margin:0 0 18px;color:var(--muted);font-size:13px;line-height:1.6}
+      .da-cup-review-grid{display:grid;gap:10px}
+      .da-cup-review-round{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border:1px solid rgba(255,255,255,.11);background:rgba(0,0,0,.18);border-radius:12px}
+      .da-cup-review-round strong{display:block;font-size:14px}.da-cup-review-round small{display:block;color:var(--muted);font-size:11px;letter-spacing:0;margin-top:4px}
+      .da-cup-review-round select{width:112px;flex:0 0 auto;background:#091c1e;color:#f2f7f7;border:1px solid #306d6d;border-radius:9px;padding:10px;font-weight:900;font-size:15px}
+      .da-cup-review-round select:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+      .da-cup-review-warning{font-size:12px;color:#e8c98b;border:1px solid rgba(244,196,93,.28);background:rgba(244,196,93,.06);border-radius:10px;padding:11px;margin:15px 0}
+      .da-cup-review-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap}
+      .da-cup-review-actions button{min-width:125px}
+      @media(max-width:520px){.da-cup-review-card{padding:18px}.da-cup-review-actions button{flex:1}.da-cup-review-round{padding:10px}}
     `;
     document.head.appendChild(style);
   }
@@ -286,6 +299,74 @@
     const {error}=await gateDb.from('tournament_matches').insert(rows);if(error)throw error;
   }
 
+  async function confirmCupFormats(){
+    const pure=tournamentRow?.tournament_type==='cup';
+    const attribute=pure?'pureCupRound':'cupRound';
+    const selector=pure?'#pureCupFormatSettings select[data-pure-cup-round]':'#cupFormatSettings select[data-cup-round]';
+    const fields=[...document.querySelectorAll(selector)].sort((a,b)=>Number(a.dataset[attribute])-Number(b.dataset[attribute]));
+    if(!fields.length)throw new Error('Fant ingen cuprunder. Vent til cupoppsettet er lastet og prøv igjen.');
+    if(fields.some((field,i)=>Number(field.dataset[attribute])!==i+1||!validBestOf(field.value)))throw new Error('Best of-oppsettet er ugyldig. Oppdater cupoppsettet og prøv igjen.');
+
+    const overlay=document.createElement('div');
+    overlay.className='da-cup-review-overlay';
+    const card=document.createElement('section');
+    card.className='da-cup-review-card';
+    card.setAttribute('role','dialog');
+    card.setAttribute('aria-modal','true');
+    card.setAttribute('aria-labelledby','daCupReviewTitle');
+    card.innerHTML=`<small>KONTROLLER KAMPFORMAT</small>
+      <h2 id="daCupReviewTitle">Klar for cup? 🎯</h2>
+      <p>Se over antall legs per cuprunde. Du kan endre Best of her før du bekrefter oppstart.</p>
+      <div class="da-cup-review-grid">${fields.map((field,i)=>`<label class="da-cup-review-round">
+        <span><strong>${roundName(i+1,fields.length)}</strong><small data-cup-legs-hint>Først til ${(Number(field.value)+1)/2} legs</small></span>
+        <select data-review-round="${i+1}" aria-label="Best of ${roundName(i+1,fields.length)}">${optionHtml(Number(field.value))}</select>
+      </label>`).join('')}</div>
+      <div class="da-cup-review-warning">Etter at cupen er opprettet, er kampformatet låst. Kontroller spesielt finalen.</div>
+      <div class="da-cup-review-actions"><button type="button" class="outline" data-cup-cancel>Tilbake og rediger</button><button type="button" class="primary" data-cup-confirm>Bekreft og start cup</button></div>`;
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+    const focusBefore=document.activeElement;
+    const selects=[...card.querySelectorAll('select[data-review-round]')];
+    const updateHint=select=>{
+      const hint=select.closest('.da-cup-review-round')?.querySelector('[data-cup-legs-hint]');
+      if(hint)hint.textContent=`Først til ${(Number(select.value)+1)/2} legs`;
+    };
+    selects.forEach(select=>select.addEventListener('change',()=>updateHint(select)));
+    selects[0]?.focus();
+
+    return new Promise(resolve=>{
+      let settled=false;
+      function finish(confirmed){
+        if(settled)return;
+        settled=true;
+        document.removeEventListener('keydown',onKey,true);
+        overlay.remove();
+        if(focusBefore?.isConnected)focusBefore.focus();
+        if(confirmed){
+          selects.forEach((select,i)=>{
+            if(!validBestOf(select.value))throw new Error('Ugyldig Best of-verdi.');
+            fields[i].value=select.value;
+            fields[i].dispatchEvent(new Event('change',{bubbles:true}));
+          });
+        }
+        resolve(confirmed);
+      }
+      function onKey(event){
+        if(event.key==='Escape'){event.preventDefault();event.stopPropagation();finish(false)}
+        if(event.key==='Tab'){
+          const controls=[...card.querySelectorAll('select,button')];
+          const first=controls[0],last=controls[controls.length-1];
+          if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
+          else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
+        }
+      }
+      document.addEventListener('keydown',onKey,true);
+      card.querySelector('[data-cup-cancel]').addEventListener('click',()=>finish(false));
+      card.querySelector('[data-cup-confirm]').addEventListener('click',()=>finish(true));
+      overlay.addEventListener('click',event=>{if(event.target===overlay)finish(false)});
+    });
+  }
+
   async function buildAsPrivileged(){
     if(building)return;
     building=true;
@@ -316,18 +397,25 @@
   document.addEventListener('click',async event=>{
     const btn=event.target.closest?.('#buildCupBtn');
     if(!btn||isSimulation())return;
-    try{
-      const leaderNow=typeof tournament!=='undefined'&&typeof me!=='undefined'&&tournament?.owner_id===me;
-      if(leaderNow)return;
-    }catch{}
     event.preventDefault();
     event.stopImmediatePropagation();
-    if(!ready)await refreshPermission().catch(()=>{});
-    if(!canManage){
-      alert('Kun Admin, Owner eller turneringsleder kan sette opp cup.');
-      return;
+    if(building||reviewing||btn.disabled)return;
+    reviewing=true;
+    try{
+      await refreshPermission();
+      if(!canManage)throw new Error('Kun turneringsleder, Admin eller Owner kan starte cup.');
+      if(tournamentRow?.status!=='cup_setup')throw new Error('Cupoppsettet kan bare bekreftes før cupen starter.');
+      const confirmed=await confirmCupFormats();
+      if(!confirmed)return;
+      await buildAsPrivileged();
+    }catch(error){
+      const message=error?.message||String(error);
+      const dialog=window.DartArenaDialog;
+      if(dialog?.alert)await dialog.alert(message,{title:'Kan ikke starte cup',tone:'warning'});
+      else alert(message);
+    }finally{
+      reviewing=false;
     }
-    await buildAsPrivileged();
   },true);
 
   async function boot(){
