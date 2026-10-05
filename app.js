@@ -1,10 +1,24 @@
 const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK',db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY),$=id=>document.getElementById(id);let mode='login',session=null,profile=null,activeMatch=null,lastOpenedMatchId=null,lobbyStarted=false,lobbyLoading=false,lobbyInitToken=0,challengeRealtime=null,pendingRoomTabs=new Map(),initialAuthResolved=false,queuedAuthState=null;
 function setSessionView(view){
- const loading=$('sessionLoadingView'),auth=$('authView'),lobby=$('lobbyView');
+ const loading=$('sessionLoadingView'),auth=$('authView'),lobby=$('lobbyView'),retry=$('sessionRetryBtn'),text=$('sessionLoadingText');
  loading?.classList.toggle('hidden',view!=='loading');
  auth?.classList.toggle('hidden',view!=='auth');
  lobby?.classList.toggle('hidden',view!=='lobby');
- if(view==='loading')$('headerStatus').innerHTML='<i></i> Laster…';
+ if(view==='loading'){
+   loading?.setAttribute('aria-busy','true');
+   retry?.classList.add('hidden');
+   if(text)text.textContent='Laster DartArena…';
+   $('headerStatus').innerHTML='<i></i> Laster…';
+ }
+}
+function showSessionError(message){
+ setSessionView('loading');
+ const loading=$('sessionLoadingView'),retry=$('sessionRetryBtn'),text=$('sessionLoadingText');
+ loading?.setAttribute('aria-busy','false');
+ if(text)text.textContent=message;
+ retry?.classList.remove('hidden');
+ if(retry)retry.onclick=()=>initializeAuth();
+ $('headerStatus').innerHTML='<i></i> Tilkoblingsproblem';
 }
 function authMode(n){mode=n;const r=n==='register';$('loginTab').classList.toggle('active',!r);$('registerTab').classList.toggle('active',r);$('usernameLabel').classList.toggle('hidden',!r);$('username').required=r;$('authSubmit').textContent=r?'Opprett konto':'Logg inn';setMsg('')}function setMsg(t,c=''){$('authMessage').textContent=t;$('authMessage').className='message '+c}$('loginTab').onclick=()=>authMode('login');$('registerTab').onclick=()=>authMode('register');authMode('login');
 $('authForm').onsubmit=async e=>{e.preventDefault();const email=$('email').value.trim(),password=$('password').value,b=$('authSubmit');b.disabled=true;b.textContent=mode==='register'?'Oppretter…':'Logger inn…';setMsg('Jobber...');try{if(mode==='register'){const username=$('username').value.trim();if(username.length<2){setMsg('Fullt navn må ha minst 2 tegn.','error');return}const{data,error}=await db.auth.signUp({email,password,options:{data:{username,full_name:username}}});if(error)throw error;if(!data.session)setMsg('Konto opprettet. Sjekk e-posten din for bekreftelse.','ok')}else{const{error}=await db.auth.signInWithPassword({email,password});if(error)throw error}}catch(x){setMsg(x.message||'Noe gikk galt.','error')}finally{b.disabled=false;b.textContent=mode==='register'?'Opprett konto':'Logg inn'}};
@@ -19,7 +33,7 @@ async function enterLobby(s=session){
  setSessionView('loading');
  const{data,error}=await db.from('profiles').select('*').eq('id',s.user.id).single();
  if(token!==lobbyInitToken||session?.user?.id!==s.user.id)return;
- if(error){showAuth();return setMsg('Profilen kunne ikke lastes: '+error.message,'error')}
+ if(error){showSessionError('Kunne ikke laste lobbyen. Kontroller nettet og prøv igjen.');console.error('Profile load failed',error);return}
  profile=data;
  lobbyStarted=true;
  setSessionView('lobby');
@@ -58,7 +72,7 @@ function handleAuthState(event,s){
  if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='USER_UPDATED'){
    if(!lobbyStarted||profile?.id!==s.user.id)enterLobby(s).catch(error=>{
      console.error('Lobby auth transition failed',error);
-     if(session?.user?.id===s.user.id){showAuth();setMsg('Kunne ikke åpne lobbyen. Prøv å laste siden på nytt.','error')}
+     if(session?.user?.id===s.user.id)showSessionError('Kunne ikke åpne lobbyen. Prøv igjen.')
    });
  }
 }
@@ -78,8 +92,7 @@ async function initializeAuth(){
  }catch(error){
    console.error('Initial session check failed',error);
    initialAuthResolved=true;
-   showAuth();
-   setMsg('Kunne ikke kontrollere innloggingen. Prøv å laste siden på nytt.','error');
+   showSessionError('Kunne ikke kontrollere innloggingen. Prøv igjen.');
    return;
  }
  initialAuthResolved=true;
@@ -94,7 +107,6 @@ async function initializeAuth(){
 
 initializeAuth().catch(error=>{
  console.error('Auth initialization failed',error);
- showAuth();
- setMsg('Kunne ikke starte DartArena. Prøv å laste siden på nytt.','error');
+ showSessionError('Kunne ikke starte DartArena. Prøv igjen.');
 });
 setInterval(()=>{if(profile){db.from('profiles').update({last_seen:new Date().toISOString()}).eq('id',profile.id);loadLobby()}},5000);
