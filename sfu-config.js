@@ -18,6 +18,15 @@ window.DARTARENA_SFU = Object.freeze({ workerUrl: 'https://dartarena-realtime.so
     return{value:{...value,deviceId:{exact:deviceId}},applied:true};
   }
 
+  function withoutPreferredDevice(value){
+    if(value===true)return true;
+    if(!value||typeof value!=='object')return value;
+    if(!('deviceId' in value))return value;
+    const copy={...value};
+    delete copy.deviceId;
+    return copy;
+  }
+
   media.getUserMedia=async input=>{
     const original=input??{video:true,audio:true};
     if(!original||typeof original!=='object')return nativeGetUserMedia(original);
@@ -33,7 +42,47 @@ window.DARTARENA_SFU = Object.freeze({ workerUrl: 'https://dartarena-realtime.so
       return await nativeGetUserMedia(patched);
     }catch(error){
       if(!applied||!['NotFoundError','OverconstrainedError'].includes(error?.name))throw error;
-      console.warn('[MEDIA] Lagret kamera/mikrofon finnes ikke. Bruker standardvalg.',error?.name||error);
+
+      // Keep the waiting-room camera choice authoritative even if the saved
+      // microphone disappeared, and vice versa. Never discard both choices
+      // just because one device is unavailable.
+      if(video.applied&&audio.applied){
+        try{
+          const keepCamera={...original,video:video.value,audio:withoutPreferredDevice(original.audio)};
+          const result=await nativeGetUserMedia(keepCamera);
+          localStorage.removeItem(MIC_KEY);
+          console.warn('[MEDIA] Lagret mikrofon mangler. Beholder valgt kamera.');
+          return result;
+        }catch(cameraError){
+          if(!['NotFoundError','OverconstrainedError'].includes(cameraError?.name))throw cameraError;
+        }
+
+        try{
+          const keepMic={...original,video:withoutPreferredDevice(original.video),audio:audio.value};
+          const result=await nativeGetUserMedia(keepMic);
+          localStorage.removeItem(CAMERA_KEY);
+          console.warn('[MEDIA] Lagret kamera mangler. Beholder valgt mikrofon.');
+          return result;
+        }catch(micError){
+          if(!['NotFoundError','OverconstrainedError'].includes(micError?.name))throw micError;
+        }
+      }else if(video.applied){
+        try{
+          return await nativeGetUserMedia({...original,video:video.value});
+        }catch(cameraError){
+          if(!['NotFoundError','OverconstrainedError'].includes(cameraError?.name))throw cameraError;
+          localStorage.removeItem(CAMERA_KEY);
+        }
+      }else if(audio.applied){
+        try{
+          return await nativeGetUserMedia({...original,audio:audio.value});
+        }catch(micError){
+          if(!['NotFoundError','OverconstrainedError'].includes(micError?.name))throw micError;
+          localStorage.removeItem(MIC_KEY);
+        }
+      }
+
+      console.warn('[MEDIA] Valgt enhet finnes ikke lenger. Bruker tilgjengelig standardenhet.',error?.name||error);
       return nativeGetUserMedia(original);
     }
   };
