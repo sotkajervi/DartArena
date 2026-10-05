@@ -1,5 +1,5 @@
 (()=>{
-  const HOME='./index.html?from=internal&v=20261005-session2';
+  const HOME='./index.html?from=internal&v=20261006-authsmooth2';
   const goHome=()=>{location.href=HOME};
 
   const brand=document.querySelector('header .brand');
