@@ -50,7 +50,9 @@
       .da-cup-review-warning{font-size:12px;color:#e8c98b;border:1px solid rgba(244,196,93,.28);background:rgba(244,196,93,.06);border-radius:10px;padding:11px;margin:15px 0}
       .da-cup-review-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap}
       .da-cup-review-actions button{min-width:125px}
-      @media(max-width:520px){.da-cup-review-card{padding:18px}.da-cup-review-actions button{flex:1}.da-cup-review-round{padding:10px}}
+      .da-final-format-control{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:12px 0 4px;padding:11px 13px;border:1px solid rgba(35,226,209,.22);border-radius:12px;background:rgba(35,226,209,.045)}
+      .da-final-format-copy small{display:block;margin-bottom:3px}.da-final-format-copy strong{font-size:14px}.da-final-format-copy span{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+      @media(max-width:520px){.da-cup-review-card{padding:18px}.da-cup-review-actions button{flex:1}.da-cup-review-round{padding:10px}.da-final-format-control button{width:100%}}
     `;
     document.head.appendChild(style);
   }
@@ -100,7 +102,10 @@
     syncBusy=true;
     try{
       await refreshPermission();
-      if(!tournamentRow||tournamentRow.status!=='cup_setup')return;
+      if(!tournamentRow)return;
+      if(tournamentRow.status==='cup')await syncFinalFormatControl();
+      else document.getElementById('finalFormatControl')?.remove();
+      if(tournamentRow.status!=='cup_setup')return;
       if(!canManage){
         document.getElementById('cupFormatSettings')?.remove();
         document.getElementById('pureCupFormatSettings')?.remove();
@@ -277,9 +282,9 @@
     let matchNo=1;
     for(let i=0;i<size/2;i++){
       const a=slots[i*2],b=slots[i*2+1];
-      rows.push({tournament_id:tournamentId,stage:'cup',round_no:1,match_no:matchNo++,player1_id:a?.id||null,player2_id:b?.id||null,best_of:formats[1],status:a&&b?'pending':a||b?'wo':'pending',winner_id:a&&!b?a.id:!a&&b?b.id:null,is_wo:!!(a&&!b||!a&&b)});
+      rows.push({tournament_id:tournamentId,stage:'cup',round_no:1,match_no:matchNo++,player1_id:a?.id||null,player2_id:b?.id||null,best_of:formats[1],status:a&&b?'pending':a||b?'wo':'pending',winner_id:a&&!b?a.id:!a&&b?b.id:null,is_wo:!!(a&&!b||!a&&b),is_final:rounds===1});
     }
-    for(let r=2;r<=rounds;r++)for(let i=0;i<size/(2**r);i++)rows.push({tournament_id:tournamentId,stage:'cup',round_no:r,match_no:i+1,player1_id:null,player2_id:null,best_of:formats[r],status:'pending',is_wo:false});
+    for(let r=2;r<=rounds;r++)for(let i=0;i<size/(2**r);i++)rows.push({tournament_id:tournamentId,stage:'cup',round_no:r,match_no:i+1,player1_id:null,player2_id:null,best_of:formats[r],status:'pending',is_wo:false,is_final:r===rounds});
     const {error}=await gateDb.from('tournament_matches').insert(rows);if(error)throw error;
   }
 
@@ -323,7 +328,7 @@
         <span><strong>${roundName(i+1,fields.length)}</strong><small data-cup-legs-hint>Først til ${(Number(field.value)+1)/2} legs</small></span>
         <select data-review-round="${i+1}" aria-label="Best of ${roundName(i+1,fields.length)}">${optionHtml(Number(field.value))}</select>
       </label>`).join('')}</div>
-      <div class="da-cup-review-warning">Etter at cupen er opprettet, er kampformatet låst. Kontroller spesielt finalen.</div>
+      <div class="da-cup-review-warning">Etter opprettelse låses de øvrige rundene. Finaleformatet kan fortsatt endres av finalistene frem til finalen starter.</div>
       <div class="da-cup-review-actions"><button type="button" class="outline" data-cup-cancel>Tilbake og rediger</button><button type="button" class="primary" data-cup-confirm>Bekreft og start cup</button></div>`;
     overlay.appendChild(card);
     document.body.appendChild(overlay);
@@ -370,6 +375,76 @@
       card.querySelector('[data-cup-confirm]').addEventListener('click',()=>finish(true));
       overlay.addEventListener('click',event=>{if(event.target===overlay)finish(false)});
     });
+  }
+
+  async function syncFinalFormatControl(){
+    const host=document.getElementById('cupBracket');
+    if(!host){document.getElementById('finalFormatControl')?.remove();return}
+    const {data:final,error}=await gateDb.from('tournament_matches')
+      .select('id,player1_id,player2_id,best_of,status,live_match_id,is_final')
+      .eq('tournament_id',tournamentId)
+      .eq('stage','cup')
+      .eq('is_final',true)
+      .maybeSingle();
+    if(error){console.warn('Kunne ikke lese finaleformat',error);return}
+    const finalist=!!final&&[final.player1_id,final.player2_id].includes(userId);
+    const editable=!!final&&final.status==='pending'&&!final.live_match_id&&!!final.player1_id&&!!final.player2_id&&(canManage||finalist);
+    if(!editable){document.getElementById('finalFormatControl')?.remove();return}
+    let control=document.getElementById('finalFormatControl');
+    if(!control){
+      control=document.createElement('div');
+      control.id='finalFormatControl';
+      control.className='da-final-format-control';
+      host.insertAdjacentElement('beforebegin',control);
+    }
+    control.innerHTML=`<div class="da-final-format-copy"><small>FINALEFORMAT</small><strong>Finale • Bo${Number(final.best_of)||'–'}</strong><span>Finalistene kan endre formatet frem til finalen starter.</span></div><button type="button" class="outline" id="changeFinalFormatBtn">Endre finaleformat</button>`;
+    control.querySelector('#changeFinalFormatBtn').onclick=()=>openFinalFormatEditor(final);
+  }
+
+  async function openFinalFormatEditor(final){
+    if(reviewing)return;
+    reviewing=true;
+    const overlay=document.createElement('div');
+    overlay.className='da-cup-review-overlay';
+    const card=document.createElement('section');
+    card.className='da-cup-review-card';
+    card.setAttribute('role','dialog');
+    card.setAttribute('aria-modal','true');
+    card.innerHTML=`<small>FINALE</small><h2>Endre finaleformat</h2><p>Kan endres av finalistene, turneringsleder, Admin eller Owner frem til finalen starter.</p><div class="da-cup-review-grid"><label class="da-cup-review-round"><span><strong>Finale</strong><small data-final-hint>Først til ${(Number(final.best_of)+1)/2} legs</small></span><select id="finalBestOfSelect">${optionHtml(Number(final.best_of))}</select></label></div><div class="da-cup-review-actions"><button type="button" class="outline" data-final-cancel>Avbryt</button><button type="button" class="primary" data-final-save>Lagre finaleformat</button></div><p id="finalFormatMessage" class="message"></p>`;
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+    const select=card.querySelector('#finalBestOfSelect');
+    const save=card.querySelector('[data-final-save]');
+    const msg=card.querySelector('#finalFormatMessage');
+    const close=()=>{document.removeEventListener('keydown',onKey,true);overlay.remove();reviewing=false};
+    const onKey=e=>{if(e.key==='Escape'){e.preventDefault();close()}};
+    document.addEventListener('keydown',onKey,true);
+    select.addEventListener('change',()=>{card.querySelector('[data-final-hint]').textContent=`Først til ${(Number(select.value)+1)/2} legs`});
+    card.querySelector('[data-final-cancel]').onclick=close;
+    overlay.addEventListener('click',e=>{if(e.target===overlay)close()});
+    save.onclick=async()=>{
+      const bestOf=Number(select.value);
+      if(!validBestOf(bestOf))return;
+      save.disabled=true;save.textContent='Lagrer…';msg.textContent='';
+      const {data,error}=await gateDb.from('tournament_matches')
+        .update({best_of:bestOf})
+        .eq('id',final.id)
+        .eq('is_final',true)
+        .eq('status','pending')
+        .is('live_match_id',null)
+        .select('id,best_of')
+        .maybeSingle();
+      if(error||!data){
+        msg.textContent=error?.message||'Finaleformatet kunne ikke lagres.';
+        msg.classList.add('error');
+        save.disabled=false;save.textContent='Lagre finaleformat';
+        return;
+      }
+      close();
+      try{if(typeof window.dartArenaLoadCup==='function')await window.dartArenaLoadCup()}catch{}
+      scheduleSync(40);
+    };
+    select.focus();
   }
 
   async function buildAsPrivileged(approvedFormats){
