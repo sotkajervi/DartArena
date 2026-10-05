@@ -267,12 +267,13 @@
     return slots;
   }
 
-  async function buildGroupsCup(){
+  async function buildGroupsCup(approvedFormats){
     const d=await groupCupData();
     if(d.cm.length)throw new Error('Cupen er allerede opprettet.');
     if(!d.gm.length||d.gm.some(m=>!['finished','wo'].includes(m.status)))throw new Error('Alle puljekampene må være ferdige før cupen kan opprettes.');
     const q=qualifiers(d);if(q.length<2)throw new Error('Minst to spillere må gå videre til cup.');
-    const size=nextPow2(q.length),rounds=Math.log2(size),slots=seededSlots(q,size),formats=selectedGroupFormats(rounds),rows=[];
+    const size=nextPow2(q.length),rounds=Math.log2(size),slots=seededSlots(q,size),formats=approvedFormats||selectedGroupFormats(rounds),rows=[];
+    if(Array.from({length:rounds},(_,i)=>i+1).some(round=>!validBestOf(formats[round])))throw new Error('Ugyldig Best of for cuprunde.');
     let matchNo=1;
     for(let i=0;i<size/2;i++){
       const a=slots[i*2],b=slots[i*2+1];
@@ -282,7 +283,7 @@
     const {error}=await gateDb.from('tournament_matches').insert(rows);if(error)throw error;
   }
 
-  async function buildPureCup(){
+  async function buildPureCup(approvedFormats){
     const [{data:members,error:me},{data:existing,error:ee}]=await Promise.all([
       gateDb.from('tournament_members').select('user_id,role,joined_at').eq('tournament_id',tournamentId).eq('role','participant').order('joined_at'),
       gateDb.from('tournament_matches').select('id').eq('tournament_id',tournamentId).eq('stage','cup').limit(1)
@@ -290,7 +291,8 @@
     if(me)throw me;if(ee)throw ee;if(existing?.length)throw new Error('Cupen er allerede opprettet.');
     const players=(members||[]).map(m=>({id:m.user_id}));
     if(players.length<2)throw new Error('Minst to spillere må være med i cupen.');
-    const size=nextPow2(players.length),rounds=Math.log2(size),formats=selectedPureFormats(rounds),slots=distributedSlots(shuffle3(players),size),rows=[];
+    const size=nextPow2(players.length),rounds=Math.log2(size),formats=approvedFormats||selectedPureFormats(rounds),slots=distributedSlots(shuffle3(players),size),rows=[];
+    if(Array.from({length:rounds},(_,i)=>i+1).some(round=>!validBestOf(formats[round])))throw new Error('Ugyldig Best of for cuprunde.');
     for(let i=0;i<size/2;i++){
       const a=slots[i*2],b=slots[i*2+1];
       rows.push({tournament_id:tournamentId,stage:'cup',round_no:1,match_no:i+1,player1_id:a?.id||null,player2_id:b?.id||null,best_of:formats[1],status:a&&b?'pending':a||b?'wo':'pending',winner_id:a&&!b?a.id:!a&&b?b.id:null,is_wo:!!(a&&!b||!a&&b)});
@@ -338,18 +340,21 @@
       let settled=false;
       function finish(confirmed){
         if(settled)return;
+        const approved=confirmed?Object.fromEntries(selects.map((select,i)=>[i+1,Number(select.value)])):null;
+        if(approved&&Object.values(approved).some(value=>!validBestOf(value)))return;
         settled=true;
         document.removeEventListener('keydown',onKey,true);
         overlay.remove();
         if(focusBefore?.isConnected)focusBefore.focus();
-        if(confirmed){
+        if(approved){
           selects.forEach((select,i)=>{
-            if(!validBestOf(select.value))throw new Error('Ugyldig Best of-verdi.');
-            fields[i].value=select.value;
-            fields[i].dispatchEvent(new Event('change',{bubbles:true}));
+            if(fields[i].isConnected){
+              fields[i].value=select.value;
+              fields[i].dispatchEvent(new Event('change',{bubbles:true}));
+            }
           });
         }
-        resolve(confirmed);
+        resolve(approved);
       }
       function onKey(event){
         if(event.key==='Escape'){event.preventDefault();event.stopPropagation();finish(false)}
@@ -367,7 +372,7 @@
     });
   }
 
-  async function buildAsPrivileged(){
+  async function buildAsPrivileged(approvedFormats){
     if(building)return;
     building=true;
     const btn=document.getElementById('buildCupBtn');
@@ -377,8 +382,8 @@
       await refreshPermission();
       if(!canManage)throw new Error('Kun Admin, Owner eller turneringsleder kan sette opp cup.');
       if(!tournamentRow||tournamentRow.status!=='cup_setup')throw new Error('Cupoppsettet er ikke tilgjengelig nå.');
-      if(tournamentRow.tournament_type==='groups_cup')await buildGroupsCup();
-      else await buildPureCup();
+      if(tournamentRow.tournament_type==='groups_cup')await buildGroupsCup(approvedFormats);
+      else await buildPureCup(approvedFormats);
       const {error}=await gateDb.from('tournaments')
         .update({status:'cup',updated_at:new Date().toISOString()})
         .eq('id',tournamentId)
@@ -405,9 +410,9 @@
       await refreshPermission();
       if(!canManage)throw new Error('Kun turneringsleder, Admin eller Owner kan starte cup.');
       if(tournamentRow?.status!=='cup_setup')throw new Error('Cupoppsettet kan bare bekreftes før cupen starter.');
-      const confirmed=await confirmCupFormats();
-      if(!confirmed)return;
-      await buildAsPrivileged();
+      const formats=await confirmCupFormats();
+      if(!formats)return;
+      await buildAsPrivileged(formats);
     }catch(error){
       const message=error?.message||String(error);
       const dialog=window.DartArenaDialog;
