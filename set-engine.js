@@ -7,6 +7,30 @@ async function boot(){
  const {data:{session}}=await db.auth.getSession(); if(!session)return;
  let {data:match}=await db.from('matches').select('*').eq('id',matchId).single(); if(!match)return;
  const me=session.user.id;
+ let legDelayUntil=0,legDelayTimer=null;
+ function legDelayActive(){return Date.now()<legDelayUntil}
+ function syncEntryLock(){
+   const input=$('matchScoreInput'),btn=$('matchScoreBtn');
+   if(!input||!btn)return;
+   const mine=match.status==='playing'&&match.turn_player_id===me;
+   const locked=mine&&legDelayActive();
+   if(locked){
+     input.disabled=true;
+     btn.disabled=true;
+     input.value='';
+     input.blur();
+     return;
+   }
+   input.disabled=!mine;
+   btn.disabled=!mine;
+   if(mine)requestAnimationFrame(()=>{if(!input.disabled){input.focus({preventScroll:true});input.select()}});
+ }
+ function startLegDelay(){
+   clearTimeout(legDelayTimer);
+   legDelayUntil=Date.now()+3000;
+   syncEntryLock();
+   legDelayTimer=setTimeout(()=>{legDelayUntil=0;syncEntryLock()},3000);
+ }
  function draw(){
    const setMode=match.match_mode==='sets';
    $('matchSets1')?.classList.toggle('hidden',!setMode);$('matchSets2')?.classList.toggle('hidden',!setMode);
@@ -17,9 +41,11 @@ async function boot(){
    if($('matchFormat'))$('matchFormat').textContent=setMode?`${match.game} • BEST OF ${match.best_of_sets} SETS • BEST OF ${match.legs} LEGS`:`${match.game} • BEST OF ${match.legs} LEGS`;
  }
  draw();
- db.channel('set-engine-'+matchId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{match=p.new;draw()}).subscribe();
+ db.channel('set-engine-'+matchId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{const oldSet=Number(match.current_set||1),oldLeg=Number(match.current_leg||1);match=p.new;const changedLeg=oldSet!==Number(match.current_set||1)||oldLeg!==Number(match.current_leg||1);if(changedLeg&&match.status==='playing')startLegDelay();draw();syncEntryLock()}).subscribe();
  async function submit(){
-   const input=$('matchScoreInput'),n=Number(input.value);
+   const input=$('matchScoreInput'),raw=String(input.value??'').trim();
+   if(!raw||legDelayActive())return;
+   const n=Number(raw);
    if(!Number.isInteger(n)||n<0||n>180||match.status!=='playing'||match.turn_player_id!==me)return;
    const scoreKey=me===match.player1_id?'player1_score':'player2_score',remaining=Number(match[scoreKey]);
    if(n===remaining)return; // checkout-engine håndterer checkout + pileantall
@@ -31,12 +57,14 @@ async function boot(){
      input.value='';
      $('matchMessage').textContent=data.bust?'Bust.':'';
      draw();
-   }finally{
-     btn.disabled=!(match.status==='playing'&&match.turn_player_id===me);
-     if(!btn.disabled)requestAnimationFrame(()=>{input.focus({preventScroll:true});input.select()});
-   }
+   }finally{syncEntryLock()}
  }
- $('matchScoreBtn').onclick=e=>{e.stopImmediatePropagation();submit()};
- $('matchScoreInput').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();e.stopImmediatePropagation();submit()}};
+ const scoreBtn=$('matchScoreBtn'),scoreInput=$('matchScoreInput');
+ scoreBtn.addEventListener('click',e=>{if(!legDelayActive())return;e.preventDefault();e.stopImmediatePropagation()},true);
+ scoreInput.addEventListener('keydown',e=>{if(e.key!=='Enter'||!legDelayActive())return;e.preventDefault();e.stopImmediatePropagation()},true);
+ scoreBtn.onclick=e=>{e.stopImmediatePropagation();submit()};
+ scoreInput.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();e.stopImmediatePropagation();submit()}};
+ syncEntryLock();
+ window.addEventListener('pagehide',()=>clearTimeout(legDelayTimer),{once:true});
 }
 })();
