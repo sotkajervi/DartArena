@@ -11,7 +11,7 @@
     btn.id='changelogBtn';btn.className='outline';btn.type='button';btn.title='Se endringsloggen';
     let seen='';try{seen=localStorage.getItem('dartarena_changelog_seen')||''}catch{}
     btn.textContent=seen===CHANGELOG_VERSION?'Hva er nytt':'Hva er nytt • NY';
-    btn.onclick=()=>{try{localStorage.setItem('dartarena_changelog_seen',CHANGELOG_VERSION)}catch{}location.href='changelog.html'};
+    btn.onclick=()=>{try{localStorage.setItem('dartarena_changelog_seen',CHANGELOG_VERSION)}catch{}location.href='changelog.html?v=20261006-1'};
     actions.insertBefore(btn,actions.firstChild);
   }
   function refreshPlayersSoon(delay=120){clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{if(!ready()||typeof loadPlayers!=='function')return;const now=Date.now();if(now-lastRefresh<250){refreshPlayersSoon(300);return}lastRefresh=now;try{await loadPlayers()}catch(e){console.warn('Live player refresh failed',e)}},delay)}
