@@ -24,12 +24,11 @@
     if(number)number.textContent=String(viewers.length);
     if(!pill)return;
     const names=viewers.map(v=>v.name).sort((a,b)=>a.localeCompare(b,'nb'));
-    const title=!names.length
+    const description=!names.length
       ?'Ingen tilskuere akkurat nå'
       :`Ser på: ${names.join(', ')}`;
-    pill.title=title;
-    pill.setAttribute('aria-label',`${viewers.length} tilskuere ser på kampen. ${title}`);
-    pill.style.cursor='help';
+    pill.removeAttribute('title');
+    pill.setAttribute('aria-label',`${viewers.length} tilskuere ser på kampen. ${description}`);
   }
 
   (async()=>{
