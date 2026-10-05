@@ -79,9 +79,17 @@ body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cric
   white-space:nowrap!important;
 }
 
-/* Sidebar remains unchanged between turns. */
-body.match-page.match-tv-layout.standard-tv-layout .match-grid{
-  overflow-y:auto;
+/* X01 uses normal page flow. Never create a second scrollbar inside the score column. */
+body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)) .match-grid{
+  max-height:none!important;
+  overflow-y:visible!important;
+  scrollbar-width:none!important;
+  padding-right:0!important;
+}
+body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)) .match-grid::-webkit-scrollbar{
+  display:none!important;
+  width:0!important;
+  height:0!important;
 }
 body.match-page.match-tv-layout.standard-tv-layout .score-card{
   overflow:visible!important;
