@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="style.css?v=20260928-ui2">
   <link rel="stylesheet" href="dartboard-background.css?v=20260928-ui2">
   <link rel="stylesheet" href="button-theme.css?v=20260930-buttons4">
+  <link rel="stylesheet" href="room-device-selector.css?v=20260929-device1">
   <link rel="stylesheet" href="waiting-room-audio-cue.css?v=20261004-below1">
   <style>
     .ready-panel{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
@@ -52,8 +53,22 @@
     </div>
 
     <div class="camera-controls">
-      <button id="retryCameraBtn" class="outline hidden">Prøv kamera på nytt</button>
-      <button id="remoteAudioBtn" class="outline hidden">Slå på lyd</button>
+      <div id="roomDeviceControls" class="room-device-controls">
+        <label class="field">Kamera
+          <select id="cameraDeviceSelect" aria-label="Velg kamera"><option>Laster kameraer…</option></select>
+        </label>
+        <label class="field">Mikrofon
+          <select id="micDeviceSelect" aria-label="Velg mikrofon"><option>Laster mikrofoner…</option></select>
+        </label>
+        <div class="mic-level-wrap">
+          <div class="mic-level-label"><span>Mikrofontest</span><span id="micLevelText">Starter…</span></div>
+          <div class="mic-level-track" aria-hidden="true"><div id="micLevelFill" class="mic-level-fill"></div></div>
+        </div>
+      </div>
+      <div class="room-media-actions">
+        <button id="retryCameraBtn" class="outline hidden">Prøv kamera på nytt</button>
+        <button id="remoteAudioBtn" class="outline hidden">Slå på lyd</button>
+      </div>
     </div>
 
     <section class="card" style="margin-top:20px">
@@ -83,11 +98,11 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
-  <script src="sfu-config.js?v=20260928-ui2"></script>
+  <script src="sfu-config.js?v=20261006-device2"></script>
   <script src="sfu-client.js?v=20260928-ui2"></script>
   <script src="room-coin-flip.js?v=20261002-coin9"></script>
   <script src="tournament-match-room.js?v=20261003-cam2"></script>
-  <script src="tournament-room-preferred-media.js?v=20261003-cam2"></script>
+  <script src="tournament-room-preferred-media.js?v=20261006-device2"></script>
   <script src="tournament-match-game-meta.js?v=20260930-repair1"></script>
   <script src="role-visuals.js?v=20260928-ui2"></script>
   <script src="waiting-room-audio-cue.js?v=20261004-ping2"></script>
