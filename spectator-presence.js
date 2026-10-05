@@ -5,7 +5,86 @@
   if(!matchId||!window.supabase)return;
   const URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
   const presenceDb=window.supabase.createClient(URL,KEY),number=document.getElementById('viewerCountNumber'),pill=document.getElementById('viewerCount');
-  let ch=null,myId=null,isPlayer=false,myName='Gjest';
+  let ch=null,myId=null,isPlayer=false,myName='Gjest',popover=null;
+
+  function ensurePopover(){
+    if(!pill)return null;
+    if(popover?.isConnected)return popover;
+    pill.style.position='relative';
+    pill.style.cursor='pointer';
+    pill.removeAttribute('title');
+    pill.querySelectorAll('[title]').forEach(el=>el.removeAttribute('title'));
+    const style=document.createElement('style');
+    style.id='dartarena-spectator-popover-style';
+    style.textContent=`
+      #viewerCount .da-spectator-popover{
+        position:absolute;
+        top:calc(100% + 9px);
+        right:0;
+        z-index:120;
+        min-width:220px;
+        max-width:min(320px,82vw);
+        padding:11px 12px;
+        border:1px solid rgba(35,226,209,.28);
+        border-radius:12px;
+        background:linear-gradient(145deg,#0d191c,#091315);
+        box-shadow:0 18px 55px rgba(0,0,0,.55),0 0 18px rgba(35,226,209,.06);
+        color:var(--text);
+        opacity:0;
+        visibility:hidden;
+        transform:translateY(-4px);
+        transition:.14s ease;
+        pointer-events:none;
+      }
+      #viewerCount.da-spectator-open .da-spectator-popover{
+        opacity:1;
+        visibility:visible;
+        transform:translateY(0);
+        pointer-events:auto;
+      }
+      .da-spectator-popover small{
+        display:block;
+        margin-bottom:7px;
+        color:var(--cyan);
+        font-size:9px;
+        font-weight:950;
+        letter-spacing:.12em;
+      }
+      .da-spectator-popover-list{display:grid;gap:6px}
+      .da-spectator-popover-name{
+        padding:7px 8px;
+        border-radius:8px;
+        background:rgba(255,255,255,.035);
+        border:1px solid rgba(255,255,255,.07);
+        font-size:12px;
+        font-weight:800;
+        color:var(--text);
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      .da-spectator-popover-empty{color:var(--muted);font-size:12px}
+    `;
+    if(!document.getElementById(style.id))document.head.appendChild(style);
+    popover=document.createElement('div');
+    popover.className='da-spectator-popover';
+    popover.setAttribute('role','status');
+    popover.innerHTML='<small>SER PÅ</small><div class="da-spectator-popover-list"></div>';
+    pill.appendChild(popover);
+
+    let hideTimer=null;
+    const open=()=>{clearTimeout(hideTimer);pill.classList.add('da-spectator-open')};
+    const close=()=>{clearTimeout(hideTimer);hideTimer=setTimeout(()=>pill.classList.remove('da-spectator-open'),120)};
+    pill.addEventListener('mouseenter',open);
+    pill.addEventListener('mouseleave',close);
+    pill.addEventListener('focusin',open);
+    pill.addEventListener('focusout',close);
+    pill.addEventListener('click',event=>{
+      if(event.target.closest('.da-spectator-popover'))return;
+      pill.classList.toggle('da-spectator-open');
+    });
+    return popover;
+  }
 
   function spectators(){
     if(!ch)return[];
@@ -28,7 +107,15 @@
       ?'Ingen tilskuere akkurat nå'
       :`Ser på: ${names.join(', ')}`;
     pill.removeAttribute('title');
+    pill.querySelectorAll('[title]').forEach(el=>el.removeAttribute('title'));
     pill.setAttribute('aria-label',`${viewers.length} tilskuere ser på kampen. ${description}`);
+    const box=ensurePopover();
+    const list=box?.querySelector('.da-spectator-popover-list');
+    if(list){
+      list.innerHTML=names.length
+        ?names.map(name=>{const row=document.createElement('div');row.className='da-spectator-popover-name';row.textContent=name;return row.outerHTML}).join('')
+        :'<div class="da-spectator-popover-empty">Ingen tilskuere akkurat nå</div>';
+    }
   }
 
   (async()=>{
