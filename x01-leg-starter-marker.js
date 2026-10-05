@@ -81,11 +81,22 @@
     return el;
   }
 
+  function orderMatchStarterFirst(){
+    const p1=document.getElementById('matchP1');
+    const p2=document.getElementById('matchP2');
+    const wrap=p1?.parentElement;
+    if(!p1||!p2||!wrap||wrap!==p2.parentElement||!match?.match_starter_id)return;
+    const first=match.match_starter_id===match.player1_id?p1:match.match_starter_id===match.player2_id?p2:null;
+    const second=first===p1?p2:first===p2?p1:null;
+    if(first&&second&&wrap.firstElementChild!==first)wrap.insertBefore(first,second);
+  }
+
   function render(){
     const name1=document.getElementById('matchName1');
     const name2=document.getElementById('matchName2');
     if(!name1||!name2||!match)return false;
 
+    orderMatchStarterFirst();
     name1.querySelector('.da-leg-starter-dart')?.remove();
     name2.querySelector('.da-leg-starter-dart')?.remove();
 
