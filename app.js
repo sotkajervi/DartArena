@@ -1,4 +1,4 @@
-const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK',db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY),$=id=>document.getElementById(id);let mode='login',session=null,profile=null,activeMatch=null,lastOpenedMatchId=null,lobbyStarted=false,lobbyLoading=false,lobbyInitToken=0,challengeRealtime=null,pendingRoomTabs=new Map(),initialAuthResolved=false,queuedAuthState=null;
+const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK',db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY),$=id=>document.getElementById(id);let mode='login',session=null,profile=null,activeMatch=null,lastOpenedMatchId=null,lobbyStarted=false,lobbyLoading=false,lobbyInitToken=0,challengeRealtime=null,pendingRoomTabs=new Map(),initialAuthResolved=false,queuedAuthState=null,lobbyEnteringUserId=null;
 function setSessionView(view){
  const loading=$('sessionLoadingView'),auth=$('authView'),lobby=$('lobbyView'),retry=$('sessionRetryBtn'),text=$('sessionLoadingText');
  loading?.classList.toggle('hidden',view!=='loading');
@@ -28,12 +28,14 @@ async function manualRefresh(){if(!profile)return;const b=$('refreshBtn');if(b.d
 async function enterLobby(s=session){
  if(!s?.user?.id)return showAuth();
  if(lobbyStarted&&profile?.id===s.user.id){setSessionView('lobby');return}
+ if(lobbyEnteringUserId===s.user.id)return;
+ lobbyEnteringUserId=s.user.id;
  const token=++lobbyInitToken;
  session=s;
  setSessionView('loading');
  const{data,error}=await db.from('profiles').select('*').eq('id',s.user.id).single();
- if(token!==lobbyInitToken||session?.user?.id!==s.user.id)return;
- if(error){showSessionError('Kunne ikke laste lobbyen. Kontroller nettet og prøv igjen.');console.error('Profile load failed',error);return}
+ if(token!==lobbyInitToken||session?.user?.id!==s.user.id){if(lobbyEnteringUserId===s.user.id)lobbyEnteringUserId=null;return}
+ if(error){if(lobbyEnteringUserId===s.user.id)lobbyEnteringUserId=null;showSessionError('Kunne ikke laste lobbyen. Kontroller nettet og prøv igjen.');console.error('Profile load failed',error);return}
  profile=data;
  lobbyStarted=true;
  setSessionView('lobby');
@@ -43,12 +45,14 @@ async function enterLobby(s=session){
  await db.from('profiles').update({last_seen:new Date().toISOString()}).eq('id',profileId);
  if(token!==lobbyInitToken||profile?.id!==profileId)return;
  setupChallengeRealtime();
+ if(lobbyEnteringUserId===s.user.id)lobbyEnteringUserId=null;
  await loadLobby();
 }
 function showAuth(){
  lobbyInitToken++;
  lobbyStarted=false;
  lobbyLoading=false;
+ lobbyEnteringUserId=null;
  profile=null;
  activeMatch=null;
  setSessionView('auth');
