@@ -10,6 +10,17 @@
   const isBye=m=>m?.stage==='cup'&&!!m.player1_id!==!!m.player2_id&&['finished','wo'].includes(m.status);
   function topRows(items,render){return items.length?items.slice(0,3).map((x,i)=>render(x,i)).join(''):empty('Ingen registrerte data.')}
   function openMatch(tournamentMatchId){if(tournamentMatchId)location.href=`tournament-match-stats.html?id=${encodeURIComponent(tournamentMatchId)}`}
+  async function fetchAllThrows(liveIds){
+    if(!liveIds.length)return{data:[],error:null};
+    const out=[],pageSize=1000;
+    for(let from=0;;from+=pageSize){
+      const {data,error}=await db.from('match_throws').select('*').in('match_id',liveIds).order('created_at',{ascending:true}).range(from,from+pageSize-1);
+      if(error)return{data:null,error};
+      const page=data||[];out.push(...page);
+      if(page.length<pageSize)break;
+    }
+    return{data:out,error:null};
+  }
 
   function bindNav(){$('backTournamentBtn').onclick=()=>location.href=`tournament.html?id=${encodeURIComponent(id||'')}`;$('backLobbyBtn').onclick=()=>location.href='./'}
   function renderSimulation(){
@@ -29,7 +40,7 @@
     if(tErr)throw tErr;if(mErr)throw mErr;$('tournamentName').textContent=tournament?.name||'Turnering';if(!matches?.length){$('resultMeta').textContent='Ingen ferdige kamper';$('winnerSub').textContent='Resultater blir tilgjengelige når turneringen er ferdig.';$('playerStats').innerHTML=empty('Ingen kampdata.');return}
     const playedMatches=matches.filter(m=>!isBye(m));
     const playerIds=[...new Set(matches.flatMap(m=>[m.player1_id,m.player2_id,m.winner_id]).filter(Boolean))],liveIds=[...new Set(playedMatches.map(m=>m.live_match_id).filter(Boolean))];
-    const [{data:profiles,error:pErr},{data:throws,error:thErr}]=await Promise.all([playerIds.length?db.from('profiles').select('id,username').in('id',playerIds):Promise.resolve({data:[]}),liveIds.length?db.from('match_throws').select('*').in('match_id',liveIds).order('created_at',{ascending:true}):Promise.resolve({data:[]})]);if(pErr)throw pErr;if(thErr)throw thErr;
+    const [{data:profiles,error:pErr},{data:throws,error:thErr}]=await Promise.all([playerIds.length?db.from('profiles').select('id,username').in('id',playerIds):Promise.resolve({data:[]}),fetchAllThrows(liveIds)]);if(pErr)throw pErr;if(thErr)throw thErr;
     const names=Object.fromEntries((profiles||[]).map(p=>[p.id,p.username])),allThrows=throws||[],byLive=Object.fromEntries(playedMatches.filter(m=>m.live_match_id).map(m=>[m.live_match_id,m]));
     const cup=matches.filter(m=>m.stage==='cup');if(cup.length){const max=Math.max(...cup.map(m=>Number(m.round_no||0))),final=cup.find(m=>Number(m.round_no||0)===max&&m.winner_id);if(final){const winner=final.winner_id,runner=final.player1_id===winner?final.player2_id:final.player1_id,semi=cup.filter(m=>Number(m.round_no||0)===max-1),semiLosers=semi.map(m=>m.winner_id?(m.player1_id===m.winner_id?m.player2_id:m.player1_id):null).filter(Boolean);$('winnerName').textContent=names[winner]||'Spiller';$('winnerSub').textContent='Vinner av DartArena-turneringen';$('podiumGrid').innerHTML=`<div class="podium-box"><small>2. PLASS</small><strong>${esc(names[runner]||'Spiller')}</strong></div><div class="podium-box"><small>SEMIFINALISTER</small><strong>${semiLosers.length?semiLosers.map(x=>esc(names[x]||'Spiller')).join(' • '):'–'}</strong></div>`;$('resultMeta').textContent=`${playedMatches.length} ferdige kamper • sluttresultat registrert`;}}
     const legEntries=[];for(const t of allThrows.filter(t=>t.is_checkout)){const leg=allThrows.filter(x=>x.player_id===t.player_id&&x.match_id===t.match_id&&Number(x.set_no||1)===Number(t.set_no||1)&&Number(x.leg_no||1)===Number(t.leg_no||1));const darts=leg.reduce((s,x)=>s+dartsFor(x),0);if(darts)legEntries.push({pid:t.player_id,liveId:t.match_id,darts,checkout:Number(t.score||0)});}
