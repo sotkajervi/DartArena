@@ -117,12 +117,41 @@
     try{
       return await navigator.mediaDevices.getUserMedia(constraints(cameraId,micId));
     }catch(error){
-      if((cameraId||micId)&&['NotFoundError','OverconstrainedError'].includes(error?.name)){
-        if(cameraId)localStorage.removeItem(CAMERA_KEY);
-        if(micId)localStorage.removeItem(MIC_KEY);
-        return navigator.mediaDevices.getUserMedia(constraints('',''));
+      if(!['NotFoundError','OverconstrainedError'].includes(error?.name))throw error;
+
+      if(cameraId&&micId){
+        try{
+          const keptCamera=await navigator.mediaDevices.getUserMedia(constraints(cameraId,''));
+          localStorage.removeItem(MIC_KEY);
+          return keptCamera;
+        }catch(cameraError){
+          if(!['NotFoundError','OverconstrainedError'].includes(cameraError?.name))throw cameraError;
+        }
+
+        try{
+          const keptMic=await navigator.mediaDevices.getUserMedia(constraints('',micId));
+          localStorage.removeItem(CAMERA_KEY);
+          return keptMic;
+        }catch(micError){
+          if(!['NotFoundError','OverconstrainedError'].includes(micError?.name))throw micError;
+        }
+      }else if(cameraId){
+        try{
+          return await navigator.mediaDevices.getUserMedia(constraints(cameraId,''));
+        }catch(cameraError){
+          if(!['NotFoundError','OverconstrainedError'].includes(cameraError?.name))throw cameraError;
+        }
+      }else if(micId){
+        try{
+          return await navigator.mediaDevices.getUserMedia(constraints('',micId));
+        }catch(micError){
+          if(!['NotFoundError','OverconstrainedError'].includes(micError?.name))throw micError;
+        }
       }
-      throw error;
+
+      if(cameraId)localStorage.removeItem(CAMERA_KEY);
+      if(micId)localStorage.removeItem(MIC_KEY);
+      return navigator.mediaDevices.getUserMedia(constraints('',''));
     }
   }
 
