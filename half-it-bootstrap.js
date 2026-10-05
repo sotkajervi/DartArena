@@ -19,7 +19,7 @@
       return;
     }
     document.body.dataset.halfItMode='dartcounter';
-    await loadScript('sfu-config.js?v=20260929-halfit1');
+    await loadScript('sfu-config.js?v=20261006-device2');
     await loadScript('sfu-client.js?v=20261002-telemetry1');
     await loadScript('half-it.js?v=20260929-online1');
     await loadScript('one-to-one-media.js?v=20261002-peer1');
