@@ -89,20 +89,17 @@
     const{data,error}=await resultDb.from('cricket_visits').select('player_id,leg_no,visit_no,darts,points_scored,created_at').eq('match_id',m.id);
     if(error)throw error;
     const rows=(data||[]).sort(sortTime),out={};
-    for(const id of[m.player1_id,m.player2_id])out[id]={visits:0,points:0,pointVisits:0,marks:0,darts:0};
+    for(const id of[m.player1_id,m.player2_id])out[id]={visits:0,points:0,pointVisits:0,marks:0};
     const addMarks=(target,row)=>{
       const visit=Array.isArray(row?.darts)?row.darts:[];
-      for(const dart of visit){
-        target.darts++;
-        target.marks+=Math.max(0,Math.min(3,num(dart?.mult)));
-      }
+      for(const dart of visit)target.marks+=Math.max(0,Math.min(3,num(dart?.mult)));
     };
     for(const r of rows){
       const s=out[r.player_id];if(!s)continue;
       s.visits++;s.points+=num(r.points_scored);if(num(r.points_scored)>0)s.pointVisits++;
       addMarks(s,r);
     }
-    const mpr=s=>s.darts?(s.marks/s.darts*3).toFixed(2):'0.00';
+    const mpr=s=>s.visits?(s.marks/s.visits).toFixed(2):'0.00';
     const mk=id=>{const s=out[id];return fillStats([
       {label:'VISITS',value:s.visits},
       {label:'POENG',value:s.points},
@@ -114,12 +111,13 @@
     const wins=[...byLeg.keys()].sort((a,b)=>a-b).map(leg=>{
       const list=byLeg.get(leg).sort(sortTime);
       const legStats={
-        [m.player1_id]:{marks:0,darts:0,points:0},
-        [m.player2_id]:{marks:0,darts:0,points:0}
+        [m.player1_id]:{marks:0,visits:0,points:0},
+        [m.player2_id]:{marks:0,visits:0,points:0}
       };
       for(const r of list){
         const s=legStats[r.player_id];
         if(!s)continue;
+        s.visits++;
         addMarks(s,r);
         s.points+=num(r.points_scored);
       }
@@ -202,16 +200,14 @@
       return darts?(score/darts*3).toFixed(2):'0.00';
     };
     const cricketMetric=id=>{
-      let marks=0,dartsThrown=0;
+      let marks=0,rounds=0;
       for(const r of cricketRows||[]){
         if(r.player_id!==id||(num(r.leg_no)||1)!==2)continue;
+        rounds++;
         const visit=Array.isArray(r.darts)?r.darts:[];
-        for(const dart of visit){
-          dartsThrown++;
-          marks+=Math.max(0,Math.min(3,num(dart?.mult)));
-        }
+        for(const dart of visit)marks+=Math.max(0,Math.min(3,num(dart?.mult)));
       }
-      return dartsThrown?(marks/dartsThrown*3).toFixed(2):'0.00';
+      return rounds?(marks/rounds).toFixed(2):'0.00';
     };
     const metricFor=stage=>stage===2
       ?{label:'MPR',values:{[m.player1_id]:cricketMetric(m.player1_id),[m.player2_id]:cricketMetric(m.player2_id)}}
