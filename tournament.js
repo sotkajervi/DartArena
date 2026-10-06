@@ -409,6 +409,23 @@ async function loadGroupLobby(){
     db.from('tournament_matches').select('*').eq('tournament_id',id).eq('stage','group').order('round_no').order('match_no')
   ]);
   if(ge||pe||me2){console.error(ge||pe||me2);return;}
+  const liveIds=[...new Set(matches.filter(m=>m.status==='live'&&m.live_match_id).map(m=>m.live_match_id))];
+  if(liveIds.length){
+    const {data:liveRows,error:liveError}=await db.from('matches')
+      .select('id,player1_legs,player2_legs')
+      .in('id',liveIds);
+    if(liveError)console.warn('Could not load live tournament scores',liveError);
+    else{
+      const liveById=new Map((liveRows||[]).map(row=>[row.id,row]));
+      matches.forEach(match=>{
+        const live=liveById.get(match.live_match_id);
+        if(live){
+          match._live_player1_legs=Number(live.player1_legs||0);
+          match._live_player2_legs=Number(live.player2_legs||0);
+        }
+      });
+    }
+  }
   const userIds=[...new Set(players.map(p=>p.user_id))];
   const missing=userIds.filter(uid=>!names[uid]);
   if(missing.length){
@@ -432,9 +449,11 @@ function matchHtml(m){
   const p2=esc(names[m.player2_id]||'Spiller');
   const done=['finished','wo'].includes(m.status);
   const live=m.status==='live';
-  const score=(done||live)
-    ?`${Number(m.player1_legs||0)}–${Number(m.player2_legs||0)}`
-    :'VS';
+  const score=live
+    ?`${Number(m._live_player1_legs??m.player1_legs??0)}–${Number(m._live_player2_legs??m.player2_legs??0)}`
+    :done
+      ?`${Number(m.player1_legs||0)}–${Number(m.player2_legs||0)}`
+      :'VS';
   const state=live?'LIVE':m.status==='finished'?'Ferdig':m.status==='wo'?'WO':'Klar';
   return `<div class="match-row ${live?'live-match':''}" data-match="${m.id}">
     <div class="match-players"><strong>${p1}</strong><span class="muted">vs</span><strong>${p2}</strong></div>
