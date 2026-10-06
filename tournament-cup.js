@@ -5,7 +5,7 @@
   const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const CUP_FORMAT_KEY=`dartarena-cup-format-${id}`;
 
-  function isChicagoTournament(){try{return String(tournament?.game_variant||'x01').toLowerCase()==='chicago'}catch{return false}}
+  function isChicagoTournament(){try{return String(tournament?.cup_game_variant||tournament?.game_variant||'x01').toLowerCase()==='chicago'}catch{return false}}
   function nextPow2(n){let x=1;while(x<n)x*=2;return x}
   function seedOrder(size){let a=[1,2];while(a.length<size){const n=a.length*2,out=[];for(const x of a)out.push(x,n+1-x);a=out}return a.slice(0,size)}
 
