@@ -124,6 +124,11 @@ function render(){
   if(live){const chicago=String(live.game_config?.chicago??'false').toLowerCase()==='true',unit=chicago?'games':'legs';$('s1').textContent=Number(live.player1_score??501);$('s2').textContent=Number(live.player2_score??501);$('l1').textContent=`${Number(live.player1_legs||0)} ${unit}`;$('l2').textContent=`${Number(live.player2_legs||0)} ${unit}`}
   else{$('s1').textContent='–';$('s2').textContent='–';$('l1').textContent=`${Number(tm.player1_legs||0)} legs`;$('l2').textContent=`${Number(tm.player2_legs||0)} legs`}
   $('status').textContent=tm.status==='live'?'Kampen pågår live':tm.status==='finished'?'Kampen er ferdig':tm.status==='wo'?'Kampen er avgjort på WO':'Kampen er ikke startet ennå';
+  const throwing=tm.status==='live'&&live?.status==='playing'?live.turn_player_id:null;
+  $('p1PlayerCard')?.classList.toggle('active-turn',throwing===tm.player1_id);
+  $('p2PlayerCard')?.classList.toggle('active-turn',throwing===tm.player2_id);
+  $('p1VideoCard')?.classList.toggle('active-turn',throwing===tm.player1_id);
+  $('p2VideoCard')?.classList.toggle('active-turn',throwing===tm.player2_id);
   renderSpectatorCricketBoard();
 }
 function videoTarget(pid){return pid===tm?.player1_id?{video:$('p1Video'),placeholder:$('p1Placeholder')}:{video:$('p2Video'),placeholder:$('p2Placeholder')}}
