@@ -269,7 +269,7 @@ async function subscribeRemote(pub){
       await v.play().catch(()=>{});
       if(rs.getVideoTracks().some(t=>t.readyState==='live')){
         $('remotePlaceholder').classList.add('hidden');
-        $('remoteAudioBtn').classList.remove('hidden');
+        // Shared audio auto-unlock keeps the fallback button hidden unless needed.
         setStatus(`Tilkoblet ${names[other]||'motstander'} via Cloudflare`);
       }
     });
