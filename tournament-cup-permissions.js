@@ -58,6 +58,7 @@
   }
 
   function isLeader(){return !!tournamentRow&&!!userId&&tournamentRow.owner_id===userId}
+  function isChicagoTournament(){return String(tournamentRow?.game_variant||'x01').toLowerCase()==='chicago'}
   function isSimulation(){try{return !!simulation}catch{return false}}
   function nextPow2(n){let x=1;while(x<n)x*=2;return x}
   function validBestOf(n){n=Number(n);return Number.isInteger(n)&&n>=3&&n<=21&&n%2===1}
@@ -71,7 +72,7 @@
     if(!session?.user){ready=true;canManage=false;applyGate();return}
     userId=session.user.id;
     const [tResult,adminResult]=await Promise.all([
-      gateDb.from('tournaments').select('id,owner_id,status,tournament_type,game').eq('id',tournamentId).maybeSingle(),
+      gateDb.from('tournaments').select('id,owner_id,status,tournament_type,game,game_variant').eq('id',tournamentId).maybeSingle(),
       gateDb.rpc('is_admin')
     ]);
     if(tResult.error)throw tResult.error;
@@ -128,30 +129,43 @@
       field.id='tournamentGameField';
       field.className='field';
       field.dataset.cupPermissionManager='1';
-      field.innerHTML='<span>Spill</span><select id="tournamentGame"><option value="170">170</option><option value="301">301</option><option value="501">501</option><option value="1001">1001</option></select>';
+      field.innerHTML='<span>Spill</span><select id="tournamentGame"><option value="170">170</option><option value="301">301</option><option value="501">501</option><option value="1001">1001</option><option value="chicago">Chicago Style</option></select>';
       btn.insertAdjacentElement('beforebegin',field);
     }
     const select=field.querySelector('#tournamentGame');
     if(!select)return;
-    select.value=String([170,301,501,1001].includes(Number(tournamentRow.game))?Number(tournamentRow.game):501);
+    select.value=isChicagoTournament()?'chicago':String([170,301,501,1001].includes(Number(tournamentRow.game))?Number(tournamentRow.game):501);
     if(select.dataset.cupPermissionBound==='1')return;
     select.dataset.cupPermissionBound='1';
     select.addEventListener('change',async()=>{
-      const game=Number(select.value);
-      if(![170,301,501,1001].includes(game))return;
-      const previous=Number(tournamentRow.game)||501;
+      const chicago=select.value==='chicago';
+      const game=chicago?501:Number(select.value);
+      if(!chicago&&![170,301,501,1001].includes(game))return;
+      const previousGame=Number(tournamentRow.game)||501;
+      const previousVariant=String(tournamentRow.game_variant||'x01');
       select.disabled=true;
       try{
         const {error}=await gateDb.from('tournaments')
-          .update({game,updated_at:new Date().toISOString()})
+          .update({game,game_variant:chicago?'chicago':'x01',updated_at:new Date().toISOString()})
           .eq('id',tournamentId)
           .eq('status','cup_setup');
         if(error)throw error;
         tournamentRow.game=game;
-        try{if(typeof tournament!=='undefined'&&tournament)tournament.game=game}catch{}
+        tournamentRow.game_variant=chicago?'chicago':'x01';
+        try{
+          if(typeof tournament!=='undefined'&&tournament){
+            tournament.game=game;
+            tournament.game_variant=tournamentRow.game_variant;
+          }
+        }catch{}
         try{if(typeof tournamentMeta==='function'&&typeof tournament!=='undefined'&&tournament)document.getElementById('tMeta').textContent=tournamentMeta(tournament)}catch{}
+        document.getElementById('cupFormatSettings')?.remove();
+        document.getElementById('pureCupFormatSettings')?.remove();
+        scheduleSync(20);
       }catch(error){
-        select.value=String(previous);
+        tournamentRow.game=previousGame;
+        tournamentRow.game_variant=previousVariant;
+        select.value=previousVariant==='chicago'?'chicago':String(previousGame);
         alert('Kunne ikke lagre spillvalg: '+(error.message||error));
       }finally{select.disabled=false}
     });
@@ -227,6 +241,7 @@
     const q=allDone?qualifiers(d):[];
     btn.disabled=!allDone||q.length<2;
     if(!allDone||q.length<2){document.getElementById('cupFormatSettings')?.remove();return}
+    if(isChicagoTournament()){document.getElementById('cupFormatSettings')?.remove();return}
     const size=nextPow2(q.length),rounds=Math.log2(size),defaults=defaultFormats(rounds);
     let box=document.getElementById('cupFormatSettings');
     if(!box){
@@ -242,12 +257,14 @@
   }
 
   function selectedGroupFormats(rounds){
+    if(isChicagoTournament())return Object.fromEntries(Array.from({length:rounds},(_,i)=>[i+1,3]));
     const out=defaultFormats(rounds);
     document.querySelectorAll('#cupFormatSettings select[data-cup-round]').forEach(s=>{const r=Number(s.dataset.cupRound),n=Number(s.value);if(r&&validBestOf(n))out[r]=n});
     return out;
   }
 
   function selectedPureFormats(rounds){
+    if(isChicagoTournament())return Object.fromEntries(Array.from({length:rounds},(_,i)=>[i+1,3]));
     const out=defaultFormats(rounds);
     document.querySelectorAll('#pureCupFormatSettings select[data-pure-cup-round]').forEach(s=>{const r=Number(s.dataset.pureCupRound),n=Number(s.value);if(r&&validBestOf(n))out[r]=n});
     return out;
@@ -308,6 +325,19 @@
 
   async function confirmCupFormats(){
     const pure=tournamentRow?.tournament_type==='cup';
+    if(isChicagoTournament()){
+      let rounds=1;
+      if(pure){
+        const {data:members,error}=await gateDb.from('tournament_members').select('user_id').eq('tournament_id',tournamentId).eq('role','participant');
+        if(error)throw error;
+        rounds=Math.log2(nextPow2(Math.max(2,(members||[]).length)));
+      }else{
+        const d=await groupCupData();
+        const q=qualifiers(d);
+        rounds=Math.log2(nextPow2(Math.max(2,q.length)));
+      }
+      return Object.fromEntries(Array.from({length:rounds},(_,i)=>[i+1,3]));
+    }
     const attribute=pure?'pureCupRound':'cupRound';
     const selector=pure?'#pureCupFormatSettings select[data-pure-cup-round]':'#cupFormatSettings select[data-cup-round]';
     const fields=[...document.querySelectorAll(selector)].sort((a,b)=>Number(a.dataset[attribute])-Number(b.dataset[attribute]));
@@ -378,6 +408,7 @@
   }
 
   async function syncFinalFormatControl(){
+    if(isChicagoTournament()){document.getElementById('finalFormatControl')?.remove();return}
     const host=document.getElementById('cupBracket');
     if(!host){document.getElementById('finalFormatControl')?.remove();return}
     const {data:final,error}=await gateDb.from('tournament_matches')
