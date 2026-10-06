@@ -267,7 +267,7 @@ async function saveTournamentFormat(select,scope){
 
   const isCup=scope==='cup';
   const previousGame=isCup?Number(tournament.cup_game??tournament.game)||501:Number(tournament.game)||501;
-  const previousVariant=isCup?String(tournament.cup_game_variant??tournament.game_variant||'x01'):String(tournament.game_variant||'x01');
+  const previousVariant=isCup?String((tournament.cup_game_variant??tournament.game_variant) || 'x01'):String(tournament.game_variant||'x01');
   const update=isCup
     ?{cup_game:game,cup_game_variant:gameVariant,updated_at:new Date().toISOString()}
     :{game,game_variant:gameVariant,updated_at:new Date().toISOString()};
