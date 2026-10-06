@@ -33,13 +33,16 @@ function fmtDate(value){
 }
 
 function variantOf(m){return m.game_variant||'x01'}
+function isChicago(m){return String(m?.game_config?.chicago??'false').toLowerCase()==='true'}
 function halfItMode(m){return m.game_config?.half_it_mode==='standard'?'standard':'dartcounter'}
 function filterKey(m){
+  if(isChicago(m))return'chicago';
   const v=variantOf(m);
   if(v==='half_it')return `half_it_${halfItMode(m)}`;
   return v;
 }
 function gameLabel(m){
+  if(isChicago(m))return'Chicago Style';
   const v=variantOf(m);
   if(v==='cricket')return'Cricket';
   if(v==='half_it')return halfItMode(m)==='standard'?'Half-It (Standard)':'Half-It (DartCounter)';
@@ -62,6 +65,7 @@ function scorePair(m){
   return [Number(m.player1_legs||0),Number(m.player2_legs||0)];
 }
 function formatLabel(m){
+  if(isChicago(m))return'301 DI/DO • Cricket • 501 DO • teller ikke i spillerstatistikk';
   const v=variantOf(m);
   if(v==='jdc')return'57 piler hver • offisiell online-score';
   if(v==='half_it'){
@@ -92,7 +96,7 @@ function contextLabel(m){
   return `${m.tournament_name||'Turnering'} • ${stage}`;
 }
 function canOpenStats(m){
-  if(variantOf(m)!=='x01')return false;
+  if(isChicago(m)||variantOf(m)!=='x01')return false;
   return !!m.tournament_id||m.player1_id===me||m.player2_id===me;
 }
 
