@@ -5,6 +5,7 @@ async function boot(){
  const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
  const {data:{session}}=await db.auth.getSession();if(!session)return;
  let {data:match}=await db.from('matches').select('*').eq('id',matchId).single();if(!match)return;
+ if(String(match.game_config?.chicago??'false').toLowerCase()==='true')return;
  let throws=[];
  const style=document.createElement('style');style.textContent=`
 .stats-card{margin-top:10px;width:100%}
