@@ -58,7 +58,7 @@
   }
 
   function isLeader(){return !!tournamentRow&&!!userId&&tournamentRow.owner_id===userId}
-  function isChicagoTournament(){return String(tournamentRow?.game_variant||'x01').toLowerCase()==='chicago'}
+  function isChicagoTournament(){return String(tournamentRow?.cup_game_variant||tournamentRow?.game_variant||'x01').toLowerCase()==='chicago'}
   function isSimulation(){try{return !!simulation}catch{return false}}
   function nextPow2(n){let x=1;while(x<n)x*=2;return x}
   function validBestOf(n){n=Number(n);return Number.isInteger(n)&&n>=3&&n<=21&&n%2===1}
@@ -72,7 +72,7 @@
     if(!session?.user){ready=true;canManage=false;applyGate();return}
     userId=session.user.id;
     const [tResult,adminResult]=await Promise.all([
-      gateDb.from('tournaments').select('id,owner_id,status,tournament_type,game,game_variant').eq('id',tournamentId).maybeSingle(),
+      gateDb.from('tournaments').select('id,owner_id,status,tournament_type,game,game_variant,cup_game,cup_game_variant').eq('id',tournamentId).maybeSingle(),
       gateDb.rpc('is_admin')
     ]);
     if(tResult.error)throw tResult.error;
@@ -110,7 +110,7 @@
       if(!canManage){
         document.getElementById('cupFormatSettings')?.remove();
         document.getElementById('pureCupFormatSettings')?.remove();
-        document.getElementById('tournamentGameField')?.remove();
+        document.getElementById('tournamentGameField')?.remove();document.getElementById('tournamentCupGameField')?.remove();
         return;
       }
       if(!isLeader())await ensureAdminGameSelector();
@@ -123,39 +123,54 @@
   async function ensureAdminGameSelector(){
     const btn=document.getElementById('buildCupBtn');
     if(!btn||tournamentRow?.status!=='cup_setup')return;
-    let field=document.getElementById('tournamentGameField');
+    let field=document.getElementById('tournamentCupGameField');
     if(!field){
       field=document.createElement('label');
-      field.id='tournamentGameField';
+      field.id='tournamentCupGameField';
       field.className='field';
       field.dataset.cupPermissionManager='1';
-      field.innerHTML='<span>Spill</span><select id="tournamentGame"><option value="170">170</option><option value="301">301</option><option value="501">501</option><option value="1001">1001</option><option value="chicago">Chicago Style</option></select>';
+      field.innerHTML='<span>Cupspill</span><select id="tournamentCupGame"><option value="170">170</option><option value="301">301</option><option value="501">501</option><option value="1001">1001</option><option value="chicago">Chicago Style</option></select>';
       btn.insertAdjacentElement('beforebegin',field);
     }
-    const select=field.querySelector('#tournamentGame');
+    const select=field.querySelector('#tournamentCupGame');
     if(!select)return;
-    select.value=isChicagoTournament()?'chicago':String([170,301,501,1001].includes(Number(tournamentRow.game))?Number(tournamentRow.game):501);
+    const cupGame=Number(tournamentRow.cup_game??tournamentRow.game)||501;
+    const cupVariant=String(tournamentRow.cup_game_variant??tournamentRow.game_variant||'x01');
+    select.value=isChicagoTournament()?'chicago':String([170,301,501,1001].includes(cupGame)?cupGame:501);
     if(select.dataset.cupPermissionBound==='1')return;
     select.dataset.cupPermissionBound='1';
     select.addEventListener('change',async()=>{
       const chicago=select.value==='chicago';
       const game=chicago?501:Number(select.value);
       if(!chicago&&![170,301,501,1001].includes(game))return;
-      const previousGame=Number(tournamentRow.game)||501;
-      const previousVariant=String(tournamentRow.game_variant||'x01');
+      const previousGame=Number(tournamentRow.cup_game??tournamentRow.game)||501;
+      const previousVariant=String((tournamentRow.cup_game_variant??tournamentRow.game_variant)||'x01');
       select.disabled=true;
       try{
+        const update={cup_game:game,cup_game_variant:chicago?'chicago':'x01',updated_at:new Date().toISOString()};
+        if(tournamentRow.tournament_type==='cup'){
+          update.game=game;
+          update.game_variant=chicago?'chicago':'x01';
+        }
         const {error}=await gateDb.from('tournaments')
-          .update({game,game_variant:chicago?'chicago':'x01',updated_at:new Date().toISOString()})
+          .update(update)
           .eq('id',tournamentId)
           .eq('status','cup_setup');
         if(error)throw error;
-        tournamentRow.game=game;
-        tournamentRow.game_variant=chicago?'chicago':'x01';
+        tournamentRow.cup_game=game;
+        tournamentRow.cup_game_variant=chicago?'chicago':'x01';
+        if(tournamentRow.tournament_type==='cup'){
+          tournamentRow.game=game;
+          tournamentRow.game_variant=tournamentRow.cup_game_variant;
+        }
         try{
           if(typeof tournament!=='undefined'&&tournament){
-            tournament.game=game;
-            tournament.game_variant=tournamentRow.game_variant;
+            tournament.cup_game=game;
+            tournament.cup_game_variant=tournamentRow.cup_game_variant;
+            if(tournament.tournament_type==='cup'){
+              tournament.game=game;
+              tournament.game_variant=tournamentRow.cup_game_variant;
+            }
           }
         }catch{}
         try{if(typeof tournamentMeta==='function'&&typeof tournament!=='undefined'&&tournament)document.getElementById('tMeta').textContent=tournamentMeta(tournament)}catch{}
@@ -163,10 +178,10 @@
         document.getElementById('pureCupFormatSettings')?.remove();
         scheduleSync(20);
       }catch(error){
-        tournamentRow.game=previousGame;
-        tournamentRow.game_variant=previousVariant;
+        tournamentRow.cup_game=previousGame;
+        tournamentRow.cup_game_variant=previousVariant;
         select.value=previousVariant==='chicago'?'chicago':String(previousGame);
-        alert('Kunne ikke lagre spillvalg: '+(error.message||error));
+        alert('Kunne ikke lagre cupspill: '+(error.message||error));
       }finally{select.disabled=false}
     });
   }
