@@ -165,7 +165,7 @@
           placeholder?.classList.add('hidden');
           setStatus(`Video tilkoblet ${names[other]||'motstander'} via Cloudflare`);
         }
-        if(rs.getAudioTracks().some(t=>t.readyState==='live'))$('remoteAudioBtn')?.classList.remove('hidden');
+        if(rs.getAudioTracks().some(t=>t.readyState==='live'))/* remote audio fallback is controlled by remote-audio-autounlock.js */
         renderDebug();
       });
       note('SUBSCRIBE ok',{sessionId:pub.sessionId,tracks:pub.tracks});
