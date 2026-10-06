@@ -31,15 +31,15 @@
     return parts.join(' · ')||'Ingen treff';
   }
   function mprFor(playerId){
-    let marks=0,darts=0;
+    let marks=0,rounds=0;
     for(const visit of visits){
       if(visit.player_id!==playerId)continue;
+      rounds++;
       for(const dart of Array.isArray(visit.darts)?visit.darts:[]){
-        darts++;
         marks+=Math.max(0,Math.min(3,Number(dart?.mult)||0));
       }
     }
-    return darts?(marks/darts*3).toFixed(2):'0.00';
+    return rounds?(marks/rounds).toFixed(2):'0.00';
   }
   function renderMpr(){
     if(!m)return;
