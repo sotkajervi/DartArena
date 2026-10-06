@@ -71,8 +71,8 @@
       if(num(r.score)===180)s.n180++;
     }
     const mk=id=>{const s=out[id];return fillStats([
-      {label:'3-DART AVG',value:s.darts?(s.score/s.darts*3).toFixed(2):'0.00'},
-      {label:'FIRST 9 AVG',value:s.first9Darts?(s.first9Score/s.first9Darts*3).toFixed(2):'0.00'},
+      {label:'AVG',value:s.darts?(s.score/s.darts*3).toFixed(2):'0.00'},
+      {label:'FIRST 9',value:s.first9Darts?(s.first9Score/s.first9Darts*3).toFixed(2):'0.00'},
       {label:'HØYESTE UT',value:s.high},
       {label:'180',value:s.n180}
     ])};
