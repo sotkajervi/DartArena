@@ -1,6 +1,7 @@
 // DartArena Cricket: keyboard-first mark entry, visit log and last-visit correction.
 (()=>{
   let visits=[],editingVisitId=null,logChannel=null,ready=false;
+  const isChicago=()=>String(m?.game_config?.chicago??'false').toLowerCase()==='true';
   const TARGETS=['20','19','18','17','16','15','B'];
   const KEY_TARGETS={'0':'20','9':'19','8':'18','7':'17','6':'16','5':'15','b':'B'};
   const baseRender=render;
@@ -72,7 +73,7 @@
     if(!visits.length){host.innerHTML='<div class="cricket-history-empty">Ingen kast registrert ennå.</div>';return}
     const latest=latestActive();
     host.innerHTML=[...visits].reverse().map(v=>{
-      const editable=m?.status==='playing'&&latest?.id===v.id&&v.player_id===profile?.id&&Number(v.leg_no)===Number(m.current_leg);
+      const editable=!isChicago()&&m?.status==='playing'&&latest?.id===v.id&&v.player_id===profile?.id&&Number(v.leg_no)===Number(m.current_leg);
       const text=summary(expand(v.darts)),points=Number(v.points_scored||0),name=esc(names[v.player_id]||'Spiller');
       return `<div class="cricket-history-row${v.corrected_at?' corrected':''}"><span class="cricket-history-meta">L${v.leg_no} · #${v.visit_no}</span><span class="cricket-history-player">${name}</span><span class="cricket-history-marks">${esc(text)}${v.corrected_at?' · korrigert':''}</span><span class="cricket-history-points">${points?`+${points}`:'—'}</span><span>${editable?`<button class="outline cricket-history-edit" data-edit-visit="${v.id}">Korriger</button>`:''}</span></div>`;
     }).join('');
@@ -80,7 +81,7 @@
   }
   function startCorrection(id){
     const v=visits.find(x=>Number(x.id)===Number(id)),latest=latestActive();
-    if(!v||latest?.id!==v.id||v.player_id!==profile?.id||m?.status!=='playing')return;
+    if(isChicago()||!v||latest?.id!==v.id||v.player_id!==profile?.id||m?.status!=='playing')return;
     editingVisitId=v.id;selectedDarts=expand(v.darts);
     $('matchMessage').textContent='Korriger siste kast med tastene. Enter lagrer, Esc avbryter.';
     renderEntry();renderLog();
@@ -98,7 +99,7 @@
     try{
       let data,error;
       if(editingVisitId!==null)({data,error}=await db.rpc('correct_last_cricket_visit',{p_visit_id:editingVisitId,p_darts:darts}));
-      else({data,error}=await db.rpc('submit_cricket_visit',{p_match_id:matchId,p_darts:darts}));
+      else{const rpc=isChicago()?'submit_chicago_cricket_visit':'submit_cricket_visit';({data,error}=await db.rpc(rpc,{p_match_id:matchId,p_darts:darts}))}
       if(error)throw error;
       const wasEdit=editingVisitId!==null;editingVisitId=null;selectedDarts=[];
       await refreshGame();
@@ -130,6 +131,7 @@
   async function start(){
     if(ready||!m?.id||!profile?.id)return;
     ready=true;await loadVisits();renderLog();renderEntry();
+    if(isChicago()){const help=document.querySelector('.cricket-history-head span');if(help)help.textContent='Chicago Style • kastlogg vises, men teller ikke i spillerstatistikk';}
     logChannel=db.channel('cricket-log-'+m.id)
       .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${m.id}`},async()=>{await loadVisits();renderLog();renderEntry()})
       .subscribe();
