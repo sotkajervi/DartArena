@@ -152,7 +152,7 @@
     v.muted=true;
     v.play().catch(()=>{});
     if(remoteStream.getVideoTracks().some(t=>t.readyState==='live'))hideRemote();
-    if(remoteStream.getAudioTracks().some(t=>t.readyState==='live'))/* remote audio fallback is controlled by remote-audio-autounlock.js */
+    /* remote audio fallback is controlled by remote-audio-autounlock.js */
   }
 
   function createPeer(){
@@ -309,7 +309,7 @@
         for(const track of tracks)if(track&&!rs.getTracks().some(t=>t.id===track.id))rs.addTrack(track);
         v.muted=true;v.playsInline=true;v.play().catch(()=>{});
         if(rs.getVideoTracks().some(t=>t.readyState==='live'))hideRemote();
-        if(rs.getAudioTracks().some(t=>t.readyState==='live'))/* remote audio fallback is controlled by remote-audio-autounlock.js */
+        /* remote audio fallback is controlled by remote-audio-autounlock.js */
       });
     }catch(error){fallbackSubscribedId=null;console.warn('[1V1 MEDIA] fallback subscribe failed',error)}
     finally{fallbackSubscribing=false}
