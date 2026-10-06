@@ -114,14 +114,26 @@
     const wins=[...byLeg.keys()].sort((a,b)=>a-b).map(leg=>{
       const list=byLeg.get(leg).sort(sortTime);
       const legStats={
-        [m.player1_id]:{marks:0,darts:0},
-        [m.player2_id]:{marks:0,darts:0}
+        [m.player1_id]:{marks:0,darts:0,points:0},
+        [m.player2_id]:{marks:0,darts:0,points:0}
       };
-      for(const r of list){const s=legStats[r.player_id];if(s)addMarks(s,r)}
+      for(const r of list){
+        const s=legStats[r.player_id];
+        if(!s)continue;
+        addMarks(s,r);
+        s.points+=num(r.points_scored);
+      }
       return{
         label:`Leg ${leg}`,
         winnerId:list.at(-1)?.player_id||null,
-        metric:{label:'MPR',values:{[m.player1_id]:mpr(legStats[m.player1_id]),[m.player2_id]:mpr(legStats[m.player2_id])}}
+        metric:{
+          label:'MPR',
+          values:{[m.player1_id]:mpr(legStats[m.player1_id]),[m.player2_id]:mpr(legStats[m.player2_id])},
+          secondary:{
+            label:'POENG',
+            values:{[m.player1_id]:legStats[m.player1_id].points,[m.player2_id]:legStats[m.player2_id].points}
+          }
+        }
       };
     });
     const summary=cumulativeSummary(wins,m).map((row,index)=>({...row,metric:wins[index]?.metric||null}));
@@ -256,7 +268,7 @@
     const rows=visible.map(row=>{
       const name=row.winnerId?names[row.winnerId]||'Vinner':'Uavgjort';
       const metric=row.metric?.label?(
-        `<div class="da-result-legmetric"><span>${esc(row.metric.label)}</span><b>${esc(names[leftId]||'Spiller 1')}: ${esc(row.metric.values?.[leftId]??'–')}</b><i>•</i><b>${esc(names[rightId]||'Spiller 2')}: ${esc(row.metric.values?.[rightId]??'–')}</b></div>`
+        `<div class="da-result-legmetric"><span>${esc(row.metric.label)}</span><b>${esc(names[leftId]||'Spiller 1')}: ${esc(row.metric.values?.[leftId]??'–')}</b><i>•</i><b>${esc(names[rightId]||'Spiller 2')}: ${esc(row.metric.values?.[rightId]??'–')}</b>${row.metric.secondary?.label?`<i>•</i><span>${esc(row.metric.secondary.label)}</span><b>${esc(names[leftId]||'Spiller 1')}: ${esc(row.metric.secondary.values?.[leftId]??'–')}</b><i>•</i><b>${esc(names[rightId]||'Spiller 2')}: ${esc(row.metric.secondary.values?.[rightId]??'–')}</b>`:''}</div>`
       ):'';
       return`<div class="da-result-legrow"><span>${esc(row.label)}</span><span class="da-result-legscore">${esc(row.score||'–')}</span><span class="da-result-legwinner ${row.winnerId===m.winner_id?'is-winner':''}">${esc(name)}</span>${metric}</div>`;
     }).join('');
