@@ -15,7 +15,7 @@
   const page=()=>location.pathname.split('/').pop()||'';
   const isChicago=m=>String(m?.game_config?.chicago??'false').toLowerCase()==='true';
   const stageOf=m=>Number(m?.game_config?.chicago_stage||m?.current_leg||1);
-  const stageLabel=stage=>stage===1?'301 DOUBLE IN / DOUBLE OUT':stage===2?'CRICKET':'501 DOUBLE OUT';
+  const stageLabel=stage=>stage===1?'301 DIDO':stage===2?'CRICKET':'501 SIDO';
 
   function scoreText(m){
     return `${Number(m?.player1_legs||0)}–${Number(m?.player2_legs||0)}`;
