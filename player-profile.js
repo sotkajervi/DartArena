@@ -17,8 +17,10 @@ function num(v){return Number(v||0)}
 function avg(v){return num(v)>0?num(v).toFixed(2):'–'}
 function pct(v){return `${num(v).toFixed(1)}%`}
 function variantOf(m){return m.game_variant||'x01'}
+function isChicago(m){return String(m?.game_config?.chicago??'false').toLowerCase()==='true'}
 function halfItMode(m){return m.game_config?.half_it_mode==='standard'?'standard':'dartcounter'}
 function gameLabel(m){
+  if(isChicago(m))return'Chicago Style';
   const v=variantOf(m);
   if(v==='cricket')return'Cricket';
   if(v==='half_it')return halfItMode(m)==='standard'?'Half-It Standard':'Half-It DartCounter';
@@ -38,6 +40,7 @@ function scorePair(m){
   return[num(m.player1_legs),num(m.player2_legs)];
 }
 function formatLabel(m){
+  if(isChicago(m))return'301 DI/DO • Cricket • 501 DO';
   const v=variantOf(m);
   if(v==='jdc')return'57 piler hver';
   if(v==='half_it')return num(m.player1_legs)+num(m.player2_legs)>0?`Best of ${m.legs||1} legs`:'12 runder';
@@ -46,7 +49,7 @@ function formatLabel(m){
   return m.match_mode==='sets'?`Best of ${m.best_of_sets||1} sets • Bo${m.legs||1} legs`:`Best of ${m.legs||1} legs`;
 }
 function contextLabel(m){return m.tournament_id?`${m.tournament_name||'Turnering'} • ${m.tournament_stage==='group'?'Pulje':'Cup'}`:'Onlinekamp'}
-function canOpenStats(m){return variantOf(m)==='x01'&&(!!m.tournament_id||m.player1_id===me||m.player2_id===me)}
+function canOpenStats(m){return !isChicago(m)&&variantOf(m)==='x01'&&(!!m.tournament_id||m.player1_id===me||m.player2_id===me)}
 
 function renderStats(s){
   $('playerName').textContent=s.username||'Spiller';
@@ -78,7 +81,7 @@ function renderStats(s){
 
 function visibleMatches(){
   return allMatches.filter(m=>{
-    if(activeFilter==='x01')return variantOf(m)==='x01';
+    if(activeFilter==='x01')return !isChicago(m)&&variantOf(m)==='x01';
     if(activeFilter==='tournament')return !!m.tournament_id;
     if(activeFilter==='online')return !m.tournament_id;
     return true;
@@ -93,7 +96,7 @@ function renderMatches(){
     const [a,b]=scorePair(m),isP1=m.player1_id===userId,own=isP1?a:b,opp=isP1?b:a;
     const opponent=isP1?(m.player2_name||'Spiller'):(m.player1_name||'Spiller');
     const won=m.winner_id===userId,lost=!!m.winner_id&&!won,draw=!m.winner_id&&a===b;
-    const stats=variantOf(m)==='x01'&&m.player_avg!==null?`<div class="profile-match-stats"><span class="mini-stat">AVG <b>${num(m.player_avg).toFixed(2)}</b></span><span class="mini-stat">First 9 <b>${m.player_first9!==null?num(m.player_first9).toFixed(2):'–'}</b></span><span class="mini-stat">CO <b>${num(m.player_high_checkout)||'–'}</b></span><span class="mini-stat">Raskeste <b>${m.player_fastest_leg?`${num(m.player_fastest_leg)}p`:'–'}</b></span><span class="mini-stat">100+ <b>${num(m.player_c100)}</b></span><span class="mini-stat">140+ <b>${num(m.player_c140)}</b></span><span class="mini-stat">180 <b>${num(m.player_c180)}</b></span></div>`:'';
+    const stats=!isChicago(m)&&variantOf(m)==='x01'&&m.player_avg!==null?`<div class="profile-match-stats"><span class="mini-stat">AVG <b>${num(m.player_avg).toFixed(2)}</b></span><span class="mini-stat">First 9 <b>${m.player_first9!==null?num(m.player_first9).toFixed(2):'–'}</b></span><span class="mini-stat">CO <b>${num(m.player_high_checkout)||'–'}</b></span><span class="mini-stat">Raskeste <b>${m.player_fastest_leg?`${num(m.player_fastest_leg)}p`:'–'}</b></span><span class="mini-stat">100+ <b>${num(m.player_c100)}</b></span><span class="mini-stat">140+ <b>${num(m.player_c140)}</b></span><span class="mini-stat">180 <b>${num(m.player_c180)}</b></span></div>`:'';
     const action=canOpenStats(m)?`<button class="small-btn" data-stats-id="${m.id}">Se statistikk</button>`:'';
     return `<article class="profile-match"><div><div class="profile-match-title"><span class="match-tag">${esc(gameLabel(m))}</span><span>vs</span><span class="history-player player-name">${esc(opponent)}</span><span class="profile-match-result ${won?'winner':''}">${own}–${opp}</span>${won?'<span class="match-tag">SEIER</span>':lost?'<span class="match-tag" style="color:var(--muted);border-color:rgba(255,255,255,.12)">TAP</span>':draw?'<span class="match-tag">UAVGJORT</span>':''}</div><div class="profile-match-meta"><span>${fmtDate(m.finished_at||m.created_at,true)}</span><span>${esc(formatLabel(m))}</span><span>${esc(contextLabel(m))}</span></div>${stats}</div><div class="profile-actions">${action}</div></article>`;
   }).join('');
