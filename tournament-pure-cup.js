@@ -9,6 +9,7 @@
   async function getDialog(){for(let i=0;i<40&&!window.DartArenaDialog;i++)await sleep(50);return window.DartArenaDialog||null}
 
   function isPureCup(){try{return !!tournament&&tournament.tournament_type==='cup'}catch{return false}}
+  function isChicagoTournament(){try{return String(tournament?.game_variant||'x01').toLowerCase()==='chicago'}catch{return false}}
   function isSimulation(){try{return !!simulation}catch{return false}}
   function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
   function nextPow2(n){let x=1;while(x<n)x*=2;return x}
@@ -58,6 +59,7 @@
     try{localStorage.setItem(FORMAT_KEY,JSON.stringify(values))}catch{}
   }
   function selectedFormats(rounds){
+    if(isChicagoTournament())return Object.fromEntries(Array.from({length:rounds},(_,i)=>[i+1,3]));
     const out=loadFormats(rounds);document.querySelectorAll('#pureCupFormatSettings select[data-pure-cup-round]').forEach(s=>{const r=Number(s.dataset.pureCupRound),n=Number(s.value);if(r&&validBestOf(n))out[r]=n});return out;
   }
   function optionHtml(selected){return BEST_OF_OPTIONS.map(n=>`<option value="${n}" ${n===selected?'selected':''}>Bo${n}</option>`).join('')}
@@ -69,9 +71,13 @@
     setup.classList.remove('hidden');lobby?.classList.add('hidden');
     btn.disabled=players.length<2;
     btn.textContent=isSimulation()?'Trekk og opprett testcup':'Trekk og opprett cup';
-    info.textContent=players.length<2?'Minst to spillere må være med i cupen.':`${players.length} spillere er klare. Spillerlisten stokkes 3 ganger og fordeles tilfeldig i cupen${isSimulation()?' • TESTMODUS':''}.`;
+    info.textContent=players.length<2?'Minst to spillere må være med i cupen.':isChicagoTournament()
+      ?`${players.length} spillere er klare. Chicago Style spilles 301 DIDO • Cricket • 501 SIDO i hver cupkamp${isSimulation()?' • TESTMODUS':''}.`
+      :`${players.length} spillere er klare. Spillerlisten stokkes 3 ganger og fordeles tilfeldig i cupen${isSimulation()?' • TESTMODUS':''}.`;
     $('cupFormatSettings')?.remove();
-    let box=$('pureCupFormatSettings');if(!box){box=document.createElement('div');box.id='pureCupFormatSettings';box.style.cssText='margin:10px 0 12px;padding:10px 12px;border:1px solid rgba(35,226,209,.25);border-radius:12px;background:rgba(9,20,22,.72)';btn.insertAdjacentElement('beforebegin',box)}
+    let box=$('pureCupFormatSettings');
+    if(isChicagoTournament()){box?.remove();return}
+    if(!box){box=document.createElement('div');box.id='pureCupFormatSettings';box.style.cssText='margin:10px 0 12px;padding:10px 12px;border:1px solid rgba(35,226,209,.25);border-radius:12px;background:rgba(9,20,22,.72)';btn.insertAdjacentElement('beforebegin',box)}
     box.innerHTML=`<div style="display:flex;align-items:flex-end;gap:9px;flex-wrap:wrap"><div style="min-width:145px;margin-right:2px"><small>REN CUP${isSimulation()?' • TEST':''}</small><div style="font-weight:900;font-size:14px;margin-top:3px">Best of per runde</div></div>${Array.from({length:rounds},(_,i)=>i+1).map(r=>`<label class="field" style="margin:0;min-width:112px;flex:1 1 112px"><span style="display:block;font-size:10px;font-weight:800;margin-bottom:3px">${roundName(r,rounds)}</span><select data-pure-cup-round="${r}" style="margin-top:0;padding:8px 10px">${optionHtml(formats[r])}</select></label>`).join('')}</div>`;
     box.querySelectorAll('select').forEach(s=>s.addEventListener('change',saveFormats));
   }
@@ -116,7 +122,7 @@
     $('cupProgress').textContent=final?.winner?`Vinner: ${final.winner.name}`:`${done} / ${simCup.matches.length} cupkamper ferdig • TESTMODUS`;
     let controls=$('cupSimulationControls');if(!controls){controls=document.createElement('div');controls.id='cupSimulationControls';controls.style.cssText='display:flex;gap:10px;flex-wrap:wrap;margin:12px 0';$('cupBracket')?.insertAdjacentElement('beforebegin',controls)}
     controls.innerHTML='<button id="simulatePureCupBtn" class="primary">Simuler resterende cup</button><button id="resetPureCupBtn" class="outline">Trekk cup på nytt</button><span class="status" style="align-self:center">3× tilfeldig trekning • kun lokal test</span>';
-    $('cupBracket').innerHTML=Array.from({length:simCup.totalRounds},(_,i)=>i+1).map(r=>{const rm=simCup.matches.filter(m=>m.round===r).sort((a,b)=>a.index-b.index),bo=rm[0]?.best;return `<div class="cup-round"><div class="cup-round-title">${roundName(r,simCup.totalRounds)} • Bo${bo}</div>${rm.map(m=>{const score=m.wo?'WO':m.status==='finished'?`${m.p1}–${m.p2}`:'vs',aBye=m.round===1&&m.wo&&!m.a,bBye=m.round===1&&m.wo&&!m.b;return `<div class="cup-match simulation-cup-match pure-cup-sim-match" role="button" tabindex="0" data-pure-sim-id="${m.id}"><div class="cup-player ${m.winner&&m.a&&m.winner.id===m.a.id?'winner':''}">${simPlayer(m.a,{bye:aBye})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner&&m.b&&m.winner.id===m.b.id?'winner':''}">${simPlayer(m.b,{bye:bBye})}</div></div>`}).join('')}</div>`}).join('');
+    $('cupBracket').innerHTML=Array.from({length:simCup.totalRounds},(_,i)=>i+1).map(r=>{const rm=simCup.matches.filter(m=>m.round===r).sort((a,b)=>a.index-b.index),bo=rm[0]?.best;return `<div class="cup-round"><div class="cup-round-title">${roundName(r,simCup.totalRounds)} • ${isChicagoTournament()?'Chicago Style':`Bo${bo}`}</div>${rm.map(m=>{const score=m.wo?'WO':m.status==='finished'?`${m.p1}–${m.p2}`:'vs',aBye=m.round===1&&m.wo&&!m.a,bBye=m.round===1&&m.wo&&!m.b;return `<div class="cup-match simulation-cup-match pure-cup-sim-match" role="button" tabindex="0" data-pure-sim-id="${m.id}"><div class="cup-player ${m.winner&&m.a&&m.winner.id===m.a.id?'winner':''}">${simPlayer(m.a,{bye:aBye})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner&&m.b&&m.winner.id===m.b.id?'winner':''}">${simPlayer(m.b,{bye:bBye})}</div></div>`}).join('')}</div>`}).join('');
     if(scroll)$('cupLobby')?.scrollIntoView({behavior:'smooth',block:'start'});
   }
   async function editSimMatch(m){
