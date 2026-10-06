@@ -96,9 +96,10 @@
 
   function tournamentRow(x,list,{archive=false,winnerName=''}={}){
     const joined=list.some(m=>m.user_id===me),n=list.filter(m=>m.role==='participant').length,statsOn=x.stats_enabled!==false;
+    const gameLabel=String(x.game_variant||'x01').toLowerCase()==='chicago'?'Chicago Style':String(Number(x.game)||501);
     const meta=archive
-      ?`${x.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup'} • Ferdig ${fmt(x.finished_at||x.updated_at||x.starts_at)} • ${n} deltakere • Vinner: ${esc(winnerName||'–')}`
-      :`${x.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup'} • ${fmt(x.starts_at)} • ${n} påmeldt`;
+      ?`${x.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup'} • ${gameLabel} • Ferdig ${fmt(x.finished_at||x.updated_at||x.starts_at)} • ${n} deltakere • Vinner: ${esc(winnerName||'–')}`
+      :`${x.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup'} • ${gameLabel} • ${fmt(x.starts_at)} • ${n} påmeldt`;
     const statsBadge=`<span class="form-stats-badge${statsOn?'':' off'}" title="${statsOn?'Teller i Form stats':'Teller ikke i Form stats'}">${statsOn?'FORM STATS':'FORM STATS AV'}</span>`;
     return `<article class="tournament-row"><div><div class="tournament-title-line"><div class="player-name">${esc(x.name)}</div>${statsBadge}</div><div class="status">${meta}</div></div><div class="challenge-actions">${archive?`<button class="small-btn" data-history-open="${x.id}">Se turnering</button><button class="small-btn" data-history-stats="${x.id}">Sluttstatistikk</button>`:`<button class="small-btn" data-open="${x.id}">Åpne</button>${x.registration_open?`<button class="small-btn ${joined?'decline':'accept'}" data-${joined?'leave':'join'}="${x.id}">${joined?'Avmeld':'Meld på'}</button>`:''}`}</div></article>`;
   }
