@@ -7,7 +7,7 @@
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
   );
 
-  let isOwner=false,isAdmin=false,decorating=false;
+  let isOwner=false,isAdmin=false,isChicago=false,decorating=false;
   const nameCache={};
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   async function getDialog(){for(let i=0;i<40&&!window.DartArenaDialog;i++)await sleep(50);return window.DartArenaDialog||null}
@@ -61,7 +61,8 @@
       const needed=targetWins(match.best_of);
       const current=`${Number(match.player1_legs||0)}-${Number(match.player2_legs||0)}`;
       const dialog=await getDialog();
-      const promptMessage=`${n1} vs ${n2}\nBest av ${match.best_of} • vinner må ha ${needed} legs\n\nSkriv nytt resultat (${n1}-${n2}):`;
+      const unit=isChicago?'games':'legs';
+      const promptMessage=`${n1} vs ${n2}\n${isChicago?'Chicago Style':'Best av '+match.best_of} • vinner må ha ${needed} ${unit}\n\nSkriv nytt resultat (${n1}-${n2}):`;
       const input=dialog
         ?await dialog.prompt(promptMessage,{title:'Korriger ferdig kamp',value:current,inputLabel:'NYTT RESULTAT',confirmText:'Lagre resultat'})
         :prompt(`Korriger ferdig kamp\n${promptMessage}`,current);
@@ -72,7 +73,9 @@
 
       const p1=Number(parsed[1]),p2=Number(parsed[2]);
       if(!((p1===needed&&p2<needed)||(p2===needed&&p1<needed))){
-        const text=`Ugyldig resultat. I Best av ${match.best_of} må vinneren ha ${needed} legs.`;
+        const text=isChicago
+          ?`Ugyldig resultat. I Chicago Style må vinneren ha ${needed} games.`
+          :`Ugyldig resultat. I Best av ${match.best_of} må vinneren ha ${needed} legs.`;
         if(dialog)await dialog.alert(text,{title:'Ugyldig resultat',tone:'warning'});else alert(text);
         return;
       }
@@ -144,11 +147,12 @@
     const {data:{session}}=await client.auth.getSession();
     if(!session)return;
     const [{data:tournament},{data:adminFlag}]=await Promise.all([
-      client.from('tournaments').select('owner_id').eq('id',tournamentId).single(),
+      client.from('tournaments').select('owner_id,game_variant').eq('id',tournamentId).single(),
       client.rpc('is_admin')
     ]);
     isOwner=tournament?.owner_id===session.user.id;
     isAdmin=adminFlag===true;
+    isChicago=String(tournament?.game_variant||'x01').toLowerCase()==='chicago';
     if(!isOwner&&!isAdmin)return;
 
     await decorateFinishedRows();
