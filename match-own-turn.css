@@ -100,20 +100,64 @@ body.match-page.match-tv-layout.standard-tv-layout .score-card{
   to{opacity:1;transform:translateY(0)}
 }
 
-@media(max-height:820px){
+@media(max-height:850px){
+  /* Laptop / low-height screens: reserve room for scoring and live stats.
+     The old 360px minimum made the document taller than the viewport. */
   body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus #videoGrid{
-    height:clamp(360px,53dvh,465px)!important;
-    max-height:clamp(360px,53dvh,465px)!important;
-    min-height:360px!important;
+    height:clamp(260px,46dvh,380px)!important;
+    max-height:clamp(260px,46dvh,380px)!important;
+    min-height:260px!important;
+  }
+  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock::before{
+    margin-bottom:3px!important;
+    font-size:9px!important;
   }
   body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock .score-entry{
-    padding:8px!important;
+    padding:7px!important;
   }
   body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock .score-entry input{
-    padding:10px 11px!important;
-    font-size:19px!important;
+    padding:9px 10px!important;
+    font-size:18px!important;
   }
   body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock .score-entry button{
-    padding:9px 16px!important;
+    padding:8px 14px!important;
+    font-size:12px!important;
+  }
+  body.match-page.match-tv-layout.standard-tv-layout #matchView>.stats-card{
+    margin-top:1px!important;
+  }
+  body.match-page.match-tv-layout.standard-tv-layout #matchView>.stats-card .stats-title{
+    margin-bottom:3px!important;
+  }
+  body.match-page.match-tv-layout.standard-tv-layout #matchView>.stats-card .stats-title h3{
+    font-size:12px!important;
+  }
+  body.match-page.match-tv-layout.standard-tv-layout #matchView>.stats-card .stats-grid>*{
+    padding:4px 7px!important;
+    font-size:10px!important;
+    line-height:1.15!important;
+  }
+  body.match-page.match-tv-layout.standard-tv-layout #matchView>.stats-card .stats-grid .label,
+  body.match-page.match-tv-layout.standard-tv-layout #matchView>.stats-card .stats-grid .head{
+    font-size:9px!important;
+  }
+}
+
+@media(max-height:680px){
+  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus #videoGrid{
+    height:clamp(230px,42dvh,300px)!important;
+    max-height:clamp(230px,42dvh,300px)!important;
+    min-height:230px!important;
+  }
+  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)) .match-player{
+    min-height:92px!important;
+    padding:8px 10px!important;
+  }
+  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)) .match-score{
+    font-size:56px!important;
+    margin:5px 0!important;
+  }
+  body.match-page.match-tv-layout.standard-tv-layout .match-info .focus-local-docked{
+    height:72px!important;
   }
 }
