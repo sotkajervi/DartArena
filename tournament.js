@@ -32,15 +32,27 @@ function validTournamentGame(value){
 function tournamentIsChicago(t=tournament){
   return String(t?.game_variant||'x01').toLowerCase()==='chicago';
 }
+function tournamentCupIsChicago(t=tournament){
+  return String(t?.cup_game_variant||t?.game_variant||'x01').toLowerCase()==='chicago';
+}
+function formatGameLabel(game,variant){
+  if(String(variant||'x01').toLowerCase()==='chicago')return'Chicago Style';
+  return String(validTournamentGame(game)?Number(game):501);
+}
 function tournamentGameLabel(t=tournament){
-  if(tournamentIsChicago(t))return'Chicago Style';
-  return String(validTournamentGame(t?.game)?Number(t.game):501);
+  return formatGameLabel(t?.game,t?.game_variant);
+}
+function tournamentCupGameLabel(t=tournament){
+  return formatGameLabel(t?.cup_game??t?.game,t?.cup_game_variant??t?.game_variant);
 }
 function tournamentTypeLabel(t){
   return t.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup';
 }
 function tournamentMeta(t){
-  return `${tournamentTypeLabel(t)} • ${tournamentGameLabel(t)} • ${fmt(t.starts_at)}`;
+  if(t.tournament_type==='groups_cup'){
+    return `${tournamentTypeLabel(t)} • Puljer: ${tournamentGameLabel(t)} • Cup: ${tournamentCupGameLabel(t)} • ${fmt(t.starts_at)}`;
+  }
+  return `${tournamentTypeLabel(t)} • ${tournamentCupGameLabel(t)} • ${fmt(t.starts_at)}`;
 }
 
 function showTournamentUnavailable(message='Turneringen finnes ikke lenger.'){
@@ -53,6 +65,7 @@ function showTournamentUnavailable(message='Turneringen finnes ikke lenger.'){
   $('participantList').innerHTML='<p class="muted">Gå tilbake til hovedlobbyen.</p>';
   ['joinBtn','leaveBtn','ownerActions','groupSetup','groupLobby','cupSetup','cupLobby'].forEach(key=>$(key)?.classList.add('hidden'));
   document.getElementById('tournamentGameField')?.remove();
+  document.getElementById('tournamentCupGameField')?.remove();
 }
 
 async function boot(){
@@ -117,7 +130,7 @@ async function load(){
 
   renderPage();
   if(t.status==='groups')await loadGroupLobby();
-  window.dispatchEvent(new CustomEvent('dartarena:tournament-loaded',{detail:{id:t.id,status:t.status,gameVariant:t.game_variant||'x01'}}));
+  window.dispatchEvent(new CustomEvent('dartarena:tournament-loaded',{detail:{id:t.id,status:t.status,gameVariant:t.game_variant||'x01',cupGameVariant:t.cup_game_variant||t.game_variant||'x01'}}));
 }
 
 function renderPage(){
@@ -159,77 +172,149 @@ function renderPage(){
 }
 
 function syncTournamentGameUi(){
-  const chicago=tournamentIsChicago();
+  const groupChicago=tournamentIsChicago();
+  const cupChicago=tournamentCupIsChicago();
   const bestField=$('groupBestOf')?.closest('label');
-  if(bestField)bestField.classList.toggle('hidden',chicago);
-  const help=document.getElementById('tournamentGameHelp');
-  if(help)help.textContent=chicago?'301 DIDO • Cricket • 501 SIDO • først til 2 games':'X01 • velg Best av legs for kampene';
-  const groupHelp=$('groupLobby')?.querySelector('.muted.compact');
-  if(groupHelp)groupHelp.textContent=chicago
+  if(bestField)bestField.classList.toggle('hidden',groupChicago);
+
+  const groupHelp=document.getElementById('tournamentGameHelp');
+  if(groupHelp)groupHelp.textContent=groupChicago
+    ?'301 DIDO • Cricket • 501 SIDO • først til 2 games'
+    :'X01 • velg Best av legs for puljekampene';
+
+  const cupHelp=document.getElementById('tournamentCupGameHelp');
+  if(cupHelp)cupHelp.textContent=cupChicago
+    ?'Chicago Style i cup • fast først til 2 games'
+    :`${tournamentCupGameLabel()} • Best of velges separat per cuprunde`;
+
+  const groupHelpText=$('groupLobby')?.querySelector('.muted.compact');
+  if(groupHelpText)groupHelpText.textContent=groupChicago
     ?'Trykk på en kamp for kamprom, tilskuervisning eller statistikk. Rangering: kampseire → game-differanse → vunne games → innbyrdes.'
     :'Trykk på en kamp for kamprom, tilskuervisning eller statistikk. Rangering: kampseire → leg-differanse → vunne legs → innbyrdes.';
 }
 
-function ensureTournamentGameSelector(owner){
-  const existing=document.getElementById('tournamentGameField');
-  const setupStatus=tournament?.status==='groups_setup'||tournament?.status==='cup_setup';
-  if(!owner||!setupStatus){existing?.remove();syncTournamentGameUi();return;}
+function gameOptions(){
+  return '<option value="170">170</option><option value="301">301</option><option value="501">501</option><option value="1001">1001</option><option value="chicago">Chicago Style</option>';
+}
 
-  const groupAnchor=$('groupCount')?.closest('label');
-  const cupAnchor=$('buildCupBtn');
-  const anchor=tournament.status==='groups_setup'?groupAnchor:cupAnchor;
-  if(!anchor)return;
+function setFormatSelectValue(select,game,variant){
+  if(!select)return;
+  select.value=String(variant||'x01').toLowerCase()==='chicago'?'chicago':String(validTournamentGame(game)?Number(game):501);
+}
 
-  let field=existing;
-  let select=document.getElementById('tournamentGame');
+function ensureFormatField({id,selectId,helpId,label,anchor,game,variant,onchange}){
+  if(!anchor)return null;
+  let field=document.getElementById(id);
   if(!field){
     field=document.createElement('label');
-    field.id='tournamentGameField';
+    field.id=id;
     field.className='field';
-    field.innerHTML='<span>Spill</span><select id="tournamentGame"><option value="170">170</option><option value="301">301</option><option value="501">501</option><option value="1001">1001</option><option value="chicago">Chicago Style</option></select><small id="tournamentGameHelp" style="display:block;margin-top:7px;letter-spacing:0;text-transform:none;color:var(--muted)"></small>';
+    field.innerHTML=`<span>${label}</span><select id="${selectId}">${gameOptions()}</select><small id="${helpId}" style="display:block;margin-top:7px;letter-spacing:0;text-transform:none;color:var(--muted)"></small>`;
     anchor.insertAdjacentElement('beforebegin',field);
-    select=field.querySelector('select');
-    select.onchange=()=>saveTournamentGame(select);
+    field.querySelector('select').onchange=onchange;
   }else if(field.nextElementSibling!==anchor){
     anchor.insertAdjacentElement('beforebegin',field);
   }
+  const select=field.querySelector('select');
+  setFormatSelectValue(select,game,variant);
+  return field;
+}
 
-  select.value=tournamentIsChicago()? 'chicago' : String(validTournamentGame(tournament.game)?Number(tournament.game):501);
+function ensureTournamentGameSelector(owner){
+  const groupField=document.getElementById('tournamentGameField');
+  const cupField=document.getElementById('tournamentCupGameField');
+  const setupStatus=tournament?.status==='groups_setup'||tournament?.status==='cup_setup';
+  if(!owner||!setupStatus){
+    groupField?.remove();
+    cupField?.remove();
+    syncTournamentGameUi();
+    return;
+  }
+
+  if(tournament.status==='groups_setup'&&tournament.tournament_type==='groups_cup'){
+    const anchor=$('groupCount')?.closest('label');
+    if(!anchor)return;
+    ensureFormatField({
+      id:'tournamentCupGameField',selectId:'tournamentCupGame',helpId:'tournamentCupGameHelp',
+      label:'Cupspill',anchor,game:tournament.cup_game??501,variant:tournament.cup_game_variant??'x01',
+      onchange:event=>saveTournamentFormat(event.currentTarget,'cup')
+    });
+    ensureFormatField({
+      id:'tournamentGameField',selectId:'tournamentGame',helpId:'tournamentGameHelp',
+      label:'Puljespill',anchor:document.getElementById('tournamentCupGameField')||anchor,
+      game:tournament.game,variant:tournament.game_variant,
+      onchange:event=>saveTournamentFormat(event.currentTarget,'group')
+    });
+  }else{
+    groupField?.remove();
+    const anchor=$('buildCupBtn');
+    if(!anchor)return;
+    ensureFormatField({
+      id:'tournamentCupGameField',selectId:'tournamentCupGame',helpId:'tournamentCupGameHelp',
+      label:'Cupspill',anchor,game:tournament.cup_game??tournament.game,variant:tournament.cup_game_variant??tournament.game_variant,
+      onchange:event=>saveTournamentFormat(event.currentTarget,'cup')
+    });
+  }
   syncTournamentGameUi();
 }
 
-async function saveTournamentGame(select){
+async function saveTournamentFormat(select,scope){
   if(!tournament||tournament.owner_id!==me||!select)return;
   const chicago=select.value==='chicago';
   const game=chicago?501:Number(select.value);
   const gameVariant=chicago?'chicago':'x01';
   if(!chicago&&!validTournamentGame(game))return;
-  const previousVariant=String(tournament.game_variant||'x01');
-  const previousGame=Number(tournament.game)||501;
+
+  const isCup=scope==='cup';
+  const previousGame=isCup?Number(tournament.cup_game??tournament.game)||501:Number(tournament.game)||501;
+  const previousVariant=isCup?String(tournament.cup_game_variant??tournament.game_variant||'x01'):String(tournament.game_variant||'x01');
+  const update=isCup
+    ?{cup_game:game,cup_game_variant:gameVariant,updated_at:new Date().toISOString()}
+    :{game,game_variant:gameVariant,updated_at:new Date().toISOString()};
+
+  // Ren cup keeps legacy game fields aligned as well.
+  if(isCup&&tournament.tournament_type==='cup'){
+    update.game=game;
+    update.game_variant=gameVariant;
+  }
+
   select.disabled=true;
   try{
     const {error}=await db.from('tournaments')
-      .update({game,game_variant:gameVariant,updated_at:new Date().toISOString()})
+      .update(update)
       .eq('id',id)
       .eq('owner_id',me)
       .eq('status',tournament.status);
     if(error)throw error;
-    tournament.game=game;
-    tournament.game_variant=gameVariant;
-    drawnGroups=null;
+
+    if(isCup){
+      tournament.cup_game=game;
+      tournament.cup_game_variant=gameVariant;
+      if(tournament.tournament_type==='cup'){
+        tournament.game=game;
+        tournament.game_variant=gameVariant;
+      }
+    }else{
+      tournament.game=game;
+      tournament.game_variant=gameVariant;
+      drawnGroups=null;
+    }
+
     $('tMeta').textContent=tournamentMeta(tournament);
     syncTournamentGameUi();
     if(tournament.status==='groups_setup')renderSetup();
   }catch(error){
     console.error('Tournament game update failed',error);
-    tournament.game=previousGame;
-    tournament.game_variant=previousVariant;
-    select.value=previousVariant==='chicago'?'chicago':String(previousGame);
+    setFormatSelectValue(select,previousGame,previousVariant);
     syncTournamentGameUi();
     alert('Kunne ikke lagre spillvalg: '+(error.message||error));
   }finally{
     select.disabled=false;
   }
+}
+
+async function saveTournamentGame(select){
+  return saveTournamentFormat(select,'group');
 }
 
 function renderSetup(){
@@ -366,7 +451,14 @@ async function startGroups(){
     const chicago=selection==='chicago';
     const game=chicago?501:Number(selection);
     const gameVariant=chicago?'chicago':'x01';
-    if(!chicago&&!validTournamentGame(game))throw new Error('Velg et gyldig spill.');
+    if(!chicago&&!validTournamentGame(game))throw new Error('Velg et gyldig puljespill.');
+
+    const cupSelection=document.getElementById('tournamentCupGame')?.value||(tournamentCupIsChicago()?'chicago':String(tournament.cup_game||501));
+    const cupChicago=cupSelection==='chicago';
+    const cupGame=cupChicago?501:Number(cupSelection);
+    const cupGameVariant=cupChicago?'chicago':'x01';
+    if(!cupChicago&&!validTournamentGame(cupGame))throw new Error('Velg et gyldig cupspill.');
+
     const bestOf=chicago?3:Number($('groupBestOf').value);
     const advance=$('advanceCount').value;
     const advanceMode=advance==='all'?'all':'top';
@@ -398,13 +490,15 @@ async function startGroups(){
     }
 
     const {error:tErr}=await db.from('tournaments')
-      .update({status:'groups',game,game_variant:gameVariant,updated_at:new Date().toISOString()})
+      .update({status:'groups',game,game_variant:gameVariant,cup_game:cupGame,cup_game_variant:cupGameVariant,updated_at:new Date().toISOString()})
       .eq('id',id)
       .eq('owner_id',me)
       .eq('status','groups_setup');
     if(tErr)throw tErr;
     tournament.game=game;
     tournament.game_variant=gameVariant;
+    tournament.cup_game=cupGame;
+    tournament.cup_game_variant=cupGameVariant;
     drawnGroups=null;
     await load();
     alert(`Puljespillet er startet. ${matchRows.length} kamper er satt opp.`);
