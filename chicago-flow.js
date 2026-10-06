@@ -2,7 +2,9 @@
   if(window.__dartArenaChicagoFlow)return;
   window.__dartArenaChicagoFlow=true;
 
-  const matchId=new URLSearchParams(location.search).get('id');
+  const params=new URLSearchParams(location.search);
+  const matchId=params.get('id');
+  const tournamentMatchId=params.get('tournamentMatch');
   if(!matchId||!window.supabase)return;
 
   const client=typeof db!=='undefined'
@@ -94,15 +96,22 @@
     }
   }
 
+  function routeUrl(target){
+    const next=new URLSearchParams();
+    next.set('id',matchId);
+    if(tournamentMatchId)next.set('tournamentMatch',tournamentMatchId);
+    return `${target}?${next.toString()}`;
+  }
+
   function route(m){
     if(!isChicago(m)||m.status!=='playing')return false;
     const here=page();
     if(m.game_variant==='cricket'&&here!=='cricket.html'){
-      location.replace(`cricket.html?id=${encodeURIComponent(matchId)}`);
+      location.replace(routeUrl('cricket.html'));
       return true;
     }
     if(m.game_variant==='x01'&&here==='cricket.html'){
-      location.replace(`match.html?id=${encodeURIComponent(matchId)}`);
+      location.replace(routeUrl('match.html'));
       return true;
     }
     return false;
