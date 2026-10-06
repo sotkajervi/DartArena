@@ -6,7 +6,9 @@
   const viewerChannels=new Map(),viewerCounts=new Map();
 
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function isChicago(m){return String(m?.game_config?.chicago??'false').toLowerCase()==='true'}
   function gameLabel(m){
+    if(isChicago(m))return'Chicago Style';
     if(m.game_variant==='jdc')return'JDC Challenge';
     if(m.game_variant==='cricket')return'Cricket';
     if(m.game_variant==='half_it')return'Half-It';
@@ -14,6 +16,7 @@
     return String(m.game||501);
   }
   function filterKey(m){
+    if(isChicago(m))return'chicago';
     if(m.game_variant==='jdc')return'jdc';
     if(m.game_variant==='cricket')return'cricket';
     if(m.game_variant==='half_it')return'half_it';
@@ -21,11 +24,13 @@
     return'x01';
   }
   function formatLabel(m){
+    if(isChicago(m)){const stage=Number(m.game_config?.chicago_stage||m.current_leg||1),label=stage===1?'301 DI/DO':stage===2?'Cricket':'501 DO';return`Game ${stage}/3 • ${label}`}
     if(m.game_variant==='jdc')return'57 piler hver';
     if(m.game_variant==='half_it')return'12 runder';
     const legs=Number(m.legs||1);return`Best of ${legs}`;
   }
   function resultLabel(m){
+    if(isChicago(m))return`${Number(m.player1_legs||0)}–${Number(m.player2_legs||0)} i games`;
     if(m.game_variant==='jdc')return`${Number(m.player1_score||0)}–${Number(m.player2_score||0)} poeng`;
     return`${Number(m.player1_legs||0)}–${Number(m.player2_legs||0)} i legs`;
   }
@@ -64,7 +69,7 @@
     filters.id='liveMatchFilters';
     filters.className='live-match-filters';
     filters.innerHTML=[
-      ['all','Alle'],['x01','X01'],['cricket','Cricket'],['half_it','Half-It'],['sixty_one','61'],['jdc','JDC']
+      ['all','Alle'],['x01','X01'],['chicago','Chicago'],['cricket','Cricket'],['half_it','Half-It'],['sixty_one','61'],['jdc','JDC']
     ].map(([key,label])=>`<button type="button" class="outline live-match-filter${key==='all'?' active':''}" data-live-filter="${key}">${label}</button>`).join('');
     const list=$('liveMatchesList');
     list?.insertAdjacentElement('beforebegin',filters);
