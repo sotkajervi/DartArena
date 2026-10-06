@@ -95,8 +95,8 @@
   async function create(e){e.preventDefault();const name=$('tournamentName').value.trim(),type=$('tournamentType').value,start=$('tournamentStart').value,msg=$('tournamentCreateMessage'),statsEnabled=$('tournamentFormStats')?.checked!==false;if(!start){msg.textContent='Velg starttidspunkt.';msg.className='message error';return}msg.textContent='Oppretter…';const {data,error}=await db.from('tournaments').insert({name,owner_id:me,tournament_type:type,starts_at:new Date(start).toISOString(),stats_enabled:statsEnabled}).select('*').single();if(error){msg.textContent=error.message;msg.className='message error';return}msg.textContent='';$('tournamentModal').classList.add('hidden');await load();location.href=`tournament.html?id=${encodeURIComponent(data.id)}`}
 
   function tournamentRow(x,list,{archive=false,winnerName=''}={}){
-    const joined=list.some(m=>m.user_id===me),n=list.filter(m=>m.role==='participant').length,statsOn=x.stats_enabled!==false;
-    const gameLabel=String(x.game_variant||'x01').toLowerCase()==='chicago'?'Chicago Style':String(Number(x.game)||501);
+    const joined=list.some(m=>m.user_id===me),n=list.filter(m=>m.role==='participant').length,chicago=String(x.game_variant||'x01').toLowerCase()==='chicago',statsOn=x.stats_enabled!==false&&!chicago;
+    const gameLabel=chicago?'Chicago Style':String(Number(x.game)||501);
     const meta=archive
       ?`${x.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup'} • ${gameLabel} • Ferdig ${fmt(x.finished_at||x.updated_at||x.starts_at)} • ${n} deltakere • Vinner: ${esc(winnerName||'–')}`
       :`${x.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup'} • ${gameLabel} • ${fmt(x.starts_at)} • ${n} påmeldt`;
