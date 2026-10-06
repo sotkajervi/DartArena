@@ -30,6 +30,23 @@
     if(misses)parts.push(`Miss×${misses}`);
     return parts.join(' · ')||'Ingen treff';
   }
+  function mprFor(playerId){
+    let marks=0,darts=0;
+    for(const visit of visits){
+      if(visit.player_id!==playerId)continue;
+      for(const dart of Array.isArray(visit.darts)?visit.darts:[]){
+        darts++;
+        marks+=Math.max(0,Math.min(3,Number(dart?.mult)||0));
+      }
+    }
+    return darts?(marks/darts*3).toFixed(2):'0.00';
+  }
+  function renderMpr(){
+    if(!m)return;
+    const p1=$('cricketMpr1'),p2=$('cricketMpr2');
+    if(p1)p1.textContent=mprFor(m.player1_id);
+    if(p2)p2.textContent=mprFor(m.player2_id);
+  }
   function canInput(){return !submitting&&(editingVisitId!==null?!!m&&m.status==='playing':canThrow())}
   function canAdd(item){if(!canInput())return false;try{pack([...selectedDarts,item]);return true}catch{return false}}
   function addMark(target){
@@ -69,6 +86,7 @@
   }
   function latestActive(){const rows=visits.filter(v=>Number(v.leg_no)===Number(m?.current_leg));return rows.at(-1)||null}
   function renderLog(){
+    renderMpr();
     const host=$('cricketVisitLog');if(!host)return;
     if(!visits.length){host.innerHTML='<div class="cricket-history-empty">Ingen kast registrert ennå.</div>';return}
     const latest=latestActive();
@@ -92,8 +110,16 @@
   refreshGame=async function(){await baseRefresh();await loadVisits();renderLog()};
   render=function(){baseRender();renderLog()};
 
-  submitVisit=async function(){
-    if(!canInput()||!selectedDarts.length)return;
+  submitVisit=async function({emptyAsMisses=false}={}){
+    if(!canInput())return;
+    if(!selectedDarts.length&&emptyAsMisses){
+      selectedDarts=[
+        {target:'MISS',mult:0},
+        {target:'MISS',mult:0},
+        {target:'MISS',mult:0}
+      ];
+    }
+    if(!selectedDarts.length)return;
     let darts;try{darts=pack(selectedDarts)}catch(error){$('matchMessage').textContent=error.message;return}
     submitting=true;renderEntry();$('matchMessage').textContent=editingVisitId!==null?'Lagrer korrigering…':'Registrerer…';
     try{
@@ -124,7 +150,7 @@
     if(target){e.preventDefault();addMark(target);return}
     if(e.code==='Space'){e.preventDefault();addMiss();return}
     if(e.key==='Backspace'){e.preventDefault();if(canInput()&&selectedDarts.length){selectedDarts.pop();renderEntry()}return}
-    if(e.key==='Enter'){e.preventDefault();submitVisit();return}
+    if(e.key==='Enter'){e.preventDefault();submitVisit({emptyAsMisses:true});return}
     if(e.key==='Escape'&&editingVisitId!==null){e.preventDefault();cancelCorrection()}
   });
 
