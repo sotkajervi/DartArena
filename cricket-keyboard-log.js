@@ -134,6 +134,7 @@
     if(isChicago()){const help=document.querySelector('.cricket-history-head span');if(help)help.textContent='Chicago Style • kastlogg vises, men teller ikke i spillerstatistikk';}
     logChannel=db.channel('cricket-log-'+m.id)
       .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${m.id}`},async()=>{await loadVisits();renderLog();renderEntry()})
+      .on('postgres_changes',{event:'*',schema:'public',table:'cricket_visits',filter:`match_id=eq.${m.id}`},async()=>{await loadVisits();renderLog();renderEntry()})
       .subscribe();
   }
   const wait=setInterval(()=>{if(m?.id&&profile?.id){clearInterval(wait);start()}},100);
