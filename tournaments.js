@@ -95,12 +95,20 @@
   async function create(e){e.preventDefault();const name=$('tournamentName').value.trim(),type=$('tournamentType').value,start=$('tournamentStart').value,msg=$('tournamentCreateMessage'),statsEnabled=$('tournamentFormStats')?.checked!==false;if(!start){msg.textContent='Velg starttidspunkt.';msg.className='message error';return}msg.textContent='Oppretter…';const {data,error}=await db.from('tournaments').insert({name,owner_id:me,tournament_type:type,starts_at:new Date(start).toISOString(),stats_enabled:statsEnabled}).select('*').single();if(error){msg.textContent=error.message;msg.className='message error';return}msg.textContent='';$('tournamentModal').classList.add('hidden');await load();location.href=`tournament.html?id=${encodeURIComponent(data.id)}`}
 
   function tournamentRow(x,list,{archive=false,winnerName=''}={}){
-    const joined=list.some(m=>m.user_id===me),n=list.filter(m=>m.role==='participant').length,chicago=String(x.game_variant||'x01').toLowerCase()==='chicago',statsOn=x.stats_enabled!==false&&!chicago;
-    const gameLabel=chicago?'Chicago Style':String(Number(x.game)||501);
+    const joined=list.some(m=>m.user_id===me),n=list.filter(m=>m.role==='participant').length;
+    const labelFor=(game,variant)=>String(variant||'x01').toLowerCase()==='chicago'?'Chicago Style':String(Number(game)||501);
+    const groupLabel=labelFor(x.game,x.game_variant);
+    const cupLabel=labelFor(x.cup_game??x.game,x.cup_game_variant??x.game_variant);
+    const groupCounts=x.tournament_type==='groups_cup'&&String(x.game_variant||'x01').toLowerCase()==='x01'&&Number(x.game)===501;
+    const cupCounts=String((x.cup_game_variant??x.game_variant)||'x01').toLowerCase()==='x01'&&Number(x.cup_game??x.game)===501;
+    const statsOn=x.stats_enabled!==false&&(x.tournament_type==='groups_cup'?(groupCounts||cupCounts):cupCounts);
+    const formatLabel=x.tournament_type==='groups_cup'
+      ?`Puljer: ${groupLabel} • Cup: ${cupLabel}`
+      :cupLabel;
     const meta=archive
-      ?`${x.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup'} • ${gameLabel} • Ferdig ${fmt(x.finished_at||x.updated_at||x.starts_at)} • ${n} deltakere • Vinner: ${esc(winnerName||'–')}`
-      :`${x.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup'} • ${gameLabel} • ${fmt(x.starts_at)} • ${n} påmeldt`;
-    const statsBadge=`<span class="form-stats-badge${statsOn?'':' off'}" title="${statsOn?'Teller i Form stats':'Teller ikke i Form stats'}">${statsOn?'FORM STATS':'FORM STATS AV'}</span>`;
+      ?`${x.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup'} • ${formatLabel} • Ferdig ${fmt(x.finished_at||x.updated_at||x.starts_at)} • ${n} deltakere • Vinner: ${esc(winnerName||'–')}`
+      :`${x.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup'} • ${formatLabel} • ${fmt(x.starts_at)} • ${n} påmeldt`;
+    const statsBadge=`<span class="form-stats-badge${statsOn?'':' off'}" title="${statsOn?'501-kamper teller i Form stats':'Ingen 501 X01-kamper teller i Form stats'}">${statsOn?'FORM STATS':'FORM STATS AV'}</span>`;
     return `<article class="tournament-row"><div><div class="tournament-title-line"><div class="player-name">${esc(x.name)}</div>${statsBadge}</div><div class="status">${meta}</div></div><div class="challenge-actions">${archive?`<button class="small-btn" data-history-open="${x.id}">Se turnering</button><button class="small-btn" data-history-stats="${x.id}">Sluttstatistikk</button>`:`<button class="small-btn" data-open="${x.id}">Åpne</button>${x.registration_open?`<button class="small-btn ${joined?'decline':'accept'}" data-${joined?'leave':'join'}="${x.id}">${joined?'Avmeld':'Meld på'}</button>`:''}`}</div></article>`;
   }
 
