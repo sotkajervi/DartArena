@@ -15,8 +15,7 @@ const STD_ROUNDS=[
   {type:'bull',label:'Bull',help:'Tre piler på bull. Outer bull gir 25 og bullseye 50.'}
 ];
 let profile,m,other,names={},visits=[],selectedDarts=[],selectedMult=1,submitting=false,leaving=false;
-let channel=null,stream=null,pc=null,remoteStream=null,localReady=false,remoteReady=false,generation=1,recoveryState='idle',pendingCandidates=[],readyTimer=null,handshakeTimer=null,disconnectTimer=null,statsTimer=null,lastResetRequestAt=0,remoteCameraEnabled=true,localCameraEnabled=true;
-const ICE={iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302','stun:stun2.l.google.com:19302']}],iceCandidatePoolSize:10,bundlePolicy:'max-bundle'};
+let channel=null,stream=null,publisherSfu=null,subscriberSfu=null,publication=null,publicationTimer=null,remotePublicationId=null,remoteStream=null,localReady=false,readyTimer=null,remoteCameraEnabled=true,localCameraEnabled=true;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const currentLegNo=()=>Math.max(1,Number(m?.current_leg||1));
 const legVisits=()=>visits.filter(v=>Number(v.leg_no||1)===currentLegNo());
@@ -57,26 +56,116 @@ $('halfMissBtn').onclick=()=>addDart(0,0);$('halfUndoBtn').onclick=()=>{selected
 
 function mediaConstraints(){const cam=localStorage.getItem('dartarena-preferred-camera')||'',mic=localStorage.getItem('dartarena-preferred-microphone')||'';return{video:{deviceId:cam?{exact:cam}:undefined,width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},audio:{deviceId:mic?{exact:mic}:undefined,echoCancellation:true,noiseSuppression:true,autoGainControl:true}}}
 async function send(event,payload={}){if(channel)await channel.send({type:'broadcast',event,payload:{...payload,from:profile.id}})}
-function showRemote(text='Kobler til motstanderens kamera…'){const p=$('remotePlaceholder');if(p){p.textContent=text;p.classList.remove('hidden')}}function hideRemote(){if(remoteCameraEnabled)$('remotePlaceholder')?.classList.add('hidden')}
-function destroyPeer(show=true){clearTimeout(handshakeTimer);handshakeTimer=null;clearTimeout(disconnectTimer);disconnectTimer=null;clearInterval(statsTimer);statsTimer=null;pendingCandidates=[];if(pc){pc.ontrack=pc.onicecandidate=pc.onconnectionstatechange=pc.oniceconnectionstatechange=null;try{pc.close()}catch{}}pc=null;remoteStream=null;const v=$('remoteVideo');if(v){v.pause?.();v.srcObject=null}if(show)showRemote()}
-function attachRemoteTrack(e,p,myGen){if(p!==pc||myGen!==generation)return;if(!remoteStream)remoteStream=new MediaStream();if(!remoteStream.getTracks().some(t=>t.id===e.track.id))remoteStream.addTrack(e.track);const v=$('remoteVideo');v.srcObject=remoteStream;const play=async()=>{if(p!==pc)return;try{await v.play();if(remoteCameraEnabled)hideRemote()}catch{showRemote('Klikk i siden for å starte video')}};if(e.track.kind==='video'){e.track.onunmute=play;v.onloadedmetadata=play;v.oncanplay=play;play()}}
-function createPeer(){if(pc||!stream?.active)return pc;const myGen=generation,p=new RTCPeerConnection(ICE);pc=p;remoteStream=new MediaStream();$('remoteVideo').srcObject=remoteStream;stream.getTracks().forEach(t=>p.addTrack(t,stream));p.ontrack=e=>attachRemoteTrack(e,p,myGen);p.onicecandidate=e=>{if(p===pc&&e.candidate)send('signal',{candidate:e.candidate.toJSON?e.candidate.toJSON():e.candidate,generation:myGen})};p.onconnectionstatechange=()=>{if(p!==pc)return;if(p.connectionState==='connected')markConnected(p,myGen);else if(p.connectionState==='disconnected')armDisconnect(p,'peer-disconnected');else if(p.connectionState==='failed')recover(p,'peer-failed')};p.oniceconnectionstatechange=()=>{if(p!==pc)return;if(['connected','completed'].includes(p.iceConnectionState))markConnected(p,myGen);else if(p.iceConnectionState==='disconnected')armDisconnect(p,'ice-disconnected');else if(p.iceConnectionState==='failed')recover(p,'ice-failed')};return p}
-function markConnected(p,myGen){if(p!==pc)return;clearTimeout(handshakeTimer);handshakeTimer=null;clearTimeout(disconnectTimer);disconnectTimer=null;recoveryState='idle';startStatsWatch(p,myGen)}
-function armDisconnect(p,reason){if(p!==pc||disconnectTimer)return;disconnectTimer=setTimeout(()=>{disconnectTimer=null;if(p===pc&&(p.connectionState==='disconnected'||p.iceConnectionState==='disconnected'))recover(p,reason)},7000)}
-function recover(p,reason){if(p!==pc)return;if(isOfferer())offererRecovery(reason);else requestReset(reason)}
-async function ensureOffer(){if(leaving||!isOfferer()||!localReady||!remoteReady||recoveryState!=='idle'||pc)return;const p=createPeer();if(!p)return;try{recoveryState='handshake';const offer=await p.createOffer();if(p!==pc)return;await p.setLocalDescription(offer);await send('signal',{description:p.localDescription.toJSON?p.localDescription.toJSON():p.localDescription,generation});handshakeTimer=setTimeout(()=>{if(p===pc&&p.connectionState!=='connected'){recoveryState='idle';offererRecovery('handshake-timeout')}},15000)}catch{recoveryState='idle';offererRecovery('offer-error')}}
-async function offererRecovery(reason){if(leaving||!isOfferer()||recoveryState==='resetting')return;recoveryState='resetting';generation+=1;destroyPeer();await send('reset',{generation,reason});setTimeout(async()=>{if(leaving)return;recoveryState='idle';await ensureOffer()},650)}
-async function requestReset(reason){if(leaving||isOfferer())return;const now=Date.now();if(now-lastResetRequestAt<10000)return;lastResetRequestAt=now;recoveryState='waiting-reset';destroyPeer();await send('reset-request',{generation,reason});handshakeTimer=setTimeout(()=>{if(recoveryState==='waiting-reset'){recoveryState='idle';send('ready',{generation,cameraEnabled:localCameraEnabled})}},12000)}
-async function handleSignal(s){if(leaving||!localReady||!stream?.active)return;const sg=Number(s.generation)||1;if(s.description?.type==='offer'){if(isOfferer()||sg<generation)return;if(sg>generation){generation=sg;destroyPeer()}else if(pc)destroyPeer();recoveryState='handshake';const p=createPeer();try{await p.setRemoteDescription(s.description);await flushCandidates(p,sg);const answer=await p.createAnswer();if(p!==pc)return;await p.setLocalDescription(answer);await send('signal',{description:p.localDescription.toJSON?p.localDescription.toJSON():p.localDescription,generation})}catch{recoveryState='idle';requestReset('answer-error')}return}if(s.description?.type==='answer'){if(!isOfferer()||!pc||sg!==generation||pc.signalingState!=='have-local-offer')return;try{await pc.setRemoteDescription(s.description);await flushCandidates(pc,sg)}catch{}return}if(s.candidate){if(sg<generation)return;if(!pc||sg>generation||!pc.remoteDescription){pendingCandidates.push({candidate:s.candidate,generation:sg});return}try{await pc.addIceCandidate(s.candidate)}catch{}}}
-async function flushCandidates(p,gen){const keep=[];for(const item of pendingCandidates){if(item.generation!==gen){if(item.generation>gen)keep.push(item);continue}try{await p.addIceCandidate(item.candidate)}catch{}}pendingCandidates=keep}
-function startStatsWatch(p,myGen){clearInterval(statsTimer);let lastBytes=-1,stalls=0;statsTimer=setInterval(async()=>{if(leaving||p!==pc||myGen!==generation||p.connectionState!=='connected'||!remoteCameraEnabled)return;try{const stats=await p.getStats();let bytes=0,found=false;stats.forEach(r=>{if(r.type==='inbound-rtp'&&r.kind==='video'&&!r.isRemote){bytes+=Number(r.bytesReceived||0);found=true}});if(!found)return;if(lastBytes>=0&&bytes<=lastBytes)stalls++;else stalls=0;lastBytes=bytes;if(stalls>=3){stalls=0;recover(p,'video-stall')}}catch{}},4500)}
-async function startCamera(){if(stream?.active){localReady=true;await send('ready',{generation,cameraEnabled:localCameraEnabled});if(isOfferer())await ensureOffer();return}try{try{stream=await navigator.mediaDevices.getUserMedia(mediaConstraints())}catch{stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}const v=$('localVideo');v.srcObject=stream;v.muted=true;await v.play().catch(()=>{});localCameraEnabled=true;stream.getVideoTracks().forEach(t=>t.enabled=true);$('localPlaceholder').classList.add('hidden');$('cameraBtn').textContent='Stopp kamera';const a=stream.getAudioTracks()[0];if($('micBtn'))$('micBtn').textContent=a?.enabled?'Mikrofon på':'Mikrofon av';localReady=true;await send('ready',{generation,cameraEnabled:true});if(isOfferer())await ensureOffer()}catch(e){localReady=false;showLocalCameraError(e)}}
+function showRemote(text='Kobler til motstanderens kamera via Cloudflare…'){const p=$('remotePlaceholder');if(p){p.textContent=text;p.classList.remove('hidden')}}
+function hideRemote(){if(remoteCameraEnabled)$('remotePlaceholder')?.classList.add('hidden')}
+function clearRemote(show=true){
+  remotePublicationId=null;
+  try{subscriberSfu?.close()}catch{}
+  subscriberSfu=null;
+  remoteStream=null;
+  const v=$('remoteVideo');
+  if(v){v.pause?.();v.srcObject=null}
+  if(show)showRemote();
+}
+async function subscribeRemote(pub){
+  if(!pub?.sessionId||!Array.isArray(pub.tracks)||pub.sessionId===remotePublicationId)return;
+  remotePublicationId=pub.sessionId;
+  try{
+    try{subscriberSfu?.close()}catch{}
+    subscriberSfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
+    remoteStream=new MediaStream();
+    const v=$('remoteVideo');
+    v.srcObject=remoteStream;
+    v.muted=true;
+    v.playsInline=true;
+    await subscriberSfu.subscribe(pub,async e=>{
+      const tracks=e.streams?.[0]?.getTracks()||[e.track];
+      for(const track of tracks){
+        if(!remoteStream.getTracks().some(t=>t.id===track.id))remoteStream.addTrack(track);
+      }
+      v.srcObject=remoteStream;
+      await v.play().catch(()=>{});
+      if(remoteCameraEnabled&&remoteStream.getVideoTracks().some(t=>t.readyState==='live'))hideRemote();
+    });
+  }catch(e){
+    console.error('Half-It Standard Cloudflare subscribe failed',e);
+    remotePublicationId=null;
+    showRemote('Kunne ikke koble til motstander via Cloudflare. Prøver igjen…');
+  }
+}
+async function startCamera(){
+  if(stream?.active&&publication){
+    localReady=true;
+    await send('half-it-standard-publication',{publication});
+    return;
+  }
+  try{
+    try{stream=await navigator.mediaDevices.getUserMedia(mediaConstraints())}
+    catch{stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}
+    const v=$('localVideo');
+    v.srcObject=stream;v.muted=true;await v.play().catch(()=>{});
+    localCameraEnabled=true;
+    stream.getVideoTracks().forEach(t=>t.enabled=true);
+    $('localPlaceholder').classList.add('hidden');
+    $('cameraBtn').textContent='Stopp kamera';
+    const a=stream.getAudioTracks()[0];
+    if($('micBtn'))$('micBtn').textContent=a?.enabled?'Mikrofon på':'Mikrofon av';
+
+    try{publisherSfu?.close()}catch{}
+    publisherSfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
+    publication=await publisherSfu.publish(stream);
+    localReady=true;
+    await send('half-it-standard-publication',{publication});
+    await send('camera-state',{enabled:true});
+    clearInterval(publicationTimer);
+    publicationTimer=setInterval(()=>{
+      if(!leaving&&publication)send('half-it-standard-publication',{publication});
+    },2500);
+  }catch(e){
+    localReady=false;publication=null;
+    try{publisherSfu?.close()}catch{}
+    publisherSfu=null;
+    showLocalCameraError(e);
+    console.error('Half-It Standard Cloudflare publish failed',e);
+  }
+}
 function showLocalCameraError(e){const p=$('localPlaceholder');if(p){p.textContent=e?.name==='NotAllowedError'?'Kamera/mikrofon er blokkert.':'Kamera kunne ikke startes';p.classList.remove('hidden')}$('cameraBtn').textContent='Start kamera'}
-function setupChannel(){channel=db.channel('half-it-standard-'+matchId,{config:{broadcast:{ack:true}}}).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},async()=>{try{await refreshGame();if(m.status!=='playing')await setPlayersUnavailable()}catch(e){console.error(e)}}).on('broadcast',{event:'ready'},async({payload})=>{if(payload.from!==other)return;remoteReady=true;remoteCameraEnabled=payload.cameraEnabled!==false;if(!remoteCameraEnabled)showRemote('Motstanderens kamera er av');if(isOfferer()&&recoveryState==='idle')await ensureOffer()}).on('broadcast',{event:'signal'},async({payload})=>{if(payload.from!==other)return;remoteReady=true;await handleSignal(payload)}).on('broadcast',{event:'reset-request'},async({payload})=>{if(payload.from!==other||!isOfferer()||leaving)return;if(recoveryState==='idle')await offererRecovery(payload.reason||'remote')}).on('broadcast',{event:'reset'},async({payload})=>{if(payload.from!==other||isOfferer()||leaving)return;const g=Number(payload.generation)||generation;if(g>=generation){generation=g;destroyPeer();recoveryState='idle';await send('ready',{generation,cameraEnabled:localCameraEnabled})}}).on('broadcast',{event:'camera-state'},({payload})=>{if(payload.from!==other)return;remoteCameraEnabled=payload.enabled!==false;if(remoteCameraEnabled){if(remoteStream?.getVideoTracks().some(t=>t.readyState==='live'))hideRemote();else showRemote()}else showRemote('Motstanderens kamera er av')}).subscribe(async status=>{if(status==='SUBSCRIBED'){await startCamera();clearInterval(readyTimer);readyTimer=setInterval(()=>{if(!leaving&&localReady)send('ready',{generation,cameraEnabled:localCameraEnabled})},4500)}})}
-$('cameraBtn').onclick=async()=>{if(!stream?.active)return startCamera();localCameraEnabled=!localCameraEnabled;stream.getVideoTracks().forEach(t=>t.enabled=localCameraEnabled);$('localPlaceholder').textContent=localCameraEnabled?'Ditt kamera':'Kamera av';$('localPlaceholder').classList.toggle('hidden',localCameraEnabled);$('cameraBtn').textContent=localCameraEnabled?'Stopp kamera':'Start kamera';await send('camera-state',{enabled:localCameraEnabled})};
+function setupChannel(){
+  channel=db.channel('half-it-standard-'+matchId,{config:{broadcast:{ack:true}}})
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},async()=>{try{await refreshGame();if(m.status!=='playing')await setPlayersUnavailable()}catch(e){console.error(e)}})
+    .on('broadcast',{event:'half-it-standard-publication'},async({payload})=>{
+      if(payload.from!==other||!payload.publication)return;
+      await subscribeRemote(payload.publication);
+    })
+    .on('broadcast',{event:'camera-state'},({payload})=>{
+      if(payload.from!==other)return;
+      remoteCameraEnabled=payload.enabled!==false;
+      if(remoteCameraEnabled){
+        if(remoteStream?.getVideoTracks().some(t=>t.readyState==='live'))hideRemote();else showRemote();
+      }else showRemote('Motstanderens kamera er av');
+    })
+    .subscribe(async status=>{
+      if(status==='SUBSCRIBED'){
+        await startCamera();
+        clearInterval(readyTimer);
+        readyTimer=setInterval(()=>{
+          if(!leaving&&publication)send('half-it-standard-publication',{publication});
+        },4500);
+      }
+    });
+}
+$('cameraBtn').onclick=async()=>{
+  if(!stream?.active)return startCamera();
+  localCameraEnabled=!localCameraEnabled;
+  stream.getVideoTracks().forEach(t=>t.enabled=localCameraEnabled);
+  $('localPlaceholder').textContent=localCameraEnabled?'Ditt kamera':'Kamera av';
+  $('localPlaceholder').classList.toggle('hidden',localCameraEnabled);
+  $('cameraBtn').textContent=localCameraEnabled?'Stopp kamera':'Start kamera';
+  await send('camera-state',{enabled:localCameraEnabled});
+};
 if($('micBtn'))$('micBtn').onclick=()=>{const t=stream?.getAudioTracks?.()[0];if(!t)return;t.enabled=!t.enabled;$('micBtn').textContent=t.enabled?'Mikrofon på':'Mikrofon av'};
 async function setPlayersUnavailable(){if(m)await db.from('profiles').update({status:'unavailable'}).in('id',[m.player1_id,m.player2_id])}
-function cleanup(){leaving=true;clearInterval(readyTimer);clearInterval(statsTimer);clearTimeout(handshakeTimer);clearTimeout(disconnectTimer);stream?.getTracks?.().forEach(t=>t.stop());stream=null;destroyPeer(false);if(channel)db.removeChannel(channel).catch?.(()=>{});channel=null}
+function cleanup(){leaving=true;clearInterval(readyTimer);clearInterval(publicationTimer);readyTimer=publicationTimer=null;stream?.getTracks?.().forEach(t=>t.stop());stream=null;publication=null;try{publisherSfu?.close()}catch{};try{subscriberSfu?.close()}catch{};publisherSfu=subscriberSfu=null;clearRemote(false);if(channel)db.removeChannel(channel).catch?.(()=>{});channel=null}
 $('cancelMatchBtn').onclick=async()=>{if(!m||m.status!=='playing'||!confirm('Vil du avbryte kampen?'))return;const b=$('cancelMatchBtn');b.disabled=true;b.textContent='Avbryter…';const{error}=await db.from('matches').update({status:'cancelled',finished_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',m.id);if(error){b.disabled=false;b.textContent='Avbryt kamp';return $('matchMessage').textContent='Kunne ikke avbryte: '+error.message}await setPlayersUnavailable();window.opener?.postMessage({type:'dartarena-match-ended',id:m.id},location.origin);window.close();if(!window.closed)location.href='./'};
 $('closeMatchBtn').onclick=()=>{if(m?.status==='playing'&&!confirm('Kampen pågår fortsatt. Du kan åpne den igjen fra lobbyen. Lukk kampfanen?'))return;window.close();if(!window.closed)location.href='./'};
 window.addEventListener('beforeunload',cleanup);
