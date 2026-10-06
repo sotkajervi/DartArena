@@ -34,6 +34,7 @@ as $$
            count(*) filter (where v.score=180)::bigint c180
     from public.match_throws v join eligible e on e.id=v.match_id
     where coalesce(e.game_variant,'x01')='x01'
+      and lower(coalesce(e.game_config->>'chicago','false'))<>'true'
     group by v.player_id
   )
   select p.id,p.username::text,p.created_at,coalesce(mt.matches,0),coalesce(mt.wins,0),
@@ -89,7 +90,9 @@ as $$
            count(*) filter (where effective_winner=p_user_id)::bigint x01_wins,
            coalesce(sum(legs_for),0)::bigint legs_for,
            coalesce(sum(legs_against),0)::bigint legs_against
-    from pm where coalesce(game_variant,'x01')='x01'
+    from pm
+    where coalesce(game_variant,'x01')='x01'
+      and lower(coalesce(game_config->>'chicago','false'))<>'true'
   ),
   visits0 as (
     select v.*,
@@ -99,7 +102,9 @@ as $$
              order by coalesce(v.visit_no,2147483647),v.id
            ) leg_visit_no
     from public.match_throws v join pm on pm.id=v.match_id
-    where v.player_id=p_user_id and coalesce(pm.game_variant,'x01')='x01'
+    where v.player_id=p_user_id
+      and coalesce(pm.game_variant,'x01')='x01'
+      and lower(coalesce(pm.game_config->>'chicago','false'))<>'true'
   ),
   vt as (
     select coalesce(sum(score),0)::bigint total_score,coalesce(sum(darts),0)::bigint total_darts,
@@ -178,7 +183,9 @@ as $$
              order by coalesce(v.visit_no,2147483647),v.id
            ) leg_visit_no
     from public.match_throws v join base b on b.id=v.match_id
-    where v.player_id=p_user_id and coalesce(b.game_variant,'x01')='x01'
+    where v.player_id=p_user_id
+      and coalesce(b.game_variant,'x01')='x01'
+      and lower(coalesce(b.game_config->>'chicago','false'))<>'true'
   ),
   agg as (
     select match_id,sum(score)::numeric score,sum(darts)::numeric darts,
@@ -219,3 +226,64 @@ as $$
 $$;
 revoke all on function public.get_player_profile_matches(uuid,integer) from public;
 grant execute on function public.get_player_profile_matches(uuid,integer) to authenticated;
+
+create or replace function public.get_player_cricket_career_stats(p_user_id uuid)
+returns table(
+  user_id uuid,
+  cricket_matches bigint,
+  cricket_wins bigint,
+  cricket_mpr numeric,
+  best_match_mpr numeric,
+  cricket_visits bigint,
+  cricket_points bigint
+)
+language sql stable security definer
+set search_path to 'public','pg_temp'
+as $$
+  with eligible as (
+    select m.id,m.player1_id,m.player2_id,
+           coalesce(tm.winner_id,m.winner_id) effective_winner
+    from public.matches m
+    left join public.tournament_matches tm on tm.live_match_id=m.id
+    where m.status='finished'
+      and m.deleted_at is null
+      and coalesce(m.is_warmup,false)=false
+      and coalesce(m.game_variant,'x01')='cricket'
+      and lower(coalesce(m.game_config->>'chicago','false'))<>'true'
+      and (m.player1_id=p_user_id or m.player2_id=p_user_id)
+  ),
+  visits as (
+    select cv.match_id,cv.points_scored,
+           coalesce((
+             select sum(greatest(0,least(3,coalesce((dart->>'mult')::integer,0))))
+             from jsonb_array_elements(coalesce(cv.darts,'[]'::jsonb)) dart
+           ),0)::numeric marks
+    from public.cricket_visits cv
+    join eligible e on e.id=cv.match_id
+    where cv.player_id=p_user_id
+  ),
+  totals as (
+    select count(*)::bigint visits,
+           coalesce(sum(points_scored),0)::bigint points,
+           coalesce(sum(marks),0)::numeric marks
+    from visits
+  ),
+  per_match as (
+    select match_id,count(*)::numeric visits,sum(marks)::numeric marks
+    from visits group by match_id
+  ),
+  best as (
+    select coalesce(max(case when visits>0 then marks/visits else 0 end),0)::numeric best_mpr
+    from per_match
+  )
+  select p_user_id,
+         (select count(*) from eligible)::bigint,
+         (select count(*) from eligible where effective_winner=p_user_id)::bigint,
+         case when t.visits>0 then round(t.marks/t.visits,2) else 0 end,
+         round(b.best_mpr,2),
+         t.visits,
+         t.points
+  from totals t cross join best b;
+$$;
+revoke all on function public.get_player_cricket_career_stats(uuid) from public;
+grant execute on function public.get_player_cricket_career_stats(uuid) to authenticated;
