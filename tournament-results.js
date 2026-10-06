@@ -22,6 +22,25 @@
     }
     return{data:out,error:null};
   }
+  async function fetchAllCricket(liveIds){
+    if(!liveIds.length)return{data:[],error:null};
+    const out=[],pageSize=1000;
+    for(let from=0;;from+=pageSize){
+      const {data,error}=await db.from('cricket_visits').select('match_id,player_id,darts,created_at').in('match_id',liveIds).order('created_at',{ascending:true}).range(from,from+pageSize-1);
+      if(error)return{data:null,error};
+      const page=data||[];out.push(...page);
+      if(page.length<pageSize)break;
+    }
+    return{data:out,error:null};
+  }
+  const mprFor=rows=>{
+    let marks=0,darts=0;
+    for(const row of rows||[]){
+      const visit=Array.isArray(row?.darts)?row.darts:[];
+      for(const dart of visit){darts++;marks+=Math.max(0,Math.min(3,Number(dart?.mult)||0))}
+    }
+    return darts?marks/darts*3:0;
+  };
 
   function bindNav(){$('backTournamentBtn').onclick=()=>location.href=`tournament.html?id=${encodeURIComponent(id||'')}`;$('backLobbyBtn').onclick=()=>location.href='./'}
   function renderSimulation(){
@@ -38,20 +57,41 @@
     if(!id)return location.replace('./');if(simMode&&renderSimulation())return;
     const {data:{session}}=await db.auth.getSession();if(!session)return location.replace('./');bindNav();
     const [{data:tournament,error:tErr},{data:matches,error:mErr}]=await Promise.all([db.from('tournaments').select('*').eq('id',id).single(),db.from('tournament_matches').select('*').eq('tournament_id',id).in('status',['finished','wo']).order('created_at',{ascending:true})]);
-    if(tErr)throw tErr;if(mErr)throw mErr;$('tournamentName').textContent=tournament?.name||'Turnering';if(!matches?.length){$('resultMeta').textContent='Ingen ferdige kamper';$('winnerSub').textContent='Resultater blir tilgjengelige når turneringen er ferdig.';$('playerStats').innerHTML=empty('Ingen kampdata.');return}
+    if(tErr)throw tErr;if(mErr)throw mErr;
+    const chicago=String(tournament?.game_variant||'x01').toLowerCase()==='chicago';
+    $('tournamentName').textContent=tournament?.name||'Turnering';
+    const statNote=document.querySelector('.section-card .muted.compact');
+    const highlightTitles=[...document.querySelectorAll('.highlight-grid h2')];
+    if(chicago){
+      if(statNote)statNote.textContent='Chicago Style: X01-snitt er fra 301 DIDO og 501 SIDO. MPR er fra Cricket. WO teller som kampresultat, mens BYE/frirunde ikke teller som kamp eller seier.';
+      if(highlightTitles[0])highlightTitles[0].textContent='Høyeste X01-kampsnitt';
+      if(highlightTitles[1])highlightTitles[1].textContent='Raskeste X01-game';
+      if(highlightTitles[3])highlightTitles[3].textContent='Høyeste MPR';
+    }
+    if(!matches?.length){$('resultMeta').textContent='Ingen ferdige kamper';$('winnerSub').textContent='Resultater blir tilgjengelige når turneringen er ferdig.';$('playerStats').innerHTML=empty('Ingen kampdata.');return}
     const playedMatches=matches.filter(m=>!isBye(m));
     const playerIds=[...new Set(matches.flatMap(m=>[m.player1_id,m.player2_id,m.winner_id]).filter(Boolean))],liveIds=[...new Set(playedMatches.map(m=>m.live_match_id).filter(Boolean))];
-    const [{data:profiles,error:pErr},{data:throws,error:thErr}]=await Promise.all([playerIds.length?db.from('profiles').select('id,username').in('id',playerIds):Promise.resolve({data:[]}),fetchAllThrows(liveIds)]);if(pErr)throw pErr;if(thErr)throw thErr;
-    const names=Object.fromEntries((profiles||[]).map(p=>[p.id,p.username])),allThrows=throws||[],byLive=Object.fromEntries(playedMatches.filter(m=>m.live_match_id).map(m=>[m.live_match_id,m]));
-    const cup=matches.filter(m=>m.stage==='cup');if(cup.length){const max=Math.max(...cup.map(m=>Number(m.round_no||0))),final=cup.find(m=>Number(m.round_no||0)===max&&m.winner_id);if(final){const winner=final.winner_id,runner=final.player1_id===winner?final.player2_id:final.player1_id,semi=cup.filter(m=>Number(m.round_no||0)===max-1),semiLosers=semi.map(m=>m.winner_id?(m.player1_id===m.winner_id?m.player2_id:m.player1_id):null).filter(Boolean);$('winnerName').textContent=names[winner]||'Spiller';$('winnerSub').textContent='Vinner av DartArena-turneringen';$('podiumGrid').innerHTML=`<div class="podium-box"><small>2. PLASS</small><strong>${esc(names[runner]||'Spiller')}</strong></div><div class="podium-box"><small>SEMIFINALISTER</small><strong>${semiLosers.length?semiLosers.map(x=>esc(names[x]||'Spiller')).join(' • '):'–'}</strong></div>`;$('resultMeta').textContent=`${playedMatches.length} ferdige kamper • sluttresultat registrert`;}}
+    const [{data:profiles,error:pErr},{data:throws,error:thErr},{data:cricketVisits,error:crErr}]=await Promise.all([
+      playerIds.length?db.from('profiles').select('id,username').in('id',playerIds):Promise.resolve({data:[]}),
+      fetchAllThrows(liveIds),
+      chicago?fetchAllCricket(liveIds):Promise.resolve({data:[],error:null})
+    ]);if(pErr)throw pErr;if(thErr)throw thErr;if(crErr)throw crErr;
+    const names=Object.fromEntries((profiles||[]).map(p=>[p.id,p.username])),allThrows=throws||[],allCricket=cricketVisits||[],byLive=Object.fromEntries(playedMatches.filter(m=>m.live_match_id).map(m=>[m.live_match_id,m]));
+    const cup=matches.filter(m=>m.stage==='cup');if(cup.length){const max=Math.max(...cup.map(m=>Number(m.round_no||0))),final=cup.find(m=>Number(m.round_no||0)===max&&m.winner_id);if(final){const winner=final.winner_id,runner=final.player1_id===winner?final.player2_id:final.player1_id,semi=cup.filter(m=>Number(m.round_no||0)===max-1),semiLosers=semi.map(m=>m.winner_id?(m.player1_id===m.winner_id?m.player2_id:m.player1_id):null).filter(Boolean);$('winnerName').textContent=names[winner]||'Spiller';$('winnerSub').textContent='Vinner av DartArena-turneringen';$('podiumGrid').innerHTML=`<div class="podium-box"><small>2. PLASS</small><strong>${esc(names[runner]||'Spiller')}</strong></div><div class="podium-box"><small>SEMIFINALISTER</small><strong>${semiLosers.length?semiLosers.map(x=>esc(names[x]||'Spiller')).join(' • '):'–'}</strong></div>`;$('resultMeta').textContent=`${playedMatches.length} ferdige kamper • ${chicago?'Chicago Style • ':''}sluttresultat registrert`;}}
     const legEntries=[];for(const t of allThrows.filter(t=>t.is_checkout)){const leg=allThrows.filter(x=>x.player_id===t.player_id&&x.match_id===t.match_id&&Number(x.set_no||1)===Number(t.set_no||1)&&Number(x.leg_no||1)===Number(t.leg_no||1));const darts=leg.reduce((s,x)=>s+dartsFor(x),0);if(darts)legEntries.push({pid:t.player_id,liveId:t.match_id,darts,checkout:Number(t.score||0)});}
     const matchAvgEntries=[];for(const liveId of liveIds){const m=byLive[liveId];for(const pid of [m?.player1_id,m?.player2_id].filter(Boolean)){const pt=allThrows.filter(t=>t.match_id===liveId&&t.player_id===pid);if(!pt.length)continue;const opponent=m.player1_id===pid?m.player2_id:m.player1_id;matchAvgEntries.push({pid,opponent,avg:avgFor(pt),tmId:m.id,stage:stageLabel(m)});}}
-    const rows=playerIds.map(pid=>{const pm=playedMatches.filter(m=>m.player1_id===pid||m.player2_id===pid),pt=allThrows.filter(t=>t.player_id===pid&&byLive[t.match_id]),matchAvgs=matchAvgEntries.filter(x=>x.pid===pid).map(x=>x.avg),legs=legEntries.filter(x=>x.pid===pid),checkouts=legs.map(x=>x.checkout).filter(Boolean);return{id:pid,name:names[pid]||'Spiller',matches:pm.length,wins:pm.filter(m=>m.winner_id===pid).length,avg:avgFor(pt),first9:first9For(pt),bestAvg:matchAvgs.length?Math.max(...matchAvgs):0,highCheckout:checkouts.length?Math.max(...checkouts):0,fast:legs.length?Math.min(...legs.map(x=>x.darts)):null,c100:pt.filter(t=>+t.score>=100&&+t.score<=139).length,c140:pt.filter(t=>+t.score>=140&&+t.score<=169).length,c170:pt.filter(t=>+t.score>=170&&+t.score<=179).length,c180:pt.filter(t=>+t.score===180).length};}).sort((a,b)=>b.avg-a.avg||b.wins-a.wins||a.name.localeCompare(b.name,'nb'));
-    $('playerStatsMeta').textContent=`${rows.length} spillere`;$('playerStats').innerHTML=`<table class="results-table"><thead><tr><th>Spiller</th><th>Kamper</th><th>V</th><th>Snitt</th><th>First 9</th><th>Beste kampsnitt</th><th>Høyeste utgang</th><th>Raskeste leg</th><th>100+</th><th>140+</th><th>170+</th><th>180</th></tr></thead><tbody>${rows.map(r=>`<tr><td class="results-player">${esc(r.name)}</td><td>${r.matches}</td><td>${r.wins}</td><td>${fmtAvg(r.avg)}</td><td>${fmtAvg(r.first9)}</td><td>${fmtAvg(r.bestAvg)}</td><td>${r.highCheckout||'–'}</td><td>${r.fast?`${r.fast} piler`:'–'}</td><td>${r.c100}</td><td>${r.c140}</td><td>${r.c170}</td><td>${r.c180}</td></tr>`).join('')}</tbody></table>`;
+    const rows=playerIds.map(pid=>{const pm=playedMatches.filter(m=>m.player1_id===pid||m.player2_id===pid),pt=allThrows.filter(t=>t.player_id===pid&&byLive[t.match_id]),pc=allCricket.filter(v=>v.player_id===pid&&byLive[v.match_id]),matchAvgs=matchAvgEntries.filter(x=>x.pid===pid).map(x=>x.avg),legs=legEntries.filter(x=>x.pid===pid),checkouts=legs.map(x=>x.checkout).filter(Boolean);return{id:pid,name:names[pid]||'Spiller',matches:pm.length,wins:pm.filter(m=>m.winner_id===pid).length,avg:avgFor(pt),mpr:mprFor(pc),first9:first9For(pt),bestAvg:matchAvgs.length?Math.max(...matchAvgs):0,highCheckout:checkouts.length?Math.max(...checkouts):0,fast:legs.length?Math.min(...legs.map(x=>x.darts)):null,c100:pt.filter(t=>+t.score>=100&&+t.score<=139).length,c140:pt.filter(t=>+t.score>=140&&+t.score<=169).length,c170:pt.filter(t=>+t.score>=170&&+t.score<=179).length,c180:pt.filter(t=>+t.score===180).length};}).sort((a,b)=>chicago?(b.wins-a.wins||b.avg-a.avg||b.mpr-a.mpr||a.name.localeCompare(b.name,'nb')):(b.avg-a.avg||b.wins-a.wins||a.name.localeCompare(b.name,'nb')));
+    $('playerStatsMeta').textContent=`${rows.length} spillere`;$('playerStats').innerHTML=`<table class="results-table"><thead><tr><th>Spiller</th><th>Kamper</th><th>V</th><th>${chicago?'X01 snitt':'Snitt'}</th>${chicago?'<th>MPR</th>':''}<th>First 9</th><th>Beste kampsnitt</th><th>Høyeste utgang</th><th>${chicago?'Raskeste X01-game':'Raskeste leg'}</th><th>100+</th><th>140+</th><th>170+</th><th>180</th></tr></thead><tbody>${rows.map(r=>`<tr><td class="results-player">${esc(r.name)}</td><td>${r.matches}</td><td>${r.wins}</td><td>${fmtAvg(r.avg)}</td>${chicago?`<td>${fmtAvg(r.mpr)}</td>`:''}<td>${fmtAvg(r.first9)}</td><td>${fmtAvg(r.bestAvg)}</td><td>${r.highCheckout||'–'}</td><td>${r.fast?`${r.fast} piler`:'–'}</td><td>${r.c100}</td><td>${r.c140}</td><td>${r.c170}</td><td>${r.c180}</td></tr>`).join('')}</tbody></table>`;
     const topMatch=[...matchAvgEntries].sort((a,b)=>b.avg-a.avg);$('topMatchAvg').innerHTML=topRows(topMatch,(x,i)=>`<div class="highlight-row clickable" data-match="${x.tmId}"><div class="highlight-rank">${i+1}</div><div><div class="highlight-name">${esc(names[x.pid]||'Spiller')}</div><div class="highlight-note">mot ${esc(names[x.opponent]||'Spiller')} • ${x.stage}</div></div><div class="highlight-value">${x.avg.toFixed(2)}</div></div>`);
     const topLeg=[...legEntries].sort((a,b)=>a.darts-b.darts||b.checkout-a.checkout);$('topFastLeg').innerHTML=topRows(topLeg,(x,i)=>{const m=byLive[x.liveId];return `<div class="highlight-row clickable" data-match="${m?.id||''}"><div class="highlight-rank">${i+1}</div><div><div class="highlight-name">${esc(names[x.pid]||'Spiller')}</div><div class="highlight-note">${stageLabel(m)}</div></div><div class="highlight-value">${x.darts} piler</div></div>`});
     const topCo=[...legEntries].filter(x=>x.checkout>0).sort((a,b)=>b.checkout-a.checkout||a.darts-b.darts);$('topCheckout').innerHTML=topRows(topCo,(x,i)=>{const m=byLive[x.liveId];return `<div class="highlight-row clickable" data-match="${m?.id||''}"><div class="highlight-rank">${i+1}</div><div><div class="highlight-name">${esc(names[x.pid]||'Spiller')}</div><div class="highlight-note">${stageLabel(m)}</div></div><div class="highlight-value">${x.checkout}</div></div>`});
-    const top180=[...rows].sort((a,b)=>b.c180-a.c180||b.avg-a.avg).filter(x=>x.c180>0);$('top180').innerHTML=topRows(top180,(x,i)=>`<div class="highlight-row"><div class="highlight-rank">${i+1}</div><div><div class="highlight-name">${esc(x.name)}</div><div class="highlight-note">Turneringen totalt</div></div><div class="highlight-value">${x.c180}</div></div>`);
+    if(chicago){
+      const topMpr=[...rows].sort((a,b)=>b.mpr-a.mpr||b.wins-a.wins).filter(x=>x.mpr>0);
+      $('top180').innerHTML=topRows(topMpr,(x,i)=>`<div class="highlight-row"><div class="highlight-rank">${i+1}</div><div><div class="highlight-name">${esc(x.name)}</div><div class="highlight-note">Cricket • turneringen totalt</div></div><div class="highlight-value">${x.mpr.toFixed(2)}</div></div>`);
+    }else{
+      const top180=[...rows].sort((a,b)=>b.c180-a.c180||b.avg-a.avg).filter(x=>x.c180>0);
+      $('top180').innerHTML=topRows(top180,(x,i)=>`<div class="highlight-row"><div class="highlight-rank">${i+1}</div><div><div class="highlight-name">${esc(x.name)}</div><div class="highlight-note">Turneringen totalt</div></div><div class="highlight-value">${x.c180}</div></div>`);
+    }
     document.addEventListener('click',e=>{const row=e.target.closest('.highlight-row[data-match]');if(row?.dataset.match)openMatch(row.dataset.match)});
   }
   boot().catch(err=>{console.error('Tournament results failed',err);$('resultMeta').textContent='Kunne ikke laste resultater';$('playerStats').innerHTML=empty('Kunne ikke laste turneringsstatistikken.')});
