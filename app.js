@@ -41,6 +41,7 @@ async function enterLobby(s=session){
  setSessionView('lobby');
  $('welcomeName').textContent='Hei, '+profile.username;
  $('headerStatus').innerHTML='<i></i> Pålogget';
+ window.dispatchEvent(new CustomEvent('dartarena:lobby-entered',{detail:{userId:profile.id}}));
  const profileId=data.id;
  await db.from('profiles').update({last_seen:new Date().toISOString()}).eq('id',profileId);
  if(token!==lobbyInitToken||profile?.id!==profileId)return;
@@ -57,6 +58,7 @@ function showAuth(){
  activeMatch=null;
  setSessionView('auth');
  $('headerStatus').innerHTML='<i></i> Ikke innlogget';
+ window.dispatchEvent(new CustomEvent('dartarena:lobby-left'));
 }
 function setupChallengeRealtime(){const profileId=profile?.id;if(!profileId)return;if(challengeRealtime)db.removeChannel(challengeRealtime);challengeRealtime=db.channel('lobby-challenges-'+profileId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'challenges',filter:`challenger_id=eq.${profileId}`},payload=>{const row=payload.new;if(row.status==='room')enterAcceptedRoom(row.id);loadChallenges()}).on('postgres_changes',{event:'INSERT',schema:'public',table:'challenges',filter:`challenged_id=eq.${profileId}`},()=>loadChallenges()).on('postgres_changes',{event:'UPDATE',schema:'public',table:'challenges',filter:`challenged_id=eq.${profileId}`},()=>loadChallenges()).subscribe()}
 function enterAcceptedRoom(id){let tab=pendingRoomTabs.get(id);if(tab&&!tab.closed){tab.location.href=`room.html?id=${encodeURIComponent(id)}`;pendingRoomTabs.delete(id);return}tab=window.open(`room.html?id=${encodeURIComponent(id)}`,`dartarena-room-${id}`);if(!tab)console.warn('Nettleseren blokkerte venteromfanen.');pendingRoomTabs.delete(id)}
