@@ -23,7 +23,7 @@
     await loadScript('sfu-config.js?v=20261006-device2');
     await loadScript('sfu-client.js?v=20261002-telemetry1');
     await loadScript('half-it.js?v=20260929-online1');
-    await loadScript('one-to-one-media.js?v=20261002-peer1');
+    await loadScript('one-to-one-media.js?v=20261006-audioauto1');
     await loadScript('match-media-telemetry.js?v=20261002-peer3');
     await loadScript('half-it-multileg.js?v=20260930-halfitlegs2');
     await loadScript('half-it-exact-choice.js?v=20261002-exact4');
