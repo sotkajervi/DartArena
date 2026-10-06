@@ -14,7 +14,14 @@ function markGlyph(n){const x=Math.max(0,Math.min(3,Number(n)||0));return x===0?
 function emptyMarks(){return {'20':0,'19':0,'18':0,'17':0,'16':0,'15':0,'B':0}}
 function labelDart(d){if(d.target==='MISS')return'MISS';const prefix=d.mult===1?'S':d.mult===2?'D':'T';return `${prefix}${d.target==='B'?'BULL':d.target}`}
 async function loadState(){const{data,error}=await db.from('cricket_match_state').select('*').eq('match_id',matchId).maybeSingle();if(error)throw error;state=data||{match_id:matchId,player1_marks:emptyMarks(),player2_marks:emptyMarks()}}
-function renderBoard(){if(!state)return;const a=state.player1_marks||emptyMarks(),b=state.player2_marks||emptyMarks();$('cricketBoard').innerHTML=TARGETS.map(t=>{const am=Number(a[t]||0),bm=Number(b[t]||0),closed=am>=3&&bm>=3;return `<div class="cricket-row${closed?' both-closed':''}"><div class="cricket-mark${am>=3?' closed':''}">${markGlyph(am)}</div><div class="cricket-target">${t==='B'?'BULL':t}</div><div class="cricket-mark${bm>=3?' closed':''}">${markGlyph(bm)}</div></div>`}).join('')}
+function renderBoard(){
+  if(!state)return;
+  const board=$('cricketBoard'),a=state.player1_marks||emptyMarks(),b=state.player2_marks||emptyMarks();
+  const myTurn=!!m&&m.status==='playing'&&m.turn_player_id===profile?.id;
+  board.classList.toggle('my-turn-p1',myTurn&&profile?.id===m?.player1_id);
+  board.classList.toggle('my-turn-p2',myTurn&&profile?.id===m?.player2_id);
+  board.innerHTML=TARGETS.map(t=>{const am=Number(a[t]||0),bm=Number(b[t]||0),closed=am>=3&&bm>=3;return `<div class="cricket-row${closed?' both-closed':''}"><div class="cricket-mark${am>=3?' closed':''}">${markGlyph(am)}</div><div class="cricket-target">${t==='B'?'BULL':t}</div><div class="cricket-mark${bm>=3?' closed':''}">${markGlyph(bm)}</div></div>`}).join('')
+}
 function buildKeypad(){const host=$('cricketKeypad');host.innerHTML=TARGETS.map(t=>{if(t==='B')return `<div class="cricket-key-row bull"><div class="cricket-key-label">BULL</div><button class="outline cricket-hit" data-target="B" data-mult="1">S</button><button class="outline cricket-hit" data-target="B" data-mult="2">D</button></div>`;return `<div class="cricket-key-row"><div class="cricket-key-label">${t}</div><button class="outline cricket-hit" data-target="${t}" data-mult="1">S</button><button class="outline cricket-hit" data-target="${t}" data-mult="2">D</button><button class="outline cricket-hit" data-target="${t}" data-mult="3">T</button></div>`}).join('');host.querySelectorAll('.cricket-hit').forEach(b=>b.onclick=()=>addDart(b.dataset.target,Number(b.dataset.mult)))}
 function addDart(target,mult){if(!canThrow()||selectedDarts.length>=3)return;selectedDarts.push({target,mult});renderEntry()}
 function canThrow(){return !!m&&m.status==='playing'&&m.turn_player_id===profile?.id&&!submitting}
