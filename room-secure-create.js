@@ -9,10 +9,11 @@
   },100);
 
   function resolveVariant(raw){
+    if(raw==='chicago')return'x01';
     return window.DartArenaGames?.variantFor?.(raw)||(raw==='cricket'?'cricket':raw==='half_it'||raw==='half_it_standard'?'half_it':raw==='sixty_one'?'sixty_one':raw==='jdc'?'jdc':'x01');
   }
   function labelFor(raw){
-    return window.DartArenaGames?.labelForRaw?.(raw)||(raw==='half_it_standard'?'Half-It (Standard)':raw==='half_it'?'Half-It (DartCounter)':raw==='cricket'?'Cricket':raw==='sixty_one'?'61':raw==='jdc'?'JDC Challenge':String(raw));
+    return raw==='chicago'?'Chicago Style':window.DartArenaGames?.labelForRaw?.(raw)||(raw==='half_it_standard'?'Half-It (Standard)':raw==='half_it'?'Half-It (DartCounter)':raw==='cricket'?'Cricket':raw==='sixty_one'?'61':raw==='jdc'?'JDC Challenge':String(raw));
   }
   function halfModeFor(raw){return raw==='half_it_standard'?'standard':raw==='half_it'?'dartcounter':null}
 
@@ -95,8 +96,8 @@
 
     propose.onclick=async()=>{
       const raw=selectedGame();
-      const variant=resolveVariant(raw),special=variant!=='x01',half=variant==='half_it',sixty=variant==='sixty_one',jdc=variant==='jdc';
-      const legs=jdc?1:Number(document.getElementById('roomLegs').value),mode=special?'legs':matchMode;
+      const chicago=raw==='chicago',variant=chicago?'x01':resolveVariant(raw),special=variant!=='x01'||chicago,half=variant==='half_it',sixty=variant==='sixty_one',jdc=variant==='jdc';
+      const legs=chicago?3:jdc?1:Number(document.getElementById('roomLegs').value),mode=special?'legs':matchMode;
       const sets=special?1:(mode==='sets'?Number(document.getElementById('roomSets').value):1);
       const durationMinutes=sixty?Number(document.getElementById('room61Time').value):null;
       const warmup=!!document.getElementById('roomWarmup')?.checked;
@@ -105,8 +106,8 @@
       if(sixty&&![10,20,30,45,60].includes(durationMinutes)){document.getElementById('roomMessage').textContent='Velg gyldig tid per leg.';return}
       const starterChoice=document.getElementById('roomStarter').value;
       const starterId=starterChoice==='me'?profile.id:starterChoice==='opponent'?other:null;
-      const gameConfig=sixty?{duration_seconds:durationMinutes*60}:half?{half_it_mode:halfModeFor(raw)}:jdc?{ranked:!warmup}:{};
-      const game=special?501:Number(raw);
+      const gameConfig=chicago?{chicago:true,chicago_stage:1,ranked:false,chicago_results:[]}:sixty?{duration_seconds:durationMinutes*60}:half?{half_it_mode:halfModeFor(raw)}:jdc?{ranked:!warmup}:{};
+      const game=chicago?301:special?501:Number(raw);
       propose.disabled=true;propose.textContent='Sender…';
       try{
         const {data,error}=await db.rpc('propose_challenge_match',{
@@ -115,10 +116,13 @@
           p_is_warmup:warmup,p_is_live:live
         });
         if(error||!data)throw error||new Error('Forslaget kunne ikke lagres.');
-        const payload={proposalId:data.id,game:raw,gameVariant:variant,halfItMode:half?halfModeFor(raw):null,legs:Number(data.legs),sets:Number(data.best_of_sets),mode:data.match_mode,starter:data.starter_id||'random',durationMinutes,isWarmup:!!data.is_warmup,isLive:data.is_live!==false};
+        const serverChicago=String(data.game_config?.chicago??chicago).toLowerCase()==='true';
+        const payload={proposalId:data.id,game:raw,gameVariant:variant,isChicago:serverChicago,gameConfig:data.game_config||gameConfig,halfItMode:half?halfModeFor(raw):null,legs:Number(data.legs),sets:Number(data.best_of_sets),mode:data.match_mode,starter:data.starter_id||'random',durationMinutes,isWarmup:!!data.is_warmup,isLive:data.is_live!==false};
         await send('proposal',payload);
         const label=labelFor(raw),prefix=warmup?'Oppvarming • ':'',liveText=live?'Live PÅ':'Live AV';
-        const core=half
+        const core=chicago
+          ?`${prefix}Chicago Style • 301 DI/DO → Cricket → 501 DO`
+          :half
           ?`${prefix}${label} • Best of ${legs} legs • 12 runder/leg`
           :sixty?`${prefix}61 • Best of ${legs} legs • ${durationMinutes} min/leg`
           :jdc?`${prefix}JDC Challenge • 57 piler hver${warmup?' • teller ikke på Top 10/tier':' • offisiell online-score'}`
