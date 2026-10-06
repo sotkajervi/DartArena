@@ -28,5 +28,5 @@
     $('proposalTitle').textContent=format;
     $('proposalText').textContent=`${who}. Godta for å starte kampen.`;
     $('proposalActions').classList.remove('hidden');
-  };;
+  };
 })();
