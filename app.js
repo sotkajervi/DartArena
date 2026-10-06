@@ -48,6 +48,9 @@ async function enterLobby(s=session){
  setupChallengeRealtime();
  if(lobbyEnteringUserId===s.user.id)lobbyEnteringUserId=null;
  await loadLobby();
+ if(token===lobbyInitToken&&profile?.id===profileId){
+   window.dispatchEvent(new CustomEvent('dartarena:lobby-ready',{detail:{userId:profileId}}));
+ }
 }
 function showAuth(){
  lobbyInitToken++;
