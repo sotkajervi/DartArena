@@ -81,10 +81,11 @@
     busy=true;
     try{
       const [{data:match,error:matchError},{data:throws,error:throwError}]=await Promise.all([
-        db.from('matches').select('id,game_variant,match_mode,player1_id,player2_id,winner_id').eq('id',matchId).maybeSingle(),
+        db.from('matches').select('id,game_variant,game_config,match_mode,player1_id,player2_id,winner_id').eq('id',matchId).maybeSingle(),
         db.from('match_throws').select('player_id,set_no,leg_no,visit_no,score,darts_used,is_checkout,created_at').eq('match_id',matchId)
       ]);
       if(matchError||throwError||!match)return;
+      if(String(match.game_config?.chicago??'false').toLowerCase()==='true')return;
       if(match.game_variant&&match.game_variant!=='x01')return;
       const rows=(throws||[]).sort(byTime),completed=completedLegs(rows);
       if(!completed.length)return;
