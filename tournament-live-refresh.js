@@ -23,7 +23,7 @@
   async function readSnapshot(){
     const [tournamentResult,membersResult,matchesResult]=await Promise.all([
       client.from('tournaments')
-        .select('id,status,registration_open,updated_at,game,game_variant')
+        .select('id,status,registration_open,updated_at,game,game_variant,cup_game,cup_game_variant')
         .eq('id',tournamentId)
         .maybeSingle(),
       client.from('tournament_members')
