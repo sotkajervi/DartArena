@@ -7,10 +7,11 @@ async function boot(){
  const chicago=String(match.game_config?.chicago??'false').toLowerCase()==='true';
  const addAvg=(card,id)=>{const el=document.createElement('div');el.id=id;el.className='live-avg';el.innerHTML='<span>AVG</span><b>0.00</b>';card.appendChild(el)};
  const addDarts=(card,id)=>{const el=document.createElement('div');el.id=id;el.className='live-darts';el.innerHTML='<b>0</b><span>PILER</span>';card.appendChild(el)};
- addDarts($('matchP1'),'liveDarts1');if(!chicago)addAvg($('matchP1'),'liveAvg1');
- addDarts($('matchP2'),'liveDarts2');if(!chicago)addAvg($('matchP2'),'liveAvg2');
+ addDarts($('matchP1'),'liveDarts1');addAvg($('matchP1'),'liveAvg1');
+ addDarts($('matchP2'),'liveDarts2');addAvg($('matchP2'),'liveAvg2');
  const dartsFor=v=>Number(v?.is_checkout?v?.darts_used:3)||3;
  const calcAvg=(all,pid)=>{const v=(all||[]).filter(x=>x.player_id===pid),score=v.reduce((s,x)=>s+Number(x.score||0),0),darts=v.reduce((s,x)=>s+dartsFor(x),0);return darts?score/darts*3:0};
+ const calcStageAvg=(all,pid,legNo)=>calcAvg((all||[]).filter(x=>Number(x.leg_no||1)===Number(legNo)),pid);
  const calcLegDarts=(all,pid,setNo,legNo)=>(all||[]).filter(x=>x.player_id===pid&&Number(x.set_no||1)===setNo&&Number(x.leg_no||1)===legNo).reduce((s,x)=>s+dartsFor(x),0);
  async function load(){
   const [matchRes,throwsRes]=await Promise.all([
@@ -19,7 +20,10 @@ async function boot(){
   ]);
   if(matchRes.data){match.current_set=matchRes.data.current_set;match.current_leg=matchRes.data.current_leg}
   const data=throwsRes.data||[],setNo=Number(match.current_set||1),legNo=Number(match.current_leg||1);
-  if(!chicago){$('liveAvg1').querySelector('b').textContent=calcAvg(data,match.player1_id).toFixed(2);$('liveAvg2').querySelector('b').textContent=calcAvg(data,match.player2_id).toFixed(2);}
+  const avg1=chicago?calcStageAvg(data,match.player1_id,legNo):calcAvg(data,match.player1_id);
+  const avg2=chicago?calcStageAvg(data,match.player2_id,legNo):calcAvg(data,match.player2_id);
+  $('liveAvg1').querySelector('b').textContent=avg1.toFixed(2);
+  $('liveAvg2').querySelector('b').textContent=avg2.toFixed(2);
   $('liveDarts1').querySelector('b').textContent=String(calcLegDarts(data,match.player1_id,setNo,legNo));
   $('liveDarts2').querySelector('b').textContent=String(calcLegDarts(data,match.player2_id,setNo,legNo));
  }
