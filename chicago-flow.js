@@ -24,12 +24,54 @@
   function ensureBadge(){
     let badge=document.getElementById('chicagoStageBadge');
     if(badge)return badge;
-    const head=document.querySelector('.match-head>div:first-child');
+    const head=document.querySelector('.match-head');
     if(!head)return null;
+
+    if(!document.getElementById('chicagoStageBadgeStyle')){
+      const style=document.createElement('style');
+      style.id='chicagoStageBadgeStyle';
+      style.textContent=`
+        .match-page #chicagoStageBadge{
+          flex:1 1 auto;
+          min-width:0;
+          max-width:820px;
+          margin:0 22px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          gap:10px;
+          flex-wrap:wrap;
+          padding:13px 22px;
+          border:2px solid rgba(35,226,209,.42);
+          border-radius:18px;
+          background:rgba(35,226,209,.08);
+          font-size:clamp(16px,1.25vw,20px);
+          line-height:1.15;
+          font-weight:950;
+          letter-spacing:.035em;
+          color:var(--cyan);
+          text-align:center;
+          white-space:nowrap;
+        }
+        @media(max-width:800px){
+          .match-page #chicagoStageBadge{
+            width:100%;
+            max-width:none;
+            margin:2px 0 0;
+            padding:11px 14px;
+            font-size:14px;
+            white-space:normal;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
     badge=document.createElement('div');
     badge.id='chicagoStageBadge';
-    badge.style.cssText='margin-top:10px;display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;padding:11px 17px;border:2px solid rgba(35,226,209,.42);border-radius:18px;background:rgba(35,226,209,.08);font-size:16px;line-height:1.2;font-weight:900;letter-spacing:.035em;color:var(--cyan)';
-    head.appendChild(badge);
+    const actions=head.querySelector('.top-actions');
+    if(actions)head.insertBefore(badge,actions);
+    else head.appendChild(badge);
     return badge;
   }
 
@@ -39,7 +81,7 @@
     if(badge)badge.textContent=`CHICAGO STYLE • GAME ${Math.min(stage,3)} AV 3 • ${stageLabel(stage)} • ${scoreText(m)}`;
 
     const format=document.getElementById('matchFormat');
-    if(format)format.textContent=`CHICAGO STYLE • GAME ${Math.min(stage,3)}/3 • ${stageLabel(stage)}`;
+    if(format)format.textContent=stageLabel(stage);
 
     const p1=document.getElementById('matchLegs1')||document.getElementById('cricketLegs1');
     const p2=document.getElementById('matchLegs2')||document.getElementById('cricketLegs2');
