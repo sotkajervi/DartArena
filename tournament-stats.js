@@ -82,15 +82,13 @@
   }
 
   function mprFor(visits){
-    let marks=0,darts=0;
+    const rounds=(visits||[]).length;
+    let marks=0;
     for(const row of visits||[]){
       const visit=Array.isArray(row?.darts)?row.darts:[];
-      for(const dart of visit){
-        darts++;
-        marks+=Math.max(0,Math.min(3,Number(dart?.mult)||0));
-      }
+      for(const dart of visit)marks+=Math.max(0,Math.min(3,Number(dart?.mult)||0));
     }
-    return darts?marks/darts*3:0;
+    return rounds?marks/rounds:0;
   }
 
   function bestBy(rows,field,{min=false,positive=false}={}){
