@@ -5,6 +5,7 @@
   const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const CUP_FORMAT_KEY=`dartarena-cup-format-${id}`;
 
+  function isChicagoTournament(){try{return String(tournament?.game_variant||'x01').toLowerCase()==='chicago'}catch{return false}}
   function nextPow2(n){let x=1;while(x<n)x*=2;return x}
   function seedOrder(size){let a=[1,2];while(a.length<size){const n=a.length*2,out=[];for(const x of a)out.push(x,n+1-x);a=out}return a.slice(0,size)}
 
@@ -42,12 +43,21 @@
   function renderCupFormat(q){
     const btn=$('buildCupBtn');if(!btn)return;let box=$('cupFormatSettings');
     if(tournament?.owner_id!==me){box?.remove();return}
+    if(isChicagoTournament()){
+      box?.remove();
+      const info=$('cupSetupInfo');
+      if(info)info.textContent=`${q.length} spillere er klare for sluttspillet. Chicago Style spilles 301 DIDO • Cricket • 501 SIDO i hver cupkamp.`;
+      return;
+    }
     const size=nextPow2(q.length),rounds=Math.log2(size),format=loadCupFormat(rounds);
     if(!box){box=document.createElement('div');box.id='cupFormatSettings';box.style.cssText='margin:10px 0 12px;padding:10px 12px;border:1px solid rgba(35,226,209,.25);border-radius:12px;background:rgba(9,20,22,.72)';btn.insertAdjacentElement('beforebegin',box)}
     box.innerHTML=`<div style="display:flex;align-items:flex-end;gap:9px;flex-wrap:wrap"><div style="min-width:145px;margin-right:2px"><small>KAMPFORMAT</small><div style="font-weight:900;font-size:14px;margin-top:3px">Best of per runde</div></div>${Array.from({length:rounds},(_,i)=>i+1).map(r=>`<label class="field" style="margin:0;min-width:112px;flex:1 1 112px"><span style="display:block;font-size:10px;font-weight:800;margin-bottom:3px">${cupRoundName(r,size)}</span><select data-cup-round="${r}" style="margin-top:0;padding:8px 10px">${formatOptions(format[r])}</select></label>`).join('')}</div>`;
     box.querySelectorAll('select[data-cup-round]').forEach(s=>s.addEventListener('change',saveCupFormat));
   }
-  function selectedCupFormats(rounds){const defaults=loadCupFormat(rounds);document.querySelectorAll('#cupFormatSettings select[data-cup-round]').forEach(s=>{const r=Number(s.dataset.cupRound),n=Number(s.value);if(r&&validBestOf(n))defaults[r]=n});return defaults}
+  function selectedCupFormats(rounds){
+    if(isChicagoTournament())return Object.fromEntries(Array.from({length:rounds},(_,i)=>[i+1,3]));
+    const defaults=loadCupFormat(rounds);document.querySelectorAll('#cupFormatSettings select[data-cup-round]').forEach(s=>{const r=Number(s.dataset.cupRound),n=Number(s.value);if(r&&validBestOf(n))defaults[r]=n});return defaults
+  }
   async function data(){
     const [{data:groups},{data:players},{data:gm},{data:cm}]=await Promise.all([
       db.from('tournament_groups').select('*').eq('tournament_id',id).order('group_no'),
@@ -103,7 +113,7 @@
     const max=Math.max(...d.cm.map(m=>m.round_no));
     const finalRound=d.cm.filter(m=>Number(m.round_no)===Number(max));
     const final=finalRound.length===1?finalRound[0]:null;
-    $('cupBracket').innerHTML=Array.from({length:max},(_,i)=>i+1).map(r=>{const rm=d.cm.filter(m=>m.round_no===r),bo=rm[0]?.best_of;return `<div class="cup-round"><div class="cup-round-title">${cupRoundName(r,2**max)}${bo?` • Bo${bo}`:''}</div>${rm.map(m=>{const score=done(m)&&!m.is_wo?`${m.player1_legs||0}–${m.player2_legs||0}`:m.is_wo?'WO':'vs',aBye=r===1&&m.is_wo&&!m.player1_id,bBye=r===1&&m.is_wo&&!m.player2_id;return `<div class="cup-match" data-match="${m.id}"><div class="cup-player ${m.winner_id===m.player1_id&&m.player1_id?'winner':''}">${cupPlayerHtml(m.player1_id,seedById,{bye:aBye})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner_id===m.player2_id&&m.player2_id?'winner':''}">${cupPlayerHtml(m.player2_id,seedById,{bye:bBye})}</div></div>`}).join('')}</div>`}).join('');
+    $('cupBracket').innerHTML=Array.from({length:max},(_,i)=>i+1).map(r=>{const rm=d.cm.filter(m=>m.round_no===r),bo=rm[0]?.best_of;return `<div class="cup-round"><div class="cup-round-title">${cupRoundName(r,2**max)}${isChicagoTournament()?' • Chicago Style':bo?` • Bo${bo}`:''}</div>${rm.map(m=>{const score=done(m)&&!m.is_wo?`${m.player1_legs||0}–${m.player2_legs||0}`:m.is_wo?'WO':'vs',aBye=r===1&&m.is_wo&&!m.player1_id,bBye=r===1&&m.is_wo&&!m.player2_id;return `<div class="cup-match" data-match="${m.id}"><div class="cup-player ${m.winner_id===m.player1_id&&m.player1_id?'winner':''}">${cupPlayerHtml(m.player1_id,seedById,{bye:aBye})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner_id===m.player2_id&&m.player2_id?'winner':''}">${cupPlayerHtml(m.player2_id,seedById,{bye:bBye})}</div></div>`}).join('')}</div>`}).join('');
     if(finalRound.length!==1){$('cupProgress').textContent='Cupoppsettet må kontrolleres: ugyldig finalerunde';return}
     $('cupProgress').textContent=final?.winner_id?`Vinner: ${names[final.winner_id]||'Spiller'}`:`${d.cm.filter(done).length} / ${d.cm.length} kamper ferdig`;
     if(advancementBlocked)$('cupProgress').textContent+=' • Vinner venter på overføring til neste runde';
