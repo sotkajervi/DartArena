@@ -33,7 +33,17 @@
   let isOwner=false;
   let observer=null;
   let deleteChannel=null;
+  let bootToken=0;
   const deleteModeCache=new Map();
+
+  function resetAdminUi(){
+    isAdmin=false;
+    isOwner=false;
+    deleteModeCache.clear();
+    document.querySelectorAll('.admin-delete-tournament,.dart-chat-delete').forEach(el=>el.remove());
+    if(observer){observer.disconnect();observer=null;}
+    if(deleteChannel){try{db.removeChannel(deleteChannel)}catch{}deleteChannel=null;}
+  }
 
   function ensureStyles(){
     if(document.getElementById('dartarena-admin-styles'))return;
@@ -178,17 +188,22 @@
   }
 
   async function boot(){
+    const token=++bootToken;
     const {data:{session}}=await db.auth.getSession();
-    if(!session?.user)return;
+    if(token!==bootToken)return;
+    if(!session?.user){resetAdminUi();return;}
     const [{data:adminFlag,error:adminError},{data:ownerFlag,error:ownerError}]=await Promise.all([db.rpc('is_admin'),db.rpc('is_owner')]);
+    if(token!==bootToken)return;
     if(adminError){console.warn('Admin role check failed',adminError);return;}
     if(ownerError)console.warn('Owner role check failed',ownerError);
     isAdmin=adminFlag===true;
     isOwner=ownerFlag===true;
-    if(!isAdmin)return;
+    if(!isAdmin){resetAdminUi();return;}
     ensureStyles();subscribeChatDeletes();decorate();observe();
   }
 
   boot().catch(error=>console.error('Admin UI init failed',error));
-  window.addEventListener('pagehide',()=>{if(observer){observer.disconnect();observer=null;}if(deleteChannel){try{db.removeChannel(deleteChannel)}catch{}deleteChannel=null;}});
+  window.addEventListener('dartarena:lobby-entered',()=>boot().catch(error=>console.error('Admin UI refresh failed',error)));
+  window.addEventListener('dartarena:lobby-left',()=>{bootToken++;resetAdminUi()});
+  window.addEventListener('pagehide',()=>{bootToken++;resetAdminUi()});
 })();
