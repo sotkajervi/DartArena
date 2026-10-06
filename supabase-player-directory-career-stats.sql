@@ -51,6 +51,138 @@ $$;
 revoke all on function public.get_player_directory(text,integer) from public;
 grant execute on function public.get_player_directory(text,integer) to authenticated;
 
+create or replace function public.get_player_directory_stats(
+  p_search text default '',
+  p_limit integer default 500
+)
+returns table(
+  user_id uuid,
+  username text,
+  registered_at timestamptz,
+  matches bigint,
+  wins bigint,
+  win_pct numeric,
+  x01_avg numeric,
+  first9_avg numeric,
+  highest_checkout integer,
+  fastest_leg integer,
+  c100 bigint,
+  c140 bigint,
+  c170 bigint,
+  c180 bigint,
+  cricket_mpr numeric
+)
+language sql stable security definer
+set search_path to 'public','pg_temp'
+as $$
+  with eligible as (
+    select m.*
+    from public.matches m
+    where m.status='finished'
+      and m.deleted_at is null
+      and coalesce(m.is_warmup,false)=false
+  ),
+  player_matches as (
+    select e.id match_id,e.player1_id user_id,coalesce(tm.winner_id,e.winner_id) effective_winner
+    from eligible e left join public.tournament_matches tm on tm.live_match_id=e.id
+    union all
+    select e.id,e.player2_id,coalesce(tm.winner_id,e.winner_id)
+    from eligible e left join public.tournament_matches tm on tm.live_match_id=e.id
+  ),
+  mt as (
+    select pm.user_id,
+           count(*)::bigint matches,
+           count(*) filter (where pm.effective_winner=pm.user_id)::bigint wins
+    from player_matches pm
+    group by pm.user_id
+  ),
+  x01_visits as (
+    select v.*,
+           case when v.is_checkout then coalesce(nullif(v.darts_used,0),3) else 3 end::integer darts,
+           row_number() over(
+             partition by v.match_id,v.player_id,coalesce(v.set_no,1),coalesce(v.leg_no,1)
+             order by coalesce(v.visit_no,2147483647),v.id
+           ) leg_visit_no
+    from public.match_throws v
+    join eligible e on e.id=v.match_id
+    where coalesce(e.game_variant,'x01')='x01'
+      and lower(coalesce(e.game_config->>'chicago','false'))<>'true'
+  ),
+  x01_totals as (
+    select player_id user_id,
+           coalesce(sum(score),0)::numeric total_score,
+           coalesce(sum(darts),0)::numeric total_darts,
+           coalesce(max(score) filter(where is_checkout),0)::integer highest_checkout,
+           count(*) filter(where score between 100 and 139)::bigint c100,
+           count(*) filter(where score between 140 and 169)::bigint c140,
+           count(*) filter(where score between 170 and 179)::bigint c170,
+           count(*) filter(where score=180)::bigint c180
+    from x01_visits
+    group by player_id
+  ),
+  first9 as (
+    select player_id user_id,
+           coalesce(sum(score),0)::numeric score,
+           coalesce(sum(darts),0)::numeric darts
+    from x01_visits
+    where leg_visit_no<=3
+    group by player_id
+  ),
+  legs as (
+    select player_id user_id,match_id,coalesce(set_no,1) set_no,coalesce(leg_no,1) leg_no,
+           sum(darts)::integer darts,bool_or(is_checkout) won
+    from x01_visits
+    group by player_id,match_id,coalesce(set_no,1),coalesce(leg_no,1)
+  ),
+  fastest as (
+    select user_id,min(darts)::integer fastest_leg
+    from legs
+    where won
+    group by user_id
+  ),
+  cricket as (
+    select cv.player_id user_id,
+           count(*)::numeric visits,
+           coalesce(sum((
+             select coalesce(sum(greatest(0,least(3,coalesce((dart->>'mult')::integer,0)))),0)
+             from jsonb_array_elements(coalesce(cv.darts,'[]'::jsonb)) dart
+           )),0)::numeric marks
+    from public.cricket_visits cv
+    join eligible e on e.id=cv.match_id
+    where coalesce(e.game_variant,'x01')='cricket'
+      and lower(coalesce(e.game_config->>'chicago','false'))<>'true'
+    group by cv.player_id
+  )
+  select
+    p.id,
+    p.username::text,
+    p.created_at,
+    coalesce(mt.matches,0),
+    coalesce(mt.wins,0),
+    case when coalesce(mt.matches,0)>0 then round(mt.wins::numeric*100/mt.matches,1) else 0 end,
+    case when coalesce(xt.total_darts,0)>0 then round(xt.total_score/xt.total_darts*3,2) else 0 end,
+    case when coalesce(f9.darts,0)>0 then round(f9.score/f9.darts*3,2) else 0 end,
+    coalesce(xt.highest_checkout,0),
+    fa.fastest_leg,
+    coalesce(xt.c100,0),
+    coalesce(xt.c140,0),
+    coalesce(xt.c170,0),
+    coalesce(xt.c180,0),
+    case when coalesce(cr.visits,0)>0 then round(cr.marks/cr.visits,2) else 0 end
+  from public.profiles p
+  left join mt on mt.user_id=p.id
+  left join x01_totals xt on xt.user_id=p.id
+  left join first9 f9 on f9.user_id=p.id
+  left join fastest fa on fa.user_id=p.id
+  left join cricket cr on cr.user_id=p.id
+  where coalesce(p.username,'') ilike '%'||coalesce(p_search,'')||'%'
+  order by lower(coalesce(p.username,'')),p.created_at
+  limit greatest(1,least(coalesce(p_limit,500),500));
+$$;
+revoke all on function public.get_player_directory_stats(text,integer) from public;
+revoke execute on function public.get_player_directory_stats(text,integer) from anon;
+grant execute on function public.get_player_directory_stats(text,integer) to authenticated;
+
 create or replace function public.get_player_career_stats(p_user_id uuid)
 returns table(
   user_id uuid, username text, registered_at timestamptz,
