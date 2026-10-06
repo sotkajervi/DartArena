@@ -11,12 +11,12 @@ const statsEsc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','
 
 function cricketLiveStats(rows,pid){
   const mine=(rows||[]).filter(r=>r.player_id===pid),points=mine.reduce((sum,r)=>sum+Number(r.points_scored||0),0);
-  let marks=0,darts=0;
+  let marks=0;
   for(const row of mine){
     const visit=Array.isArray(row?.darts)?row.darts:[];
-    for(const dart of visit){darts++;marks+=Math.max(0,Math.min(3,Number(dart?.mult)||0))}
+    for(const dart of visit)marks+=Math.max(0,Math.min(3,Number(dart?.mult)||0));
   }
-  return{visits:mine.length,points,mpr:darts?marks/darts*3:0};
+  return{visits:mine.length,points,mpr:mine.length?marks/mine.length:0};
 }
 function renderViewerStats(){
   const host=$('spectatorStats');if(!host||!tm)return;
