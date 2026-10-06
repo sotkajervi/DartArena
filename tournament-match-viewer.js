@@ -37,7 +37,10 @@ function renderViewerStats(){
     const activeRows=chicago?statsRows.filter(r=>Number(r.leg_no||1)===chicagoStage):statsRows;
     if(!activeRows.length){host.innerHTML='<p class="muted">Ingen registrerte kast tilgjengelig ennå.</p>';return}
     const a=window.DartArenaX01Stats.statsFor(activeRows,tm.player1_id),b=window.DartArenaX01Stats.statsFor(activeRows,tm.player2_id);
-    rows=[['3-dart snitt',a.avg.toFixed(2),b.avg.toFixed(2)],['First 9 AVG',a.first9.toFixed(2),b.first9.toFixed(2)],['Høyeste checkout',a.high||'–',b.high||'–'],[chicago?'Piler i game':'Raskeste leg',chicago?'–':(a.fast?a.fast+' piler':'–'),chicago?'–':(b.fast?b.fast+' piler':'–')],['100+',a.c100,b.c100],['140+',a.c140,b.c140],['170+',a.c170,b.c170],['180',a.c180,b.c180]];
+    const baseRows=[['3-dart snitt',a.avg.toFixed(2),b.avg.toFixed(2)],['First 9 AVG',a.first9.toFixed(2),b.first9.toFixed(2)],['Høyeste checkout',a.high||'–',b.high||'–']];
+    if(chicago)baseRows.push(['Visits',activeRows.filter(r=>r.player_id===tm.player1_id).length,activeRows.filter(r=>r.player_id===tm.player2_id).length]);
+    else baseRows.push(['Raskeste leg',a.fast?a.fast+' piler':'–',b.fast?b.fast+' piler':'–']);
+    rows=[...baseRows,['100+',a.c100,b.c100],['140+',a.c140,b.c140],['170+',a.c170,b.c170],['180',a.c180,b.c180]];
   }
   host.innerHTML='<table class="spectator-stats-table"><thead><tr><th scope="col">Statistikk</th><th scope="col">'+statsEsc(names[tm.player1_id]||'Spiller 1')+'</th><th scope="col">'+statsEsc(names[tm.player2_id]||'Spiller 2')+'</th></tr></thead><tbody>'+rows.map(r=>'<tr><th scope="row">'+r[0]+'</th><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>').join('')+'</tbody></table>';
 }
