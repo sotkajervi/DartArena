@@ -9,7 +9,7 @@
   async function getDialog(){for(let i=0;i<40&&!window.DartArenaDialog;i++)await sleep(50);return window.DartArenaDialog||null}
 
   function isPureCup(){try{return !!tournament&&tournament.tournament_type==='cup'}catch{return false}}
-  function isChicagoTournament(){try{return String(tournament?.game_variant||'x01').toLowerCase()==='chicago'}catch{return false}}
+  function isChicagoTournament(){try{return String(tournament?.cup_game_variant||tournament?.game_variant||'x01').toLowerCase()==='chicago'}catch{return false}}
   function isSimulation(){try{return !!simulation}catch{return false}}
   function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
   function nextPow2(n){let x=1;while(x<n)x*=2;return x}
