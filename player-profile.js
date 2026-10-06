@@ -40,7 +40,7 @@ function scorePair(m){
   return[num(m.player1_legs),num(m.player2_legs)];
 }
 function formatLabel(m){
-  if(isChicago(m))return'301 DI/DO • Cricket • 501 DO';
+  if(isChicago(m))return'301 DIDO • Cricket • 501 SIDO';
   const v=variantOf(m);
   if(v==='jdc')return'57 piler hver';
   if(v==='half_it')return num(m.player1_legs)+num(m.player2_legs)>0?`Best of ${m.legs||1} legs`:'12 runder';
@@ -78,10 +78,21 @@ function renderStats(s){
   $('profileStats').classList.remove('hidden');
   window.DartArenaRoleVisuals?.scan?.();
 }
+function renderCricketStats(s){
+  const hasMatches=num(s?.cricket_matches)>0;
+  $('cricketMatches').textContent=num(s?.cricket_matches);
+  $('cricketWins').textContent=num(s?.cricket_wins);
+  $('cricketMpr').textContent=hasMatches?num(s?.cricket_mpr).toFixed(2):'–';
+  $('cricketBestMpr').textContent=hasMatches?num(s?.best_match_mpr).toFixed(2):'–';
+  $('cricketVisits').textContent=num(s?.cricket_visits).toLocaleString('nb-NO');
+  $('cricketPoints').textContent=num(s?.cricket_points).toLocaleString('nb-NO');
+}
 
 function visibleMatches(){
   return allMatches.filter(m=>{
     if(activeFilter==='x01')return !isChicago(m)&&variantOf(m)==='x01';
+    if(activeFilter==='cricket')return !isChicago(m)&&variantOf(m)==='cricket';
+    if(activeFilter==='chicago')return isChicago(m);
     if(activeFilter==='tournament')return !!m.tournament_id;
     if(activeFilter==='online')return !m.tournament_id;
     return true;
@@ -114,11 +125,17 @@ async function boot(){
     renderMatches();
   });
 
-  const [{data:stats,error:statsError},{data:matches,error:matchesError}]=await Promise.all([
+  const [
+    {data:stats,error:statsError},
+    {data:cricketStats,error:cricketStatsError},
+    {data:matches,error:matchesError}
+  ]=await Promise.all([
     db.rpc('get_player_career_stats',{p_user_id:userId}),
+    db.rpc('get_player_cricket_career_stats',{p_user_id:userId}),
     db.rpc('get_player_profile_matches',{p_user_id:userId,p_limit:1000})
   ]);
   if(statsError)throw statsError;
+  if(cricketStatsError)throw cricketStatsError;
   if(matchesError)throw matchesError;
   const row=stats?.[0];
   if(!row){
@@ -130,6 +147,7 @@ async function boot(){
   }
   allMatches=matches||[];
   renderStats(row);
+  renderCricketStats(cricketStats?.[0]||{});
   renderMatches();
 }
 
