@@ -254,6 +254,22 @@
     return true;
   }
 
+  async function refreshRoles(){
+    roleByName.clear();
+    const loaded=await loadRoles();
+    if(!loaded){
+      scanNames();
+      syncWelcome();
+      return false;
+    }
+    ensureLobbyNavButtons();
+    hookPlayerRendering();
+    hookChallengeRendering();
+    scanNames();
+    syncWelcome();
+    return true;
+  }
+
   async function boot(){
     ensureStyles();
     ensureLobbyNavButtons();
@@ -285,5 +301,17 @@
   boot().catch(error=>{
     revealWelcome();
     console.warn('Role visuals init failed',error);
+  });
+
+  window.addEventListener('dartarena:lobby-entered',()=>{
+    refreshRoles().catch(error=>{
+      revealWelcome();
+      console.warn('Role visuals refresh failed',error);
+    });
+  });
+  window.addEventListener('dartarena:lobby-left',()=>{
+    roleByName.clear();
+    scanNames();
+    syncWelcome();
   });
 })();
