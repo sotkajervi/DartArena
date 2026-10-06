@@ -117,6 +117,7 @@ async function load(){
 
   renderPage();
   if(t.status==='groups')await loadGroupLobby();
+  window.dispatchEvent(new CustomEvent('dartarena:tournament-loaded',{detail:{id:t.id,status:t.status,gameVariant:t.game_variant||'x01'}}));
 }
 
 function renderPage(){
