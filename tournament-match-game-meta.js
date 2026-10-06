@@ -18,12 +18,15 @@
       .maybeSingle();
     if(error||!tm)return;
     const {data:t}=await client.from('tournaments')
-      .select('game,game_variant')
+      .select('game,game_variant,cup_game,cup_game_variant')
       .eq('id',tm.tournament_id)
       .maybeSingle();
-    const chicago=String(t?.game_variant||'x01').toLowerCase()==='chicago';
-    const game=[170,301,501,1001].includes(Number(t?.game))?Number(t.game):501;
-    const stage=tm.stage==='group'?'Puljespill':'Cup';
+    const isCup=tm.stage==='cup';
+    const variant=String(isCup?(t?.cup_game_variant??t?.game_variant):(t?.game_variant||'x01')).toLowerCase();
+    const rawGame=isCup?(t?.cup_game??t?.game):t?.game;
+    const chicago=variant==='chicago';
+    const game=[170,301,501,1001].includes(Number(rawGame))?Number(rawGame):501;
+    const stage=isCup?'Cup':'Puljespill';
     const labels=new Map();
     const roomMeta=document.getElementById('roomMeta');
     const viewerMeta=document.getElementById('meta');
