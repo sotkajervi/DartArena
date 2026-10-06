@@ -431,9 +431,15 @@ function matchHtml(m){
   const p1=esc(names[m.player1_id]||'Spiller');
   const p2=esc(names[m.player2_id]||'Spiller');
   const done=['finished','wo'].includes(m.status);
-  const score=done?`${Number(m.player1_legs||0)}–${Number(m.player2_legs||0)}`:'vs';
-  const state=m.status==='live'?'LIVE':m.status==='finished'?'Ferdig':m.status==='wo'?'WO':'Klar';
-  return `<div class="match-row ${m.status==='live'?'live-match':''}" data-match="${m.id}"><div class="match-players"><strong>${p1}</strong> <span class="muted">vs</span> <strong>${p2}</strong><div class="match-state">${state}</div></div><div class="match-score">${score}</div></div>`;
+  const live=m.status==='live';
+  const score=(done||live)
+    ?`${Number(m.player1_legs||0)}–${Number(m.player2_legs||0)}`
+    :'VS';
+  const state=live?'LIVE':m.status==='finished'?'Ferdig':m.status==='wo'?'WO':'Klar';
+  return `<div class="match-row ${live?'live-match':''}" data-match="${m.id}">
+    <div class="match-players"><strong>${p1}</strong><span class="muted">vs</span><strong>${p2}</strong></div>
+    <div class="match-meta"><div class="match-score">${score}</div><div class="match-state">${state}</div></div>
+  </div>`;
 }
 
 async function startGroups(){
