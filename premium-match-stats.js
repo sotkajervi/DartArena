@@ -158,6 +158,83 @@
     }).join('');
     return `<section class="premium-leg-section"><div class="premium-leg-title">SETT FOR SETT · LEGS</div>${blocks}</section>`;
   }
+  function chicagoStageAvg(rows,stage,pid){
+    const visits=(rows||[]).filter(r=>r.player_id===pid&&(num(r.leg_no)||1)===stage);
+    const darts=visits.reduce((sum,row)=>sum+dartsFor(row),0);
+    const score=visits.reduce((sum,row)=>sum+num(row.score),0);
+    return darts?(score/darts*3).toFixed(2):'–';
+  }
+  function chicagoMpr(rows,pid){
+    let marks=0,darts=0;
+    for(const row of rows||[]){
+      if(row.player_id!==pid||(num(row.leg_no)||1)!==2)continue;
+      const visit=Array.isArray(row.darts)?row.darts:[];
+      for(const dart of visit){
+        darts++;
+        marks+=Math.max(0,Math.min(3,num(dart?.mult)));
+      }
+    }
+    return darts?(marks/darts*3).toFixed(2):'–';
+  }
+  function chicagoMetricCard(id,name,winnerId,games,avg301,mpr,avg501){
+    const winner=id===winnerId;
+    const rows=[
+      ['GAMES',games],
+      ['301 DIDO AVG',avg301],
+      ['CRICKET MPR',mpr],
+      ['501 SIDO AVG',avg501]
+    ];
+    return `<article class="premium-player-card${winner?' winner':''}" data-player-id="${esc(id)}">
+      <div class="premium-player-head"><div class="premium-player-icon">${winner?'♛':esc(initial(name))}</div><div style="min-width:0"><div class="premium-player-name">${esc(name)}</div>${winner?'<span class="premium-winner-badge">VINNER</span>':''}</div></div>
+      <div class="premium-stat-grid">${rows.map(([label,value])=>`<div class="premium-stat"><span>${esc(label)}</span><b>${esc(value)}</b></div>`).join('')}</div>
+    </article>`;
+  }
+  async function renderChicago(match,tm,tournament,names){
+    const [{data:x01Rows,error:x01Error},{data:cricketRows,error:cricketError}]=await Promise.all([
+      db.from('match_throws').select('player_id,leg_no,score,darts_used,is_checkout,created_at').eq('match_id',match.id).order('created_at',{ascending:true}),
+      db.from('cricket_visits').select('player_id,leg_no,darts,points_scored,created_at').eq('match_id',match.id).order('created_at',{ascending:true})
+    ]);
+    if(x01Error)throw x01Error;
+    if(cricketError)throw cricketError;
+
+    const winnerId=tm?.winner_id||match.winner_id;
+    const[leftId,rightId]=displayOrder(match,winnerId);
+    const leftName=names[leftId]||'Spiller 1',rightName=names[rightId]||'Spiller 2';
+    const scoreById={
+      [match.player1_id]:num(tm?.player1_legs??match.player1_legs),
+      [match.player2_id]:num(tm?.player2_legs??match.player2_legs)
+    };
+    const raw=Array.isArray(match?.game_config?.chicago_results)?match.game_config.chicago_results:[];
+    const labels={1:'301 DIDO',2:'CRICKET',3:'501 SIDO'};
+    let left=0,right=0;
+    const games=raw.slice().sort((a,b)=>num(a?.stage)-num(b?.stage)).map(item=>{
+      const stage=num(item?.stage),gameWinner=item?.winner_id||null;
+      if(gameWinner===leftId)left++;
+      else if(gameWinner===rightId)right++;
+      const metricLabel=stage===2?'MPR':'AVG';
+      const leftMetric=stage===2?chicagoMpr(cricketRows,leftId):chicagoStageAvg(x01Rows,stage,leftId);
+      const rightMetric=stage===2?chicagoMpr(cricketRows,rightId):chicagoStageAvg(x01Rows,stage,rightId);
+      return `<div class="premium-leg-row">
+        <span class="premium-leg-label">${esc(labels[stage]||`GAME ${stage||'?'}`)}</span>
+        <span class="premium-leg-score">${left}–${right}</span>
+        <span class="premium-leg-winner${gameWinner===winnerId?' match-winner':''}">${esc(gameWinner?names[gameWinner]||'Vinner':'–')}</span>
+        <span class="premium-leg-meta">${metricLabel} • ${esc(leftName)} ${esc(leftMetric)} • ${esc(rightName)} ${esc(rightMetric)}</span>
+      </div>`;
+    }).join('');
+
+    const winnerName=winnerId?names[winnerId]||'Vinner':'Kampen';
+    $('statsTitle').textContent=`${leftName} vs ${rightName}`;
+    $('statsMeta').textContent=contextText(match,tm,tournament);
+    $('statsView').innerHTML=`<section class="premium-result-card">
+      <div class="premium-result-kicker">KAMP FERDIG</div>
+      <h2 class="premium-result-title"><span class="winner-name">${esc(winnerName)}</span>${winnerId?' vant!':' er ferdig'}</h2>
+      <div class="premium-result-sub">Chicago Style • 301 DIDO • Cricket • 501 SIDO</div>
+      <div class="premium-result-score">${scoreById[leftId]}<span>–</span>${scoreById[rightId]}</div>
+      <div class="premium-player-grid">${chicagoMetricCard(leftId,leftName,winnerId,scoreById[leftId],chicagoStageAvg(x01Rows,1,leftId),chicagoMpr(cricketRows,leftId),chicagoStageAvg(x01Rows,3,leftId))}${chicagoMetricCard(rightId,rightName,winnerId,scoreById[rightId],chicagoStageAvg(x01Rows,1,rightId),chicagoMpr(cricketRows,rightId),chicagoStageAvg(x01Rows,3,rightId))}</div>
+      <section class="premium-leg-section"><div class="premium-leg-title">GAME-OVERSIKT</div><div class="premium-leg-list">${games||'<div class="premium-empty">Ingen game-data registrert.</div>'}</div></section>
+    </section>`;
+  }
+
   function contextText(match,tm,tournament){
     const parts=[];
     const date=fmtDate(match?.finished_at||match?.updated_at||match?.created_at);
@@ -183,6 +260,10 @@
     if(!match){renderWo(tm,tournament,names);return}
     const n1=names[match.player1_id]||'Spiller 1',n2=names[match.player2_id]||'Spiller 2';
     $('statsMeta').textContent=contextText(match,tm,tournament);
+    if(String(match?.game_config?.chicago??'false').toLowerCase()==='true'){
+      await renderChicago(match,tm,tournament,names);
+      return;
+    }
     if((match.game_variant||'x01')!=='x01'){
       const[a,b]=resultScore(match,tm),winnerId=tm?.winner_id||match.winner_id||inferredWinner(match.player1_id,match.player2_id,a,b),winnerName=winnerId?names[winnerId]||'Vinner':'Kampen';
       const[leftId,rightId]=displayOrder(match,winnerId),[leftScore,rightScore]=orderedPair(match,winnerId,a,b);
