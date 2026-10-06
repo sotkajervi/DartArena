@@ -38,12 +38,27 @@
     if(membersResult.error)throw membersResult.error;
     if(matchesResult.error)throw matchesResult.error;
 
+    const liveIds=[...new Set((matchesResult.data||[])
+      .filter(row=>row.status==='live'&&row.live_match_id)
+      .map(row=>row.live_match_id))];
+    let liveScores=[];
+    if(liveIds.length){
+      const liveResult=await client.from('matches')
+        .select('id,status,player1_legs,player2_legs,current_leg,updated_at')
+        .in('id',liveIds);
+      if(liveResult.error)throw liveResult.error;
+      liveScores=liveResult.data||[];
+    }
+
     return{
       tournament:JSON.stringify(tournamentResult.data||null),
       members:JSON.stringify(stableRows(membersResult.data,['user_id','role','joined_at'])),
       matches:JSON.stringify(stableRows(matchesResult.data,[
         'id','status','round_no','match_no','player1_id','player2_id',
         'player1_legs','player2_legs','winner_id','live_match_id','updated_at'
+      ])),
+      liveScores:JSON.stringify(stableRows(liveScores,[
+        'id','status','player1_legs','player2_legs','current_leg','updated_at'
       ]))
     };
   }
@@ -116,7 +131,8 @@
       const tournamentChanged=current.tournament!==snapshot.tournament;
       const membersChanged=current.members!==snapshot.members;
       const matchesChanged=current.matches!==snapshot.matches;
-      if(!tournamentChanged&&!membersChanged&&!matchesChanged)return;
+      const liveScoresChanged=current.liveScores!==snapshot.liveScores;
+      if(!tournamentChanged&&!membersChanged&&!matchesChanged&&!liveScoresChanged)return;
 
       if(tournamentChanged||membersChanged)await refreshWholeTournament();
       else await refreshMatchViews();
