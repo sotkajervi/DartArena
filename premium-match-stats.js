@@ -165,16 +165,14 @@
     return darts?(score/darts*3).toFixed(2):'–';
   }
   function chicagoMpr(rows,pid){
-    let marks=0,darts=0;
+    let marks=0,rounds=0;
     for(const row of rows||[]){
       if(row.player_id!==pid||(num(row.leg_no)||1)!==2)continue;
+      rounds++;
       const visit=Array.isArray(row.darts)?row.darts:[];
-      for(const dart of visit){
-        darts++;
-        marks+=Math.max(0,Math.min(3,num(dart?.mult)));
-      }
+      for(const dart of visit)marks+=Math.max(0,Math.min(3,num(dart?.mult)));
     }
-    return darts?(marks/darts*3).toFixed(2):'–';
+    return rounds?(marks/rounds).toFixed(2):'–';
   }
   function chicagoMetricCard(id,name,winnerId,games,avg301,mpr,avg501){
     const winner=id===winnerId;
