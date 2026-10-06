@@ -20,12 +20,15 @@ async function boot(){
   if(busy||match.status!=='playing'||match.turn_player_id!==me)return;
   busy=true;
   try{
-   const beforeSet=Number(match.current_set||1);
-   const {data,error}=await db.rpc('submit_match_checkout',{p_match_id:match.id,p_score:score,p_darts:darts});
+   const beforeSet=Number(match.current_set||1),chicago=String(match.game_config?.chicago??'false').toLowerCase()==='true',beforeStage=Number(match.game_config?.chicago_stage||match.current_leg||1);
+   const rpc=chicago?'submit_chicago_checkout':'submit_match_checkout';
+   const {data,error}=await db.rpc(rpc,{p_match_id:match.id,p_score:score,p_darts:darts});
    if(error||!data){$('matchMessage').textContent='Checkout kunne ikke lagres: '+(error?.message||'ukjent feil');return}
    match=data;$('matchScoreInput').value='';
-   const wonMatch=match.status==='finished',wonSet=match.match_mode==='sets'&&Number(match.current_set||1)>beforeSet;
-   $('matchMessage').textContent=`Checkout ${score} på ${darts} ${darts===1?'pil':'piler'} • ${wonMatch?'Kamp vunnet!':wonSet?'Set vunnet!':'Leg vunnet!'}`;
+   const wonMatch=match.status==='finished',wonSet=!chicago&&match.match_mode==='sets'&&Number(match.current_set||1)>beforeSet;
+   if(chicago){
+    $('matchMessage').textContent=beforeStage===1?`301 vunnet på checkout ${score} • videre til Cricket`:wonMatch?'Chicago Style vunnet!':`Checkout ${score} på ${darts} ${darts===1?'pil':'piler'}`;
+   }else $('matchMessage').textContent=`Checkout ${score} på ${darts} ${darts===1?'pil':'piler'} • ${wonMatch?'Kamp vunnet!':wonSet?'Set vunnet!':'Leg vunnet!'}`;
   }finally{busy=false}
  }
  async function intercept(){
