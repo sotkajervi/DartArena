@@ -24,7 +24,7 @@
     return String(m?.game||'X01');
   }
   function formatLabel(m){
-    if(providerKey(m)==='chicago')return'301 DI/DO • Cricket • 501 DO';
+    if(providerKey(m)==='chicago')return'301 DIDO • Cricket • 501 SIDO';
     if(m?.match_mode==='sets'&&providerKey(m)==='x01')return`Best of ${num(m.best_of_sets)||1} sets • Best of ${num(m.legs)||1} legs`;
     return`Best of ${num(m?.legs)||1} legs`;
   }
@@ -147,20 +147,56 @@
   }
 
   async function buildChicago(m){
-    const raw=Array.isArray(m?.game_config?.chicago_results)?m.game_config.chicago_results:[],labels={1:'301 DI/DO',2:'Cricket',3:'501 DO'};
-    const results=raw.map(r=>({stage:num(r?.stage),winnerId:r?.winner_id||null,label:labels[num(r?.stage)]||`Game ${num(r?.stage)||'?'}`})).sort((a,b)=>a.stage-b.stage);
+    const raw=Array.isArray(m?.game_config?.chicago_results)?m.game_config.chicago_results:[],labels={1:'301 DIDO',2:'Cricket',3:'501 SIDO'};
+    const [{data:x01Rows,error:x01Error},{data:cricketRows,error:cricketError}]=await Promise.all([
+      resultDb.from('match_throws').select('player_id,leg_no,score,darts_used,is_checkout').eq('match_id',m.id),
+      resultDb.from('cricket_visits').select('player_id,leg_no,darts').eq('match_id',m.id)
+    ]);
+    if(x01Error)throw x01Error;
+    if(cricketError)throw cricketError;
+
+    const x01Metric=(stage,id)=>{
+      let score=0,darts=0;
+      for(const r of x01Rows||[]){
+        if(r.player_id!==id||(num(r.leg_no)||1)!==stage)continue;
+        score+=num(r.score);
+        darts+=r.is_checkout?Math.max(1,num(r.darts_used)||3):3;
+      }
+      return darts?(score/darts*3).toFixed(2):'0.00';
+    };
+    const cricketMetric=id=>{
+      let marks=0,dartsThrown=0;
+      for(const r of cricketRows||[]){
+        if(r.player_id!==id||(num(r.leg_no)||1)!==2)continue;
+        const visit=Array.isArray(r.darts)?r.darts:[];
+        for(const dart of visit){
+          dartsThrown++;
+          marks+=Math.max(0,Math.min(3,num(dart?.mult)));
+        }
+      }
+      return dartsThrown?(marks/dartsThrown*3).toFixed(2):'0.00';
+    };
+    const metricFor=stage=>stage===2
+      ?{label:'MPR',values:{[m.player1_id]:cricketMetric(m.player1_id),[m.player2_id]:cricketMetric(m.player2_id)}}
+      :{label:'AVG',values:{[m.player1_id]:x01Metric(stage,m.player1_id),[m.player2_id]:x01Metric(stage,m.player2_id)}};
+
+    const results=raw.map(r=>{
+      const stage=num(r?.stage);
+      return{stage,winnerId:r?.winner_id||null,label:labels[stage]||`Game ${stage||'?'}`,metric:metricFor(stage)};
+    }).sort((a,b)=>a.stage-b.stage);
     const outcome=(stage,id)=>{const r=results.find(x=>x.stage===stage);return!r?'IKKE SPILT':r.winnerId===id?'VANT':'TAP'};
     const mk=id=>fillStats([
       {label:'GAMES',value:id===m.player1_id?num(m.player1_legs):num(m.player2_legs)},
-      {label:'301 DI/DO',value:outcome(1,id)},
+      {label:'301 DIDO',value:outcome(1,id)},
       {label:'CRICKET',value:outcome(2,id)},
-      {label:'501 DO',value:outcome(3,id)}
+      {label:'501 SIDO',value:outcome(3,id)}
     ]);
+    const summary=cumulativeSummary(results,m).map((row,index)=>({...row,metric:results[index]?.metric||null}));
     return{
       label:'Chicago Style',
-      format:'301 DI/DO • Cricket • 501 DO',
+      format:'301 DIDO • Cricket • 501 SIDO',
       stats:{[m.player1_id]:mk(m.player1_id),[m.player2_id]:mk(m.player2_id)},
-      summary:cumulativeSummary(results,m)
+      summary
     };
   }
 
@@ -191,8 +227,14 @@
   }
   function summaryHtml(summary,names,m){
     if(!summary?.length)return'';
-    const all=summary,visible=all.length>5?all.slice(-5):all;
-    const rows=visible.map(row=>{const name=row.winnerId?names[row.winnerId]||'Vinner':'Uavgjort';return`<div class="da-result-legrow"><span>${esc(row.label)}</span><span class="da-result-legscore">${esc(row.score||'–')}</span><span class="da-result-legwinner ${row.winnerId===m.winner_id?'is-winner':''}">${esc(name)}</span></div>`}).join('');
+    const all=summary,visible=all.length>5?all.slice(-5):all,[leftId,rightId]=displayOrder(m);
+    const rows=visible.map(row=>{
+      const name=row.winnerId?names[row.winnerId]||'Vinner':'Uavgjort';
+      const metric=row.metric?.label?(
+        `<div class="da-result-legmetric"><span>${esc(row.metric.label)}</span><b>${esc(names[leftId]||'Spiller 1')}: ${esc(row.metric.values?.[leftId]??'–')}</b><i>•</i><b>${esc(names[rightId]||'Spiller 2')}: ${esc(row.metric.values?.[rightId]??'–')}</b></div>`
+      ):'';
+      return`<div class="da-result-legrow"><span>${esc(row.label)}</span><span class="da-result-legscore">${esc(row.score||'–')}</span><span class="da-result-legwinner ${row.winnerId===m.winner_id?'is-winner':''}">${esc(name)}</span>${metric}</div>`;
+    }).join('');
     const more=all.length>visible.length?`<div class="da-result-more">+ ${all.length-visible.length} tidligere legs</div>`:'';
     return`<section class="da-result-legs"><div class="da-result-legs-title">LEG-OVERSIKT</div>${rows}${more}</section>`;
   }
