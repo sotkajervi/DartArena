@@ -102,7 +102,7 @@
         await video.play().catch(()=>{});
         if(remote.getVideoTracks().some(t=>t.readyState==='live')){
           $('remotePlaceholder')?.classList.add('hidden');
-          $('remoteAudioBtn')?.classList.remove('hidden');
+          /* remote audio fallback is controlled by remote-audio-autounlock.js */
           setStatus(`Tilkoblet ${names?.[other]||'motstander'} via Cloudflare`);
         }
         renderDebug();
