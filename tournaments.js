@@ -1,7 +1,7 @@
 (()=>{
   const $=id=>document.getElementById(id);
   let db,me,profile,channel,viewMonth,selectedDate,selectedTime='19:00',loading=false;
-  let authBound=false,bound=false,bootRetry=null,startedUser=null;
+  let authBound=false,bound=false,bootRetry=null,startedUser=null,startingUser=null;
 
   function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
   function fmt(d){try{return new Intl.DateTimeFormat('nb-NO',{dateStyle:'short',timeStyle:'short'}).format(new Date(d))}catch{return d}}
@@ -13,24 +13,31 @@
     const userId=session?.user?.id;
     if(!userId)return;
     if(startedUser===userId&&profile){await load();return}
-    if(channel){try{await db.removeChannel(channel)}catch{}channel=null}
-    loading=false;
-    me=userId;
-    const {data:p,error}=await db.from('profiles').select('id,username').eq('id',me).single();
-    if(error||!p){console.error('Tournament profile load failed',error);return}
-    profile=p;
-    if(!bound){bind();bound=true}
-    startedUser=me;
-    await load();
-    channel=db.channel(`tournament-lobby-${me}`)
-      .on('postgres_changes',{event:'*',schema:'public',table:'tournaments'},()=>setTimeout(load,80))
-      .on('postgres_changes',{event:'*',schema:'public',table:'tournament_members'},()=>setTimeout(load,80))
-      .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches'},()=>setTimeout(load,80))
-      .subscribe();
+    if(startingUser===userId)return;
+    startingUser=userId;
+    try{
+      if(channel){try{await db.removeChannel(channel)}catch{}channel=null}
+      loading=false;
+      me=userId;
+      const {data:p,error}=await db.from('profiles').select('id,username').eq('id',me).single();
+      if(error||!p){console.error('Tournament profile load failed',error);return}
+      profile=p;
+      if(!bound){bind();bound=true}
+      startedUser=me;
+      await load();
+      if(startedUser!==userId||startingUser!==userId)return;
+      channel=db.channel(`tournament-lobby-${me}`)
+        .on('postgres_changes',{event:'*',schema:'public',table:'tournaments'},()=>setTimeout(load,80))
+        .on('postgres_changes',{event:'*',schema:'public',table:'tournament_members'},()=>setTimeout(load,80))
+        .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches'},()=>setTimeout(load,80))
+        .subscribe();
+    }finally{
+      if(startingUser===userId)startingUser=null;
+    }
   }
 
   function resetSession(){
-    startedUser=null;me=null;profile=null;loading=false;
+    startedUser=null;startingUser=null;me=null;profile=null;loading=false;
     if(channel){const old=channel;channel=null;try{db?.removeChannel(old)}catch{}}
   }
 
