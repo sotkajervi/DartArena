@@ -15,14 +15,16 @@
   const pct=(a,b)=>b?`${Math.round((a/b)*100)} %`:'0 %';
   const sortTime=(a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0);
 
-  function providerKey(m){return m?.game_variant||'x01'}
+  function providerKey(m){return String(m?.game_config?.chicago??'false').toLowerCase()==='true'?'chicago':m?.game_variant||'x01'}
   function gameLabel(m){
+    if(providerKey(m)==='chicago')return'Chicago Style';
     if(m?.game_variant==='cricket')return'Cricket';
     if(m?.game_variant==='sixty_one')return'61';
     if(m?.game_variant==='half_it')return m.game_config?.half_it_mode==='standard'?'Half-It (Standard)':'Half-It (DartCounter)';
     return String(m?.game||'X01');
   }
   function formatLabel(m){
+    if(providerKey(m)==='chicago')return'301 DI/DO • Cricket • 501 DO';
     if(m?.match_mode==='sets'&&providerKey(m)==='x01')return`Best of ${num(m.best_of_sets)||1} sets • Best of ${num(m.legs)||1} legs`;
     return`Best of ${num(m?.legs)||1} legs`;
   }
@@ -144,6 +146,24 @@
     return{stats:{[m.player1_id]:mk(m.player1_id),[m.player2_id]:mk(m.player2_id)},summary:[]};
   }
 
+  async function buildChicago(m){
+    const raw=Array.isArray(m?.game_config?.chicago_results)?m.game_config.chicago_results:[],labels={1:'301 DI/DO',2:'Cricket',3:'501 DO'};
+    const results=raw.map(r=>({stage:num(r?.stage),winnerId:r?.winner_id||null,label:labels[num(r?.stage)]||`Game ${num(r?.stage)||'?'}`})).sort((a,b)=>a.stage-b.stage);
+    const outcome=(stage,id)=>{const r=results.find(x=>x.stage===stage);return!r?'IKKE SPILT':r.winnerId===id?'VANT':'TAP'};
+    const mk=id=>fillStats([
+      {label:'GAMES',value:id===m.player1_id?num(m.player1_legs):num(m.player2_legs)},
+      {label:'301 DI/DO',value:outcome(1,id)},
+      {label:'CRICKET',value:outcome(2,id)},
+      {label:'501 DO',value:outcome(3,id)}
+    ]);
+    return{
+      label:'Chicago Style',
+      format:'301 DI/DO • Cricket • 501 DO',
+      stats:{[m.player1_id]:mk(m.player1_id),[m.player2_id]:mk(m.player2_id)},
+      summary:cumulativeSummary(results,m)
+    };
+  }
+
   async function buildGeneric(m){
     const mk=(id,score,legs,sets)=>fillStats([
       {label:'SLUTTSCORE',value:num(score)},
@@ -157,6 +177,7 @@
     },summary:[]};
   }
 
+  providers.chicago=providers.chicago||buildChicago;
   providers.x01=providers.x01||buildX01;
   providers.cricket=providers.cricket||buildCricket;
   providers.half_it=providers.half_it||buildHalfIt;
