@@ -64,7 +64,24 @@
       db.from('tournament_group_players').select('*').eq('tournament_id',id),
       db.from('tournament_matches').select('*').eq('tournament_id',id).eq('stage','group'),
       db.from('tournament_matches').select('*').eq('tournament_id',id).eq('stage','cup').order('round_no').order('match_no')
-    ]);return{groups:groups||[],players:players||[],gm:gm||[],cm:cm||[]}
+    ]);
+    const groupMatches=gm||[],cupMatches=cm||[];
+    const liveIds=[...new Set([...groupMatches,...cupMatches].filter(m=>m.status==='live'&&m.live_match_id).map(m=>m.live_match_id))];
+    if(liveIds.length){
+      const {data:liveRows,error:liveError}=await db.from('matches').select('id,player1_legs,player2_legs').in('id',liveIds);
+      if(liveError)console.warn('Could not load live cup scores',liveError);
+      else{
+        const liveById=new Map((liveRows||[]).map(row=>[row.id,row]));
+        for(const match of [...groupMatches,...cupMatches]){
+          const live=liveById.get(match.live_match_id);
+          if(live){
+            match._live_player1_legs=Number(live.player1_legs||0);
+            match._live_player2_legs=Number(live.player2_legs||0);
+          }
+        }
+      }
+    }
+    return{groups:groups||[],players:players||[],gm:groupMatches,cm:cupMatches}
   }
   function qualifiers(d){const out=[];for(const g of d.groups){const gp=d.players.filter(p=>p.group_id===g.id),matches=d.gm.filter(m=>m.group_id===g.id),table=standings(gp,matches),n=g.advance_mode==='all'?table.length:Number(g.advance_count||0);table.slice(0,n).forEach((p,i)=>out.push({id:p.id,group:g.group_no,pos:i+1,seedLabel:`${i+1}P${g.group_no}`}))}return out}
   async function buildCup(){
@@ -113,7 +130,7 @@
     const max=Math.max(...d.cm.map(m=>m.round_no));
     const finalRound=d.cm.filter(m=>Number(m.round_no)===Number(max));
     const final=finalRound.length===1?finalRound[0]:null;
-    $('cupBracket').innerHTML=Array.from({length:max},(_,i)=>i+1).map(r=>{const rm=d.cm.filter(m=>m.round_no===r),bo=rm[0]?.best_of;return `<div class="cup-round"><div class="cup-round-title">${cupRoundName(r,2**max)}${isChicagoTournament()?' • Chicago Style':bo?` • Bo${bo}`:''}</div>${rm.map(m=>{const score=done(m)&&!m.is_wo?`${m.player1_legs||0}–${m.player2_legs||0}`:m.is_wo?'WO':'vs',aBye=r===1&&m.is_wo&&!m.player1_id,bBye=r===1&&m.is_wo&&!m.player2_id;return `<div class="cup-match" data-match="${m.id}"><div class="cup-player ${m.winner_id===m.player1_id&&m.player1_id?'winner':''}">${cupPlayerHtml(m.player1_id,seedById,{bye:aBye})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner_id===m.player2_id&&m.player2_id?'winner':''}">${cupPlayerHtml(m.player2_id,seedById,{bye:bBye})}</div></div>`}).join('')}</div>`}).join('');
+    $('cupBracket').innerHTML=Array.from({length:max},(_,i)=>i+1).map(r=>{const rm=d.cm.filter(m=>m.round_no===r),bo=rm[0]?.best_of;return `<div class="cup-round"><div class="cup-round-title">${cupRoundName(r,2**max)}${isChicagoTournament()?' • Chicago Style':bo?` • Bo${bo}`:''}</div>${rm.map(m=>{const score=m.status==='live'?`${Number(m._live_player1_legs??m.player1_legs??0)}–${Number(m._live_player2_legs??m.player2_legs??0)}`:done(m)&&!m.is_wo?`${m.player1_legs||0}–${m.player2_legs||0}`:m.is_wo?'WO':'vs',aBye=r===1&&m.is_wo&&!m.player1_id,bBye=r===1&&m.is_wo&&!m.player2_id;return `<div class="cup-match" data-match="${m.id}"><div class="cup-player ${m.winner_id===m.player1_id&&m.player1_id?'winner':''}">${cupPlayerHtml(m.player1_id,seedById,{bye:aBye})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner_id===m.player2_id&&m.player2_id?'winner':''}">${cupPlayerHtml(m.player2_id,seedById,{bye:bBye})}</div></div>`}).join('')}</div>`}).join('');
     if(finalRound.length!==1){$('cupProgress').textContent='Cupoppsettet må kontrolleres: ugyldig finalerunde';return}
     $('cupProgress').textContent=final?.winner_id?`Vinner: ${names[final.winner_id]||'Spiller'}`:`${d.cm.filter(done).length} / ${d.cm.length} kamper ferdig`;
     if(advancementBlocked)$('cupProgress').textContent+=' • Vinner venter på overføring til neste runde';
