@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071012">
+  <title>DartArena • Hjelp</title>
+  <link rel="stylesheet" href="style.css?v=20260928-ui2">
+  <link rel="stylesheet" href="dartboard-background.css?v=20260928-ui2">
+  <link rel="stylesheet" href="button-theme.css?v=20260930-buttons4">
+  <style>
+    .help-shell{width:min(1040px,94vw);margin:28px auto 60px}.help-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}.help-head h1{font-size:38px;margin:4px 0 8px}.help-head p{max-width:700px}
+    .help-search{margin:0 0 18px}.help-search input{width:100%;box-sizing:border-box;background:#071416;border:1px solid var(--line);color:var(--text);border-radius:12px;padding:13px 14px;font:inherit}
+    .help-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.help-nav a{text-decoration:none;color:var(--cyan);border:1px solid rgba(35,226,209,.25);border-radius:999px;padding:7px 10px;font-size:12px;font-weight:850}
+    .help-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.help-card{padding:18px}.help-card h2{margin:4px 0 10px;font-size:21px}.help-card h3{margin:14px 0 5px;font-size:15px}.help-card p,.help-card li{color:#d8e4e5;line-height:1.55}.help-card ul{margin:7px 0 0;padding-left:20px}.help-card li::marker{color:var(--cyan)}
+    .help-key{display:inline-flex;padding:2px 7px;border:1px solid rgba(255,255,255,.12);border-radius:7px;background:rgba(255,255,255,.035);font-weight:900;color:var(--text)}
+    .help-wide{grid-column:1/-1}.help-note{border-left:3px solid var(--cyan);padding:10px 12px;background:rgba(35,226,209,.04);border-radius:0 10px 10px 0;color:var(--muted);margin-top:12px}.hidden-by-search{display:none!important}
+    @media(max-width:720px){.help-head{display:grid}.help-head h1{font-size:31px}.help-grid{grid-template-columns:1fr}.help-wide{grid-column:auto}}
+  </style>
+</head>
+<body>
+<header><div class="brand">DART<span>ARENA</span></div><div class="live"><i></i> HJELP</div></header>
+<main class="help-shell">
+  <div class="help-head"><div><small>INFO & HJELP</small><h1>Slik bruker du DartArena</h1><p class="muted">Kort forklaring av onlinekamper, spillmodusene, statistikk, turneringer og de vanligste problemene.</p></div><button class="outline" onclick="location.href='./'">Til lobby</button></div>
+  <label class="help-search"><input id="helpSearch" type="search" placeholder="Søk i hjelpen, f.eks. AVG, kamera, turnering eller Chicago"></label>
+  <nav class="help-nav"><a href="#komigang">Kom i gang</a><a href="#spill">Spill</a><a href="#statistikk">Statistikk</a><a href="#turnering">Turnering</a><a href="#kamera">Kamera/lyd</a><a href="#faq">Vanlige spørsmål</a></nav>
+  <section class="help-grid" id="helpCards">
+    <article class="card help-card" id="komigang" data-help>
+      <small>KOM I GANG</small><h2>Onlinekamp</h2>
+      <ul><li>Sett status til <strong>Available</strong> for å kunne motta utfordringer.</li><li>Velg en spiller og send utfordring.</li><li>I venterommet velger dere hvem som starter eller bruker myntkast.</li><li>Når begge er klare åpnes kampen automatisk.</li></ul>
+      <div class="help-note">Unavailable betyr at du fortsatt kan bruke DartArena, men andre kan ikke utfordre deg.</div>
+    </article>
+    <article class="card help-card" id="spill" data-help>
+      <small>SPILLMODUSER</small><h2>Hva kan spilles?</h2>
+      <h3>X01</h3><p>170, 301, 501 og 1001. Legs eller sets der det er tilgjengelig.</p>
+      <h3>Chicago Style</h3><p>301 <strong>DIDO</strong> → Cricket → 501 <strong>SIDO</strong>. Første spiller til 2 games vinner.</p>
+      <h3>Cricket, Half-It, 61 og JDC</h3><p>Egne scorebilder og statistikk tilpasset hvert spill. Noen finnes også som solo/treningsspill.</p>
+    </article>
+    <article class="card help-card" id="statistikk" data-help>
+      <small>STATISTIKK</small><h2>Hva betyr tallene?</h2>
+      <ul><li><strong>3-dart AVG:</strong> gjennomsnittlig poeng per tre piler i X01.</li><li><strong>First 9 AVG:</strong> snittet på de første ni pilene i hvert leg.</li><li><strong>MPR:</strong> Marks Per Round i Cricket – antall marks per tre piler.</li><li><strong>Høyeste checkout:</strong> største registrerte avslutning.</li><li><strong>Raskeste leg:</strong> færrest piler brukt på et vunnet X01-leg.</li></ul>
+      <div class="help-note">Chicago viser X01 AVG for 301/501 og MPR for Cricket. Chicago teller ikke i vanlig Form stats.</div>
+    </article>
+    <article class="card help-card" id="turnering" data-help>
+      <small>TURNERINGER</small><h2>Puljer og cup</h2>
+      <ul><li>Turneringsleder oppretter turnering og åpner påmelding.</li><li>Ved puljespill trekkes gruppene før kampene låses.</li><li>Ferdige puljer kan gå videre til cup etter valgt antall kvalifiserte.</li><li>Tilskuere kan følge livekamper og statistikk.</li><li>Chicago Style kan brukes både i puljer + cup og ren cup.</li></ul>
+    </article>
+    <article class="card help-card" id="kamera" data-help>
+      <small>KAMERA & LYD</small><h2>Hvis bilde eller lyd ikke virker</h2>
+      <ul><li>Kjør <strong>Cam-test</strong> i lobbyen først.</li><li>Velg riktig kamera og mikrofon. Valget lagres.</li><li>Sjekk at nettleseren har tillatelse til kamera/mikrofon.</li><li>Hvis video fryser: lukk andre programmer som bruker kameraet og åpne kamprommet på nytt.</li><li>Et lite bilde-delay er normalt i en onlinekamp.</li></ul>
+    </article>
+    <article class="card help-card" id="faq" data-help>
+      <small>VANLIGE SPØRSMÅL</small><h2>Statistikk og historikk</h2>
+      <h3>Hvorfor ser jeg ingen statistikk?</h3><p>Kampen må ha registrerte kast. Oppvarmingskamper holdes utenfor vanlig spillerstatistikk. Admin/Owner kan åpne detaljert statistikk fra kamphistorikken når data finnes.</p>
+      <h3>Hvor finner jeg gamle kamper?</h3><p>Åpne <strong>Kamphistorikk</strong>. Der kan du filtrere på spilltype og åpne detaljert kampstatistikk der den støttes.</p>
+      <h3>Hvor finner jeg nye funksjoner?</h3><p>Bruk <strong>Hva er nytt</strong> i lobbyen.</p>
+    </article>
+    <article class="card help-card help-wide" data-help>
+      <small>BETA</small><h2>Finner du en feil?</h2>
+      <p>DartArena er fortsatt under utvikling. Ta gjerne skjermbilde av feilen og noter hvilken side, kamp eller turnering det gjelder. Det gjør feilsøking mye enklere.</p>
+    </article>
+  </section>
+</main>
+<footer>DartArena • hjelp og informasjon</footer>
+<script>
+(()=>{const q=document.getElementById('helpSearch'),cards=[...document.querySelectorAll('[data-help]')];q?.addEventListener('input',()=>{const term=q.value.trim().toLowerCase();cards.forEach(card=>card.classList.toggle('hidden-by-search',!!term&&!card.textContent.toLowerCase().includes(term)))})})();
+</script>
+<script src="brand-home.js?v=20261006-authsmooth3"></script>
+</body>
+</html>
