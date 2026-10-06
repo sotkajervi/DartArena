@@ -33,6 +33,11 @@ async function boot(){
 
   const {data:match,error}=await db.from('matches').select('*').eq('id',matchId).single();
   if(error||!match){$('statsBody').innerHTML='<p class="muted stats-note">Kampen finnes ikke, eller du har ikke tilgang.</p>';return}
+  if(String(match.game_config?.chicago??'false').toLowerCase()==='true'){
+    $('statsTitle').textContent='Chicago Style';
+    $('statsBody').innerHTML='<p class="muted stats-note">Chicago Style teller ikke i spillerstatistikk eller formstatistikk.</p>';
+    return;
+  }
   if((match.game_variant||'x01')!=='x01'){
     $('statsTitle').textContent='Statistikk ikke tilgjengelig';
     $('statsBody').innerHTML='<p class="muted stats-note">Denne statistikksiden er foreløpig laget for X01-kamper.</p>';
