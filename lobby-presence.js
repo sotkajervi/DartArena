@@ -1,6 +1,6 @@
 (()=>{
   let profileChannel=null,refreshTimer=null,heartbeatTimer=null,lastRefresh=0;
-  const CHANGELOG_VERSION='2026-10-06-2';
+  const CHANGELOG_VERSION='2026-10-06-3';
   const lobbyVisible=()=>{const v=document.getElementById('lobbyView');return v&&!v.classList.contains('hidden')};
   const ready=()=>typeof db!=='undefined'&&typeof profile!=='undefined'&&profile?.id&&lobbyVisible();
   function installHelpLink(){
@@ -10,7 +10,7 @@
     const btn=document.createElement('button');
     btn.id='helpBtn';btn.className='outline';btn.type='button';btn.title='Hjelp og informasjon';
     btn.textContent='Hjelp';
-    btn.onclick=()=>{location.href='help.html?v=20261006-1'};
+    btn.onclick=()=>{location.href='help.html?v=20261006-2'};
     actions.insertBefore(btn,actions.firstChild);
   }
 
@@ -22,7 +22,7 @@
     btn.id='changelogBtn';btn.className='outline';btn.type='button';btn.title='Se endringsloggen';
     let seen='';try{seen=localStorage.getItem('dartarena_changelog_seen')||''}catch{}
     btn.textContent=seen===CHANGELOG_VERSION?'Hva er nytt':'Hva er nytt • NY';
-    btn.onclick=()=>{try{localStorage.setItem('dartarena_changelog_seen',CHANGELOG_VERSION)}catch{}location.href='changelog.html?v=20261006-2'};
+    btn.onclick=()=>{try{localStorage.setItem('dartarena_changelog_seen',CHANGELOG_VERSION)}catch{}location.href='changelog.html?v=20261006-3'};
     actions.insertBefore(btn,actions.firstChild);
   }
   function refreshPlayersSoon(delay=120){clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{if(!ready()||typeof loadPlayers!=='function')return;const now=Date.now();if(now-lastRefresh<250){refreshPlayersSoon(300);return}lastRefresh=now;try{await loadPlayers()}catch(e){console.warn('Live player refresh failed',e)}},delay)}
