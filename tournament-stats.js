@@ -116,7 +116,7 @@
       highlight(chicago?'Høyest X01-snitt':'Høyest snitt',avg,avg?avg.avg.toFixed(2):'–'),
       highlight(chicago?'Beste X01-kampsnitt':'Beste kampsnitt',bestMatch,bestMatch?bestMatch.bestAvg.toFixed(2):'–'),
       highlight('Høyeste checkout',checkout,checkout?checkout.highCheckout:'–'),
-      highlight(chicago?'Raskeste X01-game':'Raskeste leg',leg,leg?`${leg.fast} piler`:'–'),
+      highlight(chicago?'Raskeste X01':'Raskeste leg',leg,leg?`${leg.fast} piler`:'–'),
       chicago
         ?highlight('Høyest MPR',fifth,fifth?fifth.mpr.toFixed(2):'–')
         :highlight('Flest 180',fifth,fifth?fifth.c180:'–')
@@ -133,7 +133,7 @@
     const highlights=document.getElementById('tournamentStatsHighlights');
     try{
       const [{data:tournament,error:tournamentError},{data:matches,error:matchError}]=await Promise.all([
-        db.from('tournaments').select('id,game_variant').eq('id',tournamentId).maybeSingle(),
+        db.from('tournaments').select('id,tournament_type,game,game_variant,cup_game,cup_game_variant').eq('id',tournamentId).maybeSingle(),
         db.from('tournament_matches')
           .select('id,stage,player1_id,player2_id,winner_id,status,player1_legs,player2_legs,live_match_id')
           .eq('tournament_id',tournamentId)
@@ -141,7 +141,16 @@
       ]);
       if(tournamentError)throw tournamentError;
       if(matchError)throw matchError;
-      const chicago=String(tournament?.game_variant||'x01').toLowerCase()==='chicago';
+      const groupChicago=String(tournament?.game_variant||'x01').toLowerCase()==='chicago';
+      const cupChicago=String((tournament?.cup_game_variant??tournament?.game_variant)||'x01').toLowerCase()==='chicago';
+      const chicago=groupChicago||cupChicago;
+      const mixedFormats=tournament?.tournament_type==='groups_cup'&&(
+        groupChicago!==cupChicago||
+        (!groupChicago&&!cupChicago&&(
+          Number(tournament?.game||501)!==Number(tournament?.cup_game??tournament?.game??501)
+        ))
+      );
+      const unitLabel=mixedFormats?'Games/legs':chicago?'Games':'Legs';
 
       const playedMatches=(matches||[]).filter(m=>!isBye(m));
       if(!playedMatches.length){
@@ -206,11 +215,13 @@
         ?`${playedMatches.length} ferdige kamper • X01: ${allThrows.length} visits • Cricket: ${allCricket.length} visits`
         :`${playedMatches.length} ferdige kamper • ${allThrows.length} registrerte besøk`;
       const note=document.querySelector('#tournamentStats .muted.compact');
-      if(note)note.textContent=chicago
-        ?'Chicago Style: X01-snitt beregnes fra 301 DIDO og 501 SIDO. MPR beregnes fra Cricket. WO påvirker kampseire, mens BYE/frirunde ikke teller som kamp.'
-        :'Snitt beregnes fra registrerte kast i ferdigspilte kamper. WO påvirker kampseire, mens BYE/frirunde ikke teller som kamp.';
+      if(note)note.textContent=mixedFormats
+        ?'Blandet turneringsformat: statistikken samler X01-kast på tvers av pulje og cup, mens MPR hentes fra Chicago-Cricket. Games og legs er ulike enheter og vises derfor samlet som Games/legs.'
+        :chicago
+          ?'Chicago Style: X01-snitt beregnes fra 301 DIDO og 501 SIDO. MPR beregnes fra Cricket. WO påvirker kampseire, mens BYE/frirunde ikke teller som kamp.'
+          :'Snitt beregnes fra registrerte kast i ferdigspilte kamper. WO påvirker kampseire, mens BYE/frirunde ikke teller som kamp.';
       renderHighlights(rows,{chicago});
-      body.innerHTML=`<table class="tournament-stats-table"><thead><tr><th>#</th><th>Spiller</th><th>K</th><th>V</th><th>T</th><th>V%</th><th>${chicago?'Games':'Legs'}</th><th>+/−</th><th>${chicago?'X01 snitt':'Snitt'}</th>${chicago?'<th>MPR</th>':''}<th>Beste kamp</th><th>Høyeste kast</th><th>Checkout</th><th>${chicago?'Raskeste X01-game':'Raskeste leg'}</th><th>60+</th><th>100+</th><th>140+</th><th>170+</th><th>180</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td class="stats-rank">${i+1}</td><td class="stats-player" title="${esc(r.name)}">${esc(r.name)}</td><td>${r.matches}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.winPct.toFixed(0)}%</td><td>${r.legsFor}–${r.legsAgainst}</td><td class="${r.legDiff>0?'stats-positive':r.legDiff<0?'stats-negative':''}">${r.legDiff>0?'+':''}${r.legDiff}</td><td>${r.avg?r.avg.toFixed(2):'–'}</td>${chicago?`<td>${r.mpr?r.mpr.toFixed(2):'–'}</td>`:''}<td>${r.bestAvg?r.bestAvg.toFixed(2):'–'}</td><td>${r.highVisit||'–'}</td><td>${r.highCheckout||'–'}</td><td>${r.fast?`${r.fast} piler`:'–'}</td><td>${r.c60}</td><td>${r.c100}</td><td>${r.c140}</td><td>${r.c170}</td><td>${r.c180}</td></tr>`).join('')}</tbody></table>`;
+      body.innerHTML=`<table class="tournament-stats-table"><thead><tr><th>#</th><th>Spiller</th><th>K</th><th>V</th><th>T</th><th>V%</th><th>${unitLabel}</th><th>+/−</th><th>${chicago?'X01 snitt':'Snitt'}</th>${chicago?'<th>MPR</th>':''}<th>Beste kamp</th><th>Høyeste kast</th><th>Checkout</th><th>${chicago?'Raskeste X01':'Raskeste leg'}</th><th>60+</th><th>100+</th><th>140+</th><th>170+</th><th>180</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td class="stats-rank">${i+1}</td><td class="stats-player" title="${esc(r.name)}">${esc(r.name)}</td><td>${r.matches}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.winPct.toFixed(0)}%</td><td>${r.legsFor}–${r.legsAgainst}</td><td class="${r.legDiff>0?'stats-positive':r.legDiff<0?'stats-negative':''}">${r.legDiff>0?'+':''}${r.legDiff}</td><td>${r.avg?r.avg.toFixed(2):'–'}</td>${chicago?`<td>${r.mpr?r.mpr.toFixed(2):'–'}</td>`:''}<td>${r.bestAvg?r.bestAvg.toFixed(2):'–'}</td><td>${r.highVisit||'–'}</td><td>${r.highCheckout||'–'}</td><td>${r.fast?`${r.fast} piler`:'–'}</td><td>${r.c60}</td><td>${r.c100}</td><td>${r.c140}</td><td>${r.c170}</td><td>${r.c180}</td></tr>`).join('')}</tbody></table>`;
     }catch(error){
       console.error('Tournament stats failed',error);
       meta.textContent='Kunne ikke laste';
