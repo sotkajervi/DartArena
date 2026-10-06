@@ -23,8 +23,13 @@
     document.head.appendChild(style);
   }
 
+  function resetGates(){
+    document.documentElement.classList.remove('da-owner','da-admin-not-owner','da-admin-no-result-override');
+  }
+
   async function boot(){
     ensureStyles();
+    resetGates();
     const {data:{session}}=await db.auth.getSession();
     if(!session?.user)return;
 
@@ -49,4 +54,6 @@
   }
 
   boot().catch(error=>console.warn('Owner UI gates failed',error));
+  window.addEventListener('dartarena:lobby-entered',()=>boot().catch(error=>console.warn('Owner UI gates refresh failed',error)));
+  window.addEventListener('dartarena:lobby-left',resetGates);
 })();
