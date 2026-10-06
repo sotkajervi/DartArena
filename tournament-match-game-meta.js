@@ -18,18 +18,25 @@
       .maybeSingle();
     if(error||!tm)return;
     const {data:t}=await client.from('tournaments')
-      .select('game')
+      .select('game,game_variant')
       .eq('id',tm.tournament_id)
       .maybeSingle();
+    const chicago=String(t?.game_variant||'x01').toLowerCase()==='chicago';
     const game=[170,301,501,1001].includes(Number(t?.game))?Number(t.game):501;
     const stage=tm.stage==='group'?'Puljespill':'Cup';
     const labels=new Map();
     const roomMeta=document.getElementById('roomMeta');
     const viewerMeta=document.getElementById('meta');
     const statsMeta=document.getElementById('statsMeta');
-    if(roomMeta)labels.set(roomMeta,`${game} • Best av ${tm.best_of} legs`);
-    if(viewerMeta)labels.set(viewerMeta,`${game} • Best av ${tm.best_of} • ${stage}`);
-    if(statsMeta)labels.set(statsMeta,`${stage} • ${game} • Best av ${tm.best_of}`);
+    if(chicago){
+      if(roomMeta)labels.set(roomMeta,'Chicago Style • 301 DIDO • Cricket • 501 SIDO');
+      if(viewerMeta)labels.set(viewerMeta,`Chicago Style • ${stage}`);
+      if(statsMeta)labels.set(statsMeta,`${stage} • Chicago Style`);
+    }else{
+      if(roomMeta)labels.set(roomMeta,`${game} • Best av ${tm.best_of} legs`);
+      if(viewerMeta)labels.set(viewerMeta,`${game} • Best av ${tm.best_of} • ${stage}`);
+      if(statsMeta)labels.set(statsMeta,`${stage} • ${game} • Best av ${tm.best_of}`);
+    }
     if(!labels.size)return;
 
     const apply=()=>{
