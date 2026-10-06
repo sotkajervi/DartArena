@@ -187,9 +187,17 @@
     observer.observe(document.body,{childList:true,subtree:true});
   }
 
-  async function boot(){
+  async function boot({waitForSession=false}={}){
     const token=++bootToken;
-    const {data:{session}}=await db.auth.getSession();
+    let session=null;
+    const attempts=waitForSession?12:1;
+    for(let i=0;i<attempts;i++){
+      const result=await db.auth.getSession();
+      if(token!==bootToken)return;
+      session=result.data?.session||null;
+      if(session?.user)break;
+      if(i<attempts-1)await new Promise(resolve=>setTimeout(resolve,100));
+    }
     if(token!==bootToken)return;
     if(!session?.user){resetAdminUi();return;}
     const [{data:adminFlag,error:adminError},{data:ownerFlag,error:ownerError}]=await Promise.all([db.rpc('is_admin'),db.rpc('is_owner')]);
@@ -202,8 +210,10 @@
     ensureStyles();subscribeChatDeletes();decorate();observe();
   }
 
+  const refreshAfterLogin=()=>boot({waitForSession:true}).catch(error=>console.error('Admin UI refresh failed',error));
   boot().catch(error=>console.error('Admin UI init failed',error));
-  window.addEventListener('dartarena:lobby-entered',()=>boot().catch(error=>console.error('Admin UI refresh failed',error)));
+  window.addEventListener('dartarena:lobby-entered',refreshAfterLogin);
+  window.addEventListener('dartarena:lobby-ready',refreshAfterLogin);
   window.addEventListener('dartarena:lobby-left',()=>{bootToken++;resetAdminUi()});
   window.addEventListener('pagehide',()=>{bootToken++;resetAdminUi()});
 })();
