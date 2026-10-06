@@ -10,7 +10,9 @@
     const mode=m.game_config?.half_it_mode==='standard'?'standard':'dartcounter';
     if(mode==='standard'){
       document.body.dataset.halfItMode='standard';
-      await loadScript('half-it-standard.js?v=20260930-standard1');
+      await loadScript('sfu-config.js?v=20261006-device2');
+      await loadScript('sfu-client.js?v=20261002-telemetry1');
+      await loadScript('half-it-standard.js?v=20261006-sfu1');
       await loadScript('match-media-telemetry.js?v=20261002-peer3');
       await loadScript('half-it-standard-41-buttons.js?v=20261002-hitmiss1');
       await loadScript('half-it-standard-audio.js?v=20261006-audioauto1');
