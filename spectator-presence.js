@@ -17,11 +17,18 @@
     const style=document.createElement('style');
     style.id='dartarena-spectator-popover-style';
     style.textContent=`
+      .match-page header{
+        overflow:visible!important;
+        z-index:1000!important;
+      }
+      #viewerCount{
+        z-index:1001!important;
+      }
       #viewerCount .da-spectator-popover{
         position:absolute;
         top:calc(100% + 9px);
         right:0;
-        z-index:120;
+        z-index:10000;
         min-width:220px;
         max-width:min(320px,82vw);
         padding:11px 12px;
