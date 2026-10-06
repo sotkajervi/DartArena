@@ -96,8 +96,9 @@ function contextLabel(m){
   return `${m.tournament_name||'Turnering'} • ${stage}`;
 }
 function canOpenStats(m){
-  if(isChicago(m)||variantOf(m)!=='x01')return false;
-  return !!m.tournament_id||m.player1_id===me||m.player2_id===me;
+  const supported=variantOf(m)==='x01'||isChicago(m);
+  if(!supported)return false;
+  return isAdmin||!!m.tournament_id||m.player1_id===me||m.player2_id===me;
 }
 
 async function deleteMatch(id){
