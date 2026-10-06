@@ -286,4 +286,5 @@ as $$
   from totals t cross join best b;
 $$;
 revoke all on function public.get_player_cricket_career_stats(uuid) from public;
+revoke execute on function public.get_player_cricket_career_stats(uuid) from anon;
 grant execute on function public.get_player_cricket_career_stats(uuid) to authenticated;
