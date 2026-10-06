@@ -135,7 +135,7 @@
     const select=field.querySelector('#tournamentCupGame');
     if(!select)return;
     const cupGame=Number(tournamentRow.cup_game??tournamentRow.game)||501;
-    const cupVariant=String(tournamentRow.cup_game_variant??tournamentRow.game_variant||'x01');
+    const cupVariant=String((tournamentRow.cup_game_variant??tournamentRow.game_variant)||'x01');
     select.value=isChicagoTournament()?'chicago':String([170,301,501,1001].includes(cupGame)?cupGame:501);
     if(select.dataset.cupPermissionBound==='1')return;
     select.dataset.cupPermissionBound='1';
