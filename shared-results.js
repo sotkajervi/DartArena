@@ -86,21 +86,46 @@
   }
 
   async function buildCricket(m){
-    const{data,error}=await resultDb.from('cricket_visits').select('player_id,leg_no,visit_no,points_scored,created_at').eq('match_id',m.id);
+    const{data,error}=await resultDb.from('cricket_visits').select('player_id,leg_no,visit_no,darts,points_scored,created_at').eq('match_id',m.id);
     if(error)throw error;
     const rows=(data||[]).sort(sortTime),out={};
-    for(const id of[m.player1_id,m.player2_id])out[id]={visits:0,points:0,pointVisits:0};
-    for(const r of rows){const s=out[r.player_id];if(!s)continue;s.visits++;s.points+=num(r.points_scored);if(num(r.points_scored)>0)s.pointVisits++}
+    for(const id of[m.player1_id,m.player2_id])out[id]={visits:0,points:0,pointVisits:0,marks:0,darts:0};
+    const addMarks=(target,row)=>{
+      const visit=Array.isArray(row?.darts)?row.darts:[];
+      for(const dart of visit){
+        target.darts++;
+        target.marks+=Math.max(0,Math.min(3,num(dart?.mult)));
+      }
+    };
+    for(const r of rows){
+      const s=out[r.player_id];if(!s)continue;
+      s.visits++;s.points+=num(r.points_scored);if(num(r.points_scored)>0)s.pointVisits++;
+      addMarks(s,r);
+    }
+    const mpr=s=>s.darts?(s.marks/s.darts*3).toFixed(2):'0.00';
     const mk=id=>{const s=out[id];return fillStats([
       {label:'VISITS',value:s.visits},
       {label:'POENG',value:s.points},
-      {label:'POENG / VISIT',value:s.visits?(s.points/s.visits).toFixed(1):'0.0'},
+      {label:'MPR',value:mpr(s)},
       {label:'POENGVISITS',value:s.pointVisits}
     ])};
     const byLeg=new Map();
     for(const r of rows){const leg=num(r.leg_no)||1;if(!byLeg.has(leg))byLeg.set(leg,[]);byLeg.get(leg).push(r)}
-    const wins=[...byLeg.keys()].sort((a,b)=>a-b).map(leg=>{const list=byLeg.get(leg).sort(sortTime);return{label:`Leg ${leg}`,winnerId:list.at(-1)?.player_id||null}});
-    return{stats:{[m.player1_id]:mk(m.player1_id),[m.player2_id]:mk(m.player2_id)},summary:cumulativeSummary(wins,m)};
+    const wins=[...byLeg.keys()].sort((a,b)=>a-b).map(leg=>{
+      const list=byLeg.get(leg).sort(sortTime);
+      const legStats={
+        [m.player1_id]:{marks:0,darts:0},
+        [m.player2_id]:{marks:0,darts:0}
+      };
+      for(const r of list){const s=legStats[r.player_id];if(s)addMarks(s,r)}
+      return{
+        label:`Leg ${leg}`,
+        winnerId:list.at(-1)?.player_id||null,
+        metric:{label:'MPR',values:{[m.player1_id]:mpr(legStats[m.player1_id]),[m.player2_id]:mpr(legStats[m.player2_id])}}
+      };
+    });
+    const summary=cumulativeSummary(wins,m).map((row,index)=>({...row,metric:wins[index]?.metric||null}));
+    return{stats:{[m.player1_id]:mk(m.player1_id),[m.player2_id]:mk(m.player2_id)},summary};
   }
 
   async function buildHalfIt(m){
