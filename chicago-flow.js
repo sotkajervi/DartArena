@@ -28,7 +28,7 @@
     if(!head)return null;
     badge=document.createElement('div');
     badge.id='chicagoStageBadge';
-    badge.style.cssText='margin-top:8px;display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 10px;border:1px solid rgba(35,226,209,.35);border-radius:999px;background:rgba(35,226,209,.07);font-size:11px;font-weight:900;letter-spacing:.055em;color:var(--cyan)';
+    badge.style.cssText='margin-top:10px;display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;padding:11px 17px;border:2px solid rgba(35,226,209,.42);border-radius:18px;background:rgba(35,226,209,.08);font-size:16px;line-height:1.2;font-weight:900;letter-spacing:.035em;color:var(--cyan)';
     head.appendChild(badge);
     return badge;
   }
