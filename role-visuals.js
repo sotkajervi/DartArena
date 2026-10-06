@@ -254,9 +254,14 @@
     return true;
   }
 
-  async function refreshRoles(){
+  async function refreshRoles({waitForSession=false}={}){
     roleByName.clear();
-    const loaded=await loadRoles();
+    let loaded=false;
+    const attempts=waitForSession?12:1;
+    for(let i=0;i<attempts&&!loaded;i++){
+      loaded=await loadRoles();
+      if(!loaded&&i<attempts-1)await new Promise(resolve=>setTimeout(resolve,100));
+    }
     if(!loaded){
       scanNames();
       syncWelcome();
@@ -303,12 +308,14 @@
     console.warn('Role visuals init failed',error);
   });
 
-  window.addEventListener('dartarena:lobby-entered',()=>{
-    refreshRoles().catch(error=>{
+  const refreshAfterLogin=()=>{
+    refreshRoles({waitForSession:true}).catch(error=>{
       revealWelcome();
       console.warn('Role visuals refresh failed',error);
     });
-  });
+  };
+  window.addEventListener('dartarena:lobby-entered',refreshAfterLogin);
+  window.addEventListener('dartarena:lobby-ready',refreshAfterLogin);
   window.addEventListener('dartarena:lobby-left',()=>{
     roleByName.clear();
     scanNames();
