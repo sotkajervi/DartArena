@@ -18,6 +18,42 @@ function cricketLiveStats(rows,pid){
   }
   return{visits:mine.length,points,mpr:mine.length?marks/mine.length:0};
 }
+const CRICKET_TARGETS=['20','19','18','17','16','15','B'];
+function cricketMarkGlyph(n){const x=Math.max(0,Math.min(3,Number(n)||0));return x===0?'–':x===1?'╱':x===2?'×':'⊗'}
+function isViewerCricketStage(){
+  if(!live)return false;
+  const chicago=String(live.game_config?.chicago??'false').toLowerCase()==='true';
+  const stage=Number(live.game_config?.chicago_stage||live.current_leg||1);
+  return String(live.game_variant||'').toLowerCase()==='cricket'||(chicago&&stage===2);
+}
+function cricketMarksFor(rows,pid,legNo){
+  const out={20:0,19:0,18:0,17:0,16:0,15:0,B:0};
+  for(const row of rows||[]){
+    if(row.player_id!==pid||Number(row.leg_no||1)!==Number(legNo))continue;
+    for(const dart of Array.isArray(row.darts)?row.darts:[]){
+      const target=String(dart?.target||'');
+      if(!(target in out))continue;
+      out[target]=Math.min(3,out[target]+Math.max(0,Math.min(3,Number(dart?.mult)||0)));
+    }
+  }
+  return out;
+}
+function renderSpectatorCricketBoard(){
+  const host=$('spectatorCricketBoard');if(!host)return;
+  if(!isViewerCricketStage()||!tm){host.classList.remove('active');host.innerHTML='';return}
+  const chicago=String(live?.game_config?.chicago??'false').toLowerCase()==='true';
+  const legNo=chicago?2:Number(live?.current_leg||1);
+  const a=cricketMarksFor(cricketStatsRows||[],tm.player1_id,legNo);
+  const b=cricketMarksFor(cricketStatsRows||[],tm.player2_id,legNo);
+  const n1=statsEsc(names[tm.player1_id]||'Spiller 1'),n2=statsEsc(names[tm.player2_id]||'Spiller 2');
+  const p1=Number(live?.player1_score||0),p2=Number(live?.player2_score||0);
+  host.innerHTML=`<div class="spectator-cricket-head"><span>${n1}<br><strong>${p1} poeng</strong></span><span>CRICKET</span><span>${n2}<br><strong>${p2} poeng</strong></span></div>`+
+    CRICKET_TARGETS.map(t=>{
+      const am=Number(a[t]||0),bm=Number(b[t]||0),both=am>=3&&bm>=3;
+      return `<div class="spectator-cricket-row${both?' both-closed':''}"><div class="spectator-cricket-mark${am>=3?' closed':''}">${cricketMarkGlyph(am)}</div><div class="spectator-cricket-target">${t==='B'?'BULL':t}</div><div class="spectator-cricket-mark${bm>=3?' closed':''}">${cricketMarkGlyph(bm)}</div></div>`;
+    }).join('');
+  host.classList.add('active');
+}
 function renderViewerStats(){
   const host=$('spectatorStats');if(!host||!tm)return;
   const chicago=String(live?.game_config?.chicago??'false').toLowerCase()==='true';
@@ -58,6 +94,7 @@ async function loadViewerStats(){
     statsRows=throws||[];cricketStatsRows=cricket||[];statsError=false;
   }catch(error){if(request!==statsRequest||matchId!==statsMatchId)return;statsError=true;console.error('Spectator statistics failed',error)}
   renderViewerStats();
+  renderSpectatorCricketBoard();
 }
 function syncViewerStats(){
   const next=tm?.live_match_id||null;
@@ -87,6 +124,7 @@ function render(){
   if(live){const chicago=String(live.game_config?.chicago??'false').toLowerCase()==='true',unit=chicago?'games':'legs';$('s1').textContent=Number(live.player1_score??501);$('s2').textContent=Number(live.player2_score??501);$('l1').textContent=`${Number(live.player1_legs||0)} ${unit}`;$('l2').textContent=`${Number(live.player2_legs||0)} ${unit}`}
   else{$('s1').textContent='–';$('s2').textContent='–';$('l1').textContent=`${Number(tm.player1_legs||0)} legs`;$('l2').textContent=`${Number(tm.player2_legs||0)} legs`}
   $('status').textContent=tm.status==='live'?'Kampen pågår live':tm.status==='finished'?'Kampen er ferdig':tm.status==='wo'?'Kampen er avgjort på WO':'Kampen er ikke startet ennå';
+  renderSpectatorCricketBoard();
 }
 function videoTarget(pid){return pid===tm?.player1_id?{video:$('p1Video'),placeholder:$('p1Placeholder')}:{video:$('p2Video'),placeholder:$('p2Placeholder')}}
 async function subscribePublication(pid,publication){
