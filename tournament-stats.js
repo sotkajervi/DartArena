@@ -81,6 +81,18 @@
     return darts?score/darts*3:0;
   }
 
+  function mprFor(visits){
+    let marks=0,darts=0;
+    for(const row of visits||[]){
+      const visit=Array.isArray(row?.darts)?row.darts:[];
+      for(const dart of visit){
+        darts++;
+        marks+=Math.max(0,Math.min(3,Number(dart?.mult)||0));
+      }
+    }
+    return darts?marks/darts*3:0;
+  }
+
   function bestBy(rows,field,{min=false,positive=false}={}){
     const valid=rows.filter(r=>Number.isFinite(Number(r[field]))&&(!positive||Number(r[field])>0));
     if(!valid.length)return null;
@@ -92,20 +104,22 @@
     return`<div class="tournament-stat-highlight"><small>${esc(label)}</small><strong>${esc(value)}</strong><span>${esc(row.name)}</span></div>`;
   }
 
-  function renderHighlights(rows){
+  function renderHighlights(rows,{chicago=false}={}){
     const host=document.getElementById('tournamentStatsHighlights');
     if(!host)return;
     const avg=bestBy(rows,'avg',{positive:true});
     const bestMatch=bestBy(rows,'bestAvg',{positive:true});
     const checkout=bestBy(rows,'highCheckout',{positive:true});
     const leg=bestBy(rows,'fast',{min:true,positive:true});
-    const most180=bestBy(rows,'c180',{positive:true});
+    const fifth=chicago?bestBy(rows,'mpr',{positive:true}):bestBy(rows,'c180',{positive:true});
     host.innerHTML=[
-      highlight('Høyest snitt',avg,avg?avg.avg.toFixed(2):'–'),
-      highlight('Beste kampsnitt',bestMatch,bestMatch?bestMatch.bestAvg.toFixed(2):'–'),
+      highlight(chicago?'Høyest X01-snitt':'Høyest snitt',avg,avg?avg.avg.toFixed(2):'–'),
+      highlight(chicago?'Beste X01-kampsnitt':'Beste kampsnitt',bestMatch,bestMatch?bestMatch.bestAvg.toFixed(2):'–'),
       highlight('Høyeste checkout',checkout,checkout?checkout.highCheckout:'–'),
-      highlight('Raskeste leg',leg,leg?`${leg.fast} piler`:'–'),
-      highlight('Flest 180',most180,most180?most180.c180:'–')
+      highlight(chicago?'Raskeste X01-game':'Raskeste leg',leg,leg?`${leg.fast} piler`:'–'),
+      chicago
+        ?highlight('Høyest MPR',fifth,fifth?fifth.mpr.toFixed(2):'–')
+        :highlight('Flest 180',fifth,fifth?fifth.c180:'–')
     ].join('');
   }
 
@@ -118,12 +132,16 @@
     const meta=document.getElementById('tournamentStatsMeta');
     const highlights=document.getElementById('tournamentStatsHighlights');
     try{
-      const {data:matches,error:matchError}=await db
-        .from('tournament_matches')
-        .select('id,stage,player1_id,player2_id,winner_id,status,player1_legs,player2_legs,live_match_id')
-        .eq('tournament_id',tournamentId)
-        .in('status',['finished','wo']);
+      const [{data:tournament,error:tournamentError},{data:matches,error:matchError}]=await Promise.all([
+        db.from('tournaments').select('id,game_variant').eq('id',tournamentId).maybeSingle(),
+        db.from('tournament_matches')
+          .select('id,stage,player1_id,player2_id,winner_id,status,player1_legs,player2_legs,live_match_id')
+          .eq('tournament_id',tournamentId)
+          .in('status',['finished','wo'])
+      ]);
+      if(tournamentError)throw tournamentError;
       if(matchError)throw matchError;
+      const chicago=String(tournament?.game_variant||'x01').toLowerCase()==='chicago';
 
       const playedMatches=(matches||[]).filter(m=>!isBye(m));
       if(!playedMatches.length){
@@ -135,15 +153,17 @@
 
       const playerIds=[...new Set(playedMatches.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))];
       const liveIds=[...new Set(playedMatches.map(m=>m.live_match_id).filter(Boolean))];
-      const [{data:profiles,error:profileError},{data:throws,error:throwError}]=await Promise.all([
+      const [{data:profiles,error:profileError},{data:throws,error:throwError},{data:cricketVisits,error:cricketError}]=await Promise.all([
         playerIds.length?db.from('profiles').select('id,username').in('id',playerIds):Promise.resolve({data:[]}),
-        liveIds.length?db.from('match_throws').select('*').in('match_id',liveIds).order('created_at',{ascending:true}):Promise.resolve({data:[]})
+        liveIds.length?db.from('match_throws').select('*').in('match_id',liveIds).order('created_at',{ascending:true}):Promise.resolve({data:[]}),
+        chicago&&liveIds.length?db.from('cricket_visits').select('match_id,player_id,darts').in('match_id',liveIds).order('created_at',{ascending:true}):Promise.resolve({data:[]})
       ]);
       if(profileError)throw profileError;
       if(throwError)throw throwError;
+      if(cricketError)throw cricketError;
 
       const names=Object.fromEntries((profiles||[]).map(p=>[p.id,p.username]));
-      const allThrows=throws||[];
+      const allThrows=throws||[],allCricket=cricketVisits||[];
       const matchByLive=Object.fromEntries(playedMatches.filter(m=>m.live_match_id).map(m=>[m.live_match_id,m]));
       const rows=playerIds.map(pid=>{
         const pm=playedMatches.filter(m=>m.player1_id===pid||m.player2_id===pid);
@@ -152,6 +172,7 @@
         const legsFor=pm.reduce((sum,m)=>sum+Number(m.player1_id===pid?m.player1_legs||0:m.player2_legs||0),0);
         const legsAgainst=pm.reduce((sum,m)=>sum+Number(m.player1_id===pid?m.player2_legs||0:m.player1_legs||0),0);
         const pt=allThrows.filter(t=>t.player_id===pid&&matchByLive[t.match_id]);
+        const pc=allCricket.filter(v=>v.player_id===pid&&matchByLive[v.match_id]);
         const byMatch={};
         pt.forEach(t=>(byMatch[t.match_id]??=[]).push(t));
         const matchAvgs=Object.values(byMatch).map(avgFor).filter(Number.isFinite);
@@ -168,6 +189,7 @@
           legsAgainst,
           legDiff:legsFor-legsAgainst,
           avg:avgFor(pt),
+          mpr:mprFor(pc),
           bestAvg:matchAvgs.length?Math.max(...matchAvgs):0,
           highVisit:scores.length?Math.max(...scores):0,
           highCheckout:checkoutScores.length?Math.max(...checkoutScores):0,
@@ -180,9 +202,15 @@
         };
       }).sort((a,b)=>b.wins-a.wins||b.winPct-a.winPct||b.avg-a.avg||a.name.localeCompare(b.name,'nb'));
 
-      meta.textContent=`${playedMatches.length} ferdige kamper • ${allThrows.length} registrerte besøk`;
-      renderHighlights(rows);
-      body.innerHTML=`<table class="tournament-stats-table"><thead><tr><th>#</th><th>Spiller</th><th>K</th><th>V</th><th>T</th><th>V%</th><th>Legs</th><th>+/−</th><th>Snitt</th><th>Beste kamp</th><th>Høyeste kast</th><th>Checkout</th><th>Raskeste leg</th><th>60+</th><th>100+</th><th>140+</th><th>170+</th><th>180</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td class="stats-rank">${i+1}</td><td class="stats-player" title="${esc(r.name)}">${esc(r.name)}</td><td>${r.matches}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.winPct.toFixed(0)}%</td><td>${r.legsFor}–${r.legsAgainst}</td><td class="${r.legDiff>0?'stats-positive':r.legDiff<0?'stats-negative':''}">${r.legDiff>0?'+':''}${r.legDiff}</td><td>${r.avg?r.avg.toFixed(2):'–'}</td><td>${r.bestAvg?r.bestAvg.toFixed(2):'–'}</td><td>${r.highVisit||'–'}</td><td>${r.highCheckout||'–'}</td><td>${r.fast?`${r.fast} piler`:'–'}</td><td>${r.c60}</td><td>${r.c100}</td><td>${r.c140}</td><td>${r.c170}</td><td>${r.c180}</td></tr>`).join('')}</tbody></table>`;
+      meta.textContent=chicago
+        ?`${playedMatches.length} ferdige kamper • X01: ${allThrows.length} visits • Cricket: ${allCricket.length} visits`
+        :`${playedMatches.length} ferdige kamper • ${allThrows.length} registrerte besøk`;
+      const note=document.querySelector('#tournamentStats .muted.compact');
+      if(note)note.textContent=chicago
+        ?'Chicago Style: X01-snitt beregnes fra 301 DIDO og 501 SIDO. MPR beregnes fra Cricket. WO påvirker kampseire, mens BYE/frirunde ikke teller som kamp.'
+        :'Snitt beregnes fra registrerte kast i ferdigspilte kamper. WO påvirker kampseire, mens BYE/frirunde ikke teller som kamp.';
+      renderHighlights(rows,{chicago});
+      body.innerHTML=`<table class="tournament-stats-table"><thead><tr><th>#</th><th>Spiller</th><th>K</th><th>V</th><th>T</th><th>V%</th><th>${chicago?'Games':'Legs'}</th><th>+/−</th><th>${chicago?'X01 snitt':'Snitt'}</th>${chicago?'<th>MPR</th>':''}<th>Beste kamp</th><th>Høyeste kast</th><th>Checkout</th><th>${chicago?'Raskeste X01-game':'Raskeste leg'}</th><th>60+</th><th>100+</th><th>140+</th><th>170+</th><th>180</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td class="stats-rank">${i+1}</td><td class="stats-player" title="${esc(r.name)}">${esc(r.name)}</td><td>${r.matches}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.winPct.toFixed(0)}%</td><td>${r.legsFor}–${r.legsAgainst}</td><td class="${r.legDiff>0?'stats-positive':r.legDiff<0?'stats-negative':''}">${r.legDiff>0?'+':''}${r.legDiff}</td><td>${r.avg?r.avg.toFixed(2):'–'}</td>${chicago?`<td>${r.mpr?r.mpr.toFixed(2):'–'}</td>`:''}<td>${r.bestAvg?r.bestAvg.toFixed(2):'–'}</td><td>${r.highVisit||'–'}</td><td>${r.highCheckout||'–'}</td><td>${r.fast?`${r.fast} piler`:'–'}</td><td>${r.c60}</td><td>${r.c100}</td><td>${r.c140}</td><td>${r.c170}</td><td>${r.c180}</td></tr>`).join('')}</tbody></table>`;
     }catch(error){
       console.error('Tournament stats failed',error);
       meta.textContent='Kunne ikke laste';
