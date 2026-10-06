@@ -175,7 +175,8 @@
         if(rs.getVideoTracks().some(t=>t.readyState==='live')){
           placeholder?.classList.add('hidden');
         }
-        if(rs.getAudioTracks().some(t=>t.readyState==='live'))el('remoteAudioBtn')?.classList.remove('hidden');
+        // Opponent audio is auto-unlocked by remote-audio-autounlock.js.
+        // Keep the fallback button hidden unless the browser repeatedly blocks audio.
         renderDebug();
       });
       note('SUBSCRIBE ok',{sessionId:pub.sessionId,tracks:pub.tracks});
