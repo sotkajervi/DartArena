@@ -7,6 +7,8 @@ async function boot(){
  const {data:{session}}=await db.auth.getSession(); if(!session)return;
  let {data:match}=await db.from('matches').select('*').eq('id',matchId).single(); if(!match)return;
  const me=session.user.id;
+ const isChicago=()=>String(match?.game_config?.chicago??'false').toLowerCase()==='true';
+ const chicagoStage=()=>Number(match?.game_config?.chicago_stage||match?.current_leg||1);
  let legDelayUntil=0,legDelayTimer=null;
  function legDelayActive(){return Date.now()<legDelayUntil}
  function syncEntryLock(){
@@ -32,13 +34,18 @@ async function boot(){
    legDelayTimer=setTimeout(()=>{legDelayUntil=0;syncEntryLock()},3000);
  }
  function draw(){
-   const setMode=match.match_mode==='sets';
+   const chicago=isChicago(),setMode=!chicago&&match.match_mode==='sets';
    $('matchSets1')?.classList.toggle('hidden',!setMode);$('matchSets2')?.classList.toggle('hidden',!setMode);
    if($('matchSets1'))$('matchSets1').textContent=`${match.player1_sets||0} sets`;
    if($('matchSets2'))$('matchSets2').textContent=`${match.player2_sets||0} sets`;
-   if($('matchLegs1'))$('matchLegs1').textContent=`${match.player1_legs||0} legs`;
-   if($('matchLegs2'))$('matchLegs2').textContent=`${match.player2_legs||0} legs`;
-   if($('matchFormat'))$('matchFormat').textContent=setMode?`${match.game} • BEST OF ${match.best_of_sets} SETS • BEST OF ${match.legs} LEGS`:`${match.game} • BEST OF ${match.legs} LEGS`;
+   if($('matchLegs1'))$('matchLegs1').textContent=chicago?`${match.player1_legs||0} game${Number(match.player1_legs||0)===1?'':'s'}`:`${match.player1_legs||0} legs`;
+   if($('matchLegs2'))$('matchLegs2').textContent=chicago?`${match.player2_legs||0} game${Number(match.player2_legs||0)===1?'':'s'}`:`${match.player2_legs||0} legs`;
+   if($('matchFormat')){
+     if(chicago){
+       const stage=chicagoStage(),label=stage===1?'301 DOUBLE IN / DOUBLE OUT':stage===3?'501 DOUBLE OUT':'CRICKET';
+       $('matchFormat').textContent=`CHICAGO STYLE • GAME ${stage}/3 • ${label}`;
+     }else $('matchFormat').textContent=setMode?`${match.game} • BEST OF ${match.best_of_sets} SETS • BEST OF ${match.legs} LEGS`:`${match.game} • BEST OF ${match.legs} LEGS`;
+   }
  }
  draw();
  db.channel('set-engine-'+matchId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{const oldSet=Number(match.current_set||1),oldLeg=Number(match.current_leg||1);match=p.new;const changedLeg=oldSet!==Number(match.current_set||1)||oldLeg!==Number(match.current_leg||1);if(changedLeg&&match.status==='playing')startLegDelay();draw();syncEntryLock()}).subscribe();
@@ -51,7 +58,8 @@ async function boot(){
    if(n===remaining)return; // checkout-engine håndterer checkout + pileantall
    const btn=$('matchScoreBtn');btn.disabled=true;
    try{
-     const {data,error}=await db.rpc('submit_x01_visit',{p_match_id:match.id,p_score:n});
+     const rpc=isChicago()?'submit_chicago_x01_visit':'submit_x01_visit';
+     const {data,error}=await db.rpc(rpc,{p_match_id:match.id,p_score:n});
      if(error||!data){$('matchMessage').textContent=error?.message||'Kastet kunne ikke lagres.';return}
      match=data.match||data;
      input.value='';
