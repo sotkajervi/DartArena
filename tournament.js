@@ -4,6 +4,7 @@ const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 const id=new URLSearchParams(location.search).get('id');
 const TOURNAMENT_GAMES=[170,301,501,1001];
+const TOURNAMENT_VARIANTS=['x01','chicago'];
 
 let me=null;
 let tournament=null;
@@ -28,12 +29,18 @@ function getParticipants(){
 function validTournamentGame(value){
   return TOURNAMENT_GAMES.includes(Number(value));
 }
+function tournamentIsChicago(t=tournament){
+  return String(t?.game_variant||'x01').toLowerCase()==='chicago';
+}
+function tournamentGameLabel(t=tournament){
+  if(tournamentIsChicago(t))return'Chicago Style';
+  return String(validTournamentGame(t?.game)?Number(t.game):501);
+}
 function tournamentTypeLabel(t){
   return t.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup';
 }
 function tournamentMeta(t){
-  const game=validTournamentGame(t.game)?Number(t.game):501;
-  return `${tournamentTypeLabel(t)} • ${game} • ${fmt(t.starts_at)}`;
+  return `${tournamentTypeLabel(t)} • ${tournamentGameLabel(t)} • ${fmt(t.starts_at)}`;
 }
 
 function showTournamentUnavailable(message='Turneringen finnes ikke lenger.'){
@@ -150,10 +157,22 @@ function renderPage(){
   if(owner&&t.status==='groups_setup')renderSetup();
 }
 
+function syncTournamentGameUi(){
+  const chicago=tournamentIsChicago();
+  const bestField=$('groupBestOf')?.closest('label');
+  if(bestField)bestField.classList.toggle('hidden',chicago);
+  const help=document.getElementById('tournamentGameHelp');
+  if(help)help.textContent=chicago?'301 DIDO • Cricket • 501 SIDO • først til 2 games':'X01 • velg Best av legs for kampene';
+  const groupHelp=$('groupLobby')?.querySelector('.muted.compact');
+  if(groupHelp)groupHelp.textContent=chicago
+    ?'Trykk på en kamp for kamprom, tilskuervisning eller statistikk. Rangering: kampseire → game-differanse → vunne games → innbyrdes.'
+    :'Trykk på en kamp for kamprom, tilskuervisning eller statistikk. Rangering: kampseire → leg-differanse → vunne legs → innbyrdes.';
+}
+
 function ensureTournamentGameSelector(owner){
   const existing=document.getElementById('tournamentGameField');
   const setupStatus=tournament?.status==='groups_setup'||tournament?.status==='cup_setup';
-  if(!owner||!setupStatus){existing?.remove();return;}
+  if(!owner||!setupStatus){existing?.remove();syncTournamentGameUi();return;}
 
   const groupAnchor=$('groupCount')?.closest('label');
   const cupAnchor=$('buildCupBtn');
@@ -166,7 +185,7 @@ function ensureTournamentGameSelector(owner){
     field=document.createElement('label');
     field.id='tournamentGameField';
     field.className='field';
-    field.innerHTML='<span>Spill</span><select id="tournamentGame"><option value="170">170</option><option value="301">301</option><option value="501">501</option><option value="1001">1001</option></select>';
+    field.innerHTML='<span>Spill</span><select id="tournamentGame"><option value="170">170</option><option value="301">301</option><option value="501">501</option><option value="1001">1001</option><option value="chicago">Chicago Style</option></select><small id="tournamentGameHelp" style="display:block;margin-top:7px;letter-spacing:0;text-transform:none;color:var(--muted)"></small>';
     anchor.insertAdjacentElement('beforebegin',field);
     select=field.querySelector('select');
     select.onchange=()=>saveTournamentGame(select);
@@ -174,27 +193,38 @@ function ensureTournamentGameSelector(owner){
     anchor.insertAdjacentElement('beforebegin',field);
   }
 
-  select.value=String(validTournamentGame(tournament.game)?Number(tournament.game):501);
+  select.value=tournamentIsChicago()? 'chicago' : String(validTournamentGame(tournament.game)?Number(tournament.game):501);
+  syncTournamentGameUi();
 }
 
 async function saveTournamentGame(select){
   if(!tournament||tournament.owner_id!==me||!select)return;
-  const game=Number(select.value);
-  if(!validTournamentGame(game))return;
-  const previous=Number(tournament.game)||501;
+  const chicago=select.value==='chicago';
+  const game=chicago?501:Number(select.value);
+  const gameVariant=chicago?'chicago':'x01';
+  if(!chicago&&!validTournamentGame(game))return;
+  const previousVariant=String(tournament.game_variant||'x01');
+  const previousGame=Number(tournament.game)||501;
   select.disabled=true;
   try{
     const {error}=await db.from('tournaments')
-      .update({game,updated_at:new Date().toISOString()})
+      .update({game,game_variant:gameVariant,updated_at:new Date().toISOString()})
       .eq('id',id)
       .eq('owner_id',me)
       .eq('status',tournament.status);
     if(error)throw error;
     tournament.game=game;
+    tournament.game_variant=gameVariant;
+    drawnGroups=null;
     $('tMeta').textContent=tournamentMeta(tournament);
+    syncTournamentGameUi();
+    if(tournament.status==='groups_setup')renderSetup();
   }catch(error){
     console.error('Tournament game update failed',error);
-    select.value=String(previous);
+    tournament.game=previousGame;
+    tournament.game_variant=previousVariant;
+    select.value=previousVariant==='chicago'?'chicago':String(previousGame);
+    syncTournamentGameUi();
     alert('Kunne ikke lagre spillvalg: '+(error.message||error));
   }finally{
     select.disabled=false;
@@ -210,6 +240,7 @@ function renderSetup(){
     for(let x=1;x<=Math.min(n,16);x++)opts.push(`<option value="${x}">${x} ${x===1?'pulje':'puljer'}</option>`);
     g.innerHTML=opts.join('')||'<option value="1">1 pulje</option>';
   }
+  syncTournamentGameUi();
   const gc=Number(g.value||1);
   const a=$('advanceCount');
   const old=a.value;
@@ -306,7 +337,7 @@ async function loadGroupLobby(){
     const table=standings(gp,gm);
     const qualify=g.advance_mode==='all'?table.length:Number(g.advance_count||0);
     const rounds=[...new Set(gm.map(m=>m.round_no))];
-    return `<div class="group-card"><div class="heading"><div><small>PULJE ${g.group_no}</small><h2>${gp.length} spillere</h2></div><div class="status">${Number(tournament?.game)||501} • Best av ${g.best_of}</div></div><table class="standings"><thead><tr><th>#</th><th>Spiller</th><th>V</th><th>+/-</th><th>Legs</th></tr></thead><tbody>${table.map((x,i)=>`<tr class="${i<qualify?'qualify':''}"><td>${i+1}</td><td>${esc(names[x.id]||'Spiller')}</td><td>${x.w}</td><td>${x.d>0?'+':''}${x.d}</td><td>${x.lf}</td></tr>`).join('')}</tbody></table>${rounds.map(r=>`<div class="round-block"><div class="round-title">Runde ${r}</div>${gm.filter(m=>m.round_no===r).map(matchHtml).join('')}</div>`).join('')}</div>`;
+    return `<div class="group-card"><div class="heading"><div><small>PULJE ${g.group_no}</small><h2>${gp.length} spillere</h2></div><div class="status">${tournamentIsChicago()? 'Chicago Style' : `${Number(tournament?.game)||501} • Best av ${g.best_of}`}</div></div><table class="standings"><thead><tr><th>#</th><th>Spiller</th><th>V</th><th>+/-</th><th>${tournamentIsChicago()?'Games':'Legs'}</th></tr></thead><tbody>${table.map((x,i)=>`<tr class="${i<qualify?'qualify':''}"><td>${i+1}</td><td>${esc(names[x.id]||'Spiller')}</td><td>${x.w}</td><td>${x.d>0?'+':''}${x.d}</td><td>${x.lf}</td></tr>`).join('')}</tbody></table>${rounds.map(r=>`<div class="round-block"><div class="round-title">Runde ${r}</div>${gm.filter(m=>m.round_no===r).map(matchHtml).join('')}</div>`).join('')}</div>`;
   }).join('');
 }
 
@@ -330,13 +361,15 @@ async function startGroups(){
   btn.disabled=true;
   btn.textContent='Starter…';
   try{
-    const bestOf=Number($('groupBestOf').value);
+    const selection=document.getElementById('tournamentGame')?.value||(tournamentIsChicago()?'chicago':String(tournament.game||501));
+    const chicago=selection==='chicago';
+    const game=chicago?501:Number(selection);
+    const gameVariant=chicago?'chicago':'x01';
+    if(!chicago&&!validTournamentGame(game))throw new Error('Velg et gyldig spill.');
+    const bestOf=chicago?3:Number($('groupBestOf').value);
     const advance=$('advanceCount').value;
     const advanceMode=advance==='all'?'all':'top';
     const advanceCount=advance==='all'?null:Number(advance);
-    const game=Number(document.getElementById('tournamentGame')?.value||tournament.game||501);
-    if(!validTournamentGame(game))throw new Error('Velg et gyldig X01-spill.');
-
     const {data:existing,error:existingErr}=await db.from('tournament_groups').select('id').eq('tournament_id',id).limit(1);
     if(existingErr)throw existingErr;
     if(existing?.length)throw new Error('Puljeoppsettet er allerede lagret for denne turneringen.');
@@ -364,12 +397,13 @@ async function startGroups(){
     }
 
     const {error:tErr}=await db.from('tournaments')
-      .update({status:'groups',game,updated_at:new Date().toISOString()})
+      .update({status:'groups',game,game_variant:gameVariant,updated_at:new Date().toISOString()})
       .eq('id',id)
       .eq('owner_id',me)
       .eq('status','groups_setup');
     if(tErr)throw tErr;
     tournament.game=game;
+    tournament.game_variant=gameVariant;
     drawnGroups=null;
     await load();
     alert(`Puljespillet er startet. ${matchRows.length} kamper er satt opp.`);
