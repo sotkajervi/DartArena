@@ -27,10 +27,17 @@
     document.documentElement.classList.remove('da-owner','da-admin-not-owner','da-admin-no-result-override');
   }
 
-  async function boot(){
+  async function boot({waitForSession=false}={}){
     ensureStyles();
     resetGates();
-    const {data:{session}}=await db.auth.getSession();
+    let session=null;
+    const attempts=waitForSession?12:1;
+    for(let i=0;i<attempts;i++){
+      const result=await db.auth.getSession();
+      session=result.data?.session||null;
+      if(session?.user)break;
+      if(i<attempts-1)await new Promise(resolve=>setTimeout(resolve,100));
+    }
     if(!session?.user)return;
 
     const [{data:isAdmin},{data:isOwner}]=await Promise.all([
@@ -53,7 +60,9 @@
     }
   }
 
+  const refreshAfterLogin=()=>boot({waitForSession:true}).catch(error=>console.warn('Owner UI gates refresh failed',error));
   boot().catch(error=>console.warn('Owner UI gates failed',error));
-  window.addEventListener('dartarena:lobby-entered',()=>boot().catch(error=>console.warn('Owner UI gates refresh failed',error)));
+  window.addEventListener('dartarena:lobby-entered',refreshAfterLogin);
+  window.addEventListener('dartarena:lobby-ready',refreshAfterLogin);
   window.addEventListener('dartarena:lobby-left',resetGates);
 })();
