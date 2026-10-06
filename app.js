@@ -118,4 +118,4 @@ initializeAuth().catch(error=>{
  console.error('Auth initialization failed',error);
  showSessionError('Kunne ikke starte DartArena. Prøv igjen.');
 });
-setInterval(()=>{if(profile){db.from('profiles').update({last_seen:new Date().toISOString()}).eq('id',profile.id);loadLobby()}},5000);
+setInterval(()=>{if(profile)loadLobby()},5000);
