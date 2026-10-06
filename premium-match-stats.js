@@ -91,12 +91,12 @@
   }
   function statRows(stats,hasData){
     if(!stats)return[
-      ['3-DART AVG','–'],['FIRST 9 AVG','–'],['HØYESTE UT','–'],['RASKESTE LEG','–'],
+      ['AVG','–'],['FIRST 9','–'],['HØYESTE UT','–'],['RASKESTE LEG','–'],
       ['100+','–'],['140+','–'],['170+','–'],['180','–']
     ];
     return[
-      ['3-DART AVG',hasData?stats.avg.toFixed(2):'–'],
-      ['FIRST 9 AVG',hasData&&stats.first9Darts?stats.first9.toFixed(2):'–'],
+      ['AVG',hasData?stats.avg.toFixed(2):'–'],
+      ['FIRST 9',hasData&&stats.first9Darts?stats.first9.toFixed(2):'–'],
       ['HØYESTE UT',hasData?(stats.high||'–'):'–'],
       ['RASKESTE LEG',hasData&&stats.fast?`${stats.fast} piler`:'–'],
       ['100+',hasData?stats.c100:'–'],
