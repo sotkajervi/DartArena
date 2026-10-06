@@ -7,7 +7,7 @@
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
   );
 
-  let isOwner=false,isAdmin=false,isChicago=false,decorating=false;
+  let isOwner=false,isAdmin=false,decorating=false;let groupVariant='x01',cupVariant='x01';
   const nameCache={};
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   async function getDialog(){for(let i=0;i<40&&!window.DartArenaDialog;i++)await sleep(50);return window.DartArenaDialog||null}
@@ -58,6 +58,7 @@
       if(!match.player1_id||!match.player2_id)throw new Error('WO/BYE uten to spillere kan ikke endres til et vanlig kampresultat.');
 
       const [n1,n2]=await namesFor([match.player1_id,match.player2_id]);
+      const isChicago=(match.stage==='cup'?cupVariant:groupVariant)==='chicago';
       const needed=targetWins(match.best_of);
       const current=`${Number(match.player1_legs||0)}-${Number(match.player2_legs||0)}`;
       const dialog=await getDialog();
@@ -147,12 +148,13 @@
     const {data:{session}}=await client.auth.getSession();
     if(!session)return;
     const [{data:tournament},{data:adminFlag}]=await Promise.all([
-      client.from('tournaments').select('owner_id,game_variant').eq('id',tournamentId).single(),
+      client.from('tournaments').select('owner_id,game_variant,cup_game_variant').eq('id',tournamentId).single(),
       client.rpc('is_admin')
     ]);
     isOwner=tournament?.owner_id===session.user.id;
     isAdmin=adminFlag===true;
-    isChicago=String(tournament?.game_variant||'x01').toLowerCase()==='chicago';
+    groupVariant=String(tournament?.game_variant||'x01').toLowerCase();
+    cupVariant=String((tournament?.cup_game_variant??tournament?.game_variant)||'x01').toLowerCase();
     if(!isOwner&&!isAdmin)return;
 
     await decorateFinishedRows();
