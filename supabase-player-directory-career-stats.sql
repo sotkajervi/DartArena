@@ -45,6 +45,8 @@ as $$
   left join mt on mt.user_id=p.id
   left join vt on vt.user_id=p.id
   where coalesce(p.username,'') ilike '%'||coalesce(p_search,'')||'%'
+    and lower(trim(coalesce(p.username,''))) not in ('player-049fdb78','test test')
+    and lower(trim(coalesce(p.username,''))) not in ('player-049fdb78','test test')
   order by lower(coalesce(p.username,'')),p.created_at
   limit greatest(1,least(coalesce(p_limit,200),500));
 $$;
