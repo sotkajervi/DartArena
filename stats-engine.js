@@ -8,17 +8,21 @@ async function boot(){
  if(String(match.game_config?.chicago??'false').toLowerCase()==='true')return;
  let throws=[];
  const style=document.createElement('style');style.textContent=`
-.stats-card{margin-top:10px;width:100%}
-.match-page.match-tv-layout #matchView>.stats-card{grid-column:1/-1!important;width:100%!important;margin-top:2px!important;align-self:start}
-.match-page.match-tv-layout #matchView>.stats-card .stats-grid{grid-template-columns:minmax(170px,220px) minmax(0,1fr) minmax(0,1fr)}
-.stats-title{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:10px}
-.stats-title h3{margin:0;font-size:16px}
-.stats-grid{display:grid;grid-template-columns:150px 1fr 1fr;border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden}
-.stats-grid>*{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.06)}
+.da-live-stats-btn{white-space:nowrap}
+.da-live-stats-overlay{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;padding:18px;background:rgba(2,8,10,.82);backdrop-filter:blur(7px);opacity:1;visibility:visible;transition:opacity .16s ease,visibility .16s ease}
+.da-live-stats-overlay.hidden{display:none!important}
+.da-live-stats-dialog{width:min(760px,96vw);max-height:min(86dvh,760px);overflow:auto;border:1px solid rgba(35,226,209,.34);border-radius:18px;background:linear-gradient(180deg,rgba(10,25,28,.98),rgba(5,14,16,.99));box-shadow:0 28px 90px rgba(0,0,0,.62),0 0 0 1px rgba(35,226,209,.06);padding:18px}
+.da-live-stats-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
+.da-live-stats-title small{display:block;color:var(--cyan);font-size:10px;font-weight:950;letter-spacing:.11em;margin-bottom:3px}
+.da-live-stats-title h2{margin:0;font-size:22px}
+.da-live-stats-close{min-width:86px}
+.stats-grid{display:grid;grid-template-columns:minmax(125px,180px) minmax(0,1fr) minmax(0,1fr);border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden;background:rgba(255,255,255,.018)}
+.stats-grid>*{padding:10px 11px;border-bottom:1px solid rgba(255,255,255,.06)}
 .stats-grid>*:nth-last-child(-n+3){border-bottom:0}
 .stats-grid .label{color:#88a1a5;font-size:12px}
 .stats-grid .val{text-align:center;font-weight:900}
-.stats-grid .head{color:#23e2d1;font-size:12px;font-weight:900}
+.stats-grid .head{color:#23e2d1;font-size:12px;font-weight:900;overflow:hidden;text-overflow:ellipsis}
+body.da-live-stats-open{overflow:hidden!important}
 .da-result-actions.x01-result-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
 .da-result-actions.x01-result-actions #daResultClose{grid-column:1/-1}
 body.match-page.da-result-open .video-card .video-name,
@@ -30,13 +34,29 @@ body.match-page.da-result-open .video-slot-label{opacity:0!important;visibility:
 .da-result-statcard.da-result-winner-first{order:1}
 .da-result-statcard.da-result-runner-up{order:2}
 @media(max-width:600px){
- .stats-grid{grid-template-columns:100px 1fr 1fr}.stats-grid>*{padding:7px 5px;font-size:12px}
+ .da-live-stats-overlay{padding:10px}
+ .da-live-stats-dialog{width:100%;max-height:92dvh;padding:13px;border-radius:15px}
+ .da-live-stats-title h2{font-size:19px}
+ .da-live-stats-close{min-width:72px;padding-left:10px!important;padding-right:10px!important}
+ .stats-grid{grid-template-columns:92px minmax(0,1fr) minmax(0,1fr)}.stats-grid>*{padding:8px 5px;font-size:11px}
+ .stats-grid .label,.stats-grid .head{font-size:10px}
  .da-result-actions.x01-result-actions{grid-template-columns:1fr}.da-result-actions.x01-result-actions #daResultClose{grid-column:auto}
  .da-result-statlist.x01-expanded-statlist{column-gap:10px}
  .da-result-statlist.x01-expanded-statlist .da-result-statrow span{font-size:9px}
  .da-result-statlist.x01-expanded-statlist .da-result-statrow b{font-size:13px}
 }`;document.head.appendChild(style);
- const host=document.querySelector('.match-grid');const live=document.createElement('section');live.className='card stats-card';live.innerHTML='<div class="stats-title"><h3>Live-statistikk</h3><small>HELE KAMPEN</small></div><div id="liveStats"></div>';host?.insertAdjacentElement('afterend',live);
+ const actions=document.querySelector('.match-head .top-actions');
+ const statsBtn=document.createElement('button');statsBtn.id='liveStatsBtn';statsBtn.type='button';statsBtn.className='outline da-live-stats-btn';statsBtn.textContent='Statistikk';
+ const overlay=document.createElement('div');overlay.id='liveStatsOverlay';overlay.className='da-live-stats-overlay hidden';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','liveStatsTitle');
+ overlay.innerHTML='<section class="da-live-stats-dialog"><div class="da-live-stats-head"><div class="da-live-stats-title"><small>HELE KAMPEN</small><h2 id="liveStatsTitle">Live-statistikk</h2></div><button id="liveStatsClose" type="button" class="outline da-live-stats-close">Lukk</button></div><div id="liveStats"></div></section>';
+ actions?.prepend(statsBtn);document.body.appendChild(overlay);
+ let lastStatsFocus=null;
+ function openLiveStats(){lastStatsFocus=document.activeElement;overlay.classList.remove('hidden');document.body.classList.add('da-live-stats-open');$('liveStatsClose')?.focus()}
+ function closeLiveStats(){overlay.classList.add('hidden');document.body.classList.remove('da-live-stats-open');if(lastStatsFocus?.focus)lastStatsFocus.focus()}
+ statsBtn.onclick=openLiveStats;
+ $('liveStatsClose').onclick=closeLiveStats;
+ overlay.addEventListener('click',event=>{if(event.target===overlay)closeLiveStats()});
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!overlay.classList.contains('hidden'))closeLiveStats()});
  function names(){return[$('matchName1')?.textContent||'Spiller 1',$('matchName2')?.textContent||'Spiller 2']}
  function statRows(s){return[['3-DART AVG',s.avg.toFixed(2)],['FIRST 9 AVG',s.first9.toFixed(2)],['HØYESTE UT',s.high||'–'],['RASKESTE LEG',s.fast?`${s.fast} piler`:'–'],['100+',s.c100],['140+',s.c140],['170+',s.c170],['180',s.c180]]}
  function grid(){const a=window.DartArenaX01Stats.statsFor(throws,match.player1_id),b=window.DartArenaX01Stats.statsFor(throws,match.player2_id),[n1,n2]=names(),rows=[['3-dart avg',a.avg.toFixed(2),b.avg.toFixed(2)],['First 9 AVG',a.first9.toFixed(2),b.first9.toFixed(2)],['Høyeste checkout',a.high||'–',b.high||'–'],['Raskeste leg',a.fast?`${a.fast} piler`:'–',b.fast?`${b.fast} piler`:'–'],['100+',a.c100,b.c100],['140+',a.c140,b.c140],['170+',a.c170,b.c170],['180',a.c180,b.c180]];return'<div class="stats-grid"><div></div><div class="val head">'+esc(n1)+'</div><div class="val head">'+esc(n2)+'</div>'+rows.map(r=>`<div class="label">${r[0]}</div><div class="val">${r[1]}</div><div class="val">${r[2]}</div>`).join('')+'</div>'}
