@@ -25,6 +25,9 @@
     frame=requestAnimationFrame(()=>{
       const rounds=[...bracket.querySelectorAll(':scope > .cup-round')];
       if(!rounds.length)return;
+      const firstRoundMatches=[...rounds[0].querySelectorAll('.cup-match')];
+      const large=rounds.length>=4||firstRoundMatches.length>=8;
+      bracket.classList.toggle('cup-bracket-large',large);
       if(window.matchMedia('(max-width:850px)').matches){resetMobile(rounds);return;}
 
       // Reset before measuring so old inline positions can never influence a new layout.
@@ -53,10 +56,10 @@
       const first=[...rounds[0].querySelectorAll('.cup-match')];
       if(!first.length)return;
       const all=[...bracket.querySelectorAll('.cup-match')];
-      const cardHeight=Math.max(96,...all.map(m=>m.offsetHeight));
-      const gap=16;
+      const cardHeight=Math.max(large?68:96,...all.map(m=>m.offsetHeight));
+      const gap=large?8:16;
       const pitch=cardHeight+gap;
-      const titleArea=42;
+      const titleArea=large?30:42;
       const baseCount=first.length;
       const totalHeight=titleArea+cardHeight+(baseCount-1)*pitch+4;
 
