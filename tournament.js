@@ -473,14 +473,23 @@ async function loadGroupLobby(){
   const groupLabel=$('groupLobby')?.querySelector('.heading small');
   if(groupLabel)groupLabel.textContent=archive?'PULJEHISTORIKK':'LIVE';
   $('groupProgress').textContent=archive?`${matches.length} puljekamper`:`${done} / ${matches.length} kamper ferdig`;
+  const collapseArchivedGroups=archive&&groups.length>=2;
   $('liveGroups').innerHTML=groups.map(g=>{
     const gp=players.filter(p=>p.group_id===g.id);
     const gm=matches.filter(m=>m.group_id===g.id);
     const table=standings(gp,gm);
     const qualify=g.advance_mode==='all'?table.length:Number(g.advance_count||0);
     const rounds=[...new Set(gm.map(m=>m.round_no))];
-    return `<div class="group-card"><div class="heading"><div><small>PULJE ${g.group_no}</small><h2>${gp.length} spillere</h2></div><div class="status">${tournamentIsChicago()? 'Chicago Style' : `${Number(tournament?.game)||501} • Best av ${g.best_of}`}</div></div><table class="standings"><thead><tr><th>#</th><th>Spiller</th><th>V</th><th>+/-</th><th>${tournamentIsChicago()?'Games':'Legs'}</th></tr></thead><tbody>${table.map((x,i)=>`<tr class="${i<qualify?'qualify':''}"><td>${i+1}</td><td>${esc(names[x.id]||'Spiller')}</td><td>${x.w}</td><td>${x.d>0?'+':''}${x.d}</td><td>${x.lf}</td></tr>`).join('')}</tbody></table>${rounds.map(r=>`<div class="round-block"><div class="round-title">Runde ${r}</div>${gm.filter(m=>m.round_no===r).map(matchHtml).join('')}</div>`).join('')}</div>`;
+    const roundHtml=rounds.map(r=>`<div class="round-block"><div class="round-title">Runde ${r}</div>${gm.filter(m=>m.round_no===r).map(matchHtml).join('')}</div>`).join('');
+    return `<div class="group-card"><div class="heading"><div><small>PULJE ${g.group_no}</small><h2>${gp.length} spillere</h2></div><div class="status">${tournamentIsChicago()? 'Chicago Style' : `${Number(tournament?.game)||501} • Best av ${g.best_of}`}</div></div><table class="standings"><thead><tr><th>#</th><th>Spiller</th><th>V</th><th>+/-</th><th>${tournamentIsChicago()?'Games':'Legs'}</th></tr></thead><tbody>${table.map((x,i)=>`<tr class="${i<qualify?'qualify':''}"><td>${i+1}</td><td>${esc(names[x.id]||'Spiller')}</td><td>${x.w}</td><td>${x.d>0?'+':''}${x.d}</td><td>${x.lf}</td></tr>`).join('')}</tbody></table><details class="group-matches-details" ${collapseArchivedGroups?'':'open'}><summary><span>Puljekamper</span><span class="group-match-summary-meta">${gm.length} kamper <span class="group-match-chevron" aria-hidden="true">⌄</span></span></summary><div class="group-rounds">${roundHtml}</div></details></div>`;
   }).join('');
+  if(collapseArchivedGroups){
+    const details=[...$('liveGroups').querySelectorAll('.group-matches-details')];
+    details.forEach(detail=>detail.addEventListener('toggle',()=>{
+      if(!detail.open)return;
+      details.forEach(other=>{if(other!==detail)other.open=false});
+    }));
+  }
 }
 
 function matchHtml(m){
