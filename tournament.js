@@ -469,6 +469,7 @@ async function loadGroupLobby(){
   }
   const done=matches.filter(m=>['finished','wo'].includes(m.status)).length;
   const archive=tournament?.status==='finished';
+  $('groupLobby')?.classList.toggle('group-archive-full',archive);
   const groupLabel=$('groupLobby')?.querySelector('.heading small');
   if(groupLabel)groupLabel.textContent=archive?'PULJEHISTORIKK':'LIVE';
   $('groupProgress').textContent=archive?`${matches.length} puljekamper`:`${done} / ${matches.length} kamper ferdig`;
