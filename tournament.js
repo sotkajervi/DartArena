@@ -83,6 +83,9 @@ async function boot(){
     $('leaderTransferBtn').disabled=!$('leaderTransferSelect').value;
   };
   $('leaderTransferBtn').onclick=transferTournamentLeader;
+  window.addEventListener('dartarena:tournament-refresh',()=>{
+    load().catch(error=>console.error('Tournament refresh failed',error));
+  });
   $('drawGroupsBtn').onclick=drawGroups;
   $('redrawGroupsBtn').onclick=drawGroups;
   $('startGroupsBtn').onclick=startGroups;
