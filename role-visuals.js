@@ -316,6 +316,7 @@
   };
   window.addEventListener('dartarena:lobby-entered',refreshAfterLogin);
   window.addEventListener('dartarena:lobby-ready',refreshAfterLogin);
+  window.addEventListener('dartarena:tournament-loaded',refreshAfterLogin);
   window.addEventListener('dartarena:lobby-left',()=>{
     roleByName.clear();
     scanNames();
