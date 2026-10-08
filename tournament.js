@@ -485,9 +485,10 @@ async function loadGroupLobby(){
   }).join('');
   if(collapseArchivedGroups){
     const details=[...$('liveGroups').querySelectorAll('.group-matches-details')];
+    details.forEach(detail=>{detail.open=false;detail.removeAttribute('open')});
     details.forEach(detail=>detail.addEventListener('toggle',()=>{
       if(!detail.open)return;
-      details.forEach(other=>{if(other!==detail)other.open=false});
+      details.forEach(other=>{if(other!==detail){other.open=false;other.removeAttribute('open')}});
     }));
   }
 }
