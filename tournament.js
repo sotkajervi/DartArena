@@ -90,7 +90,7 @@ async function boot(){
     .on('postgres_changes',{event:'*',schema:'public',table:'tournaments',filter:`id=eq.${id}`},load)
     .on('postgres_changes',{event:'*',schema:'public',table:'tournament_members',filter:`tournament_id=eq.${id}`},load)
     .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${id}`},()=>{
-      if(tournament?.status==='groups')loadGroupLobby();
+      if(tournament?.status==='groups'||(tournament?.status==='finished'&&tournament?.tournament_type==='groups_cup'))loadGroupLobby();
     })
     .subscribe();
 
@@ -129,7 +129,7 @@ async function load(){
   }
 
   renderPage();
-  if(t.status==='groups')await loadGroupLobby();
+  if(t.status==='groups'||(t.status==='finished'&&t.tournament_type==='groups_cup'))await loadGroupLobby();
   window.dispatchEvent(new CustomEvent('dartarena:tournament-loaded',{detail:{id:t.id,status:t.status,gameVariant:t.game_variant||'x01',cupGameVariant:t.cup_game_variant||t.game_variant||'x01'}}));
 }
 
@@ -158,7 +158,7 @@ function renderPage(){
   $('ownerActions').classList.toggle('hidden',!owner||!active);
   $('closeRegistrationBtn').classList.toggle('hidden',!open);
   $('groupSetup').classList.toggle('hidden',!(owner&&t.status==='groups_setup'));
-  $('groupLobby').classList.toggle('hidden',t.status!=='groups');
+  $('groupLobby').classList.toggle('hidden',!(t.status==='groups'||(t.status==='finished'&&t.tournament_type==='groups_cup')));
 
   if(t.status==='cancelled')$('tInfo').textContent='Turneringen er avbrutt av turneringsleder.';
   else if(open)$('tInfo').textContent='Spillere og turneringsleder kan melde seg på og av frem til påmeldingen stenges.';
@@ -433,7 +433,10 @@ async function loadGroupLobby(){
     Object.assign(names,Object.fromEntries((p||[]).map(x=>[x.id,x.username])));
   }
   const done=matches.filter(m=>['finished','wo'].includes(m.status)).length;
-  $('groupProgress').textContent=`${done} / ${matches.length} kamper ferdig`;
+  const archive=tournament?.status==='finished';
+  const groupLabel=$('groupLobby')?.querySelector('.heading small');
+  if(groupLabel)groupLabel.textContent=archive?'PULJEHISTORIKK':'LIVE';
+  $('groupProgress').textContent=archive?`${matches.length} puljekamper`:`${done} / ${matches.length} kamper ferdig`;
   $('liveGroups').innerHTML=groups.map(g=>{
     const gp=players.filter(p=>p.group_id===g.id);
     const gm=matches.filter(m=>m.group_id===g.id);
