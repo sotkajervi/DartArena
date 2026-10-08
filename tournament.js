@@ -473,7 +473,7 @@ async function loadGroupLobby(){
   const groupLabel=$('groupLobby')?.querySelector('.heading small');
   if(groupLabel)groupLabel.textContent=archive?'PULJEHISTORIKK':'LIVE';
   $('groupProgress').textContent=archive?`${matches.length} puljekamper`:`${done} / ${matches.length} kamper ferdig`;
-  const collapseArchivedGroups=archive&&groups.length>=2;
+  const collapseArchivedGroups=archive;
   $('liveGroups').innerHTML=groups.map(g=>{
     const gp=players.filter(p=>p.group_id===g.id);
     const gm=matches.filter(m=>m.group_id===g.id);
