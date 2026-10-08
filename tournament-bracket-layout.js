@@ -7,6 +7,7 @@
 
   function resetMobile(rounds){
     bracket.style.minHeight='';
+    bracket.style.gridTemplateColumns='';
     rounds.forEach(round=>{
       round.style.position='';
       round.style.display='';
@@ -29,6 +30,7 @@
       const large=rounds.length>=4||firstRoundMatches.length>=8;
       bracket.classList.toggle('cup-bracket-large',large);
       if(window.matchMedia('(max-width:850px)').matches){resetMobile(rounds);return;}
+      bracket.style.gridTemplateColumns=`repeat(${rounds.length},minmax(0,1fr))`;
 
       // Reset before measuring so old inline positions can never influence a new layout.
       rounds.forEach(round=>{
