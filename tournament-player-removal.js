@@ -62,7 +62,8 @@
     try{
       document.querySelectorAll('.tournament-remove-player').forEach(button=>button.remove());
       await refreshPermission();
-      if(!canManage||tournament?.status!=='groups')return;
+      if(!canManage||!['registration','groups'].includes(tournament?.status))return;
+      const duringRegistration=tournament.status==='registration';
 
       const {data:members,error}=await db.from('tournament_members')
         .select('user_id,role,joined_at')
@@ -89,20 +90,20 @@
       if(!rows.length)return;
 
       display.forEach((entry,index)=>{
-        if(!participantIds.has(entry.user_id))return;
+        if(!participantIds.has(entry.user_id)||entry.user_id===tournament.owner_id)return;
         const row=rows[index];
         if(!row)return;
         const button=document.createElement('button');
         button.type='button';
         button.className='small-btn tournament-remove-player';
         button.textContent='Fjern';
-        button.title='Fjern spiller fra pågående puljespill';
+        button.title=duringRegistration?'Fjern spiller fra påmeldingen':'Fjern spiller fra pågående puljespill';
         button.dataset.userId=entry.user_id;
         const playerName=names[entry.user_id]||'spilleren';
         button.addEventListener('click',event=>{
           event.preventDefault();
           event.stopPropagation();
-          removePlayer(entry.user_id,playerName,button);
+          removePlayer(entry.user_id,playerName,button,duringRegistration?'registration':'groups');
         });
         row.appendChild(button);
       });
@@ -111,10 +112,13 @@
     }
   }
 
-  async function removePlayer(userId,playerName,button){
+  async function removePlayer(userId,playerName,button,phase){
     if(button.disabled)return;
     const dialog=await getDialog();
-    const message=`Fjerne ${playerName} fra turneringen?\n\nAlle puljekamper mot spilleren – også resultater som allerede er spilt – fjernes fra puljen og tabellen. En eventuell aktiv kamp stoppes.\n\nDette kan ikke angres.`;
+    const registration=phase==='registration';
+    const message=registration
+      ?`Fjerne ${playerName} fra påmeldingen?\n\nSpilleren fjernes fra deltakerlisten. Ingen kamper eller resultater endres. Spilleren kan melde seg på igjen hvis påmeldingen fortsatt er åpen.`
+      :`Fjerne ${playerName} fra turneringen?\n\nAlle puljekamper mot spilleren – også resultater som allerede er spilt – fjernes fra puljen og tabellen. En eventuell aktiv kamp stoppes.\n\nDette kan ikke angres.`;
     const ok=dialog
       ?await dialog.confirm(message,{title:'Fjern spiller',tone:'danger',confirmText:'Fjern'})
       :window.confirm(message);
@@ -124,7 +128,7 @@
     button.disabled=true;
     button.textContent='Fjerner…';
     try{
-      const {data,error}=await db.rpc('remove_tournament_group_player',{
+      const {data,error}=await db.rpc(registration?'remove_tournament_registered_player':'remove_tournament_group_player',{
         p_tournament_id:tournamentId,
         p_user_id:userId
       });
@@ -134,11 +138,15 @@
         ?`${playerName} er fjernet. ${removedPlayed} allerede startet/ferdig puljekamp${removedPlayed===1?'':'er'} mot spilleren ble også fjernet.`
         :`${playerName} er fjernet fra turneringen.`;
       if(dialog)await dialog.alert(info,{title:'Spiller fjernet'});
+      window.dispatchEvent(new CustomEvent('dartarena:tournament-refresh'));
       scheduleDecorate(80);
     }catch(error){
       const raw=String(error?.message||'Kunne ikke fjerne spilleren.');
       const msg=raw
         .replace('Players can only be removed while group play is active','Spillere kan bare fjernes mens puljespillet pågår.')
+        .replace('Registered players can only be removed during registration','Påmeldte kan bare fjernes før påmeldingsfasen er over.')
+        .replace('Transfer tournament leadership before removing the leader','Bytt turneringsleder før du fjerner vedkommende.')
+        .replace('Tournament matches or groups already exist','Turneringen har allerede opprettet puljer eller kamper.')
         .replace('Only admin, owner or tournament leader can remove a player','Kun Admin, Owner eller turneringsleder kan fjerne spillere.')
         .replace('Player is not a tournament participant','Spilleren er ikke lenger med i turneringen.')
         .replace('Tournament not found','Turneringen finnes ikke lenger.');
@@ -158,7 +166,12 @@
     ensureStyles();
     await decorate();
 
-    observer=new MutationObserver(()=>scheduleDecorate());
+    observer=new MutationObserver(records=>{
+      const rowsChanged=records.some(record=>
+        [...record.addedNodes,...record.removedNodes].some(node=>node.nodeType===1&&node.classList?.contains('player-row'))
+      );
+      if(rowsChanged)scheduleDecorate();
+    });
     observer.observe(participantList,{childList:true});
 
     channel=db.channel(`tournament-player-removal-${tournamentId}-${Math.random().toString(36).slice(2)}`)
