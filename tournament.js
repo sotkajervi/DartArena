@@ -79,6 +79,10 @@ async function boot(){
   $('leaveBtn').onclick=leave;
   $('closeRegistrationBtn').onclick=closeRegistration;
   $('cancelTournamentBtn').onclick=cancelTournament;
+  $('leaderTransferSelect').onchange=()=>{
+    $('leaderTransferBtn').disabled=!$('leaderTransferSelect').value;
+  };
+  $('leaderTransferBtn').onclick=transferTournamentLeader;
   $('drawGroupsBtn').onclick=drawGroups;
   $('redrawGroupsBtn').onclick=drawGroups;
   $('startGroupsBtn').onclick=startGroups;
@@ -133,6 +137,56 @@ async function load(){
   window.dispatchEvent(new CustomEvent('dartarena:tournament-loaded',{detail:{id:t.id,status:t.status,gameVariant:t.game_variant||'x01',cupGameVariant:t.cup_game_variant||t.game_variant||'x01'}}));
 }
 
+function renderLeaderTransfer(){
+  const select=$('leaderTransferSelect');
+  const button=$('leaderTransferBtn');
+  const hint=$('leaderTransferHint');
+  if(!select||!button||!hint||!tournament)return;
+  const isLeader=tournament.owner_id===me&&!['finished','cancelled'].includes(tournament.status);
+  const candidates=getParticipants().filter(x=>x.user_id!==tournament.owner_id);
+  const previous=select.value;
+  select.innerHTML='<option value="">Velg påmeldt deltaker</option>'+
+    candidates.sort((a,b)=>(names[a.user_id]||'').localeCompare(names[b.user_id]||'','nb'))
+      .map(x=>`<option value="${esc(x.user_id)}">${esc(names[x.user_id]||'Spiller')}</option>`).join('');
+  select.value=isLeader&&candidates.some(x=>x.user_id===previous)?previous:'';
+  select.disabled=!isLeader||!candidates.length;
+  button.disabled=!isLeader||!select.value;
+  hint.textContent=candidates.length
+    ?'Ny leder overtar styringen av turneringen. Du forblir deltaker hvis du er påmeldt.'
+    :'Ingen andre påmeldte deltakere å overføre til ennå.';
+}
+
+async function transferTournamentLeader(){
+  if(!tournament||tournament.owner_id!==me)return;
+  const newOwnerId=$('leaderTransferSelect')?.value;
+  if(!newOwnerId||!getParticipants().some(x=>x.user_id===newOwnerId))return;
+  const name=names[newOwnerId]||'denne deltakeren';
+  const dialog=await getDialog();
+  const message=`Overføre turneringslederrollen til ${name}?\n\n${name} vil overta styringen av turneringen. Du mister lederrollen, men forblir påmeldt som spiller hvis du er registrert. Overføringen fjerner deg ikke fra pågående kamper.`;
+  const ok=dialog
+    ?await dialog.confirm(message,{title:'Overfør turneringsleder',tone:'warning',confirmText:'Overfør lederrollen'})
+    :confirm(message);
+  if(!ok)return;
+
+  const button=$('leaderTransferBtn'),old=button.textContent;
+  button.disabled=true;
+  button.textContent='Overfører…';
+  try{
+    const {error}=await db.rpc('transfer_tournament_leader',{
+      p_tournament_id:id,
+      p_new_owner_id:newOwnerId
+    });
+    if(error)throw error;
+    await load();
+  }catch(e){
+    console.error('Could not transfer tournament leader',e);
+    alert('Kunne ikke overføre lederrollen: '+(e.message||e));
+  }finally{
+    button.textContent=old;
+    button.disabled=tournament?.owner_id!==me||!$('leaderTransferSelect')?.value;
+  }
+}
+
 function renderPage(){
   const t=tournament;
   if(!t)return;
@@ -156,6 +210,7 @@ function renderPage(){
   $('joinBtn').classList.toggle('hidden',!open||joined);
   $('leaveBtn').classList.toggle('hidden',!open||!joined);
   $('ownerActions').classList.toggle('hidden',!owner||!active);
+  renderLeaderTransfer();
   $('closeRegistrationBtn').classList.toggle('hidden',!open);
   $('groupSetup').classList.toggle('hidden',!(owner&&t.status==='groups_setup'));
   $('groupLobby').classList.toggle('hidden',!(t.status==='groups'||(t.status==='finished'&&t.tournament_type==='groups_cup')));
