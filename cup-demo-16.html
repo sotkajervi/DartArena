@@ -13,10 +13,10 @@
     .demo-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px}
     .demo-actions{display:flex;gap:8px;flex-wrap:wrap}
     .demo-note{margin:0 0 14px}
-    .cup-bracket{display:flex;gap:18px;overflow-x:auto;padding:12px 2px 20px;align-items:stretch;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
-    .cup-round{min-width:330px;flex:1 0 330px;max-width:400px;display:flex;flex-direction:column;justify-content:space-around;gap:14px;scroll-snap-align:start}
-    .cup-round-title{text-align:center;color:var(--cyan);font-weight:900;text-transform:uppercase;font-size:12px;letter-spacing:.08em;position:sticky;top:0}
-    .cup-match{border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.025);padding:9px;transition:.15s}
+    .cup-bracket{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:14px;overflow:visible;padding:12px 2px 20px;align-items:stretch}
+    .cup-round{min-width:0;width:auto;max-width:none;display:flex;flex-direction:column;justify-content:space-around;gap:14px}
+    .cup-round-title{text-align:center;color:var(--cyan);font-weight:900;text-transform:uppercase;font-size:12px;letter-spacing:.08em;position:sticky;top:0;white-space:nowrap}
+    .cup-match{min-width:0;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.025);padding:9px;transition:.15s}
     .cup-player{padding:7px 8px;border-radius:7px;font-weight:750;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px;min-height:35px}
     .cup-player.winner{color:var(--cyan);background:rgba(43,215,204,.08)}
     .cup-seed{display:inline-flex;align-items:center;justify-content:center;min-width:34px;padding:3px 6px;border-radius:7px;border:1px solid rgba(43,215,204,.35);background:rgba(43,215,204,.08);color:var(--cyan);font-size:10px;font-weight:950;letter-spacing:.04em;flex:0 0 auto}
@@ -24,13 +24,26 @@
     .cup-avg{color:var(--muted);font-size:8px;font-weight:900;letter-spacing:0;white-space:nowrap;text-align:right}
     .cup-player.winner .cup-avg{color:rgba(35,226,209,.78)}
     .cup-score{text-align:center;color:var(--text);font-size:18px;font-weight:950;padding:4px}
+    .cup-bracket.cup-bracket-large{gap:10px;padding-top:8px}
+    .cup-bracket.cup-bracket-large .cup-round-title{font-size:10px;letter-spacing:.045em}
+    .cup-bracket.cup-bracket-large .cup-match{padding:5px 6px;border-radius:9px}
+    .cup-bracket.cup-bracket-large .cup-player{min-height:27px;padding:4px 5px;gap:4px}
+    .cup-bracket.cup-bracket-large .cup-seed{min-width:29px;padding:2px 4px;font-size:8px}
+    .cup-bracket.cup-bracket-large .cup-name{font-size:11px;line-height:1.05}
+    .cup-bracket.cup-bracket-large .cup-avg{font-size:7px}
+    .cup-bracket.cup-bracket-large .cup-score{font-size:15px;line-height:1;padding:3px}
     .demo-winner{margin-top:12px;padding:12px 14px;border:1px solid rgba(43,215,204,.25);border-radius:12px;background:rgba(43,215,204,.05)}
     @media(max-width:850px){
       .demo-head{flex-direction:column}
       .demo-actions{width:100%}
       .demo-actions button{flex:1}
-      .cup-bracket{margin-left:-4px;margin-right:-4px}
-      .cup-round{min-width:min(92vw,380px);max-width:min(92vw,380px);flex-basis:min(92vw,380px)}
+      .cup-bracket,.cup-bracket.cup-bracket-large{display:grid;grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:1fr;gap:18px;overflow:visible;margin:0;padding:8px 0 16px}
+      .cup-round{width:100%;min-width:0;max-width:none}
+      .cup-round-title{position:static!important;margin-bottom:7px}
+      .cup-bracket.cup-bracket-large .cup-match{padding:8px}
+      .cup-bracket.cup-bracket-large .cup-player{min-height:35px;padding:7px 8px}
+      .cup-bracket.cup-bracket-large .cup-name{font-size:12px}
+      .cup-bracket.cup-bracket-large .cup-avg{font-size:7.5px}
       .cup-player{gap:5px;font-size:14px}
       .cup-name{font-size:12px}
       .cup-avg{font-size:7.5px}
@@ -109,6 +122,6 @@
     render();
   })();
   </script>
-  <script src="tournament-bracket-layout.js?v=20261008-cupdemo1"></script>
+  <script src="tournament-bracket-layout.js?v=20261008-noscr16"></script>
 </body>
 </html>
