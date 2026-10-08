@@ -18,6 +18,32 @@ body.match-page.match-tv-layout .match-info .focus-local-docked video{width:100%
 body.match-page.match-tv-layout .match-info .focus-local-docked .video-name{left:6px;bottom:5px;padding:3px 6px;font-size:9px}
 body.match-page.match-tv-layout .match-info .focus-local-docked #micBtn{right:5px;bottom:5px;padding:3px 5px;font-size:9px}
 
+/* X01 opponent turn: let Kampstatus + local preview fill the same vertical frame as the big camera. */
+body.match-page.match-tv-layout.standard-tv-layout.opponent-focus:not(:has(#cricketBoard)) .match-grid{
+  display:flex!important;
+  flex-direction:column!important;
+  height:calc(100dvh - 154px)!important;
+  max-height:calc(100dvh - 154px)!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+body.match-page.match-tv-layout.standard-tv-layout.opponent-focus:not(:has(#cricketBoard)) .score-card{
+  flex:0 0 auto!important;
+}
+body.match-page.match-tv-layout.standard-tv-layout.opponent-focus:not(:has(#cricketBoard)) .match-info{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:flex-start!important;
+}
+body.match-page.match-tv-layout.standard-tv-layout.opponent-focus:not(:has(#cricketBoard)) .match-info .focus-local-docked{
+  flex:1 1 auto!important;
+  height:auto!important;
+  min-height:82px!important;
+  max-height:none!important;
+}
+
 /* X01 scoreboard is deliberately oversized: players often read it from the oche, ~2.5 m away. */
 body.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-players{display:grid!important;grid-template-columns:1fr!important;gap:9px!important}
 body.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-player{padding:14px 13px!important;min-height:126px!important;display:flex!important;flex-direction:column!important;justify-content:center!important}
@@ -77,6 +103,7 @@ body.match-page.cricket-tv-layout.own-turn-focus .focus-input-dock .cricket-help
  body.match-page.match-tv-layout #matchView{grid-template-columns:300px minmax(0,1fr)}
  body.match-page.match-tv-layout #videoGrid{height:calc(100dvh - 144px)!important;min-height:0!important;max-height:calc(100dvh - 144px)!important}
  body.match-page.match-tv-layout .match-grid{max-height:calc(100dvh - 144px)}
+ body.match-page.match-tv-layout.standard-tv-layout.opponent-focus:not(:has(#cricketBoard)) .match-grid{height:calc(100dvh - 144px)!important;max-height:calc(100dvh - 144px)!important}
  body.match-page.match-tv-layout .match-info .focus-local-docked{height:92px!important}
  body.match-page.cricket-tv-layout .cricket-row{min-height:34px!important;grid-template-columns:1fr 68px 1fr!important}
  body.match-page.cricket-tv-layout .cricket-target{font-size:20px!important}
