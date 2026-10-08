@@ -402,6 +402,36 @@ function headToHead(a,b,matches){
   return m.winner_id===a?-1:m.winner_id===b?1:0;
 }
 
+async function groupMatchAverages(matches){
+  if(tournamentIsChicago())return new Map();
+  const completed=(matches||[]).filter(m=>m.status==='finished'&&!m.is_wo&&m.live_match_id);
+  const liveIds=[...new Set(completed.map(m=>m.live_match_id).filter(Boolean))];
+  if(!liveIds.length)return new Map();
+  const {data:visits,error}=await db.from('match_throws')
+    .select('match_id,player_id,score,is_checkout,darts_used')
+    .in('match_id',liveIds);
+  if(error){console.warn('Could not load group match averages',error);return new Map()}
+  const tournamentByLive=new Map(completed.map(m=>[m.live_match_id,m]));
+  const totals=new Map();
+  for(const visit of visits||[]){
+    const tm=tournamentByLive.get(visit.match_id);
+    if(!tm||![tm.player1_id,tm.player2_id].includes(visit.player_id))continue;
+    const key=`${tm.id}:${visit.player_id}`;
+    const row=totals.get(key)||{score:0,darts:0};
+    row.score+=Number(visit.score||0);
+    row.darts+=visit.is_checkout?Math.max(1,Number(visit.darts_used||3)):3;
+    totals.set(key,row);
+  }
+  const out=new Map();
+  for(const tm of completed){
+    for(const playerId of [tm.player1_id,tm.player2_id].filter(Boolean)){
+      const row=totals.get(`${tm.id}:${playerId}`);
+      if(row?.darts)out.set(`${tm.id}:${playerId}`,row.score/row.darts*3);
+    }
+  }
+  return out;
+}
+
 async function loadGroupLobby(){
   const [{data:groups,error:ge},{data:players,error:pe},{data:matches,error:me2}]=await Promise.all([
     db.from('tournament_groups').select('*').eq('tournament_id',id).order('group_no'),
@@ -432,6 +462,11 @@ async function loadGroupLobby(){
     const {data:p}=await db.from('profiles').select('id,username').in('id',missing);
     Object.assign(names,Object.fromEntries((p||[]).map(x=>[x.id,x.username])));
   }
+  const groupAvgs=await groupMatchAverages(matches);
+  for(const match of matches){
+    match._player1_avg=groupAvgs.get(`${match.id}:${match.player1_id}`)??null;
+    match._player2_avg=groupAvgs.get(`${match.id}:${match.player2_id}`)??null;
+  }
   const done=matches.filter(m=>['finished','wo'].includes(m.status)).length;
   const archive=tournament?.status==='finished';
   const groupLabel=$('groupLobby')?.querySelector('.heading small');
@@ -458,8 +493,9 @@ function matchHtml(m){
       ?`${Number(m.player1_legs||0)}–${Number(m.player2_legs||0)}`
       :'VS';
   const state=live?'LIVE':m.status==='finished'?'Ferdig':m.status==='wo'?'WO':'Klar';
+  const avg=v=>Number.isFinite(Number(v))&&Number(v)>0?`<span class="group-match-avg">${Number(v).toFixed(1).replace('.',',')} AVG</span>`:'';
   return `<div class="match-row ${live?'live-match':''}" data-match="${m.id}">
-    <div class="match-players"><strong>${p1}</strong><span class="muted">vs</span><strong>${p2}</strong></div>
+    <div class="match-players"><span class="group-match-player"><strong>${p1}</strong>${avg(m._player1_avg)}</span><span class="muted">vs</span><span class="group-match-player"><strong>${p2}</strong>${avg(m._player2_avg)}</span></div>
     <div class="match-meta"><div class="match-score">${score}</div><div class="match-state">${state}</div></div>
   </div>`;
 }
