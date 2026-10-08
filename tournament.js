@@ -505,8 +505,10 @@ function matchHtml(m){
       :'VS';
   const state=live?'LIVE':m.status==='finished'?'Ferdig':m.status==='wo'?'WO':'Klar';
   const avg=v=>Number.isFinite(Number(v))&&Number(v)>0?`<span class="group-match-avg">${Number(v).toFixed(1).replace('.',',')} AVG</span>`:'';
+  const p1Winner=done&&m.winner_id===m.player1_id;
+  const p2Winner=done&&m.winner_id===m.player2_id;
   return `<div class="match-row ${live?'live-match':''}" data-match="${m.id}">
-    <div class="match-players"><span class="group-match-player"><strong>${p1}</strong>${avg(m._player1_avg)}</span><span class="muted">vs</span><span class="group-match-player"><strong>${p2}</strong>${avg(m._player2_avg)}</span></div>
+    <div class="match-players"><span class="group-match-player ${p1Winner?'winner':''}"><strong>${p1}</strong>${avg(m._player1_avg)}</span><span class="muted">vs</span><span class="group-match-player ${p2Winner?'winner':''}"><strong>${p2}</strong>${avg(m._player2_avg)}</span></div>
     <div class="match-meta"><div class="match-score">${score}</div><div class="match-state">${state}</div></div>
   </div>`;
 }
