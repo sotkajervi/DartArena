@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071012">
+  <title>DartArena • 16-spiller cupdemo</title>
+  <link rel="stylesheet" href="style.css?v=20260928-ui2">
+  <link rel="stylesheet" href="dartboard-background.css?v=20260928-ui2">
+  <link rel="stylesheet" href="button-theme.css?v=20260930-buttons4">
+  <style>
+    .demo-wrap{max-width:1580px;margin:0 auto}
+    .demo-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px}
+    .demo-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .demo-note{margin:0 0 14px}
+    .cup-bracket{display:flex;gap:18px;overflow-x:auto;padding:12px 2px 20px;align-items:stretch;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+    .cup-round{min-width:330px;flex:1 0 330px;max-width:400px;display:flex;flex-direction:column;justify-content:space-around;gap:14px;scroll-snap-align:start}
+    .cup-round-title{text-align:center;color:var(--cyan);font-weight:900;text-transform:uppercase;font-size:12px;letter-spacing:.08em;position:sticky;top:0}
+    .cup-match{border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.025);padding:9px;transition:.15s}
+    .cup-player{padding:7px 8px;border-radius:7px;font-weight:750;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px;min-height:35px}
+    .cup-player.winner{color:var(--cyan);background:rgba(43,215,204,.08)}
+    .cup-seed{display:inline-flex;align-items:center;justify-content:center;min-width:34px;padding:3px 6px;border-radius:7px;border:1px solid rgba(43,215,204,.35);background:rgba(43,215,204,.08);color:var(--cyan);font-size:10px;font-weight:950;letter-spacing:.04em;flex:0 0 auto}
+    .cup-name{min-width:0;overflow:visible;text-overflow:clip;white-space:normal;line-height:1.12;overflow-wrap:normal;word-break:normal;font-size:13px}
+    .cup-avg{color:var(--muted);font-size:8px;font-weight:900;letter-spacing:0;white-space:nowrap;text-align:right}
+    .cup-player.winner .cup-avg{color:rgba(35,226,209,.78)}
+    .cup-score{text-align:center;color:var(--text);font-size:18px;font-weight:950;padding:4px}
+    .demo-winner{margin-top:12px;padding:12px 14px;border:1px solid rgba(43,215,204,.25);border-radius:12px;background:rgba(43,215,204,.05)}
+    @media(max-width:850px){
+      .demo-head{flex-direction:column}
+      .demo-actions{width:100%}
+      .demo-actions button{flex:1}
+      .cup-bracket{margin-left:-4px;margin-right:-4px}
+      .cup-round{min-width:min(92vw,380px);max-width:min(92vw,380px);flex-basis:min(92vw,380px)}
+      .cup-player{gap:5px;font-size:14px}
+      .cup-name{font-size:12px}
+      .cup-avg{font-size:7.5px}
+      .cup-seed{min-width:32px}
+    }
+  </style>
+</head>
+<body>
+  <header><div class="brand">DART<span>ARENA</span></div><div class="live"><i></i> CUPDEMO</div></header>
+  <main class="shell">
+    <div class="demo-wrap">
+      <div class="demo-head">
+        <div><small>VISUELL TEST</small><h1>16 spillere • full cup</h1><p class="muted compact">Demoen bruker samme bracket-layout som turneringssiden, men lagrer ingenting.</p></div>
+        <div class="demo-actions"><button id="simulateBtn" class="primary" type="button">Simuler på nytt</button><button id="backBtn" class="outline" type="button">Til hovedlobby</button></div>
+      </div>
+      <section class="card">
+        <p class="muted demo-note">Åttedelsfinale • Bo5 → Kvartfinale • Bo5 → Semifinale • Bo7 → Finale • Bo9. Lange navn og AVG er med for å teste skaleringen.</p>
+        <div id="cupBracket" class="cup-bracket"></div>
+        <div id="demoWinner" class="demo-winner"></div>
+      </section>
+    </div>
+  </main>
+  <script>
+  (()=>{
+    const players=[
+      {name:'Alexander Bjørkås Henriksen',seed:'1P1'},
+      {name:'Harald Emanuel Vælitalo',seed:'4P4'},
+      {name:'Bjørn Sotkajærvi',seed:'2P3'},
+      {name:'Stian Stabell',seed:'3P2'},
+      {name:'Mikael Lindstrôm',seed:'1P2'},
+      {name:'Øystein Nilsen',seed:'4P3'},
+      {name:'Runar Saua',seed:'2P4'},
+      {name:'Tommy Bjørn',seed:'3P1'},
+      {name:'Kristoffer Johansen',seed:'1P3'},
+      {name:'Andreas Mikkelsen',seed:'4P2'},
+      {name:'Jan Roger Hansen',seed:'2P1'},
+      {name:'Thomas Andreassen',seed:'3P4'},
+      {name:'Kenneth Isaksen',seed:'1P4'},
+      {name:'Fredrik Mathisen',seed:'4P1'},
+      {name:'Steffen Pedersen',seed:'2P2'},
+      {name:'Martin Alexander Nilsen',seed:'3P3'}
+    ];
+    const roundDefs=[
+      {name:'Åttedelsfinale',bo:5},
+      {name:'Kvartfinale',bo:5},
+      {name:'Semifinale',bo:7},
+      {name:'Finale',bo:9}
+    ];
+    const bracket=document.getElementById('cupBracket');
+    const winnerBox=document.getElementById('demoWinner');
+    const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const makeAvg=()=>Math.round((42+Math.random()*35)*10)/10;
+    function play(a,b,bo){
+      const need=Math.ceil(bo/2);
+      let sa=0,sb=0;
+      while(sa<need&&sb<need){Math.random()<.5?sa++:sb++}
+      return {a,b,sa,sb,winner:sa>sb?a:b,aAvg:makeAvg(),bAvg:makeAvg()};
+    }
+    function playerHtml(p,isWinner,value){
+      return '<div class="cup-player '+(isWinner?'winner':'')+'"><span class="cup-seed">'+esc(p.seed)+'</span><span class="cup-name">'+esc(p.name)+'</span><span class="cup-avg">'+String(value).replace('.',',')+' AVG</span></div>';
+    }
+    function render(){
+      let current=[...players],rounds=[];
+      for(const def of roundDefs){
+        const matches=[];
+        for(let i=0;i<current.length;i+=2)matches.push(play(current[i],current[i+1],def.bo));
+        rounds.push({def,matches});
+        current=matches.map(m=>m.winner);
+      }
+      bracket.innerHTML=rounds.map(({def,matches})=>'<div class="cup-round"><div class="cup-round-title">'+def.name.toUpperCase()+' • BO'+def.bo+'</div>'+matches.map(m=>'<div class="cup-match">'+playerHtml(m.a,m.winner===m.a,m.aAvg)+'<div class="cup-score">'+m.sa+'–'+m.sb+'</div>'+playerHtml(m.b,m.winner===m.b,m.bAvg)+'</div>').join('')+'</div>').join('');
+      const champ=rounds[rounds.length-1].matches[0].winner;
+      winnerBox.innerHTML='<small>DEMO-VINNER</small><div style="font-size:20px;font-weight:950;color:var(--cyan);margin-top:3px">'+esc(champ.name)+'</div>';
+    }
+    document.getElementById('simulateBtn').addEventListener('click',render);
+    document.getElementById('backBtn').addEventListener('click',()=>location.href='./');
+    render();
+  })();
+  </script>
+  <script src="tournament-bracket-layout.js?v=20261008-cupdemo1"></script>
+</body>
+</html>
