@@ -89,3 +89,69 @@
     min-height:44px;
   }
 }
+
+/* Mobile lobby: 2-by-2 top actions, shorter empty cards, no hidden prompt gap. */
+#lobbyView #acceptedRoomPrompt[hidden]{display:none!important;margin:0!important}
+#lobbyView #acceptedRoomPrompt:empty{display:none!important}
+@media(max-width:760px){
+  #lobbyView .lobby-top .top-actions{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    width:100%;
+    gap:8px;
+  }
+  #lobbyView .lobby-top .top-actions > button{
+    width:100%;
+    min-width:0;
+    min-height:44px;
+    padding:8px 8px!important;
+    font-size:12px;
+    line-height:1.2;
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+  #lobbyView .lobby-grid{
+    gap:14px;
+    align-items:start;
+  }
+  #lobbyView .lobby-grid > .card{
+    min-width:0;
+    padding:17px 18px;
+  }
+  #lobbyView .lobby-grid > .card .heading{
+    margin-bottom:10px;
+  }
+  #lobbyView .lobby-grid > .card .heading h2{
+    font-size:22px;
+  }
+  #lobbyView .lobby-grid > .card:first-child > .muted.compact{
+    margin:0;
+    font-size:12px;
+    line-height:1.4;
+  }
+  #lobbyView #playerList,
+  #lobbyView #challengeList,
+  #lobbyView #sentChallengeList{
+    margin-top:8px;
+    gap:8px;
+  }
+  #lobbyView #playerList > p.muted,
+  #lobbyView #challengeList > p.muted,
+  #lobbyView #sentChallengeList > p.muted{
+    margin:0;
+    padding:3px 0 0;
+    font-size:13px;
+    line-height:1.45;
+  }
+  #lobbyView .lobby-grid > .card:nth-child(2) > small{
+    display:block;
+    margin-top:11px;
+    font-size:10px;
+  }
+  #lobbyView #challengeList + div{
+    margin-top:12px!important;
+  }
+  #lobbyView #challengeList + div > small{
+    font-size:10px;
+  }
+}
