@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="button-theme.css?v=20261009-brandcyan1">
   <link rel="stylesheet" href="jdc-tier.css?v=20260930-jdc1">
   <style>
-    .form-wrap{max-width:1240px;margin:0 auto}.form-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px}.form-head h1{margin-bottom:6px}.form-info{margin-bottom:16px;line-height:1.5}.form-table-wrap{overflow-x:auto;border:1px solid rgba(255,255,255,.08);border-radius:16px}.form-table{width:100%;border-collapse:collapse;min-width:1020px}.form-table th,.form-table td{padding:13px 12px;border-bottom:1px solid rgba(255,255,255,.065);text-align:center;white-space:nowrap}.form-table th:first-child,.form-table td:first-child{text-align:left}.form-table thead th{color:#00eaf4;font-size:12px;text-transform:uppercase;letter-spacing:.04em;background:rgba(5,16,18,.78);position:sticky;top:0}.form-table tbody tr:last-child td{border-bottom:0}.form-table tbody tr:hover{background:rgba(0,234,244,.035)}.form-rank{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(0,234,244,.09);color:#00eaf4;font-size:12px;font-weight:900;margin-right:9px}.form-player{font-weight:900}.form-avg{font-size:19px;font-weight:950;color:#00eaf4}.form-first9{font-weight:850}.form-sub{display:block;color:var(--muted);font-size:11px;font-weight:600;margin-top:3px}.form-empty{text-align:center;padding:28px 10px}.form-updated{text-align:right;margin-top:10px;color:var(--muted);font-size:12px}@media(max-width:650px){.form-head{flex-direction:column}.form-head .top-actions{width:100%}.form-head .top-actions button{width:100%}.form-table th,.form-table td{padding:11px 9px}}
+    .form-wrap{max-width:1240px;margin:0 auto}.form-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px}.form-head h1{margin-bottom:6px}.form-info{margin-bottom:16px;line-height:1.5}.form-table-wrap{overflow-x:auto;border:1px solid rgba(255,255,255,.08);border-radius:16px}.form-table{width:100%;border-collapse:collapse;min-width:1020px}.form-table th,.form-table td{padding:13px 12px;border-bottom:1px solid rgba(255,255,255,.065);text-align:center;white-space:nowrap}.form-table th:first-child,.form-table td:first-child{text-align:left}.form-table thead th{color:#00eaf4;font-size:12px;text-transform:uppercase;letter-spacing:.04em;background:rgba(5,16,18,.78);position:sticky;top:0}.form-table tbody tr:last-child td{border-bottom:0}.form-table tbody tr:hover{background:rgba(0,234,244,.035)}.form-rank{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(0,234,244,.09);color:#00eaf4;font-size:12px;font-weight:900;margin-right:9px}.form-player{font-weight:900}.form-avg{font-size:19px;font-weight:950;color:#00eaf4}.form-first9{font-weight:850}.form-sub{display:block;color:var(--muted);font-size:11px;font-weight:600;margin-top:3px}.form-empty{text-align:center;padding:28px 10px}.form-updated{text-align:right;margin-top:10px;color:var(--muted);font-size:12px}.form-scroll-hint{display:none}.form-table-frame{position:relative;min-width:0}.form-table-frame::before,.form-table-frame::after{content:"";position:absolute;z-index:2;top:0;bottom:0;width:34px;pointer-events:none;opacity:0;transition:opacity .15s ease}.form-table-frame::before{left:0;background:linear-gradient(to right,rgba(7,16,18,.94),transparent)}.form-table-frame::after{right:0;background:linear-gradient(to left,rgba(7,16,18,.94),transparent)}@media(max-width:760px){.form-scroll-hint:not([hidden]){display:flex;align-items:center;justify-content:center;gap:8px;width:max-content;max-width:100%;margin:0 0 10px;padding:8px 12px;border:1px solid rgba(0,234,244,.4);border-radius:10px;background:rgba(0,234,244,.1);color:#00eaf4;font-size:12px;font-weight:850;line-height:1.3;letter-spacing:.015em;text-align:center}.form-scroll-hint .form-scroll-icon{font-size:16px;line-height:1}.form-table-frame.can-scroll-left::before,.form-table-frame.can-scroll-right::after{opacity:1}}@media(max-width:650px){.form-head{flex-direction:column}.form-head .top-actions{width:100%}.form-head .top-actions button{width:100%}.form-table th,.form-table td{padding:11px 9px}}
   </style>
 <link rel="stylesheet" href="brand-header.css?v=20261009-mobile1"></head>
 <body>
@@ -24,18 +24,23 @@
       <section class="card">
         <p class="muted form-info">Basert på spillerens <strong>siste 5 fullførte turneringer med registrerte 501-kast og Form stats slått på</strong>. Turneringer merket Form stats AV, 301, 1001, onlinekamper, trening, WO og BYE teller ikke. 100+, 140+ og 170+ er separate intervaller. Farget prikk ved navnet viser spillerens beste JDC Challenge-tier.</p>
         <div id="formState" class="form-empty muted">Laster formstatistikk…</div>
-        <div id="formTableWrap" class="form-table-wrap hidden">
-          <table class="form-table">
-            <thead><tr><th>Spiller</th><th>Form AVG</th><th>First 9</th><th>100+</th><th>140+</th><th>170+</th><th>180</th><th>Høyeste CO</th><th>Raskeste leg</th><th>Kamper</th><th>Legs</th><th>Turn.</th></tr></thead>
-            <tbody id="formTableBody"></tbody>
-          </table>
+        <div id="formScrollHint" class="form-scroll-hint" hidden>
+          <span class="form-scroll-icon" aria-hidden="true">↔</span><span id="formScrollHintText">Sveip mot venstre for flere stats</span><span aria-hidden="true">→</span>
+        </div>
+        <div id="formTableFrame" class="form-table-frame">
+          <div id="formTableWrap" class="form-table-wrap hidden" tabindex="0" aria-label="Formstatistikk. Sveip sideveis for flere kolonner" aria-describedby="formScrollHint">
+            <table class="form-table">
+              <thead><tr><th>Spiller</th><th>Form AVG</th><th>First 9</th><th>100+</th><th>140+</th><th>170+</th><th>180</th><th>Høyeste CO</th><th>Raskeste leg</th><th>Kamper</th><th>Legs</th><th>Turn.</th></tr></thead>
+              <tbody id="formTableBody"></tbody>
+            </table>
+          </div>
         </div>
         <div id="formUpdated" class="form-updated"></div>
       </section>
     </div>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
-  <script src="form-stats.js?v=20260930-jdc1"></script>
+  <script src="form-stats.js?v=20261010-mobile-swipe1"></script>
   <script src="role-visuals.js?v=20260930-solo1"></script>
   <script src="brand-home.js?v=20261001-home1"></script>
 </body>

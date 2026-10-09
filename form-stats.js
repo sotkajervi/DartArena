@@ -20,6 +20,34 @@ function tierDot(row){
   return `<span class="jdc-tier-dot" data-jdc-tier="${esc(badge)}" title="JDC Challenge: ${esc(label)} • beste ${score}"></span>`;
 }
 
+function setupFormStatsScrollHint(){
+  const wrap=$('formTableWrap');
+  const frame=$('formTableFrame');
+  const hint=$('formScrollHint');
+  const text=$('formScrollHintText');
+  const mobile=window.matchMedia('(max-width: 760px)');
+  const update=()=>{
+    const overflow=wrap.scrollWidth>wrap.clientWidth+8;
+    const visible=mobile.matches&&!wrap.classList.contains('hidden')&&overflow;
+    hint.hidden=!visible;
+    const left=Math.max(0,wrap.scrollLeft);
+    const right=Math.max(0,wrap.scrollWidth-wrap.clientWidth-wrap.scrollLeft);
+    frame.classList.toggle('can-scroll-left',visible&&left>8);
+    frame.classList.toggle('can-scroll-right',visible&&right>8);
+    if(!visible)return;
+    text.textContent=right<=8?'Sveip mot høyre for spillerne':left<=8?'Sveip mot venstre for flere stats':'Sveip sideveis for flere stats';
+  };
+  wrap.addEventListener('scroll',update,{passive:true});
+  window.addEventListener('resize',update);
+  if('ResizeObserver'in window){
+    const observer=new ResizeObserver(update);
+    observer.observe(wrap);
+    observer.observe(wrap.querySelector('table'));
+  }
+  return update;
+}
+const updateFormStatsScrollHint=setupFormStatsScrollHint();
+
 async function boot(){
   const {data:{session}}=await db.auth.getSession();
   if(!session)return location.replace('./');
@@ -62,6 +90,7 @@ async function boot(){
 
   $('formState').classList.add('hidden');
   $('formTableWrap').classList.remove('hidden');
+  requestAnimationFrame(updateFormStatsScrollHint);
   $('formUpdated').textContent=`Oppdatert ${new Intl.DateTimeFormat('nb-NO',{hour:'2-digit',minute:'2-digit'}).format(new Date())}`;
 }
 
