@@ -44,7 +44,7 @@ body.match-page .match-player .match-legs{
   justify-self:end;
   align-self:start;
   margin:5px 0 0!important;
-  color:var(--cyan)!important;
+  color:#00eaf4!important;
   font-size:26px!important;
   font-weight:950!important;
   line-height:1!important;

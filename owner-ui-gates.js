@@ -18,7 +18,7 @@
       html.da-admin-not-owner [data-delete-id],
       html.da-admin-not-owner [data-restore-id]{display:none!important}
       html.da-admin-no-result-override .edit-result-btn{display:none!important}
-      .admin-badge.owner-badge{color:var(--cyan)!important;border-color:rgba(35,226,209,.55)!important;background:rgba(35,226,209,.12)!important}
+      .admin-badge.owner-badge{color:#00eaf4!important;border-color:rgba(35,226,209,.55)!important;background:rgba(35,226,209,.12)!important}
     `;
     document.head.appendChild(style);
   }

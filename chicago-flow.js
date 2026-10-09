@@ -51,7 +51,7 @@
           line-height:1.15;
           font-weight:950;
           letter-spacing:.035em;
-          color:var(--cyan);
+          color:#00eaf4;
           text-align:center;
           white-space:nowrap;
         }

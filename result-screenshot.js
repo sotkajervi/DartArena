@@ -6,7 +6,7 @@
 .share-result-overlay{position:fixed;inset:0;z-index:20000;background:#030a0c;overflow:hidden;display:block}
 .share-result-close{position:absolute;right:12px;top:10px;z-index:2;padding:7px 14px;font-size:12px}
 .share-result-card{position:absolute;transform-origin:top left;background:#071416;color:#eef8f8;border:1px solid #245154;border-radius:16px;padding:20px;box-sizing:border-box;box-shadow:0 24px 80px rgba(0,0,0,.58),0 0 36px rgba(35,226,209,.10)}
-.share-result-brand{font-size:18px;font-weight:950;letter-spacing:2px;margin-bottom:12px}.share-result-brand span{color:#23e2d1}
+.share-result-brand{font-size:18px;font-weight:950;letter-spacing:2px;margin-bottom:12px}.share-result-brand span{color:#00eaf4}
 .share-result-card main{width:100%;max-width:none;margin:0;padding:0}
 .share-result-card .top-actions,.share-result-card button,.share-result-card .spectator-videos,.share-result-card .stats-details,.share-result-card .da-result-actions,.share-result-card .da-result-note{display:none!important}
 .share-result-card .da-result-card{width:100%;max-height:none;overflow:visible;border:0;background:transparent;box-shadow:none;padding:0}

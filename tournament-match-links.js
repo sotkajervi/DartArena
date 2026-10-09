@@ -11,8 +11,8 @@ function ensureTournamentMatchStyles(){
     .match-row.match-locked:hover,.cup-match.match-locked:hover{border-color:rgba(255,255,255,.08);background:rgba(255,255,255,.025)}
     .cup-match.my-tournament-match.match-locked,.cup-match.my-tournament-match.match-locked:hover{border-color:var(--cyan);box-shadow:inset 0 0 0 1px rgba(35,226,209,.95),0 0 18px rgba(35,226,209,.24),0 0 32px rgba(35,226,209,.10)}
     .cup-match .match-access-label{display:block;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.06);text-align:center;color:var(--muted);font-size:10px;font-weight:850;letter-spacing:.05em;text-transform:uppercase}
-    .cup-match.my-tournament-match .match-access-label{color:var(--cyan)}
-    .match-row.my-tournament-match .match-state{color:var(--cyan);font-weight:850}
+    .cup-match.my-tournament-match .match-access-label{color:#00eaf4}
+    .match-row.my-tournament-match .match-state{color:#00eaf4;font-weight:850}
     .match-row.match-locked .match-state{color:var(--muted)}
   `;document.head.appendChild(s);
 }

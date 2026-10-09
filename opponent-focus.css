@@ -49,7 +49,7 @@ body.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-players{display:
 body.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-player{padding:14px 13px!important;min-height:126px!important;display:flex!important;flex-direction:column!important;justify-content:center!important}
 body.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-name{font-size:16px!important;font-weight:850!important;line-height:1.1!important}
 body.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-score{font-size:clamp(68px,5.2vw,88px)!important;line-height:.86!important;margin:9px 0 7px!important;font-weight:950!important;letter-spacing:-.045em!important;font-variant-numeric:tabular-nums!important;text-shadow:0 2px 18px rgba(0,0,0,.32)}
-body.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-player.active .match-score{color:var(--cyan)!important;text-shadow:0 0 22px rgba(35,226,209,.22)}
+body.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-player.active .match-score{color:#00eaf4!important;text-shadow:0 0 22px rgba(35,226,209,.22)}
 body.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-sets{font-size:15px!important}
 body.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-legs{font-size:14px!important;font-weight:800!important}
 body.match-page.match-tv-layout:not(:has(#cricketBoard)) .turn-text{margin:9px 0 4px!important;font-size:15px!important;font-weight:850!important;text-align:left!important}

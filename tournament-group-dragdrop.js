@@ -31,7 +31,7 @@
     const preview = $('groupPreview');
     preview.innerHTML = `<p class="muted compact group-drag-help">Trekningen er tilfeldig. Dra spillere mellom puljene eller opp/ned før du starter puljespillet.</p>` +
       drawnGroups.map((group, gi) => `<div class="player-row group-drop-zone" data-group="${gi}" style="display:block">
-        <div class="player-name" style="color:var(--cyan);margin-bottom:8px">Pulje ${gi + 1} <span class="status">(${group.length})</span></div>
+        <div class="player-name" style="color:#00eaf4;margin-bottom:8px">Pulje ${gi + 1} <span class="status">(${group.length})</span></div>
         <div class="group-drop-list" data-group="${gi}">${group.map((p, pi) => playerRow(p, gi, pi)).join('') || '<div class="group-empty">Slipp spiller her</div>'}</div>
       </div>`).join('');
 

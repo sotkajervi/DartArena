@@ -13,7 +13,7 @@ async function boot(){
 .da-live-stats-overlay.hidden{display:none!important}
 .da-live-stats-dialog{width:min(760px,96vw);max-height:min(86dvh,760px);overflow:auto;border:1px solid rgba(35,226,209,.34);border-radius:18px;background:linear-gradient(180deg,rgba(10,25,28,.98),rgba(5,14,16,.99));box-shadow:0 28px 90px rgba(0,0,0,.62),0 0 0 1px rgba(35,226,209,.06);padding:18px}
 .da-live-stats-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
-.da-live-stats-title small{display:block;color:var(--cyan);font-size:10px;font-weight:950;letter-spacing:.11em;margin-bottom:3px}
+.da-live-stats-title small{display:block;color:#00eaf4;font-size:10px;font-weight:950;letter-spacing:.11em;margin-bottom:3px}
 .da-live-stats-title h2{margin:0;font-size:22px}
 .da-live-stats-close{min-width:86px}
 .stats-grid{display:grid;grid-template-columns:minmax(125px,180px) minmax(0,1fr) minmax(0,1fr);border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden;background:rgba(255,255,255,.018)}
@@ -21,7 +21,7 @@ async function boot(){
 .stats-grid>*:nth-last-child(-n+3){border-bottom:0}
 .stats-grid .label{color:#88a1a5;font-size:12px}
 .stats-grid .val{text-align:center;font-weight:900}
-.stats-grid .head{color:#23e2d1;font-size:12px;font-weight:900;overflow:hidden;text-overflow:ellipsis}
+.stats-grid .head{color:#00eaf4;font-size:12px;font-weight:900;overflow:hidden;text-overflow:ellipsis}
 body.da-live-stats-open{overflow:hidden!important}
 .da-result-actions.x01-result-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
 .da-result-actions.x01-result-actions #daResultClose{grid-column:1/-1}

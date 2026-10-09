@@ -23,7 +23,7 @@
       }
       .jdc-match-page #confirmTurnBtn{
         background:#102d30!important;
-        color:var(--cyan)!important;
+        color:#00eaf4!important;
         border:1px solid #2b6d6c!important;
         border-radius:10px;
         font-weight:900;

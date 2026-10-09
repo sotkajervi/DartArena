@@ -18,7 +18,7 @@
   const style=document.createElement('style');
   style.textContent=`
     #winnerText .jdc-finish-winner-line{display:block;line-height:1.2}
-    #winnerText .jdc-finish-score-line{display:block;margin-top:7px;font-size:1.35em;color:var(--cyan);font-weight:950}
+    #winnerText .jdc-finish-score-line{display:block;margin-top:7px;font-size:1.35em;color:#00eaf4;font-weight:950}
     #tierText .jdc-tier-text{font-weight:950}
   `;
   document.head.appendChild(style);

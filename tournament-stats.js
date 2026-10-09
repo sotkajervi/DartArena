@@ -38,7 +38,7 @@
       .tournament-stat-highlight{min-width:0;padding:11px 12px;border:1px solid rgba(43,215,204,.18);border-radius:12px;background:rgba(43,215,204,.035)}
       .tournament-stat-highlight small{display:block;color:var(--muted);font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
       .tournament-stat-highlight strong{display:block;color:var(--text);font-size:16px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      .tournament-stat-highlight span{display:block;color:var(--cyan);font-size:11px;font-weight:800;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .tournament-stat-highlight span{display:block;color:#00eaf4;font-size:11px;font-weight:800;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .tournament-stats-scroll{overflow-x:auto;overflow-y:hidden;max-width:100%;margin-top:14px;overscroll-behavior-inline:contain}
       .tournament-stats-table{width:max-content;min-width:100%;border-collapse:collapse}
       .tournament-stats-table th,.tournament-stats-table td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.07);text-align:center;white-space:nowrap}
@@ -46,9 +46,9 @@
       .tournament-stats-table th:nth-child(2),.tournament-stats-table td:nth-child(2){text-align:left;position:sticky;left:0;background:#091416;z-index:1}
       .tournament-stats-table tbody tr:hover td{background:rgba(43,215,204,.035)}
       .tournament-stats-table tbody tr:hover td:nth-child(2){background:#0b1a1c}
-      .stats-rank{color:var(--cyan);font-weight:900}
+      .stats-rank{color:#00eaf4;font-weight:900}
       .stats-player{font-weight:850;max-width:190px;overflow:hidden;text-overflow:ellipsis}
-      .stats-positive{color:var(--cyan);font-weight:850}
+      .stats-positive{color:#00eaf4;font-weight:850}
       .stats-negative{color:#ff8b93;font-weight:850}
       .stats-empty{padding:18px 0;color:var(--muted)}
       @media(max-width:900px){.tournament-stats-highlights{grid-template-columns:repeat(2,minmax(0,1fr))}.tournament-stat-highlight:last-child{grid-column:1/-1}}

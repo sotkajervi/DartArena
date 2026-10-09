@@ -22,7 +22,7 @@
     .da-result-legmeta{text-align:right;color:var(--muted);font-size:11px;white-space:nowrap}
     .da-result-setblock+.da-result-setblock{margin-top:10px}
     .da-result-sethead{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 8px;margin-top:7px;border:1px solid rgba(35,226,209,.18);border-radius:8px;background:rgba(35,226,209,.05)}
-    .da-result-sethead strong{color:var(--cyan);font-size:10px;letter-spacing:.11em}.da-result-sethead span{color:var(--muted);font-size:10px;font-weight:800}.da-result-sethead b{color:var(--text)}
+    .da-result-sethead strong{color:#00eaf4;font-size:10px;letter-spacing:.11em}.da-result-sethead span{color:var(--muted);font-size:10px;font-weight:800}.da-result-sethead b{color:var(--text)}
     .da-result-setlegrow{display:grid;grid-template-columns:52px 48px minmax(100px,1fr) auto;gap:8px;align-items:center;margin-top:5px;padding:6px 8px;border:1px solid rgba(255,255,255,.075);border-radius:8px;background:rgba(255,255,255,.015);font-size:11px}
     .da-result-setlegrow .set-leg-score{text-align:center;font-weight:950;font-size:12px}.da-result-setlegrow .da-result-legwinner{text-align:left}
     @media(max-width:640px){

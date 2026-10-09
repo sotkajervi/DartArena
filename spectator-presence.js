@@ -52,7 +52,7 @@
       .da-spectator-popover small{
         display:block;
         margin-bottom:7px;
-        color:var(--cyan);
+        color:#00eaf4;
         font-size:9px;
         font-weight:950;
         letter-spacing:.12em;

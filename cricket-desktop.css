@@ -153,7 +153,7 @@ body.match-page .cricket-history-head{
   padding:7px 10px;
   border-bottom:1px solid rgba(255,255,255,.065);
 }
-body.match-page .cricket-history-head strong{font-size:11px;letter-spacing:.08em;color:var(--cyan)}
+body.match-page .cricket-history-head strong{font-size:11px;letter-spacing:.08em;color:#00eaf4}
 body.match-page .cricket-history-head span{font-size:10px;color:var(--muted)}
 body.match-page .cricket-history-list{
   max-height:104px;
@@ -175,7 +175,7 @@ body.match-page .cricket-history-row.corrected{background:rgba(244,196,93,.035)}
 body.match-page .cricket-history-meta{color:var(--muted);font-weight:800}
 body.match-page .cricket-history-player{font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.match-page .cricket-history-marks{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#d8e6e7}
-body.match-page .cricket-history-points{text-align:right;color:var(--cyan);font-weight:900}
+body.match-page .cricket-history-points{text-align:right;color:#00eaf4;font-weight:900}
 body.match-page .cricket-history-edit{padding:4px 7px;font-size:10px}
 body.match-page .cricket-history-empty{padding:10px;color:var(--muted);font-size:11px}
 

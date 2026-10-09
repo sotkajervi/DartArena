@@ -422,7 +422,7 @@ function drawGroups(){
 }
 
 function renderGroups(){
-  $('groupPreview').innerHTML=drawnGroups.map((group,i)=>`<div class="player-row" style="display:block"><div class="player-name" style="color:var(--cyan);margin-bottom:8px">Pulje ${i+1}</div>${group.map((p,j)=>`<div class="status" style="padding:5px 0;color:var(--text)">${j+1}. ${esc(names[p.user_id]||'Spiller')}</div>`).join('')}</div>`).join('');
+  $('groupPreview').innerHTML=drawnGroups.map((group,i)=>`<div class="player-row" style="display:block"><div class="player-name" style="color:#00eaf4;margin-bottom:8px">Pulje ${i+1}</div>${group.map((p,j)=>`<div class="status" style="padding:5px 0;color:var(--text)">${j+1}. ${esc(names[p.user_id]||'Spiller')}</div>`).join('')}</div>`).join('');
 }
 
 function roundRobin(players){

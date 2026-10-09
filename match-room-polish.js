@@ -13,7 +13,7 @@
     .da-match-status-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:1px 0 10px}
     .da-match-status-row #matchStatus{margin:0!important;line-height:1.1}
     .da-match-live-badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:9px;font-weight:950;letter-spacing:.09em;line-height:1.3}
-    .da-match-live-badge.is-live{color:#23e2d1;border:1px solid rgba(35,226,209,.55);background:rgba(35,226,209,.10);box-shadow:0 0 11px rgba(35,226,209,.07)}
+    .da-match-live-badge.is-live{color:#00eaf4;border:1px solid rgba(35,226,209,.55);background:rgba(35,226,209,.10);box-shadow:0 0 11px rgba(35,226,209,.07)}
     .da-match-live-badge.is-private{color:#aab9bb;border:1px solid rgba(170,185,187,.30);background:rgba(255,255,255,.035)}
 
     body.match-page .match-name.da-role-owner,
@@ -21,7 +21,7 @@
     body.match-page .half-player-name.da-role-owner,
     body.match-page .sixty-one-player-name.da-role-owner,
     body.match-page .video-name.da-role-owner,
-    body.match-page .video-slot-label.da-role-owner{color:#23e2d1!important}
+    body.match-page .video-slot-label.da-role-owner{color:#00eaf4!important}
     body.match-page .match-name.da-role-admin,
     body.match-page .cricket-player-name.da-role-admin,
     body.match-page .half-player-name.da-role-admin,
@@ -48,7 +48,7 @@
     body.match-page .half-player-name.da-role-owner::after,
     body.match-page .sixty-one-player-name.da-role-owner::after,
     body.match-page .video-name.da-role-owner::after,
-    body.match-page .video-slot-label.da-role-owner::after{content:'OWNER';color:#23e2d1;border:1px solid rgba(35,226,209,.52);background:rgba(35,226,209,.10)}
+    body.match-page .video-slot-label.da-role-owner::after{content:'OWNER';color:#00eaf4;border:1px solid rgba(35,226,209,.52);background:rgba(35,226,209,.10)}
     body.match-page .match-name.da-role-admin::after,
     body.match-page .cricket-player-name.da-role-admin::after,
     body.match-page .half-player-name.da-role-admin::after,
