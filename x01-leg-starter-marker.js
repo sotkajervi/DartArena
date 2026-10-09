@@ -20,15 +20,15 @@
       flex:0 0 auto;
       width:34px;
       height:30px;
-      color:var(--cyan,#23e2d1);
-      filter:drop-shadow(0 0 5px rgba(35,226,209,.6));
+      color:var(--cyan,#00eaf4);
+      filter:drop-shadow(0 0 5px rgba(0,234,244,.6));
       opacity:.98;
       vertical-align:middle;
     }
     .da-leg-starter-dart svg{display:block;width:34px;height:30px;overflow:visible}
-    .da-leg-starter-dart .dart-flight{fill:rgba(35,226,209,.18);stroke:currentColor;stroke-width:1.05;stroke-linejoin:round}
+    .da-leg-starter-dart .dart-flight{fill:rgba(0,234,244,.18);stroke:currentColor;stroke-width:1.05;stroke-linejoin:round}
     .da-leg-starter-dart .dart-shaft{stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
-    .da-leg-starter-dart .dart-barrel{fill:rgba(35,226,209,.35);stroke:currentColor;stroke-width:1}
+    .da-leg-starter-dart .dart-barrel{fill:rgba(0,234,244,.35);stroke:currentColor;stroke-width:1}
     .da-leg-starter-dart .dart-grip{stroke:currentColor;stroke-width:.75;opacity:.8}
     .da-leg-starter-dart .dart-point{stroke:currentColor;stroke-width:1.15;stroke-linecap:round}
     @media(max-width:600px){

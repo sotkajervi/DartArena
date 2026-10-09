@@ -1,6 +1,6 @@
 body.half-it-page .half-result-overlay{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:20px;background:rgba(2,7,8,.86);backdrop-filter:blur(10px)}
 body.half-it-page .half-result-overlay.hidden{display:none!important}
-body.half-it-page .half-result-card{width:min(760px,96vw);border:1px solid rgba(35,226,209,.3);border-radius:22px;padding:28px;background:linear-gradient(145deg,#0d191c,#081214);box-shadow:0 30px 110px rgba(0,0,0,.72);text-align:center}
+body.half-it-page .half-result-card{width:min(760px,96vw);border:1px solid rgba(0,234,244,.3);border-radius:22px;padding:28px;background:linear-gradient(145deg,#0d191c,#081214);box-shadow:0 30px 110px rgba(0,0,0,.72);text-align:center}
 body.half-it-page .half-result-card h1{font-size:clamp(30px,5vw,54px);margin:6px 0 4px;color:#00eaf4}
 body.half-it-page .half-result-legs{font-size:24px;font-weight:950;color:#fff;margin:0 0 20px}
 body.half-it-page .half-result-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left}

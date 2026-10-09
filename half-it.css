@@ -1,17 +1,17 @@
 body.half-it-page .half-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start;margin-top:18px}
 body.half-it-page .half-scoreboard{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 body.half-it-page .half-player{border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:12px 14px;background:rgba(255,255,255,.025);min-width:0}
-body.half-it-page .half-player.active{border-color:rgba(35,226,209,.62);background:rgba(35,226,209,.055);box-shadow:0 0 0 1px rgba(35,226,209,.07) inset}
+body.half-it-page .half-player.active{border-color:rgba(0,234,244,.62);background:rgba(0,234,244,.055);box-shadow:0 0 0 1px rgba(0,234,244,.07) inset}
 body.half-it-page .half-player-name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.half-it-page .half-player-line{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:4px}
 body.half-it-page .half-score{font-size:40px;font-weight:950;line-height:1;color:#00eaf4}
 body.half-it-page .half-round{font-size:12px;color:var(--muted);font-weight:800}
-body.half-it-page .half-target-card{border:1px solid rgba(35,226,209,.24);background:rgba(35,226,209,.045);border-radius:14px;padding:12px 16px;margin-bottom:12px}
+body.half-it-page .half-target-card{border:1px solid rgba(0,234,244,.24);background:rgba(0,234,244,.045);border-radius:14px;padding:12px 16px;margin-bottom:12px}
 body.half-it-page .half-target-card h2{margin:4px 0 5px;font-size:40px;line-height:.95;font-weight:950;letter-spacing:-.02em;color:var(--text)}
 body.half-it-page .half-target-card p{margin:0}
 body.half-it-page .half-entry{border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:14px;background:rgba(5,13,15,.78)}
 body.half-it-page .half-darts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
-body.half-it-page .half-dart{min-height:42px;border:1px solid rgba(35,226,209,.3);border-radius:10px;background:rgba(35,226,209,.07);display:grid;place-items:center;font-weight:900;font-size:14px}
+body.half-it-page .half-dart{min-height:42px;border:1px solid rgba(0,234,244,.3);border-radius:10px;background:rgba(0,234,244,.07);display:grid;place-items:center;font-weight:900;font-size:14px}
 body.half-it-page .half-dart.empty{border-style:dashed;background:transparent;color:var(--muted)}
 body.half-it-page .half-quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
 body.half-it-page .half-number-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:8px}
@@ -27,7 +27,7 @@ body.half-it-page .half-history-table th,body.half-it-page .half-history-table t
 body.half-it-page .half-history-table th:first-child,body.half-it-page .half-history-table td:first-child{text-align:left;width:44%}
 body.half-it-page .half-history-table th{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 body.half-it-page .half-history-table td{font-weight:800}
-body.half-it-page .half-history-table tr.current{background:rgba(35,226,209,.045)}
+body.half-it-page .half-history-table tr.current{background:rgba(0,234,244,.045)}
 body.half-it-page .half-status-list{display:grid;gap:8px;margin-top:12px}
 body.half-it-page .half-status-row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
 body.half-it-page .half-status-row:last-child{border-bottom:0}

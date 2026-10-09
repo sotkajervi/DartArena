@@ -28,14 +28,14 @@
       .room-switch-control{display:flex;align-items:center;gap:8px;flex:0 0 auto}.room-switch-control input{position:absolute;opacity:0;pointer-events:none}
       .room-switch-track{position:relative;width:48px;height:27px;border-radius:999px;background:#263639;border:1px solid rgba(255,255,255,.16);box-shadow:inset 0 1px 4px rgba(0,0,0,.35);transition:.18s ease}
       .room-switch-track i{position:absolute;width:21px;height:21px;left:2px;top:2px;border-radius:50%;background:#dbe5e5;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:.18s ease}
-      .room-switch-control input:checked+.room-switch-track{background:rgba(35,226,209,.26);border-color:rgba(35,226,209,.68);box-shadow:inset 0 0 0 1px rgba(35,226,209,.13),0 0 13px rgba(35,226,209,.08)}
+      .room-switch-control input:checked+.room-switch-track{background:rgba(0,234,244,.26);border-color:rgba(0,234,244,.68);box-shadow:inset 0 0 0 1px rgba(0,234,244,.13),0 0 13px rgba(0,234,244,.08)}
       .room-switch-control input:checked+.room-switch-track i{transform:translateX(21px);background:var(--cyan)}
       .room-switch-control input:focus-visible+.room-switch-track{outline:2px solid var(--cyan);outline-offset:3px}
       .room-switch-state{min-width:24px;font-size:11px;letter-spacing:.06em;color:var(--muted)}
       .room-switch-control input:checked~.room-switch-state{color:#00eaf4}
       .room-proposal-flags{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 2px}
       .room-proposal-flag{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.14);font-size:10px;font-weight:950;letter-spacing:.07em}
-      .room-proposal-flag.live-on{color:#00eaf4;border-color:rgba(35,226,209,.45);background:rgba(35,226,209,.08)}
+      .room-proposal-flag.live-on{color:#00eaf4;border-color:rgba(0,234,244,.45);background:rgba(0,234,244,.08)}
       .room-proposal-flag.live-off{color:#aab9bb;background:rgba(255,255,255,.035)}
       .room-proposal-flag.warm-on{color:#ffd07a;border-color:rgba(255,190,80,.42);background:rgba(255,190,80,.08)}
       .room-proposal-flag.warm-off{color:#aab9bb;background:rgba(255,255,255,.035)}

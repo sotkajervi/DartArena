@@ -6,7 +6,7 @@
     'https://jqpxlbhwvskhjbqrbidk.supabase.co',
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
   );
-  const OWNER='#23e2d1',ADMIN='#ff9f43',LEADER='#4da3ff';
+  const OWNER='#00eaf4',ADMIN='#ff9f43',LEADER='#4da3ff';
   const roleByName=new Map();
   const NAME_SELECTOR='.player-name,.video-name,.match-name,.cricket-player-name,.half-player-name,.sixty-one-player-name,.spectate-name,.spectator-name,.history-player,.results-player,.highlight-name,.jdc-online-player span,#matchPlayer1Name,#matchPlayer2Name,.da-result-stat-name,.da-result-winner-name,.da-result-legwinner';
 
@@ -27,18 +27,18 @@
       #welcomeName{display:inline-block;vertical-align:middle}
       #welcomeRoleBadge{display:inline-flex;align-items:center;margin-left:9px;padding:3px 7px;border-radius:999px;font-size:10px;font-weight:950;letter-spacing:.1em;vertical-align:middle}
       #welcomeRoleBadge.admin-badge{color:${ADMIN}!important;border:1px solid rgba(255,159,67,.5)!important;background:rgba(255,159,67,.1)!important}
-      #welcomeRoleBadge.owner-badge{color:${OWNER}!important;border:1px solid rgba(35,226,209,.55)!important;background:rgba(35,226,209,.1)!important}
+      #welcomeRoleBadge.owner-badge{color:${OWNER}!important;border:1px solid rgba(0,234,244,.55)!important;background:rgba(0,234,244,.1)!important}
       .admin-badge,.owner-badge{display:inline-flex;align-items:center;margin-left:9px;padding:3px 7px;border-radius:999px;font-size:10px;font-weight:950;letter-spacing:.1em;vertical-align:middle}
       .admin-badge{color:${ADMIN}!important;border:1px solid rgba(255,159,67,.5)!important;background:rgba(255,159,67,.1)!important}
-      .owner-badge{color:${OWNER}!important;border:1px solid rgba(35,226,209,.55)!important;background:rgba(35,226,209,.1)!important}
+      .owner-badge{color:${OWNER}!important;border:1px solid rgba(0,234,244,.55)!important;background:rgba(0,234,244,.1)!important}
       .player-role-badge{display:inline-flex;align-items:center;margin-left:7px;padding:2px 6px;border-radius:999px;font-size:9px;font-weight:950;letter-spacing:.08em;vertical-align:middle;line-height:1.25}
-      .player-role-badge.owner{color:${OWNER};border:1px solid rgba(35,226,209,.5);background:rgba(35,226,209,.09)}
+      .player-role-badge.owner{color:${OWNER};border:1px solid rgba(0,234,244,.5);background:rgba(0,234,244,.09)}
       .player-role-badge.admin{color:${ADMIN};border:1px solid rgba(255,159,67,.5);background:rgba(255,159,67,.09)}
       #matchTitle .player-role-badge{transform:translateY(-1px)}
       .da-result-title .player-role-badge{font-size:10px;padding:3px 7px;margin-left:10px;transform:translateY(-5px)}
       .da-result-playerhead .player-role-badge{margin-left:6px}
       .jdc-online-player span.da-jdc-owner::after,.jdc-online-player span.da-jdc-admin::after{display:inline-block;margin-left:7px;padding:2px 6px;border-radius:999px;font-size:9px;font-weight:950;letter-spacing:.08em;vertical-align:2px;line-height:1.25}
-      .jdc-online-player span.da-jdc-owner::after{content:'OWNER';color:${OWNER};border:1px solid rgba(35,226,209,.5);background:rgba(35,226,209,.09)}
+      .jdc-online-player span.da-jdc-owner::after{content:'OWNER';color:${OWNER};border:1px solid rgba(0,234,244,.5);background:rgba(0,234,244,.09)}
       .jdc-online-player span.da-jdc-admin::after{content:'ADMIN';color:${ADMIN};border:1px solid rgba(255,159,67,.5);background:rgba(255,159,67,.09)}
     `;
     document.head.appendChild(style);

@@ -31,7 +31,7 @@
       }
       .jdc-match-page #confirmTurnBtn:not(:disabled):hover{
         border-color:var(--cyan)!important;
-        box-shadow:inset 0 0 18px rgba(35,226,209,.12);
+        box-shadow:inset 0 0 18px rgba(0,234,244,.12);
       }
       .jdc-match-page #confirmTurnBtn:disabled{opacity:.36!important;cursor:not-allowed}
       @media(max-width:620px){

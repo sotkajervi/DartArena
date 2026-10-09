@@ -35,7 +35,7 @@
       #cupLobby{overflow:hidden}
       #tournamentStats{position:relative;z-index:2;isolation:isolate;overflow:hidden;background:var(--card,rgba(7,16,18,.94))}
       .tournament-stats-highlights{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:14px}
-      .tournament-stat-highlight{min-width:0;padding:11px 12px;border:1px solid rgba(43,215,204,.18);border-radius:12px;background:rgba(43,215,204,.035)}
+      .tournament-stat-highlight{min-width:0;padding:11px 12px;border:1px solid rgba(0,234,244,.18);border-radius:12px;background:rgba(0,234,244,.035)}
       .tournament-stat-highlight small{display:block;color:var(--muted);font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
       .tournament-stat-highlight strong{display:block;color:var(--text);font-size:16px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .tournament-stat-highlight span{display:block;color:#00eaf4;font-size:11px;font-weight:800;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -44,7 +44,7 @@
       .tournament-stats-table th,.tournament-stats-table td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.07);text-align:center;white-space:nowrap}
       .tournament-stats-table th{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.045em}
       .tournament-stats-table th:nth-child(2),.tournament-stats-table td:nth-child(2){text-align:left;position:sticky;left:0;background:#091416;z-index:1}
-      .tournament-stats-table tbody tr:hover td{background:rgba(43,215,204,.035)}
+      .tournament-stats-table tbody tr:hover td{background:rgba(0,234,244,.035)}
       .tournament-stats-table tbody tr:hover td:nth-child(2){background:#0b1a1c}
       .stats-rank{color:#00eaf4;font-weight:900}
       .stats-player{font-weight:850;max-width:190px;overflow:hidden;text-overflow:ellipsis}

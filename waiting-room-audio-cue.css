@@ -1,7 +1,7 @@
-.waiting-audio-button{min-width:220px;padding:12px 18px!important;border:1px solid rgba(35,226,209,.62)!important;border-radius:12px!important;background:rgba(5,18,20,.58)!important;box-shadow:0 6px 22px rgba(0,0,0,.22),0 0 20px rgba(35,226,209,.10);color:#ecffff!important;font-size:15px!important;font-weight:900!important;letter-spacing:.025em;transition:background .16s ease,border-color .16s ease,opacity .16s ease}
-.waiting-audio-button:hover{background:rgba(5,22,24,.72)!important;border-color:rgba(35,226,209,.9)!important}
+.waiting-audio-button{min-width:220px;padding:12px 18px!important;border:1px solid rgba(0,234,244,.62)!important;border-radius:12px!important;background:rgba(5,18,20,.58)!important;box-shadow:0 6px 22px rgba(0,0,0,.22),0 0 20px rgba(0,234,244,.10);color:#ecffff!important;font-size:15px!important;font-weight:900!important;letter-spacing:.025em;transition:background .16s ease,border-color .16s ease,opacity .16s ease}
+.waiting-audio-button:hover{background:rgba(5,22,24,.72)!important;border-color:rgba(0,234,244,.9)!important}
 .waiting-audio-button.audio-on{background:rgba(5,18,20,.30)!important;border-color:rgba(255,255,255,.24)!important;opacity:.86}
 .waiting-audio-button.hidden{display:none!important}
 .waiting-connect-flash{animation:waitingConnectFlash .8s ease-out}
-@keyframes waitingConnectFlash{0%{box-shadow:inset 0 0 0 2px rgba(35,226,209,.95),0 0 0 0 rgba(35,226,209,.45)}100%{box-shadow:inset 0 0 0 1px rgba(35,226,209,0),0 0 0 18px rgba(35,226,209,0)}}
+@keyframes waitingConnectFlash{0%{box-shadow:inset 0 0 0 2px rgba(0,234,244,.95),0 0 0 0 rgba(0,234,244,.45)}100%{box-shadow:inset 0 0 0 1px rgba(0,234,244,0),0 0 0 18px rgba(0,234,244,0)}}
 @media(max-width:700px){.waiting-audio-button{width:100%;min-width:0;font-size:15px!important;padding:12px 16px!important}}

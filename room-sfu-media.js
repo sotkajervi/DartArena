@@ -185,7 +185,7 @@
     const card=document.createElement('details');
     card.id='roomSfuDebug';
     card.className='card';
-    card.style.cssText='margin-top:16px;border-color:rgba(35,226,209,.28)';
+    card.style.cssText='margin-top:16px;border-color:rgba(0,234,244,.28)';
     card.innerHTML='<summary style="cursor:pointer;font-weight:900">MEDIA DEBUG • CLOUDFLARE SFU</summary><div id="roomSfuDebugState" style="margin-top:10px;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap"></div><div class="top-actions" style="margin-top:10px"><button id="roomSfuCopy" class="outline small-btn" type="button">Kopier debug</button><button id="roomSfuReconnect" class="outline small-btn" type="button">Tving reconnect</button></div>';
     const anchor=document.querySelector('.room-options');
     anchor?.insertAdjacentElement('beforebegin',card);

@@ -44,9 +44,9 @@
           gap:10px;
           flex-wrap:wrap;
           padding:13px 22px;
-          border:2px solid rgba(35,226,209,.42);
+          border:2px solid rgba(0,234,244,.42);
           border-radius:18px;
-          background:rgba(35,226,209,.08);
+          background:rgba(0,234,244,.08);
           font-size:clamp(16px,1.25vw,20px);
           line-height:1.15;
           font-weight:950;

@@ -17,8 +17,8 @@
       .da-cancelled-modal{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:20px}
       .da-cancelled-modal.hidden{display:none!important}
       .da-cancelled-backdrop{position:absolute;inset:0;background:rgba(1,7,9,.78);backdrop-filter:blur(7px)}
-      .da-cancelled-card{position:relative;z-index:1;width:min(430px,calc(100vw - 32px));padding:24px;border:1px solid rgba(35,226,209,.38);border-radius:18px;background:linear-gradient(180deg,rgba(11,29,32,.98),rgba(5,16,18,.98));box-shadow:0 24px 80px rgba(0,0,0,.55),0 0 34px rgba(35,226,209,.08);text-align:center}
-      .da-cancelled-card small{display:block;color:var(--cyan,#23e2d1);font-weight:950;letter-spacing:.12em;margin-bottom:8px}
+      .da-cancelled-card{position:relative;z-index:1;width:min(430px,calc(100vw - 32px));padding:24px;border:1px solid rgba(0,234,244,.38);border-radius:18px;background:linear-gradient(180deg,rgba(11,29,32,.98),rgba(5,16,18,.98));box-shadow:0 24px 80px rgba(0,0,0,.55),0 0 34px rgba(0,234,244,.08);text-align:center}
+      .da-cancelled-card small{display:block;color:var(--cyan,#00eaf4);font-weight:950;letter-spacing:.12em;margin-bottom:8px}
       .da-cancelled-card h2{margin:0 0 10px;font-size:28px}
       .da-cancelled-card p{margin:0 0 20px;line-height:1.5}
       .da-cancelled-card button{min-height:48px}

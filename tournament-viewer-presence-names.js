@@ -8,8 +8,8 @@
     style.id='tournament-viewer-presence-names-style';
     style.textContent=`
       .viewer-pill{position:relative;cursor:help;outline:none}
-      .viewer-pill:focus-visible{box-shadow:0 0 0 2px rgba(43,215,204,.35)}
-      .viewer-names-tooltip{position:absolute;right:0;top:calc(100% + 9px);z-index:80;min-width:190px;max-width:min(320px,80vw);padding:10px 12px;border:1px solid rgba(43,215,204,.38);border-radius:11px;background:rgba(5,13,15,.97);box-shadow:0 10px 30px rgba(0,0,0,.38);color:var(--text);font-size:12px;font-weight:700;line-height:1.5;white-space:pre-line;opacity:0;visibility:hidden;transform:translateY(-3px);pointer-events:none;transition:opacity .14s ease,transform .14s ease,visibility .14s ease}
+      .viewer-pill:focus-visible{box-shadow:0 0 0 2px rgba(0,234,244,.35)}
+      .viewer-names-tooltip{position:absolute;right:0;top:calc(100% + 9px);z-index:80;min-width:190px;max-width:min(320px,80vw);padding:10px 12px;border:1px solid rgba(0,234,244,.38);border-radius:11px;background:rgba(5,13,15,.97);box-shadow:0 10px 30px rgba(0,0,0,.38);color:var(--text);font-size:12px;font-weight:700;line-height:1.5;white-space:pre-line;opacity:0;visibility:hidden;transform:translateY(-3px);pointer-events:none;transition:opacity .14s ease,transform .14s ease,visibility .14s ease}
       .viewer-pill:hover .viewer-names-tooltip,.viewer-pill:focus .viewer-names-tooltip,.viewer-pill.viewer-tooltip-open .viewer-names-tooltip{opacity:1;visibility:visible;transform:translateY(0)}
       .viewer-names-tooltip::before{content:'SER PÅ';display:block;margin-bottom:5px;color:#00eaf4;font-size:9px;font-weight:950;letter-spacing:.1em}
       @media(max-width:700px){.viewer-names-tooltip{left:0;right:auto}}

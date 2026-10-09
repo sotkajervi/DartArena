@@ -4,7 +4,7 @@
   const css=document.createElement('style');
   css.textContent=`
     .da-coin-overlay{position:fixed;inset:0;z-index:22000;display:grid;place-items:center;background:rgba(2,8,10,.94);backdrop-filter:blur(10px);padding:20px}
-    .da-coin-card{width:min(570px,94vw);text-align:center;padding:30px 22px 25px;border:1px solid rgba(35,226,209,.28);border-radius:22px;background:linear-gradient(180deg,#091a1c,#061113);box-shadow:0 26px 100px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.035)}
+    .da-coin-card{width:min(570px,94vw);text-align:center;padding:30px 22px 25px;border:1px solid rgba(0,234,244,.28);border-radius:22px;background:linear-gradient(180deg,#091a1c,#061113);box-shadow:0 26px 100px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.035)}
     .da-coin-kicker{font-size:12px;font-weight:950;letter-spacing:.16em;color:#00eaf4;margin-bottom:8px}
     .da-coin-title{margin:0 0 8px;font-size:clamp(27px,6vw,43px)}
     .da-coin-stage{height:330px;display:grid;place-items:center;position:relative;overflow:visible}
@@ -26,11 +26,11 @@
     .da-coin-core{position:relative;z-index:5;width:174px;height:112px;border-radius:56%/74%;display:grid;place-items:center;padding:12px 10px;box-sizing:border-box;background:radial-gradient(circle at 34% 27%,rgba(255,255,255,.24),transparent 25%),radial-gradient(ellipse at center,#d9ae4b 0,#b68429 60%,#7b5514 100%);border:2px solid rgba(78,53,8,.72);box-shadow:inset 0 0 0 2px rgba(255,235,163,.25),inset 5px 6px 14px rgba(255,255,255,.09),inset -7px -9px 16px rgba(55,34,2,.25),0 0 0 4px rgba(255,225,137,.12)}
     .da-coin-core:before,.da-coin-core:after{content:'';position:absolute;border-radius:50%;pointer-events:none}.da-coin-core:before{inset:8px;border:1px dashed rgba(74,49,6,.34)}.da-coin-core:after{inset:17px;border:1px solid rgba(255,239,184,.12)}
     .da-coin-name{position:relative;z-index:2;display:block;width:154px;max-width:154px;font-weight:1000;font-size:var(--name-size,15px);line-height:1;white-space:nowrap;word-break:normal;overflow-wrap:normal;overflow:hidden;text-overflow:clip;text-align:center;letter-spacing:-.025em}
-    .da-coin-front .da-coin-name{color:#00eaf4;text-shadow:0 1px 1px rgba(2,17,16,.95),0 0 9px rgba(35,226,209,.32)}
+    .da-coin-front .da-coin-name{color:#00eaf4;text-shadow:0 1px 1px rgba(2,17,16,.95),0 0 9px rgba(0,234,244,.32)}
     .da-coin-back .da-coin-name{color:#f7fbfb;text-shadow:0 1px 2px rgba(20,14,3,.9),0 0 7px rgba(255,255,255,.18)}
     .da-coin-back .da-coin-core{box-shadow:inset 0 0 0 2px rgba(255,235,163,.25),inset 5px 6px 14px rgba(255,255,255,.09),inset -7px -9px 16px rgba(55,34,2,.25),0 0 0 4px rgba(255,255,255,.12)}
 
-    .da-coin-shell.is-landed{animation:daCoinLand .68s cubic-bezier(.16,.82,.25,1) both;filter:drop-shadow(0 0 23px rgba(35,226,209,.5))}
+    .da-coin-shell.is-landed{animation:daCoinLand .68s cubic-bezier(.16,.82,.25,1) both;filter:drop-shadow(0 0 23px rgba(0,234,244,.5))}
     .da-coin-result{min-height:62px;margin-top:0}.da-coin-result strong{display:block;font-size:23px;color:#00eaf4}.da-coin-result span{display:block;margin-top:6px;color:var(--muted)}
     @keyframes daCoinLand{0%{transform:translateY(-5px) rotateZ(-3deg)}32%{transform:translateY(3px) rotateZ(2deg)}58%{transform:translateY(-2px) rotateZ(-1deg)}82%{transform:translateY(1px) rotateZ(.5deg)}100%{transform:translateY(0) rotateZ(0)}}
     @keyframes daCoinGlint{0%{transform:translateX(-52%) rotate(5deg);opacity:.18}55%{opacity:.88}100%{transform:translateX(48%) rotate(5deg);opacity:.45}}

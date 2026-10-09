@@ -77,7 +77,7 @@
     $('cupFormatSettings')?.remove();
     let box=$('pureCupFormatSettings');
     if(isChicagoTournament()){box?.remove();return}
-    if(!box){box=document.createElement('div');box.id='pureCupFormatSettings';box.style.cssText='margin:10px 0 12px;padding:10px 12px;border:1px solid rgba(35,226,209,.25);border-radius:12px;background:rgba(9,20,22,.72)';btn.insertAdjacentElement('beforebegin',box)}
+    if(!box){box=document.createElement('div');box.id='pureCupFormatSettings';box.style.cssText='margin:10px 0 12px;padding:10px 12px;border:1px solid rgba(0,234,244,.25);border-radius:12px;background:rgba(9,20,22,.72)';btn.insertAdjacentElement('beforebegin',box)}
     box.innerHTML=`<div style="display:flex;align-items:flex-end;gap:9px;flex-wrap:wrap"><div style="min-width:145px;margin-right:2px"><small>REN CUP${isSimulation()?' • TEST':''}</small><div style="font-weight:900;font-size:14px;margin-top:3px">Best of per runde</div></div>${Array.from({length:rounds},(_,i)=>i+1).map(r=>`<label class="field" style="margin:0;min-width:112px;flex:1 1 112px"><span style="display:block;font-size:10px;font-weight:800;margin-bottom:3px">${roundName(r,rounds)}</span><select data-pure-cup-round="${r}" style="margin-top:0;padding:8px 10px">${optionHtml(formats[r])}</select></label>`).join('')}</div>`;
     box.querySelectorAll('select').forEach(s=>s.addEventListener('change',saveFormats));
   }

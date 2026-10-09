@@ -11,7 +11,7 @@ async function boot(){
 .da-live-stats-btn{white-space:nowrap}
 .da-live-stats-overlay{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;padding:18px;background:rgba(2,8,10,.82);backdrop-filter:blur(7px);opacity:1;visibility:visible;transition:opacity .16s ease,visibility .16s ease}
 .da-live-stats-overlay.hidden{display:none!important}
-.da-live-stats-dialog{width:min(760px,96vw);max-height:min(86dvh,760px);overflow:auto;border:1px solid rgba(35,226,209,.34);border-radius:18px;background:linear-gradient(180deg,rgba(10,25,28,.98),rgba(5,14,16,.99));box-shadow:0 28px 90px rgba(0,0,0,.62),0 0 0 1px rgba(35,226,209,.06);padding:18px}
+.da-live-stats-dialog{width:min(760px,96vw);max-height:min(86dvh,760px);overflow:auto;border:1px solid rgba(0,234,244,.34);border-radius:18px;background:linear-gradient(180deg,rgba(10,25,28,.98),rgba(5,14,16,.99));box-shadow:0 28px 90px rgba(0,0,0,.62),0 0 0 1px rgba(0,234,244,.06);padding:18px}
 .da-live-stats-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
 .da-live-stats-title small{display:block;color:#00eaf4;font-size:10px;font-weight:950;letter-spacing:.11em;margin-bottom:3px}
 .da-live-stats-title h2{margin:0;font-size:22px}

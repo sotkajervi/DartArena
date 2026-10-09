@@ -1,5 +1,5 @@
 (()=>{
-  const OWNER='#23e2d1',ADMIN='#ff9f43';
+  const OWNER='#00eaf4',ADMIN='#ff9f43';
 
   function ensureStyle(){
     if(document.getElementById('spectate-role-polish-style'))return;
@@ -15,7 +15,7 @@
         font-size:9px;font-weight:950;letter-spacing:.08em;vertical-align:2px;line-height:1.25
       }
       .spectate-name.da-role-owner::after,.spectate-player-head.da-role-owner::after,.spectate-title-name.da-role-owner::after{
-        content:'OWNER';color:${OWNER};border:1px solid rgba(35,226,209,.5);background:rgba(35,226,209,.09)
+        content:'OWNER';color:${OWNER};border:1px solid rgba(0,234,244,.5);background:rgba(0,234,244,.09)
       }
       .spectate-name.da-role-admin::after,.spectate-player-head.da-role-admin::after,.spectate-title-name.da-role-admin::after{
         content:'ADMIN';color:${ADMIN};border:1px solid rgba(255,159,67,.5);background:rgba(255,159,67,.09)

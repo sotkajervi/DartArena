@@ -32,10 +32,10 @@
         min-width:220px;
         max-width:min(320px,82vw);
         padding:11px 12px;
-        border:1px solid rgba(35,226,209,.28);
+        border:1px solid rgba(0,234,244,.28);
         border-radius:12px;
         background:linear-gradient(145deg,#0d191c,#091315);
-        box-shadow:0 18px 55px rgba(0,0,0,.55),0 0 18px rgba(35,226,209,.06);
+        box-shadow:0 18px 55px rgba(0,0,0,.55),0 0 18px rgba(0,234,244,.06);
         color:var(--text);
         opacity:0;
         visibility:hidden;

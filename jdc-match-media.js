@@ -281,7 +281,7 @@
     if(!box){
       box=document.createElement('pre');
       box.id='jdcMediaDebug';
-      box.style.cssText='white-space:pre-wrap;margin:12px 0;padding:12px;border:1px solid rgba(35,226,209,.3);border-radius:12px;background:rgba(0,0,0,.55);font:12px/1.45 monospace;color:#b9f8ff';
+      box.style.cssText='white-space:pre-wrap;margin:12px 0;padding:12px;border:1px solid rgba(0,234,244,.3);border-radius:12px;background:rgba(0,0,0,.55);font:12px/1.45 monospace;color:#b9f8ff';
       $('cameraStatus')?.insertAdjacentElement('afterend',box);
     }
     box.textContent=debugText();

@@ -40,7 +40,7 @@
       html.da-cup-setup-denied #cupSetup{display:none!important}
       .cup-manager-note{margin:8px 0 0;color:var(--muted);font-size:12px}
       .da-cup-review-overlay{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:rgba(2,8,10,.82);backdrop-filter:blur(7px);padding:18px}
-      .da-cup-review-card{width:min(560px,100%);max-height:min(720px,calc(100vh - 36px));overflow:auto;background:linear-gradient(155deg,#12282b,#081416 72%);border:1px solid rgba(35,226,209,.48);box-shadow:0 28px 100px #000c,0 0 28px rgba(35,226,209,.08);border-radius:20px;padding:24px;color:var(--text)}
+      .da-cup-review-card{width:min(560px,100%);max-height:min(720px,calc(100vh - 36px));overflow:auto;background:linear-gradient(155deg,#12282b,#081416 72%);border:1px solid rgba(0,234,244,.48);box-shadow:0 28px 100px #000c,0 0 28px rgba(0,234,244,.08);border-radius:20px;padding:24px;color:var(--text)}
       .da-cup-review-card h2{margin:5px 0 8px;font-size:24px}.da-cup-review-card p{margin:0 0 18px;color:var(--muted);font-size:13px;line-height:1.6}
       .da-cup-review-grid{display:grid;gap:10px}
       .da-cup-review-round{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border:1px solid rgba(255,255,255,.11);background:rgba(0,0,0,.18);border-radius:12px}
@@ -50,7 +50,7 @@
       .da-cup-review-warning{font-size:12px;color:#e8c98b;border:1px solid rgba(244,196,93,.28);background:rgba(244,196,93,.06);border-radius:10px;padding:11px;margin:15px 0}
       .da-cup-review-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap}
       .da-cup-review-actions button{min-width:125px}
-      .da-final-format-control{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:12px 0 4px;padding:11px 13px;border:1px solid rgba(35,226,209,.22);border-radius:12px;background:rgba(35,226,209,.045)}
+      .da-final-format-control{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:12px 0 4px;padding:11px 13px;border:1px solid rgba(0,234,244,.22);border-radius:12px;background:rgba(0,234,244,.045)}
       .da-final-format-copy small{display:block;margin-bottom:3px}.da-final-format-copy strong{font-size:14px}.da-final-format-copy span{display:block;color:var(--muted);font-size:11px;margin-top:3px}
       @media(max-width:520px){.da-cup-review-card{padding:18px}.da-cup-review-actions button{flex:1}.da-cup-review-round{padding:10px}.da-final-format-control button{width:100%}}
     `;
@@ -263,7 +263,7 @@
       box=document.createElement('div');
       box.id='cupFormatSettings';
       box.dataset.cupPermissionManager='1';
-      box.style.cssText='margin:10px 0 12px;padding:10px 12px;border:1px solid rgba(35,226,209,.25);border-radius:12px;background:rgba(9,20,22,.72)';
+      box.style.cssText='margin:10px 0 12px;padding:10px 12px;border:1px solid rgba(0,234,244,.25);border-radius:12px;background:rgba(9,20,22,.72)';
       btn.insertAdjacentElement('beforebegin',box);
     }
     if(box.dataset.cupPermissionRendered===String(rounds))return;

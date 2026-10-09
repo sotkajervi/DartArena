@@ -17,7 +17,7 @@
 }
 .match-page .video-card #micBtn:hover,
 .match-page .video-card #remoteAudioBtn:hover{
-  border-color:#23e2d1;
+  border-color:#00eaf4;
   color:#00eaf4;
 }
 .match-page .video-name{z-index:4;}
