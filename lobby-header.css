@@ -16,3 +16,76 @@
 #formStatsBtn,#matchHistoryBtn{background:#0c1a1d;color:#d9e5e6;border-color:#27464a}#formStatsBtn:hover,#matchHistoryBtn:hover{border-color:var(--cyan);color:#00eaf4}
 @media(max-width:760px){.lobby-top{align-items:flex-start;flex-direction:column}.lobby-top .top-actions{width:100%;justify-content:flex-start}.lobby-utility-row{align-items:flex-start;flex-direction:column}.lobby-status-group{margin-left:0}.lobby-utility-group{width:100%;justify-content:space-between}.lobby-utility-actions{justify-content:flex-end}}
 @media(max-width:500px){.lobby-top .top-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}.lobby-top .top-actions button{padding:9px 7px;font-size:12px;min-width:0}.lobby-utility-group{align-items:flex-start;flex-direction:column}.lobby-utility-actions{width:100%;justify-content:flex-start}.lobby-status-group .availability{width:100%}}
+
+
+/* Mobile lobby compaction v1: applies only to the lobby, not match rooms. */
+@media(max-width:700px){
+  /* About 20% larger than the former 36vw lobby logo. */
+  body.dartarena-lobby header .brand-logo{
+    width:clamp(115px,43.2vw,220px);
+  }
+  #lobbyView .lobby-utility-row{
+    align-items:stretch;
+    padding:10px 11px;
+    margin-bottom:16px;
+    gap:10px;
+  }
+  #lobbyView .lobby-utility-group{
+    gap:7px;
+  }
+  #lobbyView #lobbyStatsActions{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    width:100%;
+    gap:7px;
+  }
+  #lobbyView #lobbyStatsActions > .lobby-utility-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    justify-self:stretch;
+    width:100%;
+    min-width:0;
+    min-height:46px;
+    padding:6px 5px!important;
+    font-size:12px;
+    line-height:1.2;
+    text-align:center;
+    white-space:normal;
+    overflow-wrap:break-word;
+  }
+  #lobbyView .lobby-status-group{
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    justify-content:space-between;
+    width:100%;
+    margin-left:0;
+    padding-top:9px;
+    border-top:1px solid rgba(255,255,255,.08);
+    gap:10px;
+  }
+  #lobbyView .lobby-status-group .lobby-utility-label{
+    flex:0 0 auto;
+  }
+  #lobbyView .lobby-status-group #availabilityBtn{
+    flex:0 0 auto;
+    width:clamp(140px,48%,190px);
+    min-height:44px!important;
+    padding:8px 12px!important;
+    font-size:12px;
+    line-height:1.15;
+    white-space:nowrap;
+  }
+}
+@media(max-width:380px){
+  body.dartarena-lobby header .brand-logo{
+    width:clamp(110px,39.6vw,151px);
+  }
+  #lobbyView #lobbyStatsActions{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  #lobbyView #lobbyStatsActions > .lobby-utility-btn{
+    min-height:44px;
+  }
+}
