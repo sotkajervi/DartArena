@@ -103,14 +103,14 @@ body .solo-exact-choices button:hover:not(:disabled),body .cricket-hit:hover:not
 
 /* Primary CTA: filled cyan, same radius and glow language. */
 .da-btn-primary,.primary{
-  background:linear-gradient(180deg,#2be0d3,#20c9bd)!important;
-  border-color:#39e9dc!important;
+  background:linear-gradient(180deg,#32f1f9,#00eaf4)!important;
+  border-color:#63f7fc!important;
   color:#031113!important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 0 18px rgba(0,234,244,.12),0 8px 20px rgba(0,0,0,.14)!important;
 }
 .da-btn-primary:hover:not(:disabled),.primary:hover:not(:disabled){
-  background:linear-gradient(180deg,#50ebdd,#29d6c9)!important;
-  border-color:#6af1e5!important;
+  background:linear-gradient(180deg,#72faff,#16eef9)!important;
+  border-color:#9afcff!important;
   color:#031113!important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 0 24px rgba(0,234,244,.20),0 10px 24px rgba(0,0,0,.16)!important;
 }
@@ -168,8 +168,8 @@ body .solo-exact-choices button:hover:not(:disabled),body .cricket-hit:hover:not
 .tab.active,.format-btn.active,.time-chip.selected,.calendar-day.selected,
 body .sixty-one-time-grid button.active,body .sixty-one-lb-tabs button.active,
 body .half-multiplier button.active,body .solo-exact-choices button.active{
-  background:linear-gradient(180deg,#2be0d3,#20c9bd)!important;
-  border-color:#39e9dc!important;
+  background:linear-gradient(180deg,#32f1f9,#00eaf4)!important;
+  border-color:#63f7fc!important;
   color:#031113!important;
   box-shadow:0 0 18px rgba(0,234,244,.14)!important;
 }
@@ -209,8 +209,8 @@ body .jdc-actions button.jdc-selected{
 
 /* Challenge semantics. */
 .small-btn.accept,.challenge-actions .accept{
-  background:linear-gradient(180deg,#2be0d3,#20c9bd)!important;
-  border-color:#39e9dc!important;
+  background:linear-gradient(180deg,#32f1f9,#00eaf4)!important;
+  border-color:#63f7fc!important;
   color:#031113!important;
 }
 .small-btn.decline,.challenge-actions .decline{
@@ -230,7 +230,7 @@ body .jdc-actions button.jdc-selected{
   border:1px solid rgba(0,234,244,.30);
   border-radius:7px;
   background:rgba(0,234,244,.055);
-  color:#83eee5;
+  color:#83f6fb;
   font-size:10px;
   font-weight:950;
   line-height:1;
@@ -280,7 +280,7 @@ button{
 }
 button:not(:disabled){cursor:pointer}
 button:focus-visible{
-  outline:2px solid rgba(70,236,224,.92);
+  outline:2px solid rgba(0,234,244,.92);
   outline-offset:3px;
 }
 button:not(:disabled):active{
@@ -337,8 +337,8 @@ body .half-multiplier button.active,body .solo-exact-choices button.active,
 
 /* Keep semantic disabled buttons readable instead of looking broken. */
 .primary:disabled,.da-btn-primary:disabled{
-  background:linear-gradient(180deg,#167b75,#12645f)!important;
-  border-color:#278f88!important;
+  background:linear-gradient(180deg,#107f87,#0c636a)!important;
+  border-color:#26939b!important;
   color:rgba(3,17,19,.72)!important;
 }
 .danger:disabled,.da-btn-danger:disabled,body .jdc-restart-btn:disabled{
