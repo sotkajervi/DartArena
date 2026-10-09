@@ -1,0 +1,369 @@
+/* DartArena lobby mobile refinement. Scoped to the main lobby only.
+   Desktop, tournament rooms and match rooms deliberately remain unchanged. */
+@media (max-width: 760px) {
+  body.dartarena-lobby .shell {
+    width: calc(100% - 24px);
+    margin: 14px auto 24px;
+  }
+  #lobbyView,
+  #lobbyView > *,
+  #lobbyView .card,
+  #lobbyView .lobby-main-grid,
+  #lobbyView .tournament-row,
+  #lobbyView .training-game-card {
+    min-width: 0;
+    max-width: 100%;
+  }
+  #lobbyView .card {
+    padding: 16px 14px;
+    border-radius: 19px;
+  }
+  #lobbyView .heading {
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  #lobbyView .heading h2 { font-size: 21px; line-height: 1.15; }
+  #lobbyView .heading > div,
+  #lobbyView .tournament-row > div { min-width: 0; }
+  #lobbyView small { letter-spacing: .11em; }
+  #lobbyView .muted.compact { margin: 4px 0 10px; font-size: 12.5px; line-height: 1.4; }
+
+  /* Welcome and quick actions: two balanced rows without excessive height. */
+  #lobbyView .lobby-top {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    margin-bottom: 12px;
+    align-items: stretch;
+  }
+  #lobbyView .lobby-top > div:first-child { min-width: 0; }
+  #lobbyView .lobby-top > div:first-child > small { margin-bottom: 5px; font-size: 10px; }
+  #lobbyView #welcomeName {
+    max-width: 100%;
+    margin-top: 2px;
+    font-size: clamp(25px, 7vw, 34px);
+    line-height: 1.14;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+  #lobbyView .lobby-top .top-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 8px;
+  }
+  #lobbyView .lobby-top .top-actions > button {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 7px !important;
+    font-size: 12px;
+    line-height: 1.2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  /* All six overview actions remain visible without tiny three-column labels. */
+  #lobbyView .lobby-utility-row {
+    padding: 11px;
+    margin-bottom: 14px;
+    gap: 9px;
+  }
+  #lobbyView #lobbyStatsActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 8px;
+  }
+  #lobbyView #lobbyStatsActions > .lobby-utility-btn {
+    width: 100%;
+    min-width: 0;
+    min-height: 43px;
+    padding: 8px 6px !important;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    text-align: center;
+  }
+  #lobbyView .lobby-status-group { padding-top: 8px; gap: 8px; }
+  #lobbyView .lobby-status-group #availabilityBtn {
+    width: auto;
+    min-width: 132px;
+    max-width: 56%;
+    min-height: 42px !important;
+    padding: 8px 12px !important;
+    font-size: 12px;
+  }
+  #lobbyView #activeMatchCard { gap: 10px; margin-bottom: 14px; }
+  #lobbyView #reopenMatchBtn { width: 100%; }
+
+  /* Compact player, challenge and empty-state cards. */
+  #lobbyView > .lobby-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-bottom: 14px; }
+  #lobbyView .lobby-grid > .card { padding: 15px 14px; }
+  #lobbyView .lobby-grid > .card .heading { margin-bottom: 8px; }
+  #lobbyView .lobby-grid > .card .heading h2 { font-size: 21px; }
+  #lobbyView .lobby-grid > .card:first-child > .muted.compact {
+    font-size: 12px;
+    margin: 0 0 9px;
+    line-height: 1.4;
+  }
+  #lobbyView #refreshBtn { min-height: 40px; padding: 7px 11px !important; font-size: 12px; }
+  #lobbyView #playerList,
+  #lobbyView #challengeList,
+  #lobbyView #sentChallengeList {
+    margin-top: 7px;
+    gap: 7px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #lobbyView #playerList > p.muted,
+  #lobbyView #challengeList > p.muted,
+  #lobbyView #sentChallengeList > p.muted {
+    margin: 2px 0;
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+  #lobbyView .lobby-grid > .card:nth-child(2) > small { margin-top: 9px; }
+  #lobbyView #challengeList + div { margin-top: 10px !important; }
+  #lobbyView .player-row,
+  #lobbyView .challenge-row { min-width: 0; padding: 11px 12px; gap: 9px; }
+  #lobbyView .player-main { min-width: 0; }
+  #lobbyView .player-main .player-name { overflow-wrap: anywhere; }
+
+  /* Tournament dashboard: move Create under the title instead of overlapping it. */
+  #lobbyView .lobby-main-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  #lobbyView .tournament-section,
+  #lobbyView .training-games-section,
+  #lobbyView .live-matches-section { margin-bottom: 14px; }
+  #lobbyView .tournament-section > .heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+  }
+  #lobbyView #createTournamentBtn {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 9px 12px !important;
+    font-size: 13px;
+  }
+  #lobbyView #tournamentList,
+  #lobbyView #pastTournamentList {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    min-width: 0;
+    margin-top: 10px;
+    gap: 9px;
+  }
+  #lobbyView #tournamentList > p.muted,
+  #lobbyView #pastTournamentList > p.muted { margin: 4px 0; font-size: 12.5px; }
+
+  /* Archive cards must also fit dynamically added badges and admin delete actions. */
+  #lobbyView #pastTournamentList .tournament-row,
+  #lobbyView #tournamentList .tournament-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 11px;
+    width: 100%;
+    min-width: 0;
+    padding: 12px;
+  }
+  #lobbyView #pastTournamentList .tournament-row > div,
+  #lobbyView #tournamentList .tournament-row > div {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+  #lobbyView .tournament-title-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    min-width: 0;
+    max-width: 100%;
+  }
+  #lobbyView .tournament-title-line .player-name,
+  #lobbyView .tournament-row .player-name {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.25;
+  }
+  #lobbyView .tournament-row .status {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+    line-height: 1.45;
+    margin-top: 5px;
+  }
+  #lobbyView .tournament-row .challenge-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+    width: 100%;
+    min-width: 0;
+  }
+  #lobbyView .tournament-row .challenge-actions > button {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 43px;
+    padding: 9px 10px !important;
+    font-size: 12.5px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+
+  /* Chat: proper dark input, shorter empty window and consistent CTA. */
+  #lobbyView .dart-chat-card { min-width: 0; margin-top: 0; }
+  #lobbyView .dart-chat-heading { margin-bottom: 10px; }
+  #lobbyView .dart-chat-heading .status { font-size: 11px; text-align: right; }
+  #lobbyView .dart-chat-messages,
+  #lobbyView .lobby-main-grid > .dart-chat-card .dart-chat-messages {
+    height: 160px;
+    min-height: 160px;
+    max-height: 160px;
+    flex: none;
+    padding: 9px;
+    overflow-y: auto;
+  }
+  #lobbyView .dart-chat-message { max-width: 95%; overflow-wrap: anywhere; }
+  #lobbyView .dart-chat-empty { font-size: 13px; }
+  #lobbyView .dart-chat-form,
+  #lobbyView .lobby-main-grid > .dart-chat-card .dart-chat-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    margin-top: 9px;
+  }
+  #lobbyView #dartChatInput {
+    width: 100%;
+    height: 68px;
+    min-height: 68px;
+    max-height: 100px;
+    padding: 11px 12px;
+    margin: 0;
+    box-sizing: border-box;
+    resize: vertical;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 234, 244, .42);
+    outline: none;
+    background: #071416;
+    color: #f2f7f7;
+    font: inherit;
+    font-size: 16px;
+    line-height: 1.35;
+    caret-color: var(--cyan);
+  }
+  #lobbyView #dartChatInput::placeholder { color: #81999d; opacity: 1; }
+  #lobbyView #dartChatInput:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 2px rgba(0, 234, 244, .12);
+  }
+  #lobbyView .dart-chat-actions {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  #lobbyView #dartChatCount { font-size: 11px; }
+  #lobbyView #dartChatSend {
+    min-width: 92px;
+    min-height: 44px;
+    padding: 9px 14px !important;
+    font-size: 13px;
+  }
+
+  /* Training: retain recognizable cards and touch targets, remove wasted height. */
+  #lobbyView .training-games-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+    margin-top: 11px;
+  }
+  #lobbyView .training-game-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 11px;
+    padding: 12px;
+    border-radius: 14px;
+  }
+  #lobbyView .training-game-main { width: 100%; min-width: 0; gap: 10px; align-items: flex-start; }
+  #lobbyView .training-game-main > div:last-child { min-width: 0; }
+  #lobbyView .training-game-card .training-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    font-size: 18px;
+  }
+  #lobbyView .training-game-card h3 {
+    margin: 1px 0 4px;
+    font-size: 18px;
+    line-height: 1.16;
+    overflow-wrap: anywhere;
+  }
+  #lobbyView .training-game-card p {
+    font-size: 12px;
+    line-height: 1.38;
+  }
+  #lobbyView .training-game-card > button {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 9px 12px !important;
+    font-size: 14px;
+  }
+  #lobbyView .training-game-card.is-disabled {
+    opacity: 1;
+    border-color: rgba(120, 146, 150, .22);
+  }
+  #lobbyView .training-game-card.is-disabled .training-game-main { opacity: .68; }
+  #lobbyView .training-game-card.is-disabled > button:disabled {
+    opacity: .75 !important;
+    color: #a4b5b8 !important;
+    background: #0c181a !important;
+    border-color: #34484b !important;
+    box-shadow: none !important;
+  }
+
+  /* Live filters wrap cleanly into compact equal-width chips. */
+  #lobbyView .live-match-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+  #lobbyView .live-match-filter {
+    flex: 1 1 calc(25% - 6px);
+    min-width: 0;
+    min-height: 40px;
+    padding: 7px 5px !important;
+    font-size: 11px;
+    line-height: 1.2;
+    white-space: normal;
+    text-align: center;
+  }
+  #lobbyView .live-matches-list { min-width: 0; grid-template-columns: minmax(0, 1fr); }
+  #lobbyView .live-match-row { min-width: 0; padding: 12px; }
+  #lobbyView .live-match-title { min-width: 0; overflow-wrap: anywhere; }
+
+  /* Prevent long headings and user-generated text from expanding grid tracks. */
+  #lobbyView .card > .heading,
+  #lobbyView .heading > div,
+  #lobbyView .challenge-list,
+  #lobbyView .player-list { min-width: 0; max-width: 100%; }
+}
+@media (max-width: 390px) {
+  body.dartarena-lobby .shell { width: calc(100% - 18px); }
+  #lobbyView .card { padding: 14px 11px; }
+  #lobbyView #welcomeName { font-size: 26px; }
+  #lobbyView #lobbyStatsActions > .lobby-utility-btn { font-size: 11.5px; }
+  #lobbyView .training-game-card h3 { font-size: 17px; }
+  #lobbyView .live-match-filter { font-size: 10.5px; }
+}
