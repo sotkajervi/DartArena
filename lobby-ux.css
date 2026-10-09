@@ -1,0 +1,178 @@
+/* DartArena lobby UX revision (2026-10-09).
+   Scoped to the logged-in main lobby; room and tournament pages are not restyled. */
+#lobbyView [hidden] { display:none!important; }
+#lobbyView .lobby-top { align-items:flex-start; gap:12px; margin-bottom:12px; }
+#lobbyView .lobby-top > div:first-child { min-width:0; }
+#lobbyView .lobby-top .top-actions {
+  display:flex; flex:0 0 auto; justify-content:flex-end; width:auto; gap:0;
+  align-self:flex-start;
+}
+#lobbyView .da-utility-menu { position:relative; min-width:0; }
+#lobbyView .da-utility-menu > summary {
+  list-style:none; cursor:pointer; user-select:none; min-height:42px;
+  display:inline-flex; justify-content:center; align-items:center;
+  border:1px solid rgba(0,234,244,.45); border-radius:12px;
+  padding:9px 14px; color:var(--text); background:linear-gradient(180deg,#13272a,#0a1719);
+  font-size:13px; font-weight:850; white-space:nowrap;
+  box-shadow:inset 0 0 18px rgba(0,234,244,.07);
+}
+#lobbyView .da-utility-menu > summary::-webkit-details-marker { display:none; }
+#lobbyView .da-utility-menu > summary:focus-visible { outline:2px solid var(--cyan); outline-offset:3px; }
+#lobbyView .da-utility-menu[open] > summary { border-color:var(--cyan); color:var(--cyan); }
+#lobbyView .da-utility-panel {
+  position:absolute; top:calc(100% + 8px); right:0; z-index:22;
+  display:grid; gap:5px; width:220px; max-width:calc(100vw - 24px);
+  padding:9px; border:1px solid #245459; border-radius:15px;
+  background:#0a1719; box-shadow:0 18px 45px #000b,0 0 18px rgba(0,234,244,.08);
+}
+#lobbyView .da-utility-panel > a,
+#lobbyView .da-utility-panel > button {
+  display:flex; align-items:center; justify-content:flex-start;
+  width:100%; min-width:0; min-height:42px; box-sizing:border-box;
+  padding:10px 12px!important; text-align:left; text-decoration:none;
+  font-size:13px; font-weight:750; line-height:1.2;
+  color:var(--text)!important; background:#102326!important;
+  border:1px solid rgba(0,234,244,.22)!important; border-radius:10px!important;
+  box-shadow:none!important;
+}
+#lobbyView .da-utility-panel > a:hover,
+#lobbyView .da-utility-panel > button:hover { background:#173236!important; border-color:var(--cyan)!important; }
+#lobbyView .da-utility-panel #logoutBtn { color:#ffb8bc!important; border-color:rgba(255,111,120,.30)!important; }
+
+/* Primary entry points: links scroll to existing functional sections, not fake matches. */
+#lobbyView .da-quick-start {
+  display:grid; grid-template-columns:minmax(0,1fr) minmax(0,3fr);
+  align-items:center; gap:15px; margin-bottom:16px; padding:13px 15px;
+  border-radius:18px; border:1px solid rgba(0,234,244,.22);
+  background:linear-gradient(115deg,rgba(0,234,244,.085),rgba(7,16,18,.91) 48%,rgba(10,29,31,.83));
+  box-shadow:0 9px 28px rgba(0,0,0,.18);
+}
+#lobbyView .da-quick-intro { display:grid; gap:5px; min-width:0; }
+#lobbyView .da-quick-intro small { font-size:11px; }
+#lobbyView .da-quick-intro span { color:var(--muted); font-size:12px; line-height:1.35; }
+#lobbyView .da-quick-links { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; min-width:0; }
+#lobbyView .da-quick-link {
+  display:grid; align-content:center; justify-items:center; gap:4px;
+  min-width:0; min-height:62px; padding:8px; text-align:center; text-decoration:none;
+  border:1px solid rgba(0,234,244,.48); border-radius:12px;
+  background:linear-gradient(180deg,#12292b,#0b191b);
+  color:var(--text); box-shadow:inset 0 0 18px rgba(0,234,244,.055);
+}
+#lobbyView .da-quick-link strong { font-size:14px; line-height:1.15; font-weight:900; }
+#lobbyView .da-quick-link span { font-size:11px; color:#96afb2; line-height:1.2; }
+#lobbyView .da-quick-link.da-quick-main {
+  background:linear-gradient(180deg,#30f3f8,#00dfea);
+  color:#041719; border-color:#73faff; box-shadow:0 0 15px rgba(0,234,244,.13);
+}
+#lobbyView .da-quick-link.da-quick-main span { color:#164247; }
+#lobbyView .da-quick-link:focus-visible { outline:2px solid var(--cyan); outline-offset:3px; }
+#lobbyView .da-quick-link:hover { filter:brightness(1.12); }
+#lobbyView .da-quick-link:active { transform:translateY(1px); }
+#lobbyView .lobby-utility-row { margin-bottom:16px; }
+#lobbyView .lobby-utility-actions .lobby-utility-btn { white-space:normal; }
+#lobbyView #daOnlinePlayers, #lobbyView #daSoloTraining, #lobbyView #daTournamentLobby { scroll-margin-top:95px; }
+
+/* Player presence cards with consistent hierarchy and readable state. */
+#lobbyView .player-list { grid-template-columns:minmax(0,1fr); }
+#lobbyView .player-row {
+  min-width:0; gap:12px; padding:12px 13px;
+  background:linear-gradient(120deg,rgba(13,37,40,.90),#091719);
+  border-color:#26484c;
+}
+#lobbyView .player-row:has(.dot.available) { border-color:rgba(83,227,157,.42); }
+#lobbyView .player-row .player-main { flex:1 1 auto; min-width:0; gap:11px; }
+#lobbyView .player-row .player-main > div:last-child { min-width:0; }
+#lobbyView .player-row .avatar {
+  width:44px; height:44px; flex:0 0 44px; border-radius:13px;
+  border:1px solid rgba(0,234,244,.30); background:#10292c;
+  color:var(--cyan); font-size:18px;
+}
+#lobbyView .player-row .player-name { font-size:14px; overflow-wrap:anywhere; line-height:1.25; }
+#lobbyView .player-row .status {
+  display:inline-flex; align-items:center; gap:4px; margin-top:6px;
+  padding:4px 7px; font-size:11px; font-weight:750; line-height:1.2;
+  border:1px solid #304449; border-radius:999px;
+  background:rgba(255,255,255,.025); color:#b3c3c6;
+}
+#lobbyView .player-row .status:has(.dot.available) {
+  color:#85ecb6; border-color:rgba(83,227,157,.28); background:rgba(83,227,157,.07);
+}
+#lobbyView .player-row .status:has(.dot.in_game) {
+  color:#f4ce7c; border-color:rgba(244,196,93,.29); background:rgba(244,196,93,.07);
+}
+#lobbyView .player-row .dot { margin-right:2px; width:7px; height:7px; }
+#lobbyView .player-row .challenge-btn { flex:0 0 auto; min-width:92px; min-height:42px; font-size:12px; }
+#lobbyView #daOnlinePlayers .heading > button { align-self:center; }
+
+/* Chat keeps full interaction; only empty state is visually shorter. */
+#lobbyView #dartArenaChat .dart-chat-heading { gap:10px; flex-wrap:wrap; }
+#lobbyView #dartArenaChat .da-chat-expand {
+  flex:0 0 auto; min-height:38px; font-size:11px; padding:7px 10px!important;
+}
+#lobbyView #dartArenaChat.da-chat-empty .dart-chat-messages {
+  height:108px!important; min-height:108px!important; max-height:108px!important; flex:none!important;
+}
+#lobbyView #dartArenaChat.da-chat-expanded .dart-chat-messages {
+  height:390px!important; min-height:235px!important;
+  max-height:min(52vh,390px)!important; flex:none!important;
+}
+#lobbyView #dartArenaChat .dart-chat-messages { transition:height .16s ease; }
+
+/* Archive: 3 most recent by default; admin actions behind a native disclosure. */
+#lobbyView #pastTournamentList > .da-archive-hidden { display:none!important; }
+#lobbyView .da-archive-toggle {
+  display:flex; margin:12px auto 0; padding:10px 18px!important;
+  min-height:42px; border-color:rgba(0,234,244,.48)!important;
+  font-size:12px;
+}
+#lobbyView #pastTournamentList .da-archive-admin-menu { min-width:0; align-self:center; margin-left:auto; }
+#lobbyView #pastTournamentList .da-archive-admin-menu > summary {
+  list-style:none; cursor:pointer; display:grid; place-items:center;
+  min-width:42px; min-height:42px; padding:5px 12px;
+  border:1px solid rgba(255,255,255,.23); border-radius:10px;
+  color:#b9cacd; background:#122124; font-size:22px; line-height:1;
+}
+#lobbyView #pastTournamentList .da-archive-admin-menu > summary::-webkit-details-marker { display:none; }
+#lobbyView #pastTournamentList .da-archive-admin-menu > summary:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+#lobbyView #pastTournamentList .da-archive-admin-menu[open] > summary { border-color:#8a4149; color:#ffb8bc; }
+#lobbyView #pastTournamentList .da-archive-admin-popover { margin-top:7px; display:grid; gap:6px; }
+#lobbyView #pastTournamentList .da-archive-admin-popover button {
+  min-height:42px; min-width:0; width:100%; padding:8px 12px!important;
+  white-space:normal; overflow-wrap:anywhere; font-size:12px;
+}
+@media(max-width:950px) {
+  #lobbyView .da-quick-start { grid-template-columns:minmax(0,1fr); gap:10px; }
+  #lobbyView .da-quick-intro { gap:2px; }
+}
+@media(max-width:760px) {
+  #lobbyView .lobby-top { flex-direction:row; flex-wrap:wrap; align-items:flex-start; gap:9px; }
+  #lobbyView .lobby-top > div:first-child { flex:1 1 190px; min-width:0; }
+  #lobbyView .lobby-top .top-actions { width:auto; display:flex; flex:0 0 auto; justify-content:flex-end; }
+  #lobbyView .da-utility-menu > summary { min-height:42px; padding:8px 11px; font-size:12px; }
+  #lobbyView .da-quick-start { padding:11px; margin-bottom:12px; border-radius:15px; }
+  #lobbyView .da-quick-links { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+  #lobbyView .da-quick-link { min-height:62px; padding:6px 4px; }
+  #lobbyView .da-quick-link strong { font-size:12px; }
+  #lobbyView .da-quick-link span { font-size:10px; }
+  #lobbyView .da-quick-intro span { font-size:11px; }
+  #lobbyView .player-row { padding:11px; gap:8px; }
+  #lobbyView .player-row .avatar { width:39px; height:39px; flex-basis:39px; }
+  #lobbyView .player-row .challenge-btn { min-width:82px; min-height:43px; padding:8px 9px!important; }
+  #lobbyView #dartArenaChat.da-chat-empty .dart-chat-messages {
+    height:100px!important; min-height:100px!important; max-height:100px!important;
+  }
+  #lobbyView #dartArenaChat.da-chat-expanded .dart-chat-messages {
+    height:300px!important; min-height:220px!important; max-height:50vh!important;
+  }
+  #lobbyView #pastTournamentList .da-archive-admin-menu { justify-self:end; align-self:stretch; width:100%; }
+  #lobbyView #pastTournamentList .da-archive-admin-menu > summary { width:48px; margin-left:auto; }
+}
+@media(max-width:360px) {
+  #lobbyView .da-quick-links { gap:4px; }
+  #lobbyView .da-quick-link strong { font-size:11px; }
+  #lobbyView .da-quick-link span { font-size:9px; }
+  #lobbyView .lobby-top > div:first-child { flex-basis:170px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  #lobbyView #dartArenaChat .dart-chat-messages { transition:none; }
+}
