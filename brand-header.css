@@ -1,8 +1,74 @@
-/* DartArena shared header logo: matches lobby and replaces the legacy DART/ARENA wordmark. */
-header .brand{display:flex;align-items:center;min-width:0}
-header .brand-logo{display:block;width:min(238px,44vw);height:auto;mix-blend-mode:screen}
+/* Shared DartArena logo and compact, collision-free site header. */
+header .brand{
+  display:flex;
+  align-items:center;
+  flex:0 1 auto;
+  min-width:0;
+}
+header .brand-logo{
+  display:block;
+  width:min(238px,44vw);
+  max-width:100%;
+  height:auto;
+  mix-blend-mode:screen;
+}
 .match-page header .brand-logo{width:min(188px,42vw)}
-@media(max-width:480px){
-  header .brand-logo{width:min(200px,44vw)}
-  .match-page header .brand-logo{width:min(172px,40vw)}
+
+/* Let changing page/connection status wrap without pushing the logo off-screen. */
+header .live{
+  min-width:0;
+  line-height:1.25;
+  text-align:right;
+  overflow-wrap:anywhere;
+  justify-content:flex-end;
+}
+header .live i{flex:0 0 8px}
+header .header-meta{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  min-width:0;
+}
+
+@media(max-width:700px){
+  header,.match-page header{
+    height:auto;
+    min-height:54px;
+    padding:6px 12px;
+    gap:8px;
+  }
+  header .brand{flex:0 0 auto}
+  header .brand-logo{width:clamp(96px,36vw,184px)}
+  .match-page header .brand-logo{width:clamp(94px,34vw,164px)}
+  header .live{
+    flex:0 1 auto;
+    font-size:11px;
+    gap:5px;
+  }
+  header .header-meta{
+    flex:0 1 auto;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:4px;
+  }
+  header .header-meta .live{align-self:flex-end}
+  header .header-meta .viewer-count{
+    max-width:100%;
+    padding:5px 8px;
+    font-size:11px;
+    line-height:1.2;
+    gap:5px;
+    white-space:nowrap;
+  }
+}
+@media(max-width:360px){
+  header,.match-page header{
+    padding-left:9px;
+    padding-right:9px;
+    gap:6px;
+  }
+  header .brand-logo{width:clamp(85px,33vw,115px)}
+  .match-page header .brand-logo{width:clamp(85px,32vw,115px)}
+  header .live{font-size:10px;gap:4px}
 }
