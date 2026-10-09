@@ -16,3 +16,34 @@ main.shell:has(#tName)>section.card:not(#dartArenaChat){grid-column:1/-1;margin-
 @media(max-width:1250px){main.shell:has(#tName){grid-template-columns:1fr}main.shell:has(#tName)>.lobby-top,main.shell:has(#tName)>.lobby-grid,main.shell:has(#tName)>#dartArenaChat,main.shell:has(#tName)>section.card:not(#dartArenaChat){grid-column:1;grid-row:auto}main.shell:has(#tName)>#dartArenaChat .dart-chat-messages{height:235px;min-height:235px;max-height:300px}}
 @media(max-width:1000px){.lobby-main-grid{grid-template-columns:1fr}.lobby-main-grid>.dart-chat-card .dart-chat-messages{height:220px;min-height:220px;max-height:280px}}
 @media(max-width:700px){.dart-chat-card{margin-top:16px}.dart-chat-messages{height:220px}.dart-chat-message{max-width:90%}.dart-chat-form{grid-template-columns:1fr}.dart-chat-actions{flex-direction:row;justify-content:space-between;align-items:center}.dart-chat-actions .primary{min-width:110px}.lobby-main-grid{gap:16px;margin-bottom:16px}.lobby-main-grid>.dart-chat-card .dart-chat-form{grid-template-columns:1fr}.lobby-main-grid>.dart-chat-card .dart-chat-messages{height:205px;min-height:205px}main.shell:has(#tName){gap:16px}main.shell:has(#tName)>#dartArenaChat .dart-chat-messages{height:210px;min-height:210px}}
+
+/* Shared chat composer: dark DartArena input on desktop, mobile and tournament pages. */
+#dartArenaChat .dart-chat-form textarea {
+  display:block;
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  padding:11px 13px;
+  border:1px solid rgba(0,234,244,.42);
+  border-radius:12px;
+  background:#071416;
+  color:#f2f7f7;
+  font:inherit;
+  font-size:16px;
+  line-height:1.4;
+  caret-color:var(--cyan);
+  outline:none;
+  box-shadow:inset 0 1px 4px rgba(0,0,0,.22);
+}
+#dartArenaChat .dart-chat-form textarea::placeholder {
+  color:#8aa0a4;
+  opacity:1;
+}
+#dartArenaChat .dart-chat-form textarea:focus {
+  border-color:var(--cyan);
+  box-shadow:0 0 0 2px rgba(0,234,244,.14),inset 0 1px 4px rgba(0,0,0,.2);
+}
+#dartArenaChat .dart-chat-form textarea:disabled {
+  background:#0b1719;
+  color:#899fa3;
+}
