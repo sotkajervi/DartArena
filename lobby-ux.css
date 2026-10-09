@@ -39,35 +39,6 @@
 #lobbyView .da-utility-panel > button:hover { background:#173236!important; border-color:var(--cyan)!important; }
 #lobbyView .da-utility-panel #logoutBtn { color:#ffb8bc!important; border-color:rgba(255,111,120,.30)!important; }
 
-/* Primary entry points: links scroll to existing functional sections, not fake matches. */
-#lobbyView .da-quick-start {
-  display:grid; grid-template-columns:minmax(0,1fr) minmax(0,3fr);
-  align-items:center; gap:15px; margin-bottom:16px; padding:13px 15px;
-  border-radius:18px; border:1px solid rgba(0,234,244,.22);
-  background:linear-gradient(115deg,rgba(0,234,244,.085),rgba(7,16,18,.91) 48%,rgba(10,29,31,.83));
-  box-shadow:0 9px 28px rgba(0,0,0,.18);
-}
-#lobbyView .da-quick-intro { display:grid; gap:5px; min-width:0; }
-#lobbyView .da-quick-intro small { font-size:11px; }
-#lobbyView .da-quick-intro span { color:var(--muted); font-size:12px; line-height:1.35; }
-#lobbyView .da-quick-links { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; min-width:0; }
-#lobbyView .da-quick-link {
-  display:grid; align-content:center; justify-items:center; gap:4px;
-  min-width:0; min-height:62px; padding:8px; text-align:center; text-decoration:none;
-  border:1px solid rgba(0,234,244,.48); border-radius:12px;
-  background:linear-gradient(180deg,#12292b,#0b191b);
-  color:var(--text); box-shadow:inset 0 0 18px rgba(0,234,244,.055);
-}
-#lobbyView .da-quick-link strong { font-size:14px; line-height:1.15; font-weight:900; }
-#lobbyView .da-quick-link span { font-size:11px; color:#96afb2; line-height:1.2; }
-#lobbyView .da-quick-link.da-quick-main {
-  background:linear-gradient(180deg,#30f3f8,#00dfea);
-  color:#041719; border-color:#73faff; box-shadow:0 0 15px rgba(0,234,244,.13);
-}
-#lobbyView .da-quick-link.da-quick-main span { color:#164247; }
-#lobbyView .da-quick-link:focus-visible { outline:2px solid var(--cyan); outline-offset:3px; }
-#lobbyView .da-quick-link:hover { filter:brightness(1.12); }
-#lobbyView .da-quick-link:active { transform:translateY(1px); }
 #lobbyView .lobby-utility-row { margin-bottom:16px; }
 #lobbyView .lobby-utility-actions .lobby-utility-btn { white-space:normal; }
 #lobbyView #daOnlinePlayers, #lobbyView #daSoloTraining, #lobbyView #daTournamentLobby { scroll-margin-top:95px; }
@@ -140,21 +111,11 @@
   min-height:42px; min-width:0; width:100%; padding:8px 12px!important;
   white-space:normal; overflow-wrap:anywhere; font-size:12px;
 }
-@media(max-width:950px) {
-  #lobbyView .da-quick-start { grid-template-columns:minmax(0,1fr); gap:10px; }
-  #lobbyView .da-quick-intro { gap:2px; }
-}
 @media(max-width:760px) {
   #lobbyView .lobby-top { flex-direction:row; flex-wrap:wrap; align-items:flex-start; gap:9px; }
   #lobbyView .lobby-top > div:first-child { flex:1 1 190px; min-width:0; }
   #lobbyView .lobby-top .top-actions { width:auto; display:flex; flex:0 0 auto; justify-content:flex-end; }
   #lobbyView .da-utility-menu > summary { min-height:42px; padding:8px 11px; font-size:12px; }
-  #lobbyView .da-quick-start { padding:11px; margin-bottom:12px; border-radius:15px; }
-  #lobbyView .da-quick-links { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
-  #lobbyView .da-quick-link { min-height:62px; padding:6px 4px; }
-  #lobbyView .da-quick-link strong { font-size:12px; }
-  #lobbyView .da-quick-link span { font-size:10px; }
-  #lobbyView .da-quick-intro span { font-size:11px; }
   #lobbyView .player-row { padding:11px; gap:8px; }
   #lobbyView .player-row .avatar { width:39px; height:39px; flex-basis:39px; }
   #lobbyView .player-row .challenge-btn { min-width:82px; min-height:43px; padding:8px 9px!important; }
@@ -168,9 +129,6 @@
   #lobbyView #pastTournamentList .da-archive-admin-menu > summary { width:48px; margin-left:auto; }
 }
 @media(max-width:360px) {
-  #lobbyView .da-quick-links { gap:4px; }
-  #lobbyView .da-quick-link strong { font-size:11px; }
-  #lobbyView .da-quick-link span { font-size:9px; }
   #lobbyView .lobby-top > div:first-child { flex-basis:170px; }
 }
 @media(prefers-reduced-motion:reduce) {

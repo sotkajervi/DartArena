@@ -7,7 +7,15 @@
   const CHANGELOG_VERSION='2026-10-06-3';
   const lobbyVisible=()=>{const v=document.getElementById('lobbyView');return v&&!v.classList.contains('hidden')};
   const ready=()=>typeof db!=='undefined'&&typeof profile!=='undefined'&&profile?.id&&lobbyVisible();
+  // Use the existing dropdown entries instead of injecting duplicate top-level buttons.
   function installHelpLink(){
+    const menuLink=document.querySelector('#daUtilityMenu .da-utility-panel a[href^="help.html"]');
+    if(menuLink){
+      menuLink.href='help.html?v=20261006-2';
+      document.getElementById('helpBtn')?.remove();
+      return;
+    }
+    // Fallback if another page uses this presence script without the lobby menu.
     if(document.getElementById('helpBtn'))return;
     const actions=document.querySelector('#lobbyView .lobby-top .top-actions');
     if(!actions)return;
@@ -19,14 +27,31 @@
   }
 
   function installChangelogLink(){
+    let seen='';try{seen=localStorage.getItem('dartarena_changelog_seen')||''}catch{}
+    const label=seen===CHANGELOG_VERSION?'Hva er nytt':'Hva er nytt • NY';
+    const menuLink=document.querySelector('#daUtilityMenu .da-utility-panel a[href^="changelog.html"]');
+    if(menuLink){
+      menuLink.textContent=label;
+      menuLink.href='changelog.html?v=20261006-3';
+      if(menuLink.dataset.daChangelogBound!=='1'){
+        menuLink.dataset.daChangelogBound='1';
+        menuLink.addEventListener('click',()=>{
+          try{localStorage.setItem('dartarena_changelog_seen',CHANGELOG_VERSION)}catch{}
+        });
+      }
+      document.getElementById('changelogBtn')?.remove();
+      return;
+    }
     if(document.getElementById('changelogBtn'))return;
     const actions=document.querySelector('#lobbyView .lobby-top .top-actions');
     if(!actions)return;
     const btn=document.createElement('button');
     btn.id='changelogBtn';btn.className='outline';btn.type='button';btn.title='Se endringsloggen';
-    let seen='';try{seen=localStorage.getItem('dartarena_changelog_seen')||''}catch{}
-    btn.textContent=seen===CHANGELOG_VERSION?'Hva er nytt':'Hva er nytt • NY';
-    btn.onclick=()=>{try{localStorage.setItem('dartarena_changelog_seen',CHANGELOG_VERSION)}catch{}location.href='changelog.html?v=20261006-3'};
+    btn.textContent=label;
+    btn.onclick=()=>{
+      try{localStorage.setItem('dartarena_changelog_seen',CHANGELOG_VERSION)}catch{}
+      location.href='changelog.html?v=20261006-3';
+    };
     actions.insertBefore(btn,actions.firstChild);
   }
   function refreshPlayersSoon(delay=120){clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{if(!ready()||typeof loadPlayers!=='function')return;const now=Date.now();if(now-lastRefresh<250){refreshPlayersSoon(300);return}lastRefresh=now;try{await loadPlayers()}catch(e){console.warn('Live player refresh failed',e)}},delay)}
