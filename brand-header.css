@@ -1,0 +1,8 @@
+/* DartArena shared header logo: matches lobby and replaces the legacy DART/ARENA wordmark. */
+header .brand{display:flex;align-items:center;min-width:0}
+header .brand-logo{display:block;width:min(238px,44vw);height:auto;mix-blend-mode:screen}
+.match-page header .brand-logo{width:min(188px,42vw)}
+@media(max-width:480px){
+  header .brand-logo{width:min(200px,44vw)}
+  .match-page header .brand-logo{width:min(172px,40vw)}
+}
