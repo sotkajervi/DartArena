@@ -79,13 +79,13 @@ function renderStats(s){
   window.DartArenaRoleVisuals?.scan?.();
 }
 function renderCricketStats(s){
-  const hasMatches=num(s?.cricket_matches)>0;
-  $('cricketMatches').textContent=num(s?.cricket_matches);
-  $('cricketWins').textContent=num(s?.cricket_wins);
+  const matches=num(s?.cricket_matches),wins=num(s?.cricket_wins);
+  const hasMatches=matches>0;
+  $('cricketMatches').textContent=matches;
+  $('cricketWins').textContent=wins;
+  $('cricketWinPct').textContent=hasMatches?pct(100*wins/matches):'–';
   $('cricketMpr').textContent=hasMatches?num(s?.cricket_mpr).toFixed(2):'–';
   $('cricketBestMpr').textContent=hasMatches?num(s?.best_match_mpr).toFixed(2):'–';
-  $('cricketVisits').textContent=num(s?.cricket_visits).toLocaleString('nb-NO');
-  $('cricketPoints').textContent=num(s?.cricket_points).toLocaleString('nb-NO');
 }
 
 function visibleMatches(){
