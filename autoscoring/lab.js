@@ -662,7 +662,7 @@
       });
       if(!predictions.length){
         els.deepState.textContent='Ingen pilspiss';
-        els.deepMessage.textContent='DeepDarts ga '+result.rawCount+' rå kandidat(er), men ingen gyldig pilspiss på den kalibrerte skiven. Klassefordeling [pilspiss, kal1–4]: '+(result.diagnostic?.byClass||[]).join('/')+'. Dette er ikke en automatisk score.';
+        els.deepMessage.textContent='DeepDarts ga '+result.rawCount+' rå kandidat(er), men ingen gyldig pilspiss på den kalibrerte skiven. Klassefordeling [pilspiss, kal1–4]: '+(result.diagnostic?.byClass||[]).join('/')+'. Rå objectness [grid:min..max, andel 0–1]: '+(result.diagnostic?.rawStats||[]).map(v=>v.grid+':'+v.min.toFixed(3)+'..'+v.max.toFixed(3)+' ('+Math.round(v.fraction01*100)+'%)').join('; ')+'. Dette er ikke en automatisk score.';
         return;
       }
       // Distinguish the newest tip from older darts using changes since the
