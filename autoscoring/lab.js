@@ -685,6 +685,7 @@
         ?'Nyeste pil valgt etter sammenligning med referansebildet.'
         :'Fant ikke sikre bildeendringer rundt kandidatene – viser høyeste modellkonfidens.')+
         ' Diagnostikk per modellklasse [pilspiss, kal1, kal2, kal3, kal4]: '+(result.diagnostic?.byClass||[]).join('/')+'.'+
+        ' Rå objectness [grid:min..max, andel 0–1]: '+(result.diagnostic?.rawStats||[]).map(v=>v.grid+':'+v.min.toFixed(3)+'..'+v.max.toFixed(3)+' ('+Math.round(v.fraction01*100)+'%)').join('; ')+'.'+
         ' MAGENTA viser modellens forslag. Klikk den virkelige pilspissen for GRØNN fasit.';
       if(!selected){
         els.proposal.textContent='DeepDarts-forslag: '+scored.label+' · '+scored.points+' poeng';
