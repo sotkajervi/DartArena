@@ -662,7 +662,7 @@
       });
       if(!predictions.length){
         els.deepState.textContent='Ingen pilspiss';
-        els.deepMessage.textContent='DeepDarts ga '+result.rawCount+' rå kandidat(er), men ingen gyldig pilspiss på den kalibrerte skiven. Prøv annen konfidens, kontroller skiveutsnitt og lys. Dette er ikke en automatisk score.';
+        els.deepMessage.textContent='DeepDarts ga '+result.rawCount+' rå kandidat(er), men ingen gyldig pilspiss på den kalibrerte skiven. Klassefordeling [pilspiss, kal1–4]: '+(result.diagnostic?.byClass||[]).join('/')+'. Dette er ikke en automatisk score.';
         return;
       }
       // Distinguish the newest tip from older darts using changes since the
@@ -684,6 +684,7 @@
         ' ('+Math.round(best.confidence*100)+' % konfidens). '+(maxChange>=4
         ?'Nyeste pil valgt etter sammenligning med referansebildet.'
         :'Fant ikke sikre bildeendringer rundt kandidatene – viser høyeste modellkonfidens.')+
+        ' Diagnostikk per modellklasse [pilspiss, kal1, kal2, kal3, kal4]: '+(result.diagnostic?.byClass||[]).join('/')+'.'+
         ' MAGENTA viser modellens forslag. Klikk den virkelige pilspissen for GRØNN fasit.';
       if(!selected){
         els.proposal.textContent='DeepDarts-forslag: '+scored.label+' · '+scored.points+' poeng';
