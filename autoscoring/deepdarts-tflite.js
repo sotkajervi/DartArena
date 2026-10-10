@@ -153,7 +153,12 @@ async function infer(frame,region,confidence=.20){
   let input=null,tensors=[];
   try{
     const {tf}=await runtime(),crop=cropBoard(frame,region);
-    input=tf.tidy(()=>tf.browser.fromPixels(crop.canvas).toFloat().div(255).expandDims(0));
+    input=tf.tidy(()=>{
+      // tfjs-core standalone build does not register Tensor chain methods.
+      const pixels=tf.browser.fromPixels(crop.canvas);
+      const normalized=tf.div(tf.cast(pixels,'float32'),255);
+      return tf.expandDims(normalized,0);
+    });
     const output=model.predict(input);
     tensors=modelOutputs(output);
     if(tensors.length!==2)throw new Error('DeepDarts returnerte ikke to utganger.');
