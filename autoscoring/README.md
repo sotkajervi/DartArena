@@ -1,5 +1,7 @@
 # Autoscoring Lab – isolert AI-test på PC
 
+> **Ny primærtest (10.10.2026): DeepDarts D1 (.tflite), lokalt i nettleseren.** Tidligere ONNX- og Roboflow-tester ligger under «Andre metoder» for å redusere rot. Modellen er ikke forhåndsinstallert eller testet mot faktiske kast i brukerens nettleser.
+
 ## Hva er implementert?
 
 Autoscoring Lab har nå **ekte lokal ONNX-inferens** gjennom [ONNX Runtime Web](https://onnxruntime.ai/docs/get-started/with-javascript/web.html), i tillegg til enkel bildeendringsanalyse. Vanlige kamprom og kampscore er urørt. Supabase har nå en separat testfunksjon og en liten daglig brukskvote for Roboflow.
@@ -193,3 +195,29 @@ Ingen bilder sendes ved statuskontroll eller automatisk. En bildetest krever for
 ## Klargjøring av poengforklaringen (10.10.2026)
 
 Et testskjermbilde viste «Roboflow svarte med 0 gjenkjente objekter» samtidig som gul markør så ut til å foreslå S18. Dette var ikke et AI-forslag: gul markør er kun sentrum for registrert bildeendring, og feltet beregnes derfra av den lokale geometrien. Nå skjules heuristikkens feltnavn i hovedfeltet og vises ikke lenger som om det var et AI-forslag. Teksten forklarer: gul = endringssentrum (IKKE treff), magenta = faktisk AI-forslag, grønn = manuelt klikket pilspiss. Kun grønt valgt treff kan bekreftes i testen; feil markering kan korrigeres ved å klikke på nytt. Ingen endringer i scorealgoritme, kalibrering eller kampsystemet.
+
+## DeepDarts D1 – lokal TFLite-modell (10.10.2026)
+
+Dette er en selvstendig, eksplisitt styrt AI-test i Owner/Admin-labben. DeepDarts er ikke avhengig av Roboflow, Supabase API-kvoter eller nye merkede treningsbilder. Ingen vanlige kamprom, score-RPC-er eller turneringer endres.
+
+### Slik tester man
+
+1. Hent DeepDarts D1 .tflite-fil fra https://github.com/iambhabha/Dart-Vision/blob/master/deepdarts_d1/model.tflite (ca. 23 MB). Den følger IKKE med DartArena: kildeprosjektet har ingen faktisk lisensfil, selv om README viser et MIT-merke. Ikke anta at kommersiell redistribusjon er tillatt. Avklar eksplisitt tillatelse før offentlig kommersiell distribusjon.
+2. Logg inn i Autoscoring Lab som Owner/Admin, velg D1-filen i «Velg DeepDarts D1-modell (.tflite)», og klikk «Last inn DeepDarts D1». «D1 klar» vises først etter at runtime lastet og bekreftet input/output-formene. Filen lastes ikke opp.
+3. Start OBS Virtual Camera eller kamera, kalibrer Bull + 8 punkter og ta et referansebilde. Kontroller at de turkise ringene følger skivens metalltråder.
+4. Frys et bilde med en pil, ved automatisk endringsregistrering eller «Frys treffbilde».
+5. Klikk «Test fryst bilde lokalt». Magenta kryss er modellens pilspissforslag, gul er grov bildeendring, og grønn er manuell fasit.
+6. Klikk korrekt pilspiss før bekreftelse. Etter at piler er fjernet: ta en ny referanse / bruk «Ny runde / tom skive».
+
+### Teknisk implementasjon
+
+- Runtime: @tensorflow/tfjs@4.22.0 og @tensorflow/tfjs-tflite@0.0.1-alpha.10 via versjonslåst CDN / WebAssembly. Lastes bare når en D1-fil velges. Modellvektene åpnes direkte fra lokalt ArrayBuffer og sendes ikke videre.
+- Inndata: [1,800,800,3] float32, RGB/255. Utdata: to YOLOv4-tiny-heads [1,50,50,30] og [1,25,25,30], i vilkårlig rekkefølge.
+- Etterbehandling: tre anchors per celle; klasse 0 er dart-tip, klasse 1–4 er kalibrering. Sigmoid for koordinater, objekt-konfidens og klasser; eksponentielle dimensjoner; 0,45 IoU NMS; justerbar terskel som starter på 0,20. Kalibreringspunkter blir aldri sendt videre som dart-tip-detektering.
+- Utsnittet begrenses til kalibrert dartskive, med litt margin. OBS-zoomkopi skal ikke være med. Bildet tilpasses 800x800 uten deformasjon, og modellkoordinater transformeres tilbake til originalbildet før skivegeometrien beregner poeng.
+- Flere piler: Prioriter pilspiss-kandidater med størst endring relativt til referansebildet. Hvis ingen har tydelig endring, bruk modellkonfidens. Dette identifiserer ikke garantert nyeste pil.
+- Det vises bare et forslag. Selvstendig, manuell bekreftelse kreves; ingen automatisk endring av kampdata.
+- Begrensning: TFLite WebAssembly kan være tregt eller bruke mye minne på eldre PC-er. Modellfilen er ikke automatisk installert; det finnes ingen publisert modell i repo eller server. Resultatet er ennå ikke fysisk testet i brukerens Chrome/OBS-oppsett.
+- DeepDarts D1 har rapportert 94,7 % PCS på egne testbilder. Det tallet gjelder ikke DartArena før uavhengig testing.
+
+Kjør syntetiske tester med «node autoscoring/deepdarts-tflite.test.cjs». Testene kontrollerer YOLO-utgang, klassefilter, scoreformat og modellformat; de beviser ikke ytelsen til de virkelige modellvektene.

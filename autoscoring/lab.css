@@ -73,3 +73,12 @@
 .lab-page #labRoboflowMessage{line-height:1.5;min-height:1.5em}
 .lab-page #labRoboflowState{max-width:170px;text-align:center}
 .lab-page #labRoboflowTest:not(:disabled){border-color:rgba(0,234,244,.6)}
+
+/* The compatible local DeepDarts experiment is primary. Optional legacy labs collapse. */
+.lab-page .lab-deep-panel{border-color:rgba(0,234,244,.35);background:rgba(0,234,244,.025)}
+.lab-page .lab-deep-threshold{max-width:300px;margin-top:10px}
+.lab-page .lab-optional{margin:12px 0 22px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.lab-page .lab-optional>summary{cursor:pointer;list-style:revert;padding:14px 18px;font-size:13px;font-weight:750;color:var(--muted)}
+.lab-page .lab-optional[open]>summary{border-bottom:1px solid var(--line);color:var(--cyan)}
+.lab-page .lab-optional>.lab-ai-panel{margin:12px}
+.lab-page .lab-deep-panel a{color:var(--cyan);text-decoration:underline;text-underline-offset:3px}

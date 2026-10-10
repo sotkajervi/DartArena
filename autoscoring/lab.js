@@ -6,6 +6,7 @@
   const AI=window.DartArenaLabAI;
   const ZIP=window.DartArenaLabZip;
   const RF=window.DartArenaLabRoboflow;
+  const Deep=window.DartArenaLabDeepDarts;
   const $=id=>document.getElementById(id);
   const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
   const KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
@@ -27,7 +28,10 @@
     datasetState:$('labDatasetState'),
     rfState:$('labRoboflowState'),rfConsent:$('labRoboflowConsent'),
     rfStatus:$('labRoboflowStatus'),rfTest:$('labRoboflowTest'),
-    rfMessage:$('labRoboflowMessage')
+    rfMessage:$('labRoboflowMessage'),
+    deepState:$('labDeepState'),deepFile:$('labDeepFile'),
+    deepLoad:$('labDeepLoad'),deepTest:$('labDeepTest'),
+    deepThreshold:$('labDeepThreshold'),deepMessage:$('labDeepMessage')
   };
   if(!db||!G||!els.app)return;
 
@@ -35,7 +39,7 @@
   let calibrationPoints=[],board=null,baseline=null,previous=null,samples=[];
   let pending=null,selected=null,stableFrames=0,records=[],tickTimer=0,lastAnalysis=null;
   let aiLoading=false,aiInferring=false,aiSerial=0,frozen=false,frozenAt=null,freezeMethod=null;
-  let rfBusy=false,rfSerial=0;
+  let rfBusy=false,rfSerial=0,deepLoading=false,deepInferring=false,deepSerial=0;
   const MAX_DATASET=150;
   let dataset=[];
   const analysisCanvas=document.createElement('canvas');
@@ -69,6 +73,10 @@
     els.aiLoad.disabled=!authorized||aiLoading;
     els.aiTest.disabled=!authorized||!ready||adjusting||!AI?.ready()||aiInferring;
     els.aiFile.disabled=!authorized||aiLoading;
+    els.deepFile.disabled=!authorized||deepLoading||!!Deep?.ready();
+    els.deepLoad.disabled=!authorized||!Deep||deepLoading||!!Deep?.ready();
+    els.deepTest.disabled=!authorized||!Deep?.ready()||!ready||!frozen||calibrating||adjusting||deepInferring;
+    els.deepThreshold.disabled=!authorized||deepInferring;
     els.rfStatus.disabled=!authorized||rfBusy;
     els.rfTest.disabled=!authorized||!RF||!ready||!frozen||!els.rfConsent.checked||adjusting||calibrating||rfBusy;
     els.datasetOptIn.disabled=!authorized;
@@ -130,13 +138,13 @@
     if(AI?.ready())void analyseAIFrame(pending,true);
   }
   function clearProposal(message='Ingen forslag'){
-    aiSerial++;rfSerial++;pending=null;selected=null;stableFrames=0;clearFrozen();
+    aiSerial++;rfSerial++;deepSerial++;pending=null;selected=null;stableFrames=0;clearFrozen();
     els.proposal.textContent=message;
     els.proposalDetail.textContent='Klikk på pilspissen i kamerabildet for å angi fasit ved registrert kast.';
     updateButtons();drawOverlay();
   }
   function resetAnalysis(clearRecords){
-    aiSerial++;rfSerial++;baseline=null;previous=null;lastAnalysis=null;samples=[];pending=null;selected=null;stableFrames=0;
+    aiSerial++;rfSerial++;deepSerial++;baseline=null;previous=null;lastAnalysis=null;samples=[];pending=null;selected=null;stableFrames=0;
     if(clearRecords){records=[];updateStats()}
     els.motion.textContent='–';clearProposal();
   }
@@ -479,9 +487,9 @@
     records.push({number:records.length+1,timestamp:new Date().toISOString(),
       actual:selected.label,points:selected.points,suggested:pending?.ai?.label||null,
       heuristic:pending?.suggested||null,modelConfidence:pending?.ai?.confidence??null,
-      modelName:pending?.ai?.label?(pending.ai.provider==='roboflow'?'Roboflow dart-tip-detection-6d3mw/17':AI?.name()):null,
+      modelName:pending?.ai?.label?(pending.ai.provider==='roboflow'?'Roboflow dart-tip-detection-6d3mw/17':pending.ai.provider==='deepdarts'?Deep?.name():AI?.name()):null,
       x:Number(selected.point.x.toFixed(1)),y:Number(selected.point.y.toFixed(1)),
-      method:'manual-verified',analysis:pending?.ai?(pending.ai.provider==='roboflow'?'roboflow-keypoint':'onnx-model'):'frame-difference-centroid'});
+      method:'manual-verified',analysis:pending?.ai?(pending.ai.provider==='roboflow'?'roboflow-keypoint':pending.ai.provider==='deepdarts'?'deepdarts-tflite':'onnx-model'):'frame-difference-centroid'});
     updateStats();captureReference();
     status('Treff bekreftet, referanse oppdatert');els.step.textContent='Kast neste pil. Når skiven er tømt, trykk Ny runde / tom skive.';
   }
@@ -592,7 +600,7 @@
       if(!pending){
         pending={candidate:{x:d.x,y:d.y},suggested:null,changed:0};
       }
-      if(pending.ai?.provider==='roboflow')return; // Manual cloud test takes precedence in the lab.
+      if(pending.ai?.provider==='roboflow'||pending.ai?.provider==='deepdarts')return; // Explicit manual tests take precedence.
       pending.ai={label:scored.label,point:{x:d.x,y:d.y},confidence:d.confidence,provider:'onnx'};
       els.aiState.textContent='AI: '+scored.label;
       els.aiMessage.textContent='AI fant '+found.length+' kandidat(er). Beste forslag: '+scored.label+', '+Math.round(d.confidence*100)+' % konfidens ('+(result.method==='keypoint'?'pilspiss-nøkkelpunkt':'bokssentrum')+'). Klikk faktisk treffpunkt for å kontrollere.';
@@ -608,6 +616,89 @@
       updateButtons();
     }
   }
+  async function loadDeepDarts(){
+    if(!authorized||!Deep||deepLoading||Deep.ready())return;
+    const file=els.deepFile.files?.[0];
+    if(!file){els.deepMessage.textContent='Velg først en DeepDarts D1-fil (.tflite) fra PC-en.';return}
+    deepLoading=true;els.deepState.textContent='Laster modell…';
+    els.deepMessage.textContent='Åpner TFLite lokalt på PC-en. Første gang lastes TensorFlow.js og WASM fra CDN.';
+    updateButtons();
+    try{
+      const result=await Deep.load(file);
+      els.deepState.textContent='D1 klar';
+      els.deepMessage.textContent='D1 lastet fra '+result.name+' · 800×800 RGB. Frys et bilde av skiven og trykk Test fryst bilde lokalt. Modell og kamerabilde forlater ikke PC-en.';
+    }catch(e){els.deepState.textContent='Modellfeil';els.deepMessage.textContent='Kunne ikke laste DeepDarts: '+(e?.message||String(e))}
+    finally{deepLoading=false;updateButtons()}
+  }
+  function changesAround(point,after){
+    if(!baseline||!after||after.length!==baseline.length)return 0;
+    const aw=analysisCanvas.width,ah=analysisCanvas.height;
+    const x=Math.round(point.x*aw/els.overlay.width),y=Math.round(point.y*ah/els.overlay.height);
+    let changed=0;
+    for(let dy=-7;dy<=7;dy+=2)for(let dx=-7;dx<=7;dx+=2){
+      const px=x+dx,py=y+dy;
+      if(px<0||py<0||px>=aw||py>=ah)continue;
+      const idx=(py*aw+px)*4;
+      const delta=Math.abs(after[idx]-baseline[idx])+
+        Math.abs(after[idx+1]-baseline[idx+1])+
+        Math.abs(after[idx+2]-baseline[idx+2]);
+      if(delta>DIFF_THRESHOLD)changed++;
+    }
+    return changed;
+  }
+  async function analyseDeepDarts(){
+    if(!authorized||!Deep?.ready()||!board||!stream||!frozen||deepInferring||adjusting||calibrating)return;
+    deepInferring=true;const ticket=++deepSerial;
+    els.deepState.textContent='Analyserer…';
+    els.deepMessage.textContent='DeepDarts D1 behandler nå det frosne skivebildet lokalt. Ingen bilder sendes til Roboflow eller DartArena.';
+    updateButtons();
+    try{
+      const region=G.boardBounds(board,els.overlay.width,els.overlay.height,.12);
+      const result=await Deep.infer(els.frozenFrame,region,Number(els.deepThreshold.value));
+      if(ticket!==deepSerial||!authorized||!board||!stream||!frozen)return;
+      const predictions=result.detections.filter(d=>{
+        const q=G.normalize(board,{x:d.x,y:d.y});
+        return Number.isFinite(q.x)&&Number.isFinite(q.y)&&q.x*q.x+q.y*q.y<=1.05*1.05;
+      });
+      if(!predictions.length){
+        els.deepState.textContent='Ingen pilspiss';
+        els.deepMessage.textContent='DeepDarts ga '+result.rawCount+' rå kandidat(er), men ingen gyldig pilspiss på den kalibrerte skiven. Prøv annen konfidens, kontroller skiveutsnitt og lys. Dette er ikke en automatisk score.';
+        return;
+      }
+      // Distinguish the newest tip from older darts using changes since the
+      // reference frame. A crude motion centroid should not decide the score.
+      analysisContext.drawImage(els.frozenFrame,0,0,analysisCanvas.width,analysisCanvas.height);
+      const after=analysisContext.getImageData(0,0,analysisCanvas.width,analysisCanvas.height).data;
+      for(const item of predictions)item.change=changesAround(item,after);
+      const maxChange=Math.max(...predictions.map(p=>p.change));
+      predictions.sort((a,b)=>maxChange>=4
+        ?(b.change-a.change)||(b.confidence-a.confidence)
+        :(b.confidence-a.confidence));
+      const best=predictions[0];
+      const scored=G.score(board,best);
+      if(!pending)pending={candidate:null,suggested:null,changed:0};
+      pending.ai={label:scored.label,point:{x:best.x,y:best.y},
+        confidence:best.confidence,provider:'deepdarts'};
+      els.deepState.textContent='D1: '+scored.label;
+      els.deepMessage.textContent='D1 fant '+predictions.length+' pilspiss-kandidat(er). Beste forslag: '+scored.label+
+        ' ('+Math.round(best.confidence*100)+' % konfidens). '+(maxChange>=4
+        ?'Nyeste pil valgt etter sammenligning med referansebildet.'
+        :'Fant ikke sikre bildeendringer rundt kandidatene – viser høyeste modellkonfidens.')+
+        ' MAGENTA viser modellens forslag. Klikk den virkelige pilspissen for GRØNN fasit.';
+      if(!selected){
+        els.proposal.textContent='DeepDarts-forslag: '+scored.label+' · '+scored.points+' poeng';
+        els.proposalDetail.textContent='Magenta er kun AI-forslag. Klikk faktiske pilspiss for grønn fasit, og bekreft manuelt.';
+      }
+      drawOverlay();
+    }catch(e){
+      if(ticket===deepSerial){
+        els.deepState.textContent='Analysefeil';
+        els.deepMessage.textContent='DeepDarts-feil: '+(e?.message||String(e));
+      }
+    }finally{deepInferring=false;updateButtons()}
+  }
+  els.deepLoad.addEventListener('click',loadDeepDarts);
+  els.deepTest.addEventListener('click',analyseDeepDarts);
   async function checkRoboflowConnection(){
     if(!authorized||!RF||rfBusy)return;
     rfBusy=true;els.rfState.textContent='Sjekker…';els.rfMessage.textContent='Kontrollerer serveroppsettet uten å laste opp bilde.';
