@@ -51,3 +51,12 @@
 .lab-page .lab-ai-settings input,.lab-page .lab-ai-settings select{min-width:0;width:100%}
 .lab-page #labAiMessage{padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.03);overflow-wrap:anywhere}
 @media(max-width:650px){.lab-page .lab-ai-settings{grid-template-columns:1fr}.lab-page .lab-ai-panel{padding:11px}.lab-page .lab-ai-panel .heading{flex-wrap:wrap}}
+
+/* Lab-local opt-in annotated image dataset export */
+.lab-page .lab-dataset{margin-top:18px;padding:14px;border:1px solid rgba(0,234,244,.26);background:rgba(0,234,244,.035);border-radius:12px}
+.lab-page .lab-dataset h2{font-size:18px}
+.lab-page .lab-dataset p{line-height:1.5}
+.lab-page .lab-dataset-optin{display:flex;align-items:flex-start;gap:12px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.09);cursor:pointer;background:rgba(255,255,255,.025)}
+.lab-page .lab-dataset-optin input{margin-top:3px;width:18px;height:18px;accent-color:#00eaf4;flex:none}
+.lab-page .lab-dataset-optin strong,.lab-page .lab-dataset-optin small{display:block}
+.lab-page .lab-dataset-optin small{margin-top:5px;font-size:12px;line-height:1.45;color:var(--muted)}

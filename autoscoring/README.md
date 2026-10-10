@@ -61,3 +61,35 @@ Tester uten kamera:
 node autoscoring/geometry.test.cjs
 node autoscoring/ai-onnx.test.cjs
 ```
+
+## Beslutning 10. oktober 2026: modellstrategi og datagrunnlag
+
+Vi går videre med **egen, lokalt kjørbar enkeltkameramodell** i stedet for å kopiere uklar tredjeparts kode eller lage et system som krever API-nøkkel til en ekstern bildeanalyse-server.
+
+- **Faglig baseline:** DeepDarts D1 med omtrent 94,7 % riktig score på deres testmateriale. Den originale DeepDarts-repoet oppgir ikke en klar redistribusjonslisens, og vekter/kildekode kopieres **ikke** inn i DartArena. Eventuelt bruksgrunnlag må avklares separat.
+- **Treningsdata/referanse:** Roboflow datasettet «darts / Punta» er oppgitt som **CC BY 4.0**. Det må føres attribusjon og verifiseres at det faktisk annoterer det vi ønsker. CC BY gjelder datasettet, ikke nødvendigvis en hosted treningsmodell eller modellvektene. Ingen kopiering inn i DartArena er gjort.
+- **Foretrukket egen arkitektur:** Et lett keypoint-nettverk for seneste pilspiss, inspirert av **RTMPose** fra MMPose (Apache 2.0-kode). Vi må velge/bygge modellvekter med bekreftede kommersielle bruksrettigheter. En generisk menneske-posemodell er **ikke** en ferdig dartmodell.
+- **Modellinput:** Parvis referanse-/etter-kast-bilde fra fast webkamera. Modellen bør lære å lokalisere den nyeste pilen, ikke bare alle synlige piler. Dette krever trening og en tilsvarende modelladapter i browseren. Det eksisterende YOLO/ONNX-grensesnittet beholdes som separat eksperiment.
+- **Kvalitetskrav før scoring i onlinekamp:** Nøyaktighet må testes med faktiske kast, særlig på tette samlinger og ring-/segmentgrenser. Alle feilforslag må kunne korrigeres. Bruk ikke objekt-deteksjons-mAP som direkte dartscore-treffprosent.
+
+### Innebygd lokal datainnsamling
+
+Autoscoring Lab kan nå frivillig samle maks **150 manuelt bekreftede kast** i én økt:
+
+1. Skru på «Aktiver lokal bildeinnsamling» eksplisitt; funksjonen er avslått som standard.
+2. Kalibrer kameraet, ta referansebilde, kast og klikk faktiske pilspissen før «Bekreft valgt treff».
+3. Hvert kast lagres **kun i fanens minne** som et JPEG-bilde *før* og *etter* kastet med pikselkoordinater, skivekalibrering, fasit og eventuelt AI-forslag.
+4. Trykk «Last ned treningsdata (.zip)» for å lagre lokalt. ZIP inneholder `images/####-before.jpg`, `images/####-after.jpg`, `labels.json` og `README.txt`. Den bygges i nettleseren uten tredjeparts ZIP-bibliotek.
+5. «Slett bilder» fjerner bildene fra fanens minne. Ved utlogging/rolleendring tømmes også bildetilstanden. Lukk fanen for å kassere alle ikke-eksporterte bilder.
+
+Merk: For et frame-par er **bare den siste manuelt bekreftede pilspissen** annotert. Andre piler som kan stå i skiven er ikke merket. Modellen må trenes med hensyn til dette (for eksempel endringsbasert modell på før/etter-bilder); after-bildene er **ikke** et komplett datasett med alle pilspisser.
+
+Ingen lagring i lokalStorage, backend, kamper, turneringer eller eksterne tjenester. Bildene kan likevel vise omgivelser; del aldri ZIP uten å kontrollere innholdet.
+
+Dette er dataforberedelse, **ikke** en ny ferdigtrent modell. Neste tekniske utviklingstrinn er å trene og eksportere en konkret dart-tip-modell med avklarte rettigheter, deretter kjøre den på disse testkastene og måle reell treffprosent.
+
+Test ZIP-byggeren:
+
+```sh
+node autoscoring/zip-store.test.cjs
+```

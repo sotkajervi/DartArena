@@ -4,6 +4,7 @@
   'use strict';
   const G=window.DartArenaLabGeometry;
   const AI=window.DartArenaLabAI;
+  const ZIP=window.DartArenaLabZip;
   const $=id=>document.getElementById(id);
   const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
   const KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
@@ -18,7 +19,10 @@
     confirm:$('labConfirm'),reject:$('labReject'),log:$('labLog'),export:$('labExport'),
     newRound:$('labNewRound'),aiState:$('labAiState'),aiFile:$('labAiFile'),
     aiMode:$('labAiMode'),aiKeypoint:$('labAiKeypoint'),aiThreshold:$('labAiThreshold'),
-    aiLoad:$('labAiLoad'),aiTest:$('labAiTest'),aiMessage:$('labAiMessage')
+    aiLoad:$('labAiLoad'),aiTest:$('labAiTest'),aiMessage:$('labAiMessage'),
+    datasetOptIn:$('labDatasetOptIn'),datasetCount:$('labDatasetCount'),
+    datasetExport:$('labDatasetExport'),datasetClear:$('labDatasetClear'),
+    datasetState:$('labDatasetState')
   };
   if(!db||!G||!els.app)return;
 
@@ -26,6 +30,8 @@
   let calibrationPoints=[],board=null,baseline=null,previous=null,samples=[];
   let pending=null,selected=null,stableFrames=0,records=[],tickTimer=0,lastAnalysis=null;
   let aiLoading=false,aiInferring=false,aiSerial=0;
+  const MAX_DATASET=150;
+  let dataset=[];
   const analysisCanvas=document.createElement('canvas');
   const analysisContext=analysisCanvas.getContext('2d',{willReadFrequently:true});
   const ctx=els.overlay.getContext('2d');
@@ -52,6 +58,14 @@
     els.aiLoad.disabled=!authorized||aiLoading;
     els.aiTest.disabled=!authorized||!ready||!AI?.ready()||aiInferring;
     els.aiFile.disabled=!authorized||aiLoading;
+    els.datasetOptIn.disabled=!authorized;
+    els.datasetExport.disabled=!authorized||!dataset.length;
+    els.datasetClear.disabled=!authorized||!dataset.length;
+  }
+  function updateDatasetState(message){
+    els.datasetCount.textContent=dataset.length+' / '+MAX_DATASET+' kast';
+    els.datasetState.textContent=message||(dataset.length>=MAX_DATASET?'Maksantall nådd – eksporter ZIP og slett bildene for å starte på nytt.':(els.datasetOptIn.checked?'Lokal innsamling aktiv: bilder lagres bare når du bekrefter treff.':'Av. Bilder fra kameraet lagres ikke.'));
+    updateButtons();
   }
   function updateStats(){
     els.count.textContent=String(records.length);
@@ -95,6 +109,7 @@
   }
   function revokeAccess(message){
     authorized=false;stopCamera();
+    dataset=[];els.datasetOptIn.checked=false;updateDatasetState();
     els.app.hidden=true;els.gate.hidden=false;els.gate.textContent=message;
   }
   async function checkAccess(){
@@ -292,8 +307,33 @@
     els.proposalDetail.textContent=pending?.ai?'AI foreslo '+pending.ai.label+' ('+Math.round(pending.ai.confidence*100)+' %). Bekreft grønn markering som fasit.':pending?'Grovt forslag: '+pending.suggested+'. Bekreft grønn markering som fasit.':'Manuelt treff valgt. Bekreft for å loggføre.';
     updateButtons();drawOverlay();
   }
+  function captureAnnotatedSample(){
+    if(!authorized||!els.datasetOptIn.checked||!board||!baseline||!selected)return;
+    if(dataset.length>=MAX_DATASET){updateDatasetState('Maks '+MAX_DATASET+' kast. Eksporter og tøm samlingen.');return}
+    try{
+      const aw=analysisCanvas.width,ah=analysisCanvas.height;
+      if(!aw||!ah||baseline.length!==aw*ah*4)throw new Error('Referansebilde mangler.');
+      if(!readFrame())throw new Error('Kamerabildet er ikke tilgjengelig.');
+      const after=analysisCanvas.toDataURL('image/jpeg',.84);
+      const beforePixels=new Uint8ClampedArray(baseline);
+      analysisContext.putImageData(new ImageData(beforePixels,aw,ah),0,0);
+      const before=analysisCanvas.toDataURL('image/jpeg',.84);
+      const x=selected.point.x*aw/els.overlay.width;
+      const y=selected.point.y*ah/els.overlay.height;
+      const row={number:dataset.length+1,createdAt:new Date().toISOString(),
+        actual:selected.label,points:selected.points,
+        tip:{x:Number(x.toFixed(2)),y:Number(y.toFixed(2)),xNorm:Number((x/aw).toFixed(6)),yNorm:Number((y/ah).toFixed(6))},
+        resolution:{width:aw,height:ah},
+        boardCalibration:board.points.map(p=>({x:Number((p.x*aw/els.overlay.width).toFixed(2)),y:Number((p.y*ah/els.overlay.height).toFixed(2))})),
+        aiSuggestion:pending?.ai?.label||null,aiConfidence:pending?.ai?.confidence??null,
+        before,after};
+      if(!before.startsWith('data:image/jpeg;base64,')||!after.startsWith('data:image/jpeg;base64,'))throw new Error('Kamerabilder kunne ikke komprimeres.');
+      dataset.push(row);updateDatasetState();
+    }catch(e){updateDatasetState('Bildeinnsamling feilet: '+(e?.message||String(e)))}
+  }
   function confirmSelection(){
     if(!authorized||!board||!selected||!baseline)return;
+    captureAnnotatedSample();
     records.push({number:records.length+1,timestamp:new Date().toISOString(),
       actual:selected.label,points:selected.points,suggested:pending?.ai?.label||null,
       heuristic:pending?.suggested||null,modelConfidence:pending?.ai?.confidence??null,
@@ -314,6 +354,51 @@
     const href=URL.createObjectURL(blob);
     const a=document.createElement('a');a.href=href;a.download='dartarena-autoscoring-test-'+new Date().toISOString().slice(0,10)+'.json';
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(href),1000);
+  }
+  function bytesFromDataUrl(src){
+    const prefix='data:image/jpeg;base64,';
+    if(typeof src!=='string'||!src.startsWith(prefix))throw new Error('Ugyldig lokalt JPEG-bilde.');
+    const decoded=atob(src.slice(prefix.length));
+    const bytes=new Uint8Array(decoded.length);
+    for(let i=0;i<decoded.length;i++)bytes[i]=decoded.charCodeAt(i);
+    return bytes;
+  }
+  function downloadBlob(blob,name){
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=name;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+  }
+  function exportDataset(){
+    if(!authorized||!dataset.length||!ZIP?.build)return;
+    els.datasetExport.disabled=true;
+    els.datasetState.textContent='Pakker '+dataset.length+' merkede kast i ZIP på PC-en…';
+    try{
+      const enc=new TextEncoder();
+      const files=[],labels=[];
+      for(const entry of dataset){
+        const id=String(entry.number).padStart(4,'0');
+        const base='images/'+id;
+        files.push({name:base+'-before.jpg',bytes:bytesFromDataUrl(entry.before)});
+        files.push({name:base+'-after.jpg',bytes:bytesFromDataUrl(entry.after)});
+        const {before,after,...meta}=entry;
+        labels.push({...meta,beforeImage:base+'-before.jpg',afterImage:base+'-after.jpg'});
+      }
+      const note='DartArena Autoscoring Lab – locally captured, manually verified darts dataset.\\n'
+        +'These paired images show a reference frame and a frame after a throw; tip coordinates are pixel positions in AFTER image.\\n'
+        +'Every label describes only the most recently confirmed tip – other visible darts in AFTER may be unlabeled.\\n'
+        +'Do not assume that all dart tips in an image have labels.\\n'
+        +'No automatic training, image upload or consent to third-party distribution occurs.\\n';
+      const manifest={format:'dartarena-lab-paired-frames-v1',source:'owner-admin-opt-in',createdAt:new Date().toISOString(),
+        note:'Only newest tip labeled per pair; verify image quality and remove failed frames before training.',
+        samples:labels};
+      files.push({name:'labels.json',bytes:enc.encode(JSON.stringify(manifest,null,2))});
+      files.push({name:'README.txt',bytes:enc.encode(note)});
+      const zip=ZIP.build(files);
+      downloadBlob(zip,'dartarena-merkede-kast-'+new Date().toISOString().slice(0,10)+'.zip');
+      updateDatasetState('ZIP med '+dataset.length+' merkede kast lastet ned. Bildene ligger også i minnet til du sletter dem eller lukker fanen.');
+    }catch(e){updateDatasetState('ZIP-eksport feilet: '+(e?.message||String(e)));}
+    finally{updateButtons()}
   }
   async function loadAIModel(){
     if(!authorized||aiLoading||!AI)return;
@@ -395,6 +480,13 @@
   els.confirm.addEventListener('click',confirmSelection);
   els.reject.addEventListener('click',()=>{captureReference();status('Forslag avvist – ny referanse tatt')});
   els.export.addEventListener('click',exportResults);
+  els.datasetExport.addEventListener('click',exportDataset);
+  els.datasetOptIn.addEventListener('change',()=>updateDatasetState());
+  els.datasetClear.addEventListener('click',()=>{
+    if(!authorized||!dataset.length)return;
+    if(!confirm('Slette '+dataset.length+' merkede kast og alle tilhørende bilder fra denne fanen?'))return;
+    dataset=[];updateDatasetState('Alle merkede bilder er slettet fra fanens minne.');
+  });
   els.overlay.addEventListener('click',overlayClick);
   navigator.mediaDevices?.addEventListener?.('devicechange',()=>{if(!stream&&authorized)loadDevices()});
   db.auth.onAuthStateChange(()=>setTimeout(checkAccess,0));
@@ -402,5 +494,5 @@
   window.addEventListener('pagehide',stopCamera);
   setInterval(checkAccess,60000);
   if(!G.runSanityChecks()){revokeAccess('Intern geometritest feilet. Kameraet er deaktivert.');return}
-  updateButtons();updateStats();checkAccess().then(()=>{if(authorized)loadDevices()});
+  updateButtons();updateStats();updateDatasetState();checkAccess().then(()=>{if(authorized)loadDevices()});
 })();
