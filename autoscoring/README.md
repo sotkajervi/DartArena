@@ -112,3 +112,20 @@ Det brukes nå ni punkter (Bull + åtte rundt hele dobbelringen) i en overbestem
 En gul stiplet ramme viser AI-besnittet, som ekskluderer OBS-zoomkopien til høyre. Ta ikke opp testdata eller bruk scoreforslag før turkise ringer og sektorgrenser følger den fysiske skiven.
 
 Dette endrer bare den isolerte testsiden og kalibreringsmatematikken, ikke DartArenas onlinekamper, turneringssystem eller databaser.
+
+## Retting etter første ekte datasett (8 kast, 10.10.2026)
+
+Det første eksporterte datasettet inneholdt 8 merkede kast i 720×405 JPEG-bilder. Både kontroll av bildepunkter og gjennomgang av før/etter-bildene viste at et par kunne få et annet «etter»-bilde enn det som var på skjermen da brukeren markerte treffet. Dessuten viste enkelte par fjerning/flytting av dartpiler, som ikke bør merkes som nye kast.
+
+Laben har nå **frosset treffbilde**:
+
+1. Etter «Ta referansebilde» fryser Lab automatisk den første stabile endringen den finner. Bildet som vises med treffforslaget blir fryst.
+2. Om automatisk endring uteblir: Kast pilen, vent til den står stille og trykk **Frys treffbilde**.
+3. Marker **pilspissen i det frosne bildet**, ikke en video som kan endre seg mens markøren flyttes.
+4. Bekreft. Hvis lokal datainnsamling var aktivert, bruker eksporten **akkurat det fryste JPEG-bildet** til «after», mens «before» fortsatt er referansebildet. Metadata inneholder `frozenFrame: true`, `frameCapturedAt`, `frameCaptureMethod`.
+5. Hvis det fryste bildet er uklart, viser pilfjerning eller ikke viser en ny pil: velg **Forkast / tilbake til live**. Legg i så fall inn ny referanse av den faktiske skiven.
+6. Ved fjerning av alle dartpilene mellom runder, trykk **Ny runde / tom skive** når skiven er tom før du kaster neste pil. Da vil ikke piler som blir fjernet, være referanse for et nytt kast.
+
+Dette retter **tidsforskjellen** mellom annotasjon og bilde. Det beviser ikke at en dartspissmarkering er nøyaktig, at en endring er et innkommende kast, eller at materialet alene er stort nok for modelltrening. Gjennomgå alltid hvert bildepar i ZIP-arkivet før trening.
+
+Filene er fortsatt lokale, med opt-in for treningsdata, ingen nye Supabase-kall, og uten å endre kamprommene.

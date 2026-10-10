@@ -69,7 +69,7 @@ function setOptions(values){
 function getArray(info,shape,frame,region){
   const {w,h,nchw}=shape;
   working.width=w;working.height=h;
-  const fw=frame.videoWidth,fh=frame.videoHeight;
+  const fw=frame.videoWidth||frame.width,fh=frame.videoHeight||frame.height;
   if(!fw||!fh)throw new Error('Kamerabildet er ikke tilgjengelig.');
   const crop=region||{x:0,y:0,width:fw,height:fh};
   const sx=Math.max(0,Math.min(fw,crop.x)),sy=Math.max(0,Math.min(fh,crop.y));

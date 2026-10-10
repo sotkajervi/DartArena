@@ -12,6 +12,7 @@
   const els={
     gate:$('labGate'),app:$('labApp'),camera:$('labCamera'),start:$('labStart'),
     stop:$('labStop'),video:$('labVideo'),overlay:$('labOverlay'),stage:$('labStage'),
+    frozenFrame:$('labFrozenFrame'),freeze:$('labFreeze'),resume:$('labResume'),
     stageMessage:$('labStageMessage'),cameraState:$('labCameraState'),calibrate:$('labCalibrate'),undo:$('labUndo'),adjust:$('labAdjust'),
     baseline:$('labBaseline'),reset:$('labReset'),step:$('labStep'),coords:$('labCoords'),
     analysisState:$('labAnalysisState'),motion:$('labMotion'),count:$('labCount'),
@@ -29,7 +30,7 @@
   let authorized=false,stream=null,starting=false,epoch=0,calibrating=false,adjusting=false,dragging=null;
   let calibrationPoints=[],board=null,baseline=null,previous=null,samples=[];
   let pending=null,selected=null,stableFrames=0,records=[],tickTimer=0,lastAnalysis=null;
-  let aiLoading=false,aiInferring=false,aiSerial=0;
+  let aiLoading=false,aiInferring=false,aiSerial=0,frozen=false,frozenAt=null,freezeMethod=null;
   const MAX_DATASET=150;
   let dataset=[];
   const analysisCanvas=document.createElement('canvas');
@@ -52,6 +53,8 @@
     els.adjust.disabled=!ready||calibrating;
     els.adjust.textContent=adjusting?'Ferdig med justering':'Finjuster punkter';
     els.baseline.disabled=!ready||adjusting||calibrating;
+    els.freeze.disabled=!active||!!pending||frozen||adjusting||calibrating;
+    els.resume.disabled=!active||!frozen;
     els.reset.disabled=!live;
     els.confirm.disabled=!active||!selected||adjusting;
     els.reject.disabled=!active||!pending;
@@ -89,8 +92,38 @@
       div.append(l,side);els.log.appendChild(div);
     }
   }
+  function clearFrozen(){
+    frozen=false;frozenAt=null;freezeMethod=null;
+    els.frozenFrame.hidden=true;
+    const c=els.frozenFrame.getContext('2d');
+    if(c&&els.frozenFrame.width&&els.frozenFrame.height)c.clearRect(0,0,els.frozenFrame.width,els.frozenFrame.height);
+  }
+  function freezeFrame(mode='manual'){
+    if(!authorized||!stream||!board||!baseline||calibrating||adjusting)return false;
+    if(frozen)return true;
+    const w=els.overlay.width,h=els.overlay.height;
+    if(!w||!h||!els.video.videoWidth)return false;
+    const c=els.frozenFrame;
+    c.width=w;c.height=h;
+    try{c.getContext('2d').drawImage(els.video,0,0,w,h)}
+    catch(e){return false}
+    frozen=true;frozenAt=new Date().toISOString();freezeMethod=mode;c.hidden=false;
+    els.step.textContent='Bildet er fryst. Klikk på pilspissen i dette bildet før du bekrefter.';
+    updateButtons();return true;
+  }
+  function freezeManual(){
+    if(!freezeFrame('manual-button'))return;
+    if(!pending){
+      pending={candidate:null,suggested:null,changed:0,manualFreeze:true};
+    }
+    status('Treffbilde fryst manuelt – marker pilspissen.');
+    els.proposal.textContent='Frosset bilde: velg treffpunkt';
+    els.proposalDetail.textContent='Kontroller at én NY pil er synlig. Klikk spissen, og bekreft.';
+    updateButtons();drawOverlay();
+    if(AI?.ready())void analyseAIFrame(pending,true);
+  }
   function clearProposal(message='Ingen forslag'){
-    aiSerial++;pending=null;selected=null;stableFrames=0;
+    aiSerial++;pending=null;selected=null;stableFrames=0;clearFrozen();
     els.proposal.textContent=message;
     els.proposalDetail.textContent='Klikk på pilspissen i kamerabildet for å angi fasit ved registrert kast.';
     updateButtons();drawOverlay();
@@ -184,6 +217,7 @@
     const candidate={x:sumx/changed*(els.overlay.width/analysisCanvas.width),
                      y:sumy/changed*(els.overlay.height/analysisCanvas.height)};
     const guess=G.score(board,candidate);
+    if(!freezeFrame('automatic-change')){status('Kunne ikke fryse treffbildet – bruk Frys treffbilde manuelt.');return}
     pending={candidate,suggested:guess.label,changed};
     els.proposal.textContent='Grovt forslag: '+guess.label;
     els.proposalDetail.textContent='Bildeendring oppdaget. Dette er IKKE presis AI-gjenkjenning: klikk pilspissen på videoen for å sette fasit før bekreftelse.';
@@ -351,7 +385,7 @@
       analysisCanvas.height=Math.round(h*factor);
       calibrationPoints=[];board=null;resetAnalysis(true);
       showStage('');cameraStatus(w+'×'+h+' • lokal videostrøm');
-      status('Kamera klart');els.step.textContent='Steg 2: Kalibrer skiven med fem klikk';
+      status('Kamera klart');els.step.textContent='Steg 2: Kalibrer skiven med ni klikk';
       await loadDevices();
       const track=s.getVideoTracks()[0];
       track?.addEventListener('ended',()=>{if(ticket===epoch)stopCamera()},{once:true});
@@ -396,6 +430,7 @@
       updateButtons();drawOverlay();return;
     }
     if(!board||!baseline)return;
+    if(!frozen&&!freezeFrame('click'))return;
     const actual=G.score(board,point);
     selected={point,label:actual.label,points:actual.points};
     els.proposal.textContent='Valgt treff: '+actual.label+' · '+actual.points+' poeng';
@@ -408,7 +443,10 @@
     try{
       const aw=analysisCanvas.width,ah=analysisCanvas.height;
       if(!aw||!ah||baseline.length!==aw*ah*4)throw new Error('Referansebilde mangler.');
-      if(!readFrame())throw new Error('Kamerabildet er ikke tilgjengelig.');
+      if(!frozen)throw new Error('Treffbildet må fryses før bekreftelse.');
+      // Export exactly the camera image under the user's click marker,
+      // not a different live frame taken seconds later on confirmation.
+      analysisContext.drawImage(els.frozenFrame,0,0,aw,ah);
       const after=analysisCanvas.toDataURL('image/jpeg',.84);
       const beforePixels=new Uint8ClampedArray(baseline);
       analysisContext.putImageData(new ImageData(beforePixels,aw,ah),0,0);
@@ -419,6 +457,7 @@
         actual:selected.label,points:selected.points,
         tip:{x:Number(x.toFixed(2)),y:Number(y.toFixed(2)),xNorm:Number((x/aw).toFixed(6)),yNorm:Number((y/ah).toFixed(6))},
         resolution:{width:aw,height:ah},
+        frozenFrame:true,frameCapturedAt:frozenAt,frameCaptureMethod:freezeMethod,
         boardCalibration:board.points.map(p=>({x:Number((p.x*aw/els.overlay.width).toFixed(2)),y:Number((p.y*ah/els.overlay.height).toFixed(2))})),
         aiSuggestion:pending?.ai?.label||null,aiConfidence:pending?.ai?.confidence??null,
         before,after};
@@ -427,7 +466,7 @@
     }catch(e){updateDatasetState('Bildeinnsamling feilet: '+(e?.message||String(e)))}
   }
   function confirmSelection(){
-    if(!authorized||!board||!selected||!baseline)return;
+    if(!authorized||!board||!selected||!baseline||!frozen)return;
     captureAnnotatedSample();
     records.push({number:records.length+1,timestamp:new Date().toISOString(),
       actual:selected.label,points:selected.points,suggested:pending?.ai?.label||null,
@@ -436,7 +475,7 @@
       x:Number(selected.point.x.toFixed(1)),y:Number(selected.point.y.toFixed(1)),
       method:'manual-verified',analysis:pending?.ai?'onnx-model':'frame-difference-centroid'});
     updateStats();captureReference();
-    status('Treff bekreftet, referanse oppdatert');els.step.textContent='Kast neste pil, eller velg Ny runde når skiven er tom';
+    status('Treff bekreftet, referanse oppdatert');els.step.textContent='Kast neste pil. Når skiven er tømt, trykk Ny runde / tom skive.';
   }
   function exportResults(){
     if(!authorized||!records.length)return;
@@ -521,7 +560,7 @@
       AI.setOptions({mode:els.aiMode.value,keypointIndex:els.aiKeypoint.value,threshold:els.aiThreshold.value});
       // Only analyze the calibrated dartboard, never OBS's duplicated zoom panel.
       const region=G.boardBounds(board,els.video.videoWidth,els.video.videoHeight,.045);
-      const result=await AI.infer(els.video,region);
+      const result=await AI.infer(frozen?els.frozenFrame:els.video,region);
       if(ticket!==aiSerial||!authorized||!board||!stream)return;
       if(proposal&&pending!==proposal)return;
       // Ignore detections outside the scored area; no AI result is stored as a match score.
@@ -578,6 +617,8 @@
   els.overlay.addEventListener('pointerup',pointerUp);
   els.overlay.addEventListener('pointercancel',pointerUp);
   els.baseline.addEventListener('click',()=>captureReference());
+  els.freeze.addEventListener('click',freezeManual);
+  els.resume.addEventListener('click',()=>{captureReference();status('Tilbake til live – ny referanse tatt.');});
   els.reset.addEventListener('click',()=>{resetAnalysis(true);calibrationPoints=[];board=null;calibrating=false;adjusting=false;dragging=null;els.overlay.classList.remove('calibration-edit');status('Nullstilt');els.step.textContent='Kalibrer skiven på nytt';drawOverlay();updateButtons()});
   els.newRound.addEventListener('click',()=>{if(!authorized||!board)return;captureReference();status('Ny runde: referanse oppdatert')});
   els.confirm.addEventListener('click',confirmSelection);

@@ -63,3 +63,8 @@
 
 .lab-page #labOverlay.calibration-edit{touch-action:none!important;cursor:move}
 .lab-page #labAdjust:not(:disabled){border-color:rgba(0,234,244,.5)}
+
+/* The confirmed tip must be marked on the same frozen frame that gets exported. */
+.lab-page #labFrozenFrame{display:block;width:100%;height:100%;position:absolute;inset:0;pointer-events:none}
+.lab-page #labFrozenFrame[hidden]{display:none!important}
+.lab-page #labFreeze:not(:disabled){border-color:rgba(0,234,244,.55)}

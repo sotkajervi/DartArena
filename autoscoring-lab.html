@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#071012"><title>DartArena • Autoscoring Lab</title>
   <link rel="stylesheet" href="./style.css?v=20261009-lab1">
   <link rel="stylesheet" href="./brand-header.css?v=20261009-mobile1">
-  <link rel="stylesheet" href="./autoscoring/lab.css?v=20261010-ninepoints1">
+  <link rel="stylesheet" href="./autoscoring/lab.css?v=20261010-frozen1">
 </head>
 <body class="lab-page">
   <header><div class="brand"><img class="brand-logo" src="./assets/dartarena-logo.jpg?v=20261009-global1" alt="DartArena" width="420" height="116" decoding="async"></div><div class="live"><i></i> AUTOSCORING LAB • BETA</div></header>
@@ -21,13 +21,14 @@
           <div class="lab-actions"><button id="labStart" class="primary" type="button">Start kamera</button><button id="labStop" class="outline" type="button" disabled>Stopp kamera</button></div>
           <div id="labStage" class="lab-stage" style="aspect-ratio:16/9">
             <video id="labVideo" autoplay muted playsinline></video>
+            <canvas id="labFrozenFrame" hidden aria-hidden="true"></canvas>
             <canvas id="labOverlay" aria-label="Klikk på kalibreringspunkter eller pilspiss"></canvas>
             <div id="labStageMessage" class="lab-stage-message">Start kameraet for å begynne</div>
           </div>
           <p class="muted compact lab-help">Sett kameraet stabilt med hele dartskiven synlig. Bruk jevn belysning. Kameraet åpnes først når du trykker «Start kamera».</p>
           <div class="lab-progress"><strong id="labStep">Steg 1: Start kamera</strong><span id="labCoords" class="muted compact"></span></div>
-          <div class="lab-actions"><button id="labCalibrate" class="outline" type="button" disabled>Kalibrer skive (9 punkter)</button><button id="labUndo" class="outline" type="button" disabled>Angre siste punkt</button><button id="labAdjust" class="outline" type="button" disabled>Finjuster punkter</button><button id="labBaseline" class="outline" type="button" disabled>Ta referansebilde</button><button id="labReset" class="outline" type="button" disabled>Nullstill lab</button></div>
-          <p class="muted compact">Kalibrer på skiven, ikke OBS-zoomen: Klikk Bull først. Klikk deretter <strong>midt på den fargede dobbelringen</strong> med klokken: øverst (D20), nordøst, høyre (D6), sørøst, nederst (D3), sørvest, venstre (D11), nordvest. Totalt ni punkter. Ved skjevhet: <strong>Finjuster punkter</strong> og dra de gule merkene direkte på skiven.</p><p class="muted compact lab-roi-note"><strong>Gule stiplede linjer</strong> viser området som AI analyserer. OBS-forstørrelsen til høyre skal ligge utenfor rammen. <strong>Turkise linjer</strong> må ligge direkte på metalltrådene på dartskiven. Start ikke scoring dersom de ligger utenfor.</p>
+          <div class="lab-actions"><button id="labCalibrate" class="outline" type="button" disabled>Kalibrer skive (9 punkter)</button><button id="labUndo" class="outline" type="button" disabled>Angre siste punkt</button><button id="labAdjust" class="outline" type="button" disabled>Finjuster punkter</button><button id="labBaseline" class="outline" type="button" disabled>Ta referansebilde</button><button id="labFreeze" class="outline" type="button" disabled>Frys treffbilde</button><button id="labResume" class="outline" type="button" disabled>Forkast / tilbake til live</button><button id="labReset" class="outline" type="button" disabled>Nullstill lab</button></div>
+          <p class="muted compact">Kalibrer på skiven, ikke OBS-zoomen: Klikk Bull først. Klikk deretter <strong>midt på den fargede dobbelringen</strong> med klokken: øverst (D20), nordøst, høyre (D6), sørøst, nederst (D3), sørvest, venstre (D11), nordvest. Totalt ni punkter. Ved skjevhet: <strong>Finjuster punkter</strong> og dra de gule merkene direkte på skiven.</p><p class="muted compact lab-roi-note"><strong>Nytt ved merking:</strong> Når et kast oppdages, fryses kamerabildet. Klikk på pilspissen i det frosne bildet og bekreft. Hvis varselet uteblir, trykk «Frys treffbilde» etter kastet. Forkast bilder som viser at piler fjernes i stedet for å komme til.</p><p class="muted compact lab-roi-note"><strong>Gule stiplede linjer</strong> viser området som AI analyserer. OBS-forstørrelsen til høyre skal ligge utenfor rammen. <strong>Turkise linjer</strong> må ligge direkte på metalltrådene på dartskiven. Start ikke scoring dersom de ligger utenfor.</p>
         </section>
         <section class="card lab-data-card">
           <div class="lab-ai-panel">
@@ -54,14 +55,14 @@
           <div class="lab-metrics"><div><small>Analyse</small><strong id="labAnalysisState">Ikke startet</strong></div><div><small>Endrede piksler</small><strong id="labMotion">–</strong></div><div><small>Bekreftede piler</small><strong id="labCount">0</strong></div><div><small>AI-treffprosent</small><strong id="labAccuracy">–</strong></div></div>
           <div class="lab-result"><span>Trefforslag (AI hvis lastet)</span><strong id="labProposal">Ingen forslag</strong><p id="labProposalDetail" class="muted compact">Forslag fra bildeendringer kan være unøyaktige. Bekreft etter klikk på pilspissen.</p></div>
           <div class="lab-actions"><button id="labConfirm" class="primary" type="button" disabled>Bekreft valgt treff</button><button id="labReject" class="outline" type="button" disabled>Avvis / ta ny referanse</button></div>
-          <p class="muted compact">Ved varslet kast: klikk nøyaktig der pilspissen treffer skiven. Foreslått score er ikke fasit. Kun bekreftede treff kommer med i testloggen.</p>
+          <p class="muted compact">Marker pilspissen på det <strong>frosne treffbildet</strong> (ikke på video som beveger seg). Bekreft bare hvis bildet viser én ny pil sammenlignet med referansen. Forkast hvis piler ble fjernet eller bildet er uklart.</p>
           <div class="lab-log-head"><strong>Testlogg</strong><button id="labExport" class="small-btn" type="button" disabled>Eksporter JSON</button></div>
           <div id="labLog" class="lab-log" aria-live="polite"><p class="muted compact">Ingen registrerte testkast.</p></div>
           <div class="lab-actions"><button id="labNewRound" class="outline" type="button" disabled>Ny runde / tom skive</button></div>
           <p class="muted compact">«Eksporter JSON» inneholder bare testpoeng og koordinater, ingen bilder. Ingen testdata lastes automatisk opp.</p>
           <div class="lab-dataset">
             <div class="heading"><div><small>MODELLTRENING • VALGFRITT</small><h2>Samle merkede kast</h2></div><span id="labDatasetCount" class="lab-pill">0 bilder</span></div>
-            <p class="muted compact">Vi trenger egne bilder med korrekt pilspissmarkering for å utvikle en treffsikker modell. Et kast kan lagres som to bilder: før og etter treffet, med fasitkoordinat. Maks 150 kast per eksport.</p>
+            <p class="muted compact">Vi trenger egne bilder med korrekt pilspissmarkering. Hvert kast lagres med et referansebilde og det samme frosne treffbildet som du markerer. Maks 150 kast per eksport.</p>
             <label class="lab-dataset-optin"><input id="labDatasetOptIn" type="checkbox"><span><strong>Aktiver lokal bildeinnsamling</strong><small>Lagre bilder i minnet kun for kast jeg selv bekrefter. Ingen opplasting. De lastes ned bare når jeg velger eksport.</small></span></label>
             <div class="lab-actions"><button id="labDatasetExport" class="primary" type="button" disabled>Last ned treningsdata (.zip)</button><button id="labDatasetClear" class="outline" type="button" disabled>Slett bilder</button></div>
             <p id="labDatasetState" class="muted compact" role="status" aria-live="polite">Av. Bilder fra kameraet lagres ikke.</p>
@@ -72,8 +73,8 @@
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
   <script src="./autoscoring/geometry.js?v=20261010-ninepoints1"></script>
-  <script src="./autoscoring/ai-onnx.js?v=20261010-perspective1"></script>
+  <script src="./autoscoring/ai-onnx.js?v=20261010-frozen1"></script>
   <script src="./autoscoring/zip-store.js?v=20261010-dataset1"></script>
-  <script src="./autoscoring/lab.js?v=20261010-ninepoints1"></script>
+  <script src="./autoscoring/lab.js?v=20261010-frozen1"></script>
 </body>
 </html>
