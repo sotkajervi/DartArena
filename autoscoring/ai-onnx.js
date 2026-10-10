@@ -66,16 +66,19 @@ function setOptions(values){
   opts.keypointIndex=Math.max(0,Math.min(12,Number(values.keypointIndex)||0));
   opts.threshold=Math.max(.05,Math.min(.95,Number(values.threshold)||.35));
 }
-function getArray(info,shape,frame){
+function getArray(info,shape,frame,region){
   const {w,h,nchw}=shape;
   working.width=w;working.height=h;
-  const sw=frame.videoWidth,sh=frame.videoHeight;
-  if(!sw||!sh)throw new Error('Kamerabildet er ikke tilgjengelig.');
+  const fw=frame.videoWidth,fh=frame.videoHeight;
+  if(!fw||!fh)throw new Error('Kamerabildet er ikke tilgjengelig.');
+  const crop=region||{x:0,y:0,width:fw,height:fh};
+  const sx=Math.max(0,Math.min(fw,crop.x)),sy=Math.max(0,Math.min(fh,crop.y));
+  const sw=Math.max(1,Math.min(fw-sx,crop.width)),sh=Math.max(1,Math.min(fh-sy,crop.height));
   // Letterbox preserves coordinates for scoring.
   const scale=Math.min(w/sw,h/sh),dw=sw*scale,dh=sh*scale;
   const left=(w-dw)/2,top=(h-dh)/2;
   context.fillStyle='#727272';context.fillRect(0,0,w,h);
-  context.drawImage(frame,left,top,dw,dh);
+  context.drawImage(frame,sx,sy,sw,sh,left,top,dw,dh);
   const rgba=context.getImageData(0,0,w,h).data;
   const values=new Float32Array(w*h*3);
   const area=w*h;
@@ -84,7 +87,7 @@ function getArray(info,shape,frame){
     if(nchw){values[i]=rgba[pix]/255;values[area+i]=rgba[pix+1]/255;values[2*area+i]=rgba[pix+2]/255}
     else{const base=i*3;values[base]=rgba[pix]/255;values[base+1]=rgba[pix+1]/255;values[base+2]=rgba[pix+2]/255}
   }
-  return {values,scale,left,top,sw,sh};
+  return {values,scale,left,top,sw,sh,sx,sy,fw,fh};
 }
 function parseOutput(tensor,geometry,options=opts){
   const dims=tensor?.dims||[];
@@ -111,9 +114,9 @@ function parseOutput(tensor,geometry,options=opts){
       tipConfidence=Math.min(objectness,kc);
     }
     if(!Number.isFinite(x)||!Number.isFinite(y))continue;
-    const px=(x-geometry.left)/geometry.scale;
-    const py=(y-geometry.top)/geometry.scale;
-    if(px<0||py<0||px>geometry.sw||py>geometry.sh)continue;
+    const px=(x-geometry.left)/geometry.scale+(geometry.sx||0);
+    const py=(y-geometry.top)/geometry.scale+(geometry.sy||0);
+    if(px<(geometry.sx||0)||py<(geometry.sy||0)||px>(geometry.sx||0)+geometry.sw||py>(geometry.sy||0)+geometry.sh)continue;
     detections.push({x:px,y:py,confidence:tipConfidence,mode:options.mode});
   }
   detections.sort((a,b)=>b.confidence-a.confidence);
@@ -127,14 +130,14 @@ function parseOutput(tensor,geometry,options=opts){
   return kept;
 }
 let busy=false;
-async function infer(video){
+async function infer(video,region){
   if(!session||!metadata)throw new Error('Ingen ONNX-modell er lastet.');
   if(busy)throw new Error('AI analyserer fortsatt forrige bilde.');
   busy=true;
   try{
     const ort=await fetchRuntime();
     const {shape,input,output}=metadata;
-    const geometry=getArray(null,shape,video);
+    const geometry=getArray(null,shape,video,region);
     const tensor=new ort.Tensor('float32',geometry.values,shape.nchw?[1,3,shape.h,shape.w]:[1,shape.h,shape.w,3]);
     const result=await session.run({[input]:tensor});
     const detections=parseOutput(result[output],geometry,opts);

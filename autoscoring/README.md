@@ -93,3 +93,22 @@ Test ZIP-byggeren:
 ```sh
 node autoscoring/zip-store.test.cjs
 ```
+
+## OBS Virtual Camera – feilkalibrering rettet (10.10.2026)
+
+Tidligere kalibrering tok utgangspunkt i en enkel affin transformasjon, og skillelinjene kunne forskyves fra dartskiven i skrått kamerabilde. Nå brukes et **perspektivtilpasset homografi-estimat** fra fem klikk (Bull + D20, D6, D3, D11).
+
+**Nytt, viktig presiseringspunkt:** Klikk midten av selve dobbelfeltet på hver av de fire retningene – altså midt mellom ringens to tråder, ikke ytterkanten på dobbeltfeltet. Kalibreringen kontrollerer punktenes retning, størrelse, form og tilpasningsfeil. Ved feil får du beskjed og kan starte på nytt. Under kalibreringen er «Angre siste punkt» tilgjengelig.
+
+Etter kalibrering tegnes **alle ringene og alle segmentgrensene med perspektivtransformasjonen**, og D20 er merket. En **gul stiplet firkant** omslutter området som analyseres. Denne bruker også ONNX-modellen som crop, slik at en OBS-kilde med forstørret kopi av skiven på høyre side ikke påvirker AI-forslaget. Det er likevel best for oppløsning og deteksjonsnøyaktighet å sende kun hele dartskiven (uten zoomkopi) i OBS-kilden dersom det er mulig.
+
+**Sikkerhet:** ROI og kalibrering endrer bare det isolerte laboratoriet. Ingen kamerainnstillinger, scoring, lagringsformat, tilganger eller kamper ellers i DartArena er endret.
+
+Test etter oppdatering:
+1. Gå til Autoscoring Lab, oppdater nettsiden med Ctrl+F5.
+2. Start OBS Virtual Camera eller fysisk kamera.
+3. Trykk «Kalibrer skive» og velg de fem punktene på **samme** synlige dartskive. Ikke klikk i zoomkopien.
+4. Sjekk at turkise ringgrenser følger skivetrådene, at D20 står kl. 12, og at den gule firkanten omslutter bare selve skiven.
+5. Først når dette stemmer, trykk «Ta referansebilde».
+
+Vi har ikke testet kameraet fysisk fra denne utviklingssesjonen; resultatet må bekreftes med et nytt skjermbilde.

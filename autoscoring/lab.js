@@ -12,7 +12,7 @@
   const els={
     gate:$('labGate'),app:$('labApp'),camera:$('labCamera'),start:$('labStart'),
     stop:$('labStop'),video:$('labVideo'),overlay:$('labOverlay'),stage:$('labStage'),
-    stageMessage:$('labStageMessage'),cameraState:$('labCameraState'),calibrate:$('labCalibrate'),
+    stageMessage:$('labStageMessage'),cameraState:$('labCameraState'),calibrate:$('labCalibrate'),undo:$('labUndo'),
     baseline:$('labBaseline'),reset:$('labReset'),step:$('labStep'),coords:$('labCoords'),
     analysisState:$('labAnalysisState'),motion:$('labMotion'),count:$('labCount'),
     accuracy:$('labAccuracy'),proposal:$('labProposal'),proposalDetail:$('labProposalDetail'),
@@ -48,6 +48,7 @@
     els.start.disabled=!authorized||live||starting;
     els.stop.disabled=!live;
     els.calibrate.disabled=!live;
+    els.undo.disabled=!calibrating||!calibrationPoints.length;
     els.baseline.disabled=!ready;
     els.reset.disabled=!live;
     els.confirm.disabled=!active||!selected;
@@ -145,7 +146,7 @@
     samples=arr;
   }
   function captureReference(clearPending=true){
-    if(!board||!stream)return;
+    if(!board||!stream||calibrating)return;
     const pixels=readFrame();
     if(!pixels){status('Venter på videobilde');return}
     baseline=new Uint8ClampedArray(pixels);
@@ -188,6 +189,12 @@
     updateButtons();drawOverlay();
     if(AI?.ready())void analyseAIFrame(pending,false);
   }
+  function undoCalibrationPoint(){
+    if(!calibrating||!calibrationPoints.length)return;
+    calibrationPoints.pop();
+    els.step.textContent='Klikk '+(calibrationPoints.length+1)+'/5: '+G.CALIBRATION_NAMES[calibrationPoints.length];
+    status('Forrige punkt angret');updateButtons();drawOverlay();
+  }
   function drawCross(point,color,radius=9){
     ctx.save();ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(point.x,point.y,radius,0,Math.PI*2);ctx.stroke();
     ctx.beginPath();ctx.moveTo(point.x-radius-6,point.y);ctx.lineTo(point.x+radius+6,point.y);
@@ -198,21 +205,33 @@
     ctx.clearRect(0,0,w,h);
     if(board){
       ctx.save();
-      ctx.translate(board.bull.x,board.bull.y);
-      ctx.transform(board.vx.x,board.vx.y,board.vy.x,board.vy.y,0,0);
-      ctx.lineWidth=.006;
-      ctx.strokeStyle='rgba(0,234,244,.72)';
-      for(const r of [G.RINGS.singleBull,G.RINGS.tripleInner,G.RINGS.tripleOuter,G.RINGS.doubleInner,1]){
-        ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.stroke();
+      // Projective geometry maps circles to perspective curves; affine ctx.transform did not.
+      function drawRing(radius,color,lineWidth){
+        ctx.strokeStyle=color;ctx.lineWidth=lineWidth;ctx.beginPath();
+        for(let i=0;i<=160;i++){
+          const a=2*Math.PI*i/160;
+          const p=G.project(board,{x:Math.sin(a)*radius,y:-Math.cos(a)*radius});
+          if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);
+        }
+        ctx.stroke();
       }
-      ctx.lineWidth=.003;ctx.strokeStyle='rgba(255,255,255,.28)';
+      for(const r of [G.RINGS.doubleBull,G.RINGS.singleBull,G.RINGS.tripleInner,G.RINGS.tripleOuter,G.RINGS.doubleInner,G.RINGS.doubleOuter])drawRing(r,'rgba(0,234,244,.83)',2);
+      ctx.strokeStyle='rgba(255,255,255,.70)';ctx.lineWidth=1.2;
       for(let i=0;i<20;i++){
         const a=(i-.5)*Math.PI/10;
-        const x=Math.sin(a),y=-Math.cos(a);
-        ctx.beginPath();ctx.moveTo(x*.1,y*.1);ctx.lineTo(x,y);ctx.stroke();
+        const inner=G.project(board,{x:Math.sin(a)*G.RINGS.singleBull,y:-Math.cos(a)*G.RINGS.singleBull});
+        const outer=G.project(board,{x:Math.sin(a),y:-Math.cos(a)});
+        ctx.beginPath();ctx.moveTo(inner.x,inner.y);ctx.lineTo(outer.x,outer.y);ctx.stroke();
       }
-      ctx.restore();
+      // Highlight 20 and the isolated board-analysis crop.
+      const twenty=G.project(board,{x:0,y:-.81});
+      ctx.fillStyle='#00eaf4';ctx.font='bold 16px system-ui';
+      ctx.fillText('20',twenty.x-10,twenty.y);
+      const bounds=G.boardBounds(board,els.overlay.width,els.overlay.height,.045);
+      ctx.save();ctx.setLineDash([10,6]);ctx.lineWidth=2;ctx.strokeStyle='rgba(255,193,76,.95)';
+      ctx.strokeRect(bounds.x,bounds.y,bounds.width,bounds.height);ctx.restore();
       drawCross(board.bull,'#00eaf4',5);
+      ctx.restore();
     }
     if(calibrating){
       calibrationPoints.forEach((p,i)=>{drawCross(p,'#ffbf54',7);ctx.fillStyle='#fff';ctx.font='bold 16px system-ui';ctx.fillText(String(i+1),p.x+13,p.y-10)});
@@ -290,14 +309,14 @@
       calibrationPoints.push(point);
       if(calibrationPoints.length===5){
         try{
-          board=G.prepare(calibrationPoints);calibrating=false;status('Kalibrering OK');
-          els.step.textContent='Steg 3: Fjern pilene og ta referansebilde';
-          els.proposalDetail.textContent='Skiveringer vises som turkise hjelpelinjer. Kalibrer på nytt ved feil plassering.';
+          board=G.prepare(calibrationPoints);calibrating=false;status('Kalibrering fullført – kontroller at alle 20 felt og ringer stemmer');
+          els.step.textContent='Sjekk at turkise skillelinjer følger trådene og D20 peker rett opp. Ved avvik: kalibrer på nytt.';
+          els.proposalDetail.textContent='Turkise ringer og sektorer skal følge skiven. Helt høyre OBS-zoom blir holdt utenfor bildeanalysen. Ta referansebilde først når oppsettet stemmer.';
         }catch(e){
           board=null;calibrationPoints=[];calibrating=false;status(e.message);
           els.step.textContent='Ugyldig kalibrering – trykk Kalibrer skive på nytt';
         }
-      }else{els.step.textContent='Klikk '+(calibrationPoints.length+1)+'/5: '+G.CALIBRATION_NAMES[calibrationPoints.length]}
+      }else{els.step.textContent='Klikk '+(calibrationPoints.length+1)+'/5: '+G.CALIBRATION_NAMES[calibrationPoints.length]+' (Angre kan brukes)'}
       updateButtons();drawOverlay();return;
     }
     if(!board||!baseline)return;
@@ -424,7 +443,9 @@
     updateButtons();
     try{
       AI.setOptions({mode:els.aiMode.value,keypointIndex:els.aiKeypoint.value,threshold:els.aiThreshold.value});
-      const result=await AI.infer(els.video);
+      // Only analyze the calibrated dartboard, never OBS's duplicated zoom panel.
+      const region=G.boardBounds(board,els.video.videoWidth,els.video.videoHeight,.045);
+      const result=await AI.infer(els.video,region);
       if(ticket!==aiSerial||!authorized||!board||!stream)return;
       if(proposal&&pending!==proposal)return;
       // Ignore detections outside the scored area; no AI result is stored as a match score.
@@ -474,6 +495,7 @@
   els.start.addEventListener('click',startCamera);
   els.stop.addEventListener('click',stopCamera);
   els.calibrate.addEventListener('click',startCalibration);
+  els.undo.addEventListener('click',undoCalibrationPoint);
   els.baseline.addEventListener('click',()=>captureReference());
   els.reset.addEventListener('click',()=>{resetAnalysis(true);calibrationPoints=[];board=null;calibrating=false;status('Nullstilt');els.step.textContent='Kalibrer skiven på nytt';drawOverlay();updateButtons()});
   els.newRound.addEventListener('click',()=>{if(!authorized||!board)return;captureReference();status('Ny runde: referanse oppdatert')});

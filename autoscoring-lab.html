@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#071012"><title>DartArena • Autoscoring Lab</title>
   <link rel="stylesheet" href="./style.css?v=20261009-lab1">
   <link rel="stylesheet" href="./brand-header.css?v=20261009-mobile1">
-  <link rel="stylesheet" href="./autoscoring/lab.css?v=20261010-dataset1">
+  <link rel="stylesheet" href="./autoscoring/lab.css?v=20261010-perspective1">
 </head>
 <body class="lab-page">
   <header><div class="brand"><img class="brand-logo" src="./assets/dartarena-logo.jpg?v=20261009-global1" alt="DartArena" width="420" height="116" decoding="async"></div><div class="live"><i></i> AUTOSCORING LAB • BETA</div></header>
@@ -26,8 +26,8 @@
           </div>
           <p class="muted compact lab-help">Sett kameraet stabilt med hele dartskiven synlig. Bruk jevn belysning. Kameraet åpnes først når du trykker «Start kamera».</p>
           <div class="lab-progress"><strong id="labStep">Steg 1: Start kamera</strong><span id="labCoords" class="muted compact"></span></div>
-          <div class="lab-actions"><button id="labCalibrate" class="outline" type="button" disabled>Kalibrer skive (5 punkter)</button><button id="labBaseline" class="outline" type="button" disabled>Ta referansebilde</button><button id="labReset" class="outline" type="button" disabled>Nullstill lab</button></div>
-          <p class="muted compact">Kalibrering: klikk Bull, deretter midten av ytterkanten på dobbelfeltene D20 (øverst), D6 (høyre), D3 (nederst) og D11 (venstre). Bruk musepekeren.</p>
+          <div class="lab-actions"><button id="labCalibrate" class="outline" type="button" disabled>Kalibrer skive (5 punkter)</button><button id="labUndo" class="outline" type="button" disabled>Angre siste punkt</button><button id="labBaseline" class="outline" type="button" disabled>Ta referansebilde</button><button id="labReset" class="outline" type="button" disabled>Nullstill lab</button></div>
+          <p class="muted compact">Kalibrer på selve skiven til venstre, aldri på OBS-forstørrelsen: Klikk først midt i Bull, deretter midten av DOBBELRINGEN D20 (øverst), D6 (høyre), D3 (nederst), D11 (venstre). Ikke klikk på tråden helt ytterst.</p><p class="muted compact lab-roi-note"><strong>Gule stiplede linjer</strong> viser området som AI analyserer. OBS-forstørrelsen til høyre skal ligge utenfor rammen. <strong>Turkise linjer</strong> må følge trådene på dartskiven.</p>
         </section>
         <section class="card lab-data-card">
           <div class="lab-ai-panel">
@@ -71,9 +71,9 @@
     </div>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
-  <script src="./autoscoring/geometry.js?v=20261010-lab1"></script>
-  <script src="./autoscoring/ai-onnx.js?v=20261010-ai1"></script>
+  <script src="./autoscoring/geometry.js?v=20261010-perspective1"></script>
+  <script src="./autoscoring/ai-onnx.js?v=20261010-perspective1"></script>
   <script src="./autoscoring/zip-store.js?v=20261010-dataset1"></script>
-  <script src="./autoscoring/lab.js?v=20261010-dataset1"></script>
+  <script src="./autoscoring/lab.js?v=20261010-perspective1"></script>
 </body>
 </html>

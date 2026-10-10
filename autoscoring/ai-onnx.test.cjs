@@ -22,6 +22,11 @@ assert.equal(hits.length,1,'duplicate tips should merge');
 assert.equal(Math.round(hits[0].x),322);
 assert.equal(Math.round(hits[0].y),362);
 assert.equal(hits[0].mode,'keypoint');
+const cropHits=AI.parseOutput(tensor,{...bounds,sx:140,sy:90,sw:400,sh:400},{mode:'keypoint',keypointIndex:0,threshold:.5});
+assert.equal(cropHits.length,1,'crop must retain model candidate');
+assert.equal(Math.round(cropHits[0].x),462,'crop offset x');
+assert.equal(Math.round(cropHits[0].y),452,'crop offset y');
+
 const box=AI.parseOutput(make(5,12,[[0,0,170],[0,1,200],[0,4,.8]]),bounds,{mode:'bbox',keypointIndex:0,threshold:.5});
 assert.equal(box.length,1);
 assert.throws(()=>AI.parseOutput(tensor,bounds,{mode:'keypoint',keypointIndex:2,threshold:.5}),/mangler/);
