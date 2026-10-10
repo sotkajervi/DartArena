@@ -114,10 +114,10 @@ function decode(raw,confidence=.50){
     const anchors=ANCHORS[grid],limit=clamp(Number(confidence)||.50,.05,.95);
     for(let gy=0;gy<grid;gy++)for(let gx=0;gx<grid;gx++)for(let a=0;a<3;a++){
       const k=(gy*grid+gx)*30+a*10;
-      const objectness=sigmoid(data[k+4]);
+      const objectness=clamp(data[k+4],0,1);
       if(objectness<limit)continue;
       // Only class 0 = dart tip; four remaining classes are cal markers.
-      const classScores=[0,1,2,3,4].map(i=>sigmoid(data[k+5+i]));
+      const classScores=[0,1,2,3,4].map(i=>clamp(data[k+5+i],0,1));
       const score=objectness*classScores[0];
       const dominant=classScores.indexOf(Math.max(...classScores));
       const dominantScore=objectness*classScores[dominant];
@@ -127,7 +127,7 @@ function decode(raw,confidence=.50){
           topByClass[dominant]={confidence:dominantScore,grid,gx,gy,anchor:a};
       }
       if(score<limit||dominant!==0)continue;
-      const x=(gx+sigmoid(data[k]))/grid,y=(gy+sigmoid(data[k+1]))/grid;
+      const x=(gx+clamp(data[k],0,1))/grid,y=(gy+clamp(data[k+1],0,1))/grid;
       const w=anchors[a][0]*Math.exp(clamp(data[k+2],-5,5))/SIZE;
       const h=anchors[a][1]*Math.exp(clamp(data[k+3],-5,5))/SIZE;
       if(![x,y,w,h,score].every(Number.isFinite)||x<0||x>1||y<0||y>1)continue;
