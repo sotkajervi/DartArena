@@ -101,7 +101,7 @@ function iou(a,b){
 function decode(raw,confidence=.20){
   const output=modelOutputs(raw);
   if(output.length!==2)throw new Error('DeepDarts trenger to modellutganger.');
-  const boxes=[];
+  const boxes=[],byClass=[0,0,0,0,0],topByClass=[null,null,null,null,null];
   for(const tensor of output){
     const shape=tensor.shape||tensor.dims,grid=Number(shape?.[1]);
     if(!ANCHORS[grid]||!matches(shape,[1,grid,grid,30]))
@@ -116,7 +116,14 @@ function decode(raw,confidence=.20){
       // Only class 0 = dart tip; four remaining classes are cal markers.
       const classScores=[0,1,2,3,4].map(i=>sigmoid(data[k+5+i]));
       const score=objectness*classScores[0];
-      if(score<limit||classScores.some((v,i)=>i>0&&v>classScores[0]))continue;
+      const dominant=classScores.indexOf(Math.max(...classScores));
+      const dominantScore=objectness*classScores[dominant];
+      if(dominantScore>=limit){
+        byClass[dominant]++;
+        if(!topByClass[dominant]||dominantScore>topByClass[dominant].confidence)
+          topByClass[dominant]={confidence:dominantScore,grid,gx,gy,anchor:a};
+      }
+      if(score<limit||dominant!==0)continue;
       const x=(gx+sigmoid(data[k]))/grid,y=(gy+sigmoid(data[k+1]))/grid;
       const w=anchors[a][0]*Math.exp(clamp(data[k+2],-5,5))/SIZE;
       const h=anchors[a][1]*Math.exp(clamp(data[k+3],-5,5))/SIZE;
@@ -130,7 +137,7 @@ function decode(raw,confidence=.20){
     if(kept.length>=15)break;
     if(kept.every(k=>iou(k,b)<.45))kept.push(b);
   }
-  return {rawCount:boxes.length,boxes:kept};
+  return {rawCount:boxes.length,boxes:kept,diagnostic:{byClass,topByClass}};
 }
 function cropBoard(frame,region){
   const fw=frame?.videoWidth||frame?.width,fh=frame?.videoHeight||frame?.height;
@@ -171,7 +178,7 @@ async function infer(frame,region,confidence=.20){
         y:crop.sy+(b.y*SIZE-crop.top)/crop.dh*crop.sh,
         confidence:b.confidence
       })).filter(b=>b.x>=crop.sx&&b.x<=crop.sx+crop.sw&&b.y>=crop.sy&&b.y<=crop.sy+crop.sh),
-      rawCount:detections.rawCount
+      rawCount:detections.rawCount,diagnostic:detections.diagnostic
     };
   }finally{
     try{input?.dispose()}catch{}
