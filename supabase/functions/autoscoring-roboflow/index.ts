@@ -70,11 +70,16 @@ Deno.serve(async (req: Request) => {
     if (roleError || admin !== true) return respond(403, {error: "forbidden"});
 
     const apiKey = Deno.env.get("ROBOFLOW_API_KEY")?.trim();
+    // Roboflow publishable keys start with rf_ and do not authenticate the hosted REST inference API.
+    // Return only a key-category flag, never the key or even a fragment of it.
+    const publicKeyDetected = Boolean(apiKey && /^rf_/i.test(apiKey));
     if (req.method === "GET") return respond(200, {
       configured: Boolean(apiKey), model: MODEL_ID, maxRequestsPerUserPerDay: 25,
-      note: "Camera frames are sent to Roboflow only after explicit consent and a test-button click."
+      keyType: !apiKey ? "missing" : publicKeyDetected ? "publishable" : "private-unverified",
+      note: "Configured does not mean the key was authenticated by Roboflow."
     });
     if (!apiKey) return respond(503, {error: "roboflow_key_not_configured"});
+    if (publicKeyDetected) return respond(400, {error: "roboflow_public_key"});
 
     const declared = Number(req.headers.get("content-length") || 0);
     if (declared > MAX_BODY_LENGTH) return respond(413, {error: "image_too_large"});
@@ -109,7 +114,11 @@ Deno.serve(async (req: Request) => {
       return respond(502, {error: "roboflow_connection_failed"});
     }
     if (!remote.ok) return respond(502, {
-      error: remote.status === 401 || remote.status === 403 ? "roboflow_credentials_or_access" : "roboflow_inference_failed",
+      error: remote.status === 401 ? "roboflow_unauthorized" :
+        remote.status === 403 ? "roboflow_forbidden" :
+        remote.status === 404 ? "roboflow_model_missing" :
+        remote.status === 402 || remote.status === 429 ? "roboflow_billing_or_limit" :
+        "roboflow_inference_failed",
       upstreamStatus: remote.status
     });
     let output: unknown;

@@ -36,7 +36,7 @@
             <p class="muted compact">Testmodell: dart-tip-detection-6d3mw/17. Testen bruker det frosne bildet av kun skiven, ikke hele OBS-kildens zoom eller annet fra skjermen. Resultatet er et forslag, ikke en automatisk score.</p>
             <label class="lab-dataset-optin"><input id="labRoboflowConsent" type="checkbox"><span><strong>Jeg godkjenner en engangsopplasting til Roboflow</strong><small>Kun når jeg trykker analyser. Bildet behandles av ekstern AI-leverandør. Ikke aktiver hvis kamerabildet viser private opplysninger.</small></span></label>
             <div class="lab-actions"><button id="labRoboflowStatus" class="outline" type="button">Sjekk Roboflow</button><button id="labRoboflowTest" class="primary" type="button" disabled>Analyser fryst bilde</button></div>
-            <p id="labRoboflowMessage" class="muted compact" role="status" aria-live="polite">Krever API-nøkkel lagret som ROBOFLOW_API_KEY i Supabase Edge Functions / Secrets. Ikke lim nøkkelen inn her.</p>
+            <p id="labRoboflowMessage" class="muted compact" role="status" aria-live="polite">Roboflow REST krever <strong>Private API Key</strong> lagret som ROBOFLOW_API_KEY i Supabase Edge Functions / Secrets. «Sjekk Roboflow» kontrollerer bare at nøkkelen er lagret – ikke modelltilgangen. Del aldri nøkkelen.</p>
           </div>
           <div class="lab-ai-panel">
             <div class="heading"><div><small>ONNX • LOKAL MASKINLÆRING</small><h2>AI-pilspissdeteksjon</h2></div><span id="labAiState" class="lab-pill">Ingen modell</span></div>
@@ -82,7 +82,7 @@
   <script src="./autoscoring/geometry.js?v=20261010-ninepoints1"></script>
   <script src="./autoscoring/ai-onnx.js?v=20261010-frozen1"></script>
   <script src="./autoscoring/zip-store.js?v=20261010-dataset1"></script>
-  <script src="./autoscoring/roboflow.js?v=20261010-rf1"></script>
-  <script src="./autoscoring/lab.js?v=20261010-rf1"></script>
+  <script src="./autoscoring/roboflow.js?v=20261010-rfkeys1"></script>
+  <script src="./autoscoring/lab.js?v=20261010-rfkeys1"></script>
 </body>
 </html>

@@ -173,3 +173,11 @@ Det er ikke satt opp en Roboflow-nøkkel som del av denne endringen. Ikke be om 
 Første Roboflow-test feilet med `quota_check_unavailable`: Postgres rapporterte `function pg_catalog.coalesce(integer, integer) does not exist`. `COALESCE` er et SQL-uttrykk, ikke en vanlig funksjon i `pg_catalog`; derfor skal den brukes uten skjemaprefiks. Begge forekomstene i SQL-migrasjonen er rettet, og den tilsvarende live-RPC-en i Supabase ble oppdatert gjennom migrasjonen `fix_roboflow_quota_coalesce`.
 
 Verifisering: RPC-en er testet under en simulert Owner-kontekst i en deltransaksjon som ble rullet tilbake. Kontrollen returnerte `true`, og ingen kvotetellere ble stående etter testen. Faktisk Roboflow-modellkall krever fortsatt separat test fra brukerens innloggede nettleser.
+
+## Roboflow-tilgang feilsøking (10.10.2026)
+
+En autentisert Roboflow-forespørsel passerte Supabase-kvoten, men Roboflow avviste inferensen. Tidligere tolket status-kontrollen enhver ikke-tom API-nøkkel som «Server klar», selv om den ikke var validert hos Roboflow.
+
+Nå skiller `Sjekk Roboflow` mellom manglende nøkkel, en *Public/Publishable API Key* som starter med `rf_`, og en nøkkel som kan være privat (men ennå ikke er validert). Nøkkelverdi eller prefiks returneres aldri. Offentlig nøkkel avvises **før** kvoten forbrukes. Ved faktisk modellkall vises eget feilsvar for 401, 403, 404 og kredittbegrensninger, slik at eier kan løse riktig årsak uten å dele hemmeligheter.
+
+Fra Roboflows dokumentasjon: REST-inferens skal benytte *Private API Key* med tilgang til modellen/arbeidsområdet. En gyldig nøkkel i et annet arbeidsområde kan fremdeles få 403 på `dart-tip-detection-6d3mw/17`. Tilgang må løses i Roboflow, ikke ved å omgå API-restriksjonen.

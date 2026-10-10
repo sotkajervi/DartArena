@@ -39,7 +39,12 @@ function explain(error,data){
   const labels={
     roboflow_key_not_configured:'Roboflow-nøkkel mangler i Supabase. Legg inn ROBOFLOW_API_KEY under Edge Functions / Secrets.',
     daily_test_limit:'Dagens testgrense er nådd (25 per bruker, maksimalt 100 totalt).',
-    roboflow_credentials_or_access:'Roboflow avviste API-nøkkelen eller modelltilgangen.',
+    roboflow_credentials_or_access:'Roboflow avviste API-nøkkelen eller modelltilgangen. Kontroller Private API Key og tilgang til modellen.',
+    roboflow_public_key:'Dette ser ut til å være en Public/Publishable API Key (rf_). Bruk Private API Key fra Roboflow Workspace Settings → API Keys.',
+    roboflow_unauthorized:'Roboflow svarte 401: nøkkelen er ugyldig, utløpt eller mangler riktig tilgang. Kontroller Private API Key.',
+    roboflow_forbidden:'Roboflow svarte 403: nøkkelen har ikke tilgang til denne modellen/arbeidsområdet, eller mangler nødvendige rettigheter.',
+    roboflow_model_missing:'Roboflow svarte 404: modellversjonen finnes ikke eller er utilgjengelig.',
+    roboflow_billing_or_limit:'Roboflow stoppet forespørselen på grunn av kreditter eller en begrensning på kontoen.',
     roboflow_connection_failed:'Kunne ikke nå Roboflow. Prøv igjen senere.',
     roboflow_inference_failed:'Roboflow kunne ikke analysere bildet.',
     quota_check_unavailable:'Daglig testgrense kunne ikke kontrolleres.',

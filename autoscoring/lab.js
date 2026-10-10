@@ -614,10 +614,13 @@
     updateButtons();
     try{
       const info=await RF.check(db);
-      els.rfState.textContent=info.configured?'Server klar':'Nøkkel mangler';
-      els.rfMessage.textContent=info.configured?
-        'Roboflow er konfigurert. Huk av samtykke og trykk Analyser fryst bilde etter at skiven er kalibrert og bildet fryst.':
-        'Legg inn ROBOFLOW_API_KEY i Supabase Edge Functions / Secrets for å aktivere modellen. Ikke send nøkkelen i chat.';
+      els.rfState.textContent=!info.configured?'Nøkkel mangler':
+        info.keyType==='publishable'?'Feil nøkkeltype':'Nøkkel lagret';
+      els.rfMessage.textContent=!info.configured?
+        'Legg inn ROBOFLOW_API_KEY i Supabase Edge Functions / Secrets for å aktivere modellen. Ikke send nøkkelen i chat.':
+        info.keyType==='publishable'?
+        'Du har lagret en Public/Publishable API Key (rf_). Roboflow REST krever Private API Key. Bytt ROBOFLOW_API_KEY i Supabase Secrets, og prøv Sjekk Roboflow igjen.':
+        'Det ligger en nøkkel i Supabase, men den er IKKE validert mot Roboflow. For å teste tilgang: fryst bilde → samtykke → Analyser fryst bilde. Del aldri nøkkelen.';
     }catch(e){
       els.rfState.textContent='Ikke tilkoblet';
       els.rfMessage.textContent=e?.message||String(e);
