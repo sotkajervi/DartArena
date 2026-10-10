@@ -71,7 +71,8 @@ async function infer(client,frame,region){
   const {data,error}=await client.functions.invoke(ENDPOINT,{body:{image:img.image}});
   if(error||data?.error)throw new Error(await errorMessage(error,data));
   return {model:data.model,method:'roboflow-keypoint',
-    detections:mapDetections(data,img.region,{width:img.width,height:img.height})};
+    detections:mapDetections(data,img.region,{width:img.width,height:img.height}),
+    diagnostics:data.diagnostics||null};
 }
 window.DartArenaLabRoboflow={check,infer,mapDetections,makeImage,explain};
 })();

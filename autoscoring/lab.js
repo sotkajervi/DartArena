@@ -638,6 +638,10 @@
       const region=G.boardBounds(board,els.overlay.width,els.overlay.height,.045);
       const result=await RF.infer(db,forFrame,region);
       if(ticket!==rfSerial||!authorized||!stream||!board||!frozen)return;
+      const diagnostics=result.diagnostics||{};
+      const providerCount=Number(diagnostics.providerPredictions)||0;
+      const keypoints=Number(diagnostics.keypointsReceived)||0;
+      const validBeforeBoard=result.detections.length;
       const detections=result.detections.filter(d=>{
         const p=G.normalize(board,{x:d.x,y:d.y});
         return Number.isFinite(p.x)&&Number.isFinite(p.y)&&p.x*p.x+p.y*p.y<=1.05*1.05;
@@ -651,7 +655,17 @@
         b.confidence-a.confidence);
       if(!detections.length){
         els.rfState.textContent='Ingen pilspiss';
-        els.rfMessage.textContent='Modellen fant ingen gyldige pilspisser. Du kan fortsatt klikke faktisk treff og bekrefte manuelt.';
+        if(diagnostics.responseFormat==='unexpected'){
+          els.rfMessage.textContent='Roboflow svarte, men resultatformatet var ikke som forventet. Ingen gyldige forslag ble funnet.';
+        }else if(providerCount===0){
+          els.rfMessage.textContent='Roboflow svarte med 0 gjenkjente objekter. Vi testet nå med lavere terskel (15 %). Kameraavstand, bildeutsnitt eller modellens treningsdata kan være årsaken.';
+        }else if(keypoints===0){
+          els.rfMessage.textContent='Roboflow fant '+providerCount+' objekt(er), men returnerte 0 pilspiss-nøkkelpunkter. Sannsynlig modell-/formatforskjell.';
+        }else if(validBeforeBoard===0){
+          els.rfMessage.textContent='Roboflow returnerte '+providerCount+' objekt(er) og '+keypoints+' nøkkelpunkt(er), men ingen hadde gyldige koordinater og konfidens.';
+        }else{
+          els.rfMessage.textContent='Roboflow fant '+validBeforeBoard+' kandidat(er), men alle lå utenfor den kalibrerte skiven. Kontroller utsnitt og kalibrering.';
+        }
         return;
       }
       const d=detections[0],scored=G.score(board,d);
@@ -659,7 +673,7 @@
       pending.ai={label:scored.label,point:{x:d.x,y:d.y},
         confidence:d.confidence,provider:'roboflow'};
       els.rfState.textContent='Roboflow: '+scored.label;
-      els.rfMessage.textContent='Modellen fant '+detections.length+' kandidat(er). Forslag: '+scored.label+' ('+
+      els.rfMessage.textContent='Modellen fant '+detections.length+' gyldige kandidat(er) av '+providerCount+' objekter. Forslag: '+scored.label+' ('+
         Math.round(d.confidence*100)+' %). Magenta viser AI-punkt. Kontroller spissen manuelt før bekreftelse.';
       if(!selected){
         els.proposal.textContent='Roboflow-forslag: '+scored.label+' · '+scored.points+' poeng';

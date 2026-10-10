@@ -21,30 +21,46 @@ function respond(status: number, data: Record<string, unknown>) {
 type RoboflowKeypoint = {x?: number; y?: number; confidence?: number; class_name?: string; class?: string;};
 type RoboflowDetection = {x?: number; y?: number; confidence?: number; class?: string; keypoints?: RoboflowKeypoint[];};
 
+// Only counts and validated coordinates leave this function. Never forward
+// provider's raw response, model metadata, or image data to the browser.
 function normalizedDetections(input: unknown) {
-  if (!input || typeof input !== "object") return [];
-  const raw = input as {predictions?: RoboflowDetection[]};
-  if (!Array.isArray(raw.predictions)) return [];
-  const result: {x: number; y: number; confidence: number; className: string}[] = [];
-  for (const detection of raw.predictions.slice(0, 80)) {
+  const raw = input && typeof input === "object" ? input as {predictions?: RoboflowDetection[]} : null;
+  const predictions = Array.isArray(raw?.predictions) ? raw.predictions.slice(0, 80) : [];
+  const diagnostics = {
+    responseFormat: Array.isArray(raw?.predictions) ? "predictions" : "unexpected",
+    providerPredictions: predictions.length,
+    predictionsWithKeypoints: 0,
+    keypointsReceived: 0,
+    validKeypoints: 0,
+    missingOrLowConfidence: 0
+  };
+  const detections: {x: number; y: number; confidence: number; className: string}[] = [];
+  for (const detection of predictions) {
     if (!detection || typeof detection !== "object") continue;
     const points = Array.isArray(detection.keypoints) ? detection.keypoints : [];
-    // The model is a pose detector: never pretend the box center is a tip.
-    const preferred = points.find(p => Number.isFinite(p?.x) && Number.isFinite(p?.y)
-      && /tip/i.test(String(p.class_name ?? p.class ?? "")) && Number(p.confidence ?? 1) > .05)
-      || points.find(p => Number.isFinite(p?.x) && Number.isFinite(p?.y) && Number(p.confidence ?? 1) > .05);
+    if(points.length) diagnostics.predictionsWithKeypoints++;
+    diagnostics.keypointsReceived += points.length;
+    const valid = points.filter(p => {
+      const xy = typeof p?.x === "number" && typeof p?.y === "number" &&
+        Number.isFinite(p.x) && Number.isFinite(p.y) && p.x > 0 && p.y > 0;
+      const score = Number(p?.confidence ?? detection.confidence ?? 0);
+      return xy && Number.isFinite(score) && score >= .05;
+    });
+    diagnostics.validKeypoints += valid.length;
+    diagnostics.missingOrLowConfidence += points.length - valid.length;
+    // A pose model returns a bounding box AND separately a keypoint.
+    // Never treat the bounding-box center as a dartboard tip.
+    const preferred = valid.find(p => /tip/i.test(String(p.class_name ?? p.class ?? ""))) || valid[0];
     if (!preferred) continue;
     const confidence = Number(preferred.confidence ?? detection.confidence ?? 0);
-    if (!Number.isFinite(confidence) || confidence < .05) continue;
-    result.push({
+    detections.push({
       x: Number(preferred.x), y: Number(preferred.y),
       confidence: Math.max(0, Math.min(1, confidence)),
-      className: String(detection.class || "dart_tip").slice(0,64)
+      className: String(detection.class || "dart_tip").slice(0, 64)
     });
   }
-  return result.slice(0, 40);
+  return {detections: detections.slice(0, 40), diagnostics};
 }
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, {status: 204, headers});
   if (req.method !== "POST" && req.method !== "GET")
@@ -103,7 +119,9 @@ Deno.serve(async (req: Request) => {
 
     let remote: Response;
     try {
-      const uri = API_HOST + "/" + MODEL_ID + "?api_key=" + encodeURIComponent(apiKey);
+      // Roboflow defaults to a 40% object threshold. Use 15% only in this
+      // isolated, manually verified experimental view to inspect weak detections.
+      const uri = API_HOST + "/" + MODEL_ID + "?api_key=" + encodeURIComponent(apiKey) + "&confidence=15";
       remote = await fetch(uri, {
         method: "POST",
         headers: {"Content-Type": "application/x-www-form-urlencoded"},
@@ -126,8 +144,11 @@ Deno.serve(async (req: Request) => {
     catch { return respond(502, {error: "invalid_provider_response"}); }
     const metadata = output && typeof output === "object" ? (output as {image?: {width?: number; height?: number}}).image : null;
     const width = Number(metadata?.width), height = Number(metadata?.height);
+    const analyzed = normalizedDetections(output);
     return respond(200, {
-      model: MODEL_ID, method: "roboflow-keypoint", detections: normalizedDetections(output),
+      model: MODEL_ID, method: "roboflow-keypoint",
+      detections: analyzed.detections,
+      diagnostics: {...analyzed.diagnostics, queryConfidence: 15},
       image: {
         width: Number.isFinite(width) && width > 0 ? width : null,
         height: Number.isFinite(height) && height > 0 ? height : null

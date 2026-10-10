@@ -181,3 +181,11 @@ En autentisert Roboflow-forespørsel passerte Supabase-kvoten, men Roboflow avvi
 Nå skiller `Sjekk Roboflow` mellom manglende nøkkel, en *Public/Publishable API Key* som starter med `rf_`, og en nøkkel som kan være privat (men ennå ikke er validert). Nøkkelverdi eller prefiks returneres aldri. Offentlig nøkkel avvises **før** kvoten forbrukes. Ved faktisk modellkall vises eget feilsvar for 401, 403, 404 og kredittbegrensninger, slik at eier kan løse riktig årsak uten å dele hemmeligheter.
 
 Fra Roboflows dokumentasjon: REST-inferens skal benytte *Private API Key* med tilgang til modellen/arbeidsområdet. En gyldig nøkkel i et annet arbeidsområde kan fremdeles få 403 på `dart-tip-detection-6d3mw/17`. Tilgang må løses i Roboflow, ikke ved å omgå API-restriksjonen.
+
+## Roboflow-feilsøking: Ingen pilspisser (10.10.2026)
+
+En ekte forespørsel nådde Roboflow, men visningen viste «Modellen fant ingen gyldige pilspisser». Før dette var svaret tvetydig: null objekter, manglende nøkkelpunkter og punkter utenfor skiven ble blandet i én melding.
+
+Det eksperimentelle Roboflow-kallet bruker nå `confidence=15` (mot Roboflows vanlige 40) for å se svake kandidatdeteksjoner. Backend returnerer **kun aggregerte tall** (`providerPredictions`, `predictionsWithKeypoints`, `keypointsReceived`, `validKeypoints` og `responseFormat`), og aldri leverandørens rådata. Frontend viser om leverandøren returnerte null objekter, objekter uten nøkkelpunkter, ugyldige nøkkelpunkter eller kandidater utenfor den kalibrerte skiven. Box-sentrum blir **aldri** tolket som pilspiss; alle treff må fortsatt kontrolleres og bekreftes manuelt.
+
+Ingen bilder sendes ved statuskontroll eller automatisk. En bildetest krever fortsatt nytt samtykke og eksplisitt knappetrykk. Kameraoppsett og scoren i kamprommene er urørt.
