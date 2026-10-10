@@ -101,13 +101,16 @@ function iou(a,b){
 function decode(raw,confidence=.50){
   const output=modelOutputs(raw);
   if(output.length!==2)throw new Error('DeepDarts trenger to modellutganger.');
-  const boxes=[],byClass=[0,0,0,0,0],topByClass=[null,null,null,null,null];
+  const boxes=[],byClass=[0,0,0,0,0],topByClass=[null,null,null,null,null],rawStats=[];
   for(const tensor of output){
     const shape=tensor.shape||tensor.dims,grid=Number(shape?.[1]);
     if(!ANCHORS[grid]||!matches(shape,[1,grid,grid,30]))
       throw new Error('Uventet YOLO-utgang fra DeepDarts: '+String(shape));
     const data=tensor.data;
     if(!data||data.length!==grid*grid*30)throw new Error('Modellen returnerte ufullstendige data.');
+    let min=Infinity,max=-Infinity,inside=0,checked=0;
+    for(let j=4;j<data.length;j+=10){const v=data[j];if(Number.isFinite(v)){min=Math.min(min,v);max=Math.max(max,v);inside+=Number(v>=0&&v<=1);checked++}}
+    rawStats.push({grid,min,max,fraction01:checked?inside/checked:0});
     const anchors=ANCHORS[grid],limit=clamp(Number(confidence)||.50,.05,.95);
     for(let gy=0;gy<grid;gy++)for(let gx=0;gx<grid;gx++)for(let a=0;a<3;a++){
       const k=(gy*grid+gx)*30+a*10;
@@ -137,7 +140,7 @@ function decode(raw,confidence=.50){
     if(kept.length>=15)break;
     if(kept.every(k=>iou(k,b)<.45))kept.push(b);
   }
-  return {rawCount:boxes.length,boxes:kept,diagnostic:{byClass,topByClass}};
+  return {rawCount:boxes.length,boxes:kept,diagnostic:{byClass,topByClass,rawStats}};
 }
 function cropBoard(frame,region){
   const fw=frame?.videoWidth||frame?.width,fh=frame?.videoHeight||frame?.height;
