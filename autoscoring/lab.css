@@ -40,3 +40,14 @@
 .lab-page .lab-log-row strong{color:var(--cyan)}
 @media(max-width:980px){.lab-page .lab-columns{grid-template-columns:1fr}}
 @media(max-width:650px){.lab-page .lab-heading{flex-direction:column}.lab-page .lab-back{width:100%}.lab-page .lab-columns>.card{padding:14px}.lab-page .lab-stage{min-height:170px}.lab-page .lab-progress{align-items:flex-start;flex-direction:column}.lab-page .lab-actions button{flex:1 1 auto}.lab-page .heading{flex-wrap:wrap}}
+
+/* Lab-local ONNX model loader */
+.lab-page .lab-ai-panel{padding:14px;margin-bottom:18px;border:1px solid rgba(0,234,244,.27);border-radius:12px;background:rgba(0,234,244,.035)}
+.lab-page .lab-ai-panel .heading h2{font-size:18px}
+.lab-page .lab-ai-panel .heading{margin-bottom:7px}
+.lab-page .lab-ai-panel p{line-height:1.5}
+.lab-page .lab-ai-panel input[type="file"]{max-width:100%;font-size:12px;padding:8px 5px;color:var(--text)}
+.lab-page .lab-ai-settings{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,.7fr) minmax(0,.8fr);gap:8px}
+.lab-page .lab-ai-settings input,.lab-page .lab-ai-settings select{min-width:0;width:100%}
+.lab-page #labAiMessage{padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.03);overflow-wrap:anywhere}
+@media(max-width:650px){.lab-page .lab-ai-settings{grid-template-columns:1fr}.lab-page .lab-ai-panel{padding:11px}.lab-page .lab-ai-panel .heading{flex-wrap:wrap}}

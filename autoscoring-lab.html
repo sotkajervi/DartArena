@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#071012"><title>DartArena • Autoscoring Lab</title>
   <link rel="stylesheet" href="./style.css?v=20261009-lab1">
   <link rel="stylesheet" href="./brand-header.css?v=20261009-mobile1">
-  <link rel="stylesheet" href="./autoscoring/lab.css?v=20261010-lab1">
+  <link rel="stylesheet" href="./autoscoring/lab.css?v=20261010-ai1">
 </head>
 <body class="lab-page">
   <header><div class="brand"><img class="brand-logo" src="./assets/dartarena-logo.jpg?v=20261009-global1" alt="DartArena" width="420" height="116" decoding="async"></div><div class="live"><i></i> AUTOSCORING LAB • BETA</div></header>
@@ -13,7 +13,7 @@
     <div class="lab-heading"><div><small>OWNER / ADMIN • EKSPERIMENT</small><h1>Autoscoring Lab</h1><p class="muted compact">PC-test med ett kamera. Ingen scoring sendes til onlinekamper eller turneringer.</p></div><a class="outline lab-back" href="./">Tilbake til lobby</a></div>
     <section id="labGate" class="card lab-gate" role="status" aria-live="polite">Kontrollerer tilgang …</section>
     <div id="labApp" hidden>
-      <div class="lab-warning" role="note"><strong>Forskningsprototype:</strong> Denne første versjonen bruker lokal bildeendringsanalyse, ikke en trent AI-modell. Treffer er foreløpige, og må bekreftes manuelt. Video lagres eller sendes ikke til DartArena-servere.</div>
+      <div class="lab-warning" role="note"><strong>AI-analyse i nettleseren:</strong> Last inn en dart-tip-modell i ONNX-format for ekte maskinlæringsanalyse. Uten modell brukes kun enkel bildeendringsanalyse. Treff må fortsatt bekreftes manuelt. Kamerabilde og modell sendes ikke til DartArena-servere.</div>
       <div class="lab-columns">
         <section class="card lab-cam-card">
           <div class="heading"><div><small>KAMERA OG KALIBRERING</small><h2>Skiveanalyse</h2></div><span id="labCameraState" class="lab-pill">Kamera av</span></div>
@@ -30,9 +30,29 @@
           <p class="muted compact">Kalibrering: klikk Bull, deretter midten av ytterkanten på dobbelfeltene D20 (øverst), D6 (høyre), D3 (nederst) og D11 (venstre). Bruk musepekeren.</p>
         </section>
         <section class="card lab-data-card">
+          <div class="lab-ai-panel">
+            <div class="heading"><div><small>ONNX • LOKAL MASKINLÆRING</small><h2>AI-pilspissdeteksjon</h2></div><span id="labAiState" class="lab-pill">Ingen modell</span></div>
+            <p class="muted compact">Bruk en <strong>trent dart-tip-modell</strong> med YOLOv8/YOLO11 ONNX-utgang. Modellen åpnes bare på PC-en. En vanlig YOLO-modell for mennesker eller objekter vil ikke fungere.</p>
+            <label class="field lab-field">ONNX-modell fra PC (.onnx)
+              <input id="labAiFile" type="file" accept=".onnx,application/octet-stream" aria-label="Velg lisensiert dart-tip ONNX-modell">
+            </label>
+            <div class="lab-ai-settings">
+              <label class="field lab-field">Modelltype
+                <select id="labAiMode"><option value="keypoint">YOLO Pose • pilspiss-nøkkelpunkt</option><option value="bbox">YOLO Detect • boks-sentrum (grovt)</option></select>
+              </label>
+              <label class="field lab-field">Pilspiss-nøkkelpunkt (indeks)
+                <input id="labAiKeypoint" type="number" min="0" max="12" value="0" inputmode="numeric">
+              </label>
+              <label class="field lab-field">Min. konfidens (0,05–0,95)
+                <input id="labAiThreshold" type="number" min="0.05" max="0.95" step="0.05" value="0.35" inputmode="decimal">
+              </label>
+            </div>
+            <div class="lab-actions"><button id="labAiLoad" class="outline" type="button">Last inn AI-modell</button><button id="labAiTest" class="outline" type="button" disabled>Analyser kamerabilde</button></div>
+            <p class="muted compact" id="labAiMessage" role="status" aria-live="polite">Ingen modell er lastet. Når en modell er lastet, kjøres ekte lokal ONNX-inferens ved mulig kast eller ved manuell analyse.</p>
+          </div>
           <div class="heading"><div><small>LOKAL ANALYSE</small><h2>Registrering</h2></div><span class="lab-pill">Ingen kampkobling</span></div>
-          <div class="lab-metrics"><div><small>Analyse</small><strong id="labAnalysisState">Ikke startet</strong></div><div><small>Endrede piksler</small><strong id="labMotion">–</strong></div><div><small>Bekreftede piler</small><strong id="labCount">0</strong></div><div><small>Testens treffprosent</small><strong id="labAccuracy">–</strong></div></div>
-          <div class="lab-result"><span>Eksperimentelt trefforslag</span><strong id="labProposal">Ingen forslag</strong><p id="labProposalDetail" class="muted compact">Forslag fra bildeendringer kan være unøyaktige. Bekreft etter klikk på pilspissen.</p></div>
+          <div class="lab-metrics"><div><small>Analyse</small><strong id="labAnalysisState">Ikke startet</strong></div><div><small>Endrede piksler</small><strong id="labMotion">–</strong></div><div><small>Bekreftede piler</small><strong id="labCount">0</strong></div><div><small>AI-treffprosent</small><strong id="labAccuracy">–</strong></div></div>
+          <div class="lab-result"><span>Trefforslag (AI hvis lastet)</span><strong id="labProposal">Ingen forslag</strong><p id="labProposalDetail" class="muted compact">Forslag fra bildeendringer kan være unøyaktige. Bekreft etter klikk på pilspissen.</p></div>
           <div class="lab-actions"><button id="labConfirm" class="primary" type="button" disabled>Bekreft valgt treff</button><button id="labReject" class="outline" type="button" disabled>Avvis / ta ny referanse</button></div>
           <p class="muted compact">Ved varslet kast: klikk nøyaktig der pilspissen treffer skiven. Foreslått score er ikke fasit. Kun bekreftede treff kommer med i testloggen.</p>
           <div class="lab-log-head"><strong>Testlogg</strong><button id="labExport" class="small-btn" type="button" disabled>Eksporter JSON</button></div>
@@ -45,6 +65,7 @@
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
   <script src="./autoscoring/geometry.js?v=20261010-lab1"></script>
-  <script src="./autoscoring/lab.js?v=20261010-lab1"></script>
+  <script src="./autoscoring/ai-onnx.js?v=20261010-ai1"></script>
+  <script src="./autoscoring/lab.js?v=20261010-ai1"></script>
 </body>
 </html>

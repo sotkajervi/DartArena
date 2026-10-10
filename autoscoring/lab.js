@@ -3,6 +3,7 @@
 (function(){
   'use strict';
   const G=window.DartArenaLabGeometry;
+  const AI=window.DartArenaLabAI;
   const $=id=>document.getElementById(id);
   const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
   const KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
@@ -15,13 +16,16 @@
     analysisState:$('labAnalysisState'),motion:$('labMotion'),count:$('labCount'),
     accuracy:$('labAccuracy'),proposal:$('labProposal'),proposalDetail:$('labProposalDetail'),
     confirm:$('labConfirm'),reject:$('labReject'),log:$('labLog'),export:$('labExport'),
-    newRound:$('labNewRound')
+    newRound:$('labNewRound'),aiState:$('labAiState'),aiFile:$('labAiFile'),
+    aiMode:$('labAiMode'),aiKeypoint:$('labAiKeypoint'),aiThreshold:$('labAiThreshold'),
+    aiLoad:$('labAiLoad'),aiTest:$('labAiTest'),aiMessage:$('labAiMessage')
   };
   if(!db||!G||!els.app)return;
 
   let authorized=false,stream=null,starting=false,epoch=0,calibrating=false;
   let calibrationPoints=[],board=null,baseline=null,previous=null,samples=[];
   let pending=null,selected=null,stableFrames=0,records=[],tickTimer=0,lastAnalysis=null;
+  let aiLoading=false,aiInferring=false,aiSerial=0;
   const analysisCanvas=document.createElement('canvas');
   const analysisContext=analysisCanvas.getContext('2d',{willReadFrequently:true});
   const ctx=els.overlay.getContext('2d');
@@ -45,6 +49,9 @@
     els.newRound.disabled=!ready;
     els.export.disabled=!records.length;
     els.camera.disabled=!authorized||live||starting;
+    els.aiLoad.disabled=!authorized||aiLoading;
+    els.aiTest.disabled=!authorized||!ready||!AI?.ready()||aiInferring;
+    els.aiFile.disabled=!authorized||aiLoading;
   }
   function updateStats(){
     els.count.textContent=String(records.length);
@@ -61,18 +68,18 @@
       b.textContent=r.actual+' ('+r.points+' poeng)';
       l.append(text,b);
       const side=document.createElement('span');
-      side.textContent=r.suggested?('Forslag: '+r.suggested+(r.suggested===r.actual?' ✓':' ✕')):'Manuell';
+      side.textContent=r.suggested?('AI: '+r.suggested+(r.suggested===r.actual?' ✓':' ✕')):'Manuell / grovt forslag';
       div.append(l,side);els.log.appendChild(div);
     }
   }
   function clearProposal(message='Ingen forslag'){
-    pending=null;selected=null;stableFrames=0;
+    aiSerial++;pending=null;selected=null;stableFrames=0;
     els.proposal.textContent=message;
     els.proposalDetail.textContent='Klikk på pilspissen i kamerabildet for å angi fasit ved registrert kast.';
     updateButtons();drawOverlay();
   }
   function resetAnalysis(clearRecords){
-    baseline=null;previous=null;lastAnalysis=null;samples=[];pending=null;selected=null;stableFrames=0;
+    aiSerial++;baseline=null;previous=null;lastAnalysis=null;samples=[];pending=null;selected=null;stableFrames=0;
     if(clearRecords){records=[];updateStats()}
     els.motion.textContent='–';clearProposal();
   }
@@ -164,6 +171,7 @@
     els.proposalDetail.textContent='Bildeendring oppdaget. Dette er IKKE presis AI-gjenkjenning: klikk pilspissen på videoen for å sette fasit før bekreftelse.';
     els.step.textContent='Klikk pilspissen – kontroller treffet.';
     updateButtons();drawOverlay();
+    if(AI?.ready())void analyseAIFrame(pending,false);
   }
   function drawCross(point,color,radius=9){
     ctx.save();ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(point.x,point.y,radius,0,Math.PI*2);ctx.stroke();
@@ -194,7 +202,8 @@
     if(calibrating){
       calibrationPoints.forEach((p,i)=>{drawCross(p,'#ffbf54',7);ctx.fillStyle='#fff';ctx.font='bold 16px system-ui';ctx.fillText(String(i+1),p.x+13,p.y-10)});
     }
-    if(pending)drawCross(pending.candidate,'#ffbf54',13);
+    if(pending?.candidate)drawCross(pending.candidate,'#ffbf54',13);
+    if(pending?.ai?.point)drawCross(pending.ai.point,'#ff4fda',12);
     if(selected)drawCross(selected.point,'#00ff9a',11);
   }
   async function loadDevices(){
@@ -280,22 +289,24 @@
     const actual=G.score(board,point);
     selected={point,label:actual.label,points:actual.points};
     els.proposal.textContent='Valgt treff: '+actual.label+' · '+actual.points+' poeng';
-    els.proposalDetail.textContent=pending?'Forslag: '+pending.suggested+'. Bekreft den grønne markeringen når du er sikker.':'Manuelt treff valgt. Ingen automatisk kandidat – bekreft for å loggføre.';
+    els.proposalDetail.textContent=pending?.ai?'AI foreslo '+pending.ai.label+' ('+Math.round(pending.ai.confidence*100)+' %). Bekreft grønn markering som fasit.':pending?'Grovt forslag: '+pending.suggested+'. Bekreft grønn markering som fasit.':'Manuelt treff valgt. Bekreft for å loggføre.';
     updateButtons();drawOverlay();
   }
   function confirmSelection(){
     if(!authorized||!board||!selected||!baseline)return;
     records.push({number:records.length+1,timestamp:new Date().toISOString(),
-      actual:selected.label,points:selected.points,suggested:pending?.suggested||null,
+      actual:selected.label,points:selected.points,suggested:pending?.ai?.label||null,
+      heuristic:pending?.suggested||null,modelConfidence:pending?.ai?.confidence??null,
+      modelName:pending?.ai?.label?AI?.name():null,
       x:Number(selected.point.x.toFixed(1)),y:Number(selected.point.y.toFixed(1)),
-      method:'manual-verified',analysis:'frame-difference-centroid'});
+      method:'manual-verified',analysis:pending?.ai?'onnx-model':'frame-difference-centroid'});
     updateStats();captureReference();
     status('Treff bekreftet, referanse oppdatert');els.step.textContent='Kast neste pil, eller velg Ny runde når skiven er tom';
   }
   function exportResults(){
     if(!authorized||!records.length)return;
     const data={version:1,source:'DartArena Autoscoring Lab',
-      warning:'Forslag er regelbaserte grovestimater, ikke AI-detekterte pilspisser.',
+      warning:'Modellforslag er bare forsøksdata og bekreftes manuelt. Fasit er valgt av brukeren.',
       exportedAt:new Date().toISOString(),videoIncluded:false,photosIncluded:false,
       calibration:board?{resolution:[els.overlay.width,els.overlay.height],points:board.points}:null,
       records:records.map(r=>({...r}))};
@@ -303,6 +314,77 @@
     const href=URL.createObjectURL(blob);
     const a=document.createElement('a');a.href=href;a.download='dartarena-autoscoring-test-'+new Date().toISOString().slice(0,10)+'.json';
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(href),1000);
+  }
+  async function loadAIModel(){
+    if(!authorized||aiLoading||!AI)return;
+    const file=els.aiFile.files?.[0];
+    if(!file){els.aiMessage.textContent='Velg en .onnx-modell først. DartArena inneholder foreløpig ikke ferdigtrente modellvekter.';return}
+    aiLoading=true;els.aiState.textContent='Laster modell…';updateButtons();
+    try{
+      const meta=await AI.load(file);
+      if(!authorized){els.aiState.textContent='Ingen tilgang';return}
+      AI.setOptions({mode:els.aiMode.value,keypointIndex:els.aiKeypoint.value,threshold:els.aiThreshold.value});
+      els.aiState.textContent='AI klar';
+      els.aiMessage.textContent='ONNX-modell '+meta.name+' lastet lokalt ('+meta.width+'×'+meta.height+'). '+(els.aiMode.value==='keypoint'?'Tolker nøkkelpunktet som pilspiss.':'Tolker bokssentrum som et grovt treffpunkt.')+' Trykk Analyser kamerabilde eller kast etter kalibrering.';
+    }catch(e){
+      els.aiState.textContent=AI.ready()?'Tidligere modell klar':'Ingen modell';
+      els.aiMessage.textContent='Modellfeil: '+(e?.message||String(e));
+    }finally{aiLoading=false;updateButtons()}
+  }
+  async function analyseAIFrame(proposal,manual){
+    if(!authorized||!AI?.ready()||!board||!stream||aiInferring)return;
+    aiInferring=true;
+    const ticket=++aiSerial;
+    els.aiState.textContent='Analyserer…';
+    updateButtons();
+    try{
+      AI.setOptions({mode:els.aiMode.value,keypointIndex:els.aiKeypoint.value,threshold:els.aiThreshold.value});
+      const result=await AI.infer(els.video);
+      if(ticket!==aiSerial||!authorized||!board||!stream)return;
+      if(proposal&&pending!==proposal)return;
+      // Ignore detections outside the scored area; no AI result is stored as a match score.
+      const found=result.detections.filter(d=>{
+        const p=G.normalize(board,{x:d.x,y:d.y});
+        return p.x*p.x+p.y*p.y<=1.05*1.05;
+      });
+      const near=proposal?.candidate;
+      if(near)found.sort((a,b)=>{
+        const da=Math.hypot(a.x-near.x,a.y-near.y)-a.confidence*30;
+        const db=Math.hypot(b.x-near.x,b.y-near.y)-b.confidence*30;
+        return da-db;
+      });
+      if(!found.length){
+        els.aiState.textContent='AI: ingen pil funnet';
+        els.aiMessage.textContent='Modellen fant ikke en pilspiss over valgt konfidens. Prøv bedre lys, lavere terskel eller en modell som er trent for ditt kamera.';
+        return;
+      }
+      const d=found[0];
+      const scored=G.score(board,{x:d.x,y:d.y});
+      if(!pending){
+        pending={candidate:{x:d.x,y:d.y},suggested:null,changed:0};
+      }
+      pending.ai={label:scored.label,point:{x:d.x,y:d.y},confidence:d.confidence};
+      els.aiState.textContent='AI: '+scored.label;
+      els.aiMessage.textContent='AI fant '+found.length+' kandidat(er). Beste forslag: '+scored.label+', '+Math.round(d.confidence*100)+' % konfidens ('+(result.method==='keypoint'?'pilspiss-nøkkelpunkt':'bokssentrum')+'). Klikk faktisk treffpunkt for å kontrollere.';
+      if(!selected){
+        els.proposal.textContent='AI-forslag: '+scored.label+' · '+scored.points+' poeng';
+        els.proposalDetail.textContent='Magenta markering = modellens forslag. Klikk pilspissen for grønn fasit, deretter Bekreft valgt treff.';
+      }
+      drawOverlay();
+    }catch(e){
+      if(ticket===aiSerial){els.aiState.textContent='AI-feil';els.aiMessage.textContent='Analysefeil: '+(e?.message||String(e))}
+    }finally{
+      aiInferring=false;
+      updateButtons();
+    }
+  }
+  els.aiLoad.addEventListener('click',loadAIModel);
+  els.aiTest.addEventListener('click',()=>analyseAIFrame(pending,true));
+  for(const el of [els.aiMode,els.aiKeypoint,els.aiThreshold]){
+    el.addEventListener('change',()=>{if(AI?.ready()){
+      AI.setOptions({mode:els.aiMode.value,keypointIndex:els.aiKeypoint.value,threshold:els.aiThreshold.value});
+      els.aiMessage.textContent='Modellinnstillinger oppdatert. Test på nytt for å se nye resultater.';
+    }});
   }
   els.start.addEventListener('click',startCamera);
   els.stop.addEventListener('click',stopCamera);
