@@ -5,7 +5,8 @@
 */
 (function(){
 'use strict';
-const TF_CDN='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js';
+const TF_CORE_CDN='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.22.0/dist/tf-core.min.js';
+const TF_CPU_CDN='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.22.0/dist/tf-backend-cpu.min.js';
 const TFLITE_CDN='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite@0.0.1-alpha.10/dist/';
 const SIZE=800,MAX_BYTES=80*1024*1024;
 const ANCHORS={50:[[81,82],[135,169],[344,319]],25:[[23,27],[37,58],[81,82]]};
@@ -23,7 +24,9 @@ function script(src,ready){
 function runtime(){
   if(runtimePromise)return runtimePromise;
   runtimePromise=(async()=>{
-    await script(TF_CDN,()=>!!window.tf?.tensor);
+    await script(TF_CORE_CDN,()=>!!window.tf?.tensor);
+    await script(TF_CPU_CDN,()=>!!window.tf?.findBackend?.('cpu'));
+    await window.tf.setBackend('cpu');
     await script(TFLITE_CDN+'tf-tflite.min.js',()=>!!window.tflite?.loadTFLiteModel);
     window.tflite.setWasmPath(TFLITE_CDN);
     await window.tf.ready();
@@ -60,7 +63,15 @@ async function load(file){
     const {tflite}=await runtime();
     const bytes=await file.arrayBuffer();
     // No remote URL, cache or upload: all file bytes remain local to the browser.
-    const next=await tflite.loadTFLiteModel(bytes);
+    let next;
+    try {
+      next=await tflite.loadTFLiteModel(bytes,{numThreads:1});
+    } catch (error) {
+      if(String(error?.message||error).includes('_malloc')) {
+        throw new Error('TFLite WebAssembly ble ikke initialisert (_malloc). Prøv å laste siden på nytt med Ctrl+F5. Hvis feilen fortsetter, kontroller om WASM-filer fra cdn.jsdelivr.net blokkeres. Opprinnelig feil: '+String(error?.message||error));
+      }
+      throw error;
+    }
     try{
       validateShapes(next.inputs?.[0],next.outputs);
     }catch(e){try{next.dispose?.()}catch{}throw e}
