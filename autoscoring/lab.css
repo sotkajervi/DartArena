@@ -1,0 +1,42 @@
+/* Autoscoring Lab: isolated styles only. */
+.lab-page .lab-shell{max-width:1440px;margin:0 auto}
+.lab-page .lab-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:18px}
+.lab-page .lab-heading h1{margin-bottom:5px}
+.lab-page .lab-back{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:8px 14px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--text);font-weight:800}
+.lab-page .lab-back:hover{border-color:var(--cyan)}
+.lab-page .lab-gate{padding:24px;text-align:center;color:var(--muted)}
+.lab-page [hidden]{display:none!important}
+.lab-page .lab-warning{padding:12px 15px;margin-bottom:16px;border:1px solid rgba(0,234,244,.28);border-radius:12px;background:rgba(0,234,244,.055);font-size:13px;line-height:1.5}
+.lab-page .lab-columns{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(315px,1fr);gap:16px;align-items:start}
+.lab-page .lab-columns>.card{min-width:0}
+.lab-page .heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.lab-page .heading h2{margin:2px 0}
+.lab-page .lab-pill{display:inline-flex;white-space:nowrap;border:1px solid rgba(0,234,244,.26);background:rgba(0,234,244,.06);color:#00eaf4;font-size:10px;font-weight:800;letter-spacing:.03em;border-radius:999px;padding:6px 10px}
+.lab-page .lab-field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.lab-page .lab-field select{max-width:100%}
+.lab-page .lab-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.lab-page .lab-actions button:disabled{cursor:not-allowed;opacity:.42}
+.lab-page .lab-stage{position:relative;overflow:hidden;width:100%;background:#03090a;border:1px solid #25464b;border-radius:12px;touch-action:manipulation;min-height:200px}
+.lab-page #labVideo{display:block;width:100%;height:100%;position:absolute;inset:0;object-fit:fill}
+.lab-page #labOverlay{position:absolute;display:block;width:100%;height:100%;inset:0;cursor:crosshair;touch-action:manipulation}
+.lab-page .lab-stage-message{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;background:rgba(3,9,10,.8);color:#d4e9ed;text-align:center;padding:20px;font-weight:750}
+.lab-page .lab-help{margin-top:10px;line-height:1.5}
+.lab-page .lab-progress{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.lab-page .lab-progress strong{font-size:13px;color:var(--cyan)}
+.lab-page .lab-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.lab-page .lab-metrics>div{padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:11px;background:rgba(255,255,255,.025)}
+.lab-page .lab-metrics small{display:block;font-size:10px;font-weight:850;color:var(--muted);margin-bottom:7px;letter-spacing:.04em;text-transform:uppercase}
+.lab-page .lab-metrics strong{font-size:15px;overflow-wrap:anywhere}
+.lab-page .lab-result{margin:14px 0;padding:16px;border:1px solid rgba(0,234,244,.28);background:linear-gradient(145deg,rgba(0,234,244,.065),rgba(7,16,18,.3));border-radius:12px}
+.lab-page .lab-result>span{display:block;font-size:12px;color:var(--muted);margin-bottom:7px}
+.lab-page .lab-result strong{display:block;color:#00eaf4;font-weight:950;font-size:27px}
+.lab-page .lab-result p{margin:8px 0 0;line-height:1.5}
+.lab-page .lab-log-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:18px 0 10px}
+.lab-page .lab-log{border:1px solid var(--line);border-radius:12px;min-height:80px;max-height:255px;overflow:auto}
+.lab-page .lab-log p{margin:12px}
+.lab-page .lab-log-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.07);font-size:12px}
+.lab-page .lab-log-row:last-child{border-bottom:0}
+.lab-page .lab-log-row span{color:var(--muted)}
+.lab-page .lab-log-row strong{color:var(--cyan)}
+@media(max-width:980px){.lab-page .lab-columns{grid-template-columns:1fr}}
+@media(max-width:650px){.lab-page .lab-heading{flex-direction:column}.lab-page .lab-back{width:100%}.lab-page .lab-columns>.card{padding:14px}.lab-page .lab-stage{min-height:170px}.lab-page .lab-progress{align-items:flex-start;flex-direction:column}.lab-page .lab-actions button{flex:1 1 auto}.lab-page .heading{flex-wrap:wrap}}
