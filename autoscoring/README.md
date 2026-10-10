@@ -189,3 +189,7 @@ En ekte forespørsel nådde Roboflow, men visningen viste «Modellen fant ingen 
 Det eksperimentelle Roboflow-kallet bruker nå `confidence=15` (mot Roboflows vanlige 40) for å se svake kandidatdeteksjoner. Backend returnerer **kun aggregerte tall** (`providerPredictions`, `predictionsWithKeypoints`, `keypointsReceived`, `validKeypoints` og `responseFormat`), og aldri leverandørens rådata. Frontend viser om leverandøren returnerte null objekter, objekter uten nøkkelpunkter, ugyldige nøkkelpunkter eller kandidater utenfor den kalibrerte skiven. Box-sentrum blir **aldri** tolket som pilspiss; alle treff må fortsatt kontrolleres og bekreftes manuelt.
 
 Ingen bilder sendes ved statuskontroll eller automatisk. En bildetest krever fortsatt nytt samtykke og eksplisitt knappetrykk. Kameraoppsett og scoren i kamprommene er urørt.
+
+## Klargjøring av poengforklaringen (10.10.2026)
+
+Et testskjermbilde viste «Roboflow svarte med 0 gjenkjente objekter» samtidig som gul markør så ut til å foreslå S18. Dette var ikke et AI-forslag: gul markør er kun sentrum for registrert bildeendring, og feltet beregnes derfra av den lokale geometrien. Nå skjules heuristikkens feltnavn i hovedfeltet og vises ikke lenger som om det var et AI-forslag. Teksten forklarer: gul = endringssentrum (IKKE treff), magenta = faktisk AI-forslag, grønn = manuelt klikket pilspiss. Kun grønt valgt treff kan bekreftes i testen; feil markering kan korrigeres ved å klikke på nytt. Ingen endringer i scorealgoritme, kalibrering eller kampsystemet.

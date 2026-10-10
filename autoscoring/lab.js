@@ -226,8 +226,8 @@
     const guess=G.score(board,candidate);
     if(!freezeFrame('automatic-change')){status('Kunne ikke fryse treffbildet – bruk Frys treffbilde manuelt.');return}
     pending={candidate,suggested:guess.label,changed};
-    els.proposal.textContent='Grovt forslag: '+guess.label;
-    els.proposalDetail.textContent='Bildeendring oppdaget. Dette er IKKE presis AI-gjenkjenning: klikk pilspissen på videoen for å sette fasit før bekreftelse.';
+    els.proposal.textContent='Bildeendring oppdaget – ingen AI-score';
+    els.proposalDetail.textContent='GULT kryss = grovt sentrum for bildeendring, IKKE pilspiss eller poeng. Klikk faktisk pilspiss i frosset bilde. GRØNT kryss = ditt bekreftbare valg.';
     els.step.textContent='Klikk pilspissen – kontroller treffet.';
     updateButtons();drawOverlay();
     if(AI?.ready())void analyseAIFrame(pending,false);
@@ -441,7 +441,7 @@
     const actual=G.score(board,point);
     selected={point,label:actual.label,points:actual.points};
     els.proposal.textContent='Valgt treff: '+actual.label+' · '+actual.points+' poeng';
-    els.proposalDetail.textContent=pending?.ai?'AI foreslo '+pending.ai.label+' ('+Math.round(pending.ai.confidence*100)+' %). Bekreft grønn markering som fasit.':pending?'Grovt forslag: '+pending.suggested+'. Bekreft grønn markering som fasit.':'Manuelt treff valgt. Bekreft for å loggføre.';
+    els.proposalDetail.textContent=pending?.ai?'AI foreslo '+pending.ai.label+' ('+Math.round(pending.ai.confidence*100)+' %). GRØNT kryss = manuelt valgt pilspiss. Klikk på nytt for å korrigere før bekreftelse.':'GRØNT kryss = der DU klikket. GULT kryss viser bare bildeendring, ikke en AI-registrering. Klikk riktig pilspiss på nytt dersom feltet er feil.';
     updateButtons();drawOverlay();
   }
   function captureAnnotatedSample(){

@@ -60,9 +60,9 @@
           </div>
           <div class="heading"><div><small>LOKAL ANALYSE</small><h2>Registrering</h2></div><span class="lab-pill">Ingen kampkobling</span></div>
           <div class="lab-metrics"><div><small>Analyse</small><strong id="labAnalysisState">Ikke startet</strong></div><div><small>Endrede piksler</small><strong id="labMotion">–</strong></div><div><small>Bekreftede piler</small><strong id="labCount">0</strong></div><div><small>AI-treffprosent</small><strong id="labAccuracy">–</strong></div></div>
-          <div class="lab-result"><span>Trefforslag (AI hvis lastet)</span><strong id="labProposal">Ingen forslag</strong><p id="labProposalDetail" class="muted compact">Forslag fra bildeendringer kan være unøyaktige. Bekreft etter klikk på pilspissen.</p></div>
+          <div class="lab-result"><span>AI-forslag eller manuelt valgt treff</span><strong id="labProposal">Ingen forslag</strong><p id="labProposalDetail" class="muted compact">GULT kryss er bare registrert bildeendring, ikke pilspiss eller poeng. GRØNT kryss viser hvor du klikket. MAGENTA viser ekte AI-forslag. Bekreft bare etter at du har valgt riktig pilspiss.</p></div>
           <div class="lab-actions"><button id="labConfirm" class="primary" type="button" disabled>Bekreft valgt treff</button><button id="labReject" class="outline" type="button" disabled>Avvis / ta ny referanse</button></div>
-          <p class="muted compact">Marker pilspissen på det <strong>frosne treffbildet</strong> (ikke på video som beveger seg). Bekreft bare hvis bildet viser én ny pil sammenlignet med referansen. Forkast hvis piler ble fjernet eller bildet er uklart.</p>
+          <p class="muted compact"><strong>Gul markør = bildeendring, ikke AI.</strong> AI-forslag kommer kun som magenta markør. Klikk pilspissen for å plassere grønn markør, og kontroller at «Valgt treff» er riktig før bekreftelse. Klikk på nytt for å flytte den grønne markøren.</p>
           <div class="lab-log-head"><strong>Testlogg</strong><button id="labExport" class="small-btn" type="button" disabled>Eksporter JSON</button></div>
           <div id="labLog" class="lab-log" aria-live="polite"><p class="muted compact">Ingen registrerte testkast.</p></div>
           <div class="lab-actions"><button id="labNewRound" class="outline" type="button" disabled>Ny runde / tom skive</button></div>
@@ -83,6 +83,6 @@
   <script src="./autoscoring/ai-onnx.js?v=20261010-frozen1"></script>
   <script src="./autoscoring/zip-store.js?v=20261010-dataset1"></script>
   <script src="./autoscoring/roboflow.js?v=20261010-rfdiag1"></script>
-  <script src="./autoscoring/lab.js?v=20261010-rfdiag1"></script>
+  <script src="./autoscoring/lab.js?v=20261010-marklegend1"></script>
 </body>
 </html>
