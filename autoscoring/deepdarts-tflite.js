@@ -7,7 +7,7 @@
 'use strict';
 const TF_CORE_CDN='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.22.0/dist/tf-core.min.js';
 const TF_CPU_CDN='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.22.0/dist/tf-backend-cpu.min.js';
-const TFLITE_CDN='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite@0.0.1-alpha.10/dist/';
+const TFLITE_CDN='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite@0.0.1-alpha.8/dist/';
 const SIZE=800,MAX_BYTES=80*1024*1024;
 const ANCHORS={50:[[81,82],[135,169],[344,319]],25:[[23,27],[37,58],[81,82]]};
 let runtimePromise=null,model=null,modelName=null,modelBusy=false;
@@ -29,6 +29,15 @@ function runtime(){
     await window.tf.setBackend('cpu');
     await script(TFLITE_CDN+'tf-tflite.min.js',()=>!!window.tflite?.loadTFLiteModel);
     window.tflite.setWasmPath(TFLITE_CDN);
+    // Fail with the missing URL rather than a cryptic _malloc from the WASM wrapper.
+    const wasmUrl=TFLITE_CDN+'tflite_web_api_cc_simd.wasm';
+    try {
+      const wasmResponse=await fetch(wasmUrl,{method:'GET',cache:'force-cache'});
+      if(!wasmResponse.ok)throw new Error('HTTP '+wasmResponse.status);
+      await wasmResponse.arrayBuffer();
+    } catch (error) {
+      throw new Error('Kunne ikke hente TFLite WASM: '+wasmUrl+' ('+String(error?.message||error)+')');
+    }
     await window.tf.ready();
     return {tf:window.tf,tflite:window.tflite};
   })().catch(e=>{runtimePromise=null;throw e});
