@@ -40,7 +40,7 @@
             <p class="muted compact">Modellfilen er ikke inkludert på grunn av uavklarte rettigheter. <a href="https://github.com/iambhabha/Dart-Vision/blob/master/deepdarts_d1/model.tflite" target="_blank" rel="noopener noreferrer">Se D1-modellfil i kildeprosjektet</a> (ca. 23 MB). Last den ned selv bare dersom du har nødvendig tillatelse. Ikke legg filen i offentlig GitHub.</p>
             <div class="lab-actions"><button id="labDeepLoad" class="outline" type="button">Last inn DeepDarts D1</button><button id="labDeepTest" class="primary" type="button" disabled>Test fryst bilde lokalt</button></div>
             <label class="field lab-field lab-deep-threshold">Minste modellkonfidens (0,05–0,95)
-              <input id="labDeepThreshold" type="number" min="0.05" max="0.95" step="0.05" value="0.20" inputmode="decimal">
+              <input id="labDeepThreshold" type="number" min="0.05" max="0.95" step="0.05" value="0.50" inputmode="decimal">
             </label>
             <p id="labDeepMessage" class="muted compact" role="status" aria-live="polite">Velg en D1-modell på PC-en og last den inn. Ved test analyseres bare den kalibrerte skiven i et frosset bilde. Ingen bilder eller modellvekter sendes til nettjenester.</p>
           </div>
@@ -98,7 +98,7 @@
   <script src="./autoscoring/ai-onnx.js?v=20261010-frozen1"></script>
   <script src="./autoscoring/zip-store.js?v=20261010-dataset1"></script>
   <script src="./autoscoring/roboflow.js?v=20261010-rfdiag1"></script>
-  <script src="./autoscoring/deepdarts-tflite.js?v=20261010-d1diag1"></script>
+  <script src="./autoscoring/deepdarts-tflite.js?v=20261010-d1diag2"></script>
   <script src="./autoscoring/lab.js?v=20261010-d1diag1"></script>
 </body>
 </html>
