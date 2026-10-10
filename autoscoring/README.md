@@ -2,14 +2,14 @@
 
 ## Hva er implementert?
 
-Autoscoring Lab har nå **ekte lokal ONNX-inferens** gjennom [ONNX Runtime Web](https://onnxruntime.ai/docs/get-started/with-javascript/web.html), i tillegg til enkel bildeendringsanalyse. Ingen eksisterende kamprom, kampscore eller Supabase-databaser er endret.
+Autoscoring Lab har nå **ekte lokal ONNX-inferens** gjennom [ONNX Runtime Web](https://onnxruntime.ai/docs/get-started/with-javascript/web.html), i tillegg til enkel bildeendringsanalyse. Vanlige kamprom og kampscore er urørt. Supabase har nå en separat testfunksjon og en liten daglig brukskvote for Roboflow.
 
 **Viktig:** Det følger foreløpig **ingen ferdigtrent dart-tip-modell** med prosjektet. AI-analyse er aktiv først etter at en Owner/Admin laster inn en **lovlig lisensiert, kompatibel** `.onnx`-fil fra PC-en. Uten filen fungerer fortsatt den tidligere regelbaserte testen. Vanlige YOLO-modeller (COCO/personer) kan ikke brukes til pilspissdeteksjon uten trening.
 
 Første AI-støtte omfatter:
 - En lokalt valgt ONNX-modell leses som bytebuffer, lastes via ONNX Runtime Web i nettleseren og brukes på bildet fra **samme videoelement** som kalibreringen.
 - YOLOv8/YOLO11 med **én klasse og standard ONNX-export uten NMS** (modellutgang `[1,C,N]` eller `[1,N,C]`). For pose-modeller gjelder én dart-tip-nøkkelpunktindeks valgt i GUI; det er modellens oppgave å definere hvilken indeks som er pilspissen.
-- Modellens koordinater knyttes til geometrien fra fempunktskalibreringen og omregnes til dartscore.
+- Modellens koordinater knyttes til geometrien fra nipunktskalibreringen og omregnes til dartscore.
 - Inferens kan startes manuelt med «Analyser kamerabilde», og den kjøres ved deteksjon av mulig nytt kast.
 - Modellforslaget vises i **magenta**. Spilleren klikker selve treffpunktet (**grønn** markering) og bekrefter fasit. «AI-treffprosent» tar bare med bekreftede kast der en virkelig modell leverte et forslag. Regelbaserte estimater regnes ikke som AI.
 - Lokalt nedlastbar JSON-logg med modellnavn, modellkonfidens, forslag og korrigert fasit – **uten bilde/video**.
@@ -128,4 +128,42 @@ Laben har nå **frosset treffbilde**:
 
 Dette retter **tidsforskjellen** mellom annotasjon og bilde. Det beviser ikke at en dartspissmarkering er nøyaktig, at en endring er et innkommende kast, eller at materialet alene er stort nok for modelltrening. Gjennomgå alltid hvert bildepar i ZIP-arkivet før trening.
 
-Filene er fortsatt lokale, med opt-in for treningsdata, ingen nye Supabase-kall, og uten å endre kamprommene.
+Lokal innsamling og ZIP-eksport er fortsatt lokale som før. Roboflow-testen er en separat, uttrykkelig samtykkebasert funksjon som sender et beskåret skivebilde til Supabase og Roboflow bare ved eget klikk. Kamprommene er ikke endret.
+
+## Ferdigtrent Roboflow-modell – manuell skytest (10.10.2026)
+
+**Implementert på serversiden:** Supabase Edge Function `autoscoring-roboflow` (`verify_jwt=true`) og SQL-RPC `autoscoring_roboflow_consume_quota()`. Klienten bruker kun en gyldig innlogget sesjon. Serveren sjekker bruker med Supabase Auth, deretter `public.is_admin()` (som inkluderer owner) ved hver forespørsel.
+
+**Ferdigtrent kandidat:** `dart-tip-detection-6d3mw/17` fra DartsDetector via `https://serverless.roboflow.com` – Roboflow keypoint-API. Dette er en *testintegrasjon*. Ekstern modelltilgang, ytelse og rettigheter for senere kommersiell drift må verifiseres med ekte leverandørsvar og gjeldende avtale.
+
+### Det som mangler før første ekte test
+
+En eier av Roboflow-kontoen må lage en API-nøkkel med lovlig tilgang til modellen og legge den inn i **Supabase Dashboard → DartArena → Edge Functions → Secrets**:
+
+- **Navn:** `ROBOFLOW_API_KEY`
+- **Verdi:** Roboflow API-nøkkelen (hold den hemmelig; **ikke** legg den i GitHub, chat, frontend eller nettleseren).
+
+Det er ikke satt opp en Roboflow-nøkkel som del av denne endringen. Ikke be om at private nøkler sendes i chatten.
+
+### Bruk (Owner/Admin)
+
+1. Gå til Autoscoring Lab, oppdater med Ctrl+F5 og trykk **Sjekk Roboflow**. Status angir om nøkkelen er konfigurert. Statuskontrollen sender ingen bilder og koster ingen Roboflow-inferens.
+2. Start kameraet, kalibrer 9 punkter og ta referansebilde. Kontroller at ringene faktisk følger skiven.
+3. Frys et tydelig bilde av en dartpil ved vanlig deteksjon eller manuelt med **Frys treffbilde**.
+4. Huk av **Jeg godkjenner en engangsopplasting til Roboflow**. Trykk deretter **Analyser fryst bilde**.
+5. Bare det beskårne bildeutsnittet av dartskiven sendes som JPEG via Supabase Edge Function til Roboflow, ikke hele OBS-komposisjonen og ikke andre kamera-/videobilder. Ingen bilder lastes opp automatisk ved deteksjon.
+6. AI-punktet vises i magenta. Kontroller/flytt fasit ved å klikke der pilspissen faktisk treffer og bekreft manuelt. Ingen AI-poeng går direkte til kamper, statistikk eller turneringer.
+
+**Kvoter:** 25 inferensanrop per konto per UTC-døgn og 100 totalt per UTC-døgn, atomisk håndhevet i Postgres. Et gyldig anrop bruker kvoten selv om Roboflow senere feiler. Roboflow kan bruke API-kreditter eller kreve betalt tilgang etter deres vilkår; kontroller dette før nøkkelen aktiveres.
+
+**Personvern:** Roboflow er en ekstern mottaker av kamerabildet. Bruk funksjonen kun på bilder du har rett til å sende. Vurder leverandørens lagrings-/behandlingsvilkår før bruk. Samtykkeboksen er som standard av ved hver ny sideinnlasting, og status-/ONNX-testen krever ingen bildeopplasting.
+
+**Tolkningsbegrensning:** Modellen kan returnere flere eksisterende pilspisser på samme bilde. Den bruker kandidat fra enkel bildedifferanse ved rangering dersom den finnes; dette identifiserer **ikke garantert nyeste pil**. Manuell bekreftelse er påkrevd. Ikke bruk feil score som autoritativt kampresultat.
+
+### Vedlikehold og rollback
+
+- Funksjonskode: `supabase/functions/autoscoring-roboflow/index.ts`
+- Quota SQL: `supabase-autoscoring-roboflow-quota.sql`
+- Frontend: `autoscoring/roboflow.js` og Autoscoring Lab.
+- Før endringen ble GitHub-backupgrenen `backup-before-roboflow-20261010` opprettet. Database- og Edge Function-endringer må håndteres separat ved full rollback.
+- Test adapter: `node autoscoring/roboflow.test.cjs`.

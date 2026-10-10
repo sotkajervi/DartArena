@@ -120,3 +120,9 @@ Before enabling a new online game or privileged RPC:
 Supabase leaked-password protection should be enabled in the project's Auth security settings.
 
 Before opening registration beyond a small beta group, enable Supabase Auth bot protection/CAPTCHA as an additional control against automated account creation.
+
+## Roboflow experimental AI (admin/owner only)
+
+The Autoscoring Lab uses a dedicated Supabase Edge Function, `autoscoring-roboflow`, with JWT verification, authenticated `is_admin()` role checks, and atomic Postgres per-user/global request quotas. Never expose `ROBOFLOW_API_KEY` to the browser or GitHub. All model URLs are server-side fixed allowlists, with an image body size limit. The client uploads only a cropped frozen board image after a dedicated user opt-in and button click.
+
+Roboflow is a third-party service and may incur usage charges or process submitted images. Check provider terms before configuring a key. No model output may be accepted as authoritative scoring without separate verified game logic.

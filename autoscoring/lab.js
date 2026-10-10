@@ -5,6 +5,7 @@
   const G=window.DartArenaLabGeometry;
   const AI=window.DartArenaLabAI;
   const ZIP=window.DartArenaLabZip;
+  const RF=window.DartArenaLabRoboflow;
   const $=id=>document.getElementById(id);
   const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
   const KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
@@ -23,7 +24,10 @@
     aiLoad:$('labAiLoad'),aiTest:$('labAiTest'),aiMessage:$('labAiMessage'),
     datasetOptIn:$('labDatasetOptIn'),datasetCount:$('labDatasetCount'),
     datasetExport:$('labDatasetExport'),datasetClear:$('labDatasetClear'),
-    datasetState:$('labDatasetState')
+    datasetState:$('labDatasetState'),
+    rfState:$('labRoboflowState'),rfConsent:$('labRoboflowConsent'),
+    rfStatus:$('labRoboflowStatus'),rfTest:$('labRoboflowTest'),
+    rfMessage:$('labRoboflowMessage')
   };
   if(!db||!G||!els.app)return;
 
@@ -31,6 +35,7 @@
   let calibrationPoints=[],board=null,baseline=null,previous=null,samples=[];
   let pending=null,selected=null,stableFrames=0,records=[],tickTimer=0,lastAnalysis=null;
   let aiLoading=false,aiInferring=false,aiSerial=0,frozen=false,frozenAt=null,freezeMethod=null;
+  let rfBusy=false,rfSerial=0;
   const MAX_DATASET=150;
   let dataset=[];
   const analysisCanvas=document.createElement('canvas');
@@ -64,6 +69,8 @@
     els.aiLoad.disabled=!authorized||aiLoading;
     els.aiTest.disabled=!authorized||!ready||adjusting||!AI?.ready()||aiInferring;
     els.aiFile.disabled=!authorized||aiLoading;
+    els.rfStatus.disabled=!authorized||rfBusy;
+    els.rfTest.disabled=!authorized||!RF||!ready||!frozen||!els.rfConsent.checked||adjusting||calibrating||rfBusy;
     els.datasetOptIn.disabled=!authorized;
     els.datasetExport.disabled=!authorized||!dataset.length;
     els.datasetClear.disabled=!authorized||!dataset.length;
@@ -123,13 +130,13 @@
     if(AI?.ready())void analyseAIFrame(pending,true);
   }
   function clearProposal(message='Ingen forslag'){
-    aiSerial++;pending=null;selected=null;stableFrames=0;clearFrozen();
+    aiSerial++;rfSerial++;pending=null;selected=null;stableFrames=0;clearFrozen();
     els.proposal.textContent=message;
     els.proposalDetail.textContent='Klikk på pilspissen i kamerabildet for å angi fasit ved registrert kast.';
     updateButtons();drawOverlay();
   }
   function resetAnalysis(clearRecords){
-    aiSerial++;baseline=null;previous=null;lastAnalysis=null;samples=[];pending=null;selected=null;stableFrames=0;
+    aiSerial++;rfSerial++;baseline=null;previous=null;lastAnalysis=null;samples=[];pending=null;selected=null;stableFrames=0;
     if(clearRecords){records=[];updateStats()}
     els.motion.textContent='–';clearProposal();
   }
@@ -460,6 +467,7 @@
         frozenFrame:true,frameCapturedAt:frozenAt,frameCaptureMethod:freezeMethod,
         boardCalibration:board.points.map(p=>({x:Number((p.x*aw/els.overlay.width).toFixed(2)),y:Number((p.y*ah/els.overlay.height).toFixed(2))})),
         aiSuggestion:pending?.ai?.label||null,aiConfidence:pending?.ai?.confidence??null,
+        aiProvider:pending?.ai?.provider||null,
         before,after};
       if(!before.startsWith('data:image/jpeg;base64,')||!after.startsWith('data:image/jpeg;base64,'))throw new Error('Kamerabilder kunne ikke komprimeres.');
       dataset.push(row);updateDatasetState();
@@ -471,9 +479,9 @@
     records.push({number:records.length+1,timestamp:new Date().toISOString(),
       actual:selected.label,points:selected.points,suggested:pending?.ai?.label||null,
       heuristic:pending?.suggested||null,modelConfidence:pending?.ai?.confidence??null,
-      modelName:pending?.ai?.label?AI?.name():null,
+      modelName:pending?.ai?.label?(pending.ai.provider==='roboflow'?'Roboflow dart-tip-detection-6d3mw/17':AI?.name()):null,
       x:Number(selected.point.x.toFixed(1)),y:Number(selected.point.y.toFixed(1)),
-      method:'manual-verified',analysis:pending?.ai?'onnx-model':'frame-difference-centroid'});
+      method:'manual-verified',analysis:pending?.ai?(pending.ai.provider==='roboflow'?'roboflow-keypoint':'onnx-model'):'frame-difference-centroid'});
     updateStats();captureReference();
     status('Treff bekreftet, referanse oppdatert');els.step.textContent='Kast neste pil. Når skiven er tømt, trykk Ny runde / tom skive.';
   }
@@ -584,7 +592,8 @@
       if(!pending){
         pending={candidate:{x:d.x,y:d.y},suggested:null,changed:0};
       }
-      pending.ai={label:scored.label,point:{x:d.x,y:d.y},confidence:d.confidence};
+      if(pending.ai?.provider==='roboflow')return; // Manual cloud test takes precedence in the lab.
+      pending.ai={label:scored.label,point:{x:d.x,y:d.y},confidence:d.confidence,provider:'onnx'};
       els.aiState.textContent='AI: '+scored.label;
       els.aiMessage.textContent='AI fant '+found.length+' kandidat(er). Beste forslag: '+scored.label+', '+Math.round(d.confidence*100)+' % konfidens ('+(result.method==='keypoint'?'pilspiss-nøkkelpunkt':'bokssentrum')+'). Klikk faktisk treffpunkt for å kontrollere.';
       if(!selected){
@@ -599,6 +608,75 @@
       updateButtons();
     }
   }
+  async function checkRoboflowConnection(){
+    if(!authorized||!RF||rfBusy)return;
+    rfBusy=true;els.rfState.textContent='Sjekker…';els.rfMessage.textContent='Kontrollerer serveroppsettet uten å laste opp bilde.';
+    updateButtons();
+    try{
+      const info=await RF.check(db);
+      els.rfState.textContent=info.configured?'Server klar':'Nøkkel mangler';
+      els.rfMessage.textContent=info.configured?
+        'Roboflow er konfigurert. Huk av samtykke og trykk Analyser fryst bilde etter at skiven er kalibrert og bildet fryst.':
+        'Legg inn ROBOFLOW_API_KEY i Supabase Edge Functions / Secrets for å aktivere modellen. Ikke send nøkkelen i chat.';
+    }catch(e){
+      els.rfState.textContent='Ikke tilkoblet';
+      els.rfMessage.textContent=e?.message||String(e);
+    }finally{rfBusy=false;updateButtons()}
+  }
+  async function analyseRoboflow(){
+    if(!authorized||!RF||rfBusy||!stream||!board||!frozen||!els.rfConsent.checked||adjusting)return;
+    rfBusy=true;
+    const ticket=++rfSerial;
+    const forFrame=els.frozenFrame;
+    els.rfState.textContent='Analyserer…';
+    els.rfMessage.textContent='Sender kun det valgte utsnittet av skiven via Supabase til Roboflow. Ingen automatisk registrering.';
+    updateButtons();
+    try{
+      const region=G.boardBounds(board,els.overlay.width,els.overlay.height,.045);
+      const result=await RF.infer(db,forFrame,region);
+      if(ticket!==rfSerial||!authorized||!stream||!board||!frozen)return;
+      const detections=result.detections.filter(d=>{
+        const p=G.normalize(board,{x:d.x,y:d.y});
+        return Number.isFinite(p.x)&&Number.isFinite(p.y)&&p.x*p.x+p.y*p.y<=1.05*1.05;
+      });
+      const anchor=pending?.candidate;
+      // Detection returns all existing tips, not necessarily the newest.
+      // Prefer proximity to the frame-difference candidate when one exists.
+      detections.sort((a,b)=>anchor?(
+        Math.hypot(a.x-anchor.x,a.y-anchor.y)-Math.hypot(b.x-anchor.x,b.y-anchor.y)
+        -30*(a.confidence-b.confidence)):
+        b.confidence-a.confidence);
+      if(!detections.length){
+        els.rfState.textContent='Ingen pilspiss';
+        els.rfMessage.textContent='Modellen fant ingen gyldige pilspisser. Du kan fortsatt klikke faktisk treff og bekrefte manuelt.';
+        return;
+      }
+      const d=detections[0],scored=G.score(board,d);
+      if(!pending)pending={candidate:null,suggested:null,changed:0};
+      pending.ai={label:scored.label,point:{x:d.x,y:d.y},
+        confidence:d.confidence,provider:'roboflow'};
+      els.rfState.textContent='Roboflow: '+scored.label;
+      els.rfMessage.textContent='Modellen fant '+detections.length+' kandidat(er). Forslag: '+scored.label+' ('+
+        Math.round(d.confidence*100)+' %). Magenta viser AI-punkt. Kontroller spissen manuelt før bekreftelse.';
+      if(!selected){
+        els.proposal.textContent='Roboflow-forslag: '+scored.label+' · '+scored.points+' poeng';
+        els.proposalDetail.textContent='AI er kun et forslag. Klikk riktig pilspiss på det frosne bildet og bekreft manuelt.';
+      }
+      drawOverlay();
+    }catch(e){
+      if(ticket===rfSerial){
+        els.rfState.textContent='Roboflow-feil';
+        els.rfMessage.textContent=e?.message||String(e);
+      }
+    }finally{
+      rfBusy=false;
+      els.rfConsent.checked=false; // Consent is per-image, not persistent across tests.
+      updateButtons();
+    }
+  }
+  els.rfStatus.addEventListener('click',checkRoboflowConnection);
+  els.rfTest.addEventListener('click',analyseRoboflow);
+  els.rfConsent.addEventListener('change',updateButtons);
   els.aiLoad.addEventListener('click',loadAIModel);
   els.aiTest.addEventListener('click',()=>analyseAIFrame(pending,true));
   for(const el of [els.aiMode,els.aiKeypoint,els.aiThreshold]){

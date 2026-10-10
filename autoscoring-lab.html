@@ -13,7 +13,7 @@
     <div class="lab-heading"><div><small>OWNER / ADMIN • EKSPERIMENT</small><h1>Autoscoring Lab</h1><p class="muted compact">PC-test med ett kamera. Ingen scoring sendes til onlinekamper eller turneringer.</p></div><a class="outline lab-back" href="./">Tilbake til lobby</a></div>
     <section id="labGate" class="card lab-gate" role="status" aria-live="polite">Kontrollerer tilgang …</section>
     <div id="labApp" hidden>
-      <div class="lab-warning" role="note"><strong>AI-analyse i nettleseren:</strong> Last inn en dart-tip-modell i ONNX-format for ekte maskinlæringsanalyse. Uten modell brukes kun enkel bildeendringsanalyse. Treff må fortsatt bekreftes manuelt. Kamerabilde og modell sendes ikke til DartArena-servere.</div>
+      <div class="lab-warning" role="note"><strong>AI-test:</strong> Lokal ONNX-analyse kjører fortsatt bare på PC-en. Roboflow-testen er valgfri og sender et beskåret skivebilde til Supabase og deretter Roboflow <strong>kun når du selv samtykker og trykker «Analyser fryst bilde»</strong>. Ingen bilder lastes opp automatisk. Treff må alltid bekreftes manuelt; ingenting sendes til kamper eller turneringer.</div>
       <div class="lab-columns">
         <section class="card lab-cam-card">
           <div class="heading"><div><small>KAMERA OG KALIBRERING</small><h2>Skiveanalyse</h2></div><span id="labCameraState" class="lab-pill">Kamera av</span></div>
@@ -31,6 +31,13 @@
           <p class="muted compact">Kalibrer på skiven, ikke OBS-zoomen: Klikk Bull først. Klikk deretter <strong>midt på den fargede dobbelringen</strong> med klokken: øverst (D20), nordøst, høyre (D6), sørøst, nederst (D3), sørvest, venstre (D11), nordvest. Totalt ni punkter. Ved skjevhet: <strong>Finjuster punkter</strong> og dra de gule merkene direkte på skiven.</p><p class="muted compact lab-roi-note"><strong>Nytt ved merking:</strong> Når et kast oppdages, fryses kamerabildet. Klikk på pilspissen i det frosne bildet og bekreft. Hvis varselet uteblir, trykk «Frys treffbilde» etter kastet. Forkast bilder som viser at piler fjernes i stedet for å komme til.</p><p class="muted compact lab-roi-note"><strong>Gule stiplede linjer</strong> viser området som AI analyserer. OBS-forstørrelsen til høyre skal ligge utenfor rammen. <strong>Turkise linjer</strong> må ligge direkte på metalltrådene på dartskiven. Start ikke scoring dersom de ligger utenfor.</p>
         </section>
         <section class="card lab-data-card">
+          <div class="lab-ai-panel">
+            <div class="heading"><div><small>ROBOFLOW • VALGFRI SKYTEST</small><h2>Ferdigtrent AI – pilspisser</h2></div><span id="labRoboflowState" class="lab-pill">Ikke kontrollert</span></div>
+            <p class="muted compact">Testmodell: dart-tip-detection-6d3mw/17. Testen bruker det frosne bildet av kun skiven, ikke hele OBS-kildens zoom eller annet fra skjermen. Resultatet er et forslag, ikke en automatisk score.</p>
+            <label class="lab-dataset-optin"><input id="labRoboflowConsent" type="checkbox"><span><strong>Jeg godkjenner en engangsopplasting til Roboflow</strong><small>Kun når jeg trykker analyser. Bildet behandles av ekstern AI-leverandør. Ikke aktiver hvis kamerabildet viser private opplysninger.</small></span></label>
+            <div class="lab-actions"><button id="labRoboflowStatus" class="outline" type="button">Sjekk Roboflow</button><button id="labRoboflowTest" class="primary" type="button" disabled>Analyser fryst bilde</button></div>
+            <p id="labRoboflowMessage" class="muted compact" role="status" aria-live="polite">Krever API-nøkkel lagret som ROBOFLOW_API_KEY i Supabase Edge Functions / Secrets. Ikke lim nøkkelen inn her.</p>
+          </div>
           <div class="lab-ai-panel">
             <div class="heading"><div><small>ONNX • LOKAL MASKINLÆRING</small><h2>AI-pilspissdeteksjon</h2></div><span id="labAiState" class="lab-pill">Ingen modell</span></div>
             <p class="muted compact">Bruk en <strong>trent dart-tip-modell</strong> med YOLOv8/YOLO11 ONNX-utgang. Modellen åpnes bare på PC-en. En vanlig YOLO-modell for mennesker eller objekter vil ikke fungere.</p>
@@ -75,6 +82,7 @@
   <script src="./autoscoring/geometry.js?v=20261010-ninepoints1"></script>
   <script src="./autoscoring/ai-onnx.js?v=20261010-frozen1"></script>
   <script src="./autoscoring/zip-store.js?v=20261010-dataset1"></script>
-  <script src="./autoscoring/lab.js?v=20261010-frozen1"></script>
+  <script src="./autoscoring/roboflow.js?v=20261010-rf1"></script>
+  <script src="./autoscoring/lab.js?v=20261010-rf1"></script>
 </body>
 </html>

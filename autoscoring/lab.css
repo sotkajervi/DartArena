@@ -68,3 +68,8 @@
 .lab-page #labFrozenFrame{display:block;width:100%;height:100%;position:absolute;inset:0;pointer-events:none}
 .lab-page #labFrozenFrame[hidden]{display:none!important}
 .lab-page #labFreeze:not(:disabled){border-color:rgba(0,234,244,.55)}
+
+/* Explicit opt-in is separated from the local ONNX panel. */
+.lab-page #labRoboflowMessage{line-height:1.5;min-height:1.5em}
+.lab-page #labRoboflowState{max-width:170px;text-align:center}
+.lab-page #labRoboflowTest:not(:disabled){border-color:rgba(0,234,244,.6)}
