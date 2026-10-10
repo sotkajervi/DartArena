@@ -9,7 +9,7 @@ const TF_CORE_CDN='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.22.0/dis
 const TF_CPU_CDN='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.22.0/dist/tf-backend-cpu.min.js';
 const TFLITE_CDN='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite@0.0.1-alpha.8/dist/';
 const SIZE=800,MAX_BYTES=80*1024*1024;
-const ANCHORS={50:[[81,82],[135,169],[344,319]],25:[[23,27],[37,58],[81,82]]};
+const ANCHORS={50:[[23,27],[37,58],[81,82]],25:[[81,82],[135,169],[344,319]]};
 let runtimePromise=null,model=null,modelName=null,modelBusy=false;
 function script(src,ready){
   if(ready())return Promise.resolve();
@@ -98,7 +98,7 @@ function iou(a,b){
   const shared=Math.max(0,x2-x1)*Math.max(0,y2-y1);
   return shared/(a.w*a.h+b.w*b.h-shared+1e-8);
 }
-function decode(raw,confidence=.20){
+function decode(raw,confidence=.50){
   const output=modelOutputs(raw);
   if(output.length!==2)throw new Error('DeepDarts trenger to modellutganger.');
   const boxes=[],byClass=[0,0,0,0,0],topByClass=[null,null,null,null,null];
@@ -108,7 +108,7 @@ function decode(raw,confidence=.20){
       throw new Error('Uventet YOLO-utgang fra DeepDarts: '+String(shape));
     const data=tensor.data;
     if(!data||data.length!==grid*grid*30)throw new Error('Modellen returnerte ufullstendige data.');
-    const anchors=ANCHORS[grid],limit=clamp(Number(confidence)||.20,.05,.95);
+    const anchors=ANCHORS[grid],limit=clamp(Number(confidence)||.50,.05,.95);
     for(let gy=0;gy<grid;gy++)for(let gx=0;gx<grid;gx++)for(let a=0;a<3;a++){
       const k=(gy*grid+gx)*30+a*10;
       const objectness=sigmoid(data[k+4]);
@@ -154,7 +154,7 @@ function cropBoard(frame,region){
   ctx.drawImage(frame,sx,sy,sw,sh,left,top,dw,dh);
   return {canvas,sx,sy,sw,sh,left,top,dw,dh};
 }
-async function infer(frame,region,confidence=.20){
+async function infer(frame,region,confidence=.50){
   if(!model||modelBusy)throw new Error('Last inn DeepDarts D1 før analyse.');
   modelBusy=true;
   let input=null,tensors=[];
