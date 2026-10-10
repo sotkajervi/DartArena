@@ -167,3 +167,9 @@ Det er ikke satt opp en Roboflow-nøkkel som del av denne endringen. Ikke be om 
 - Frontend: `autoscoring/roboflow.js` og Autoscoring Lab.
 - Før endringen ble GitHub-backupgrenen `backup-before-roboflow-20261010` opprettet. Database- og Edge Function-endringer må håndteres separat ved full rollback.
 - Test adapter: `node autoscoring/roboflow.test.cjs`.
+
+## Kvotekontroll rettet (10.10.2026)
+
+Første Roboflow-test feilet med `quota_check_unavailable`: Postgres rapporterte `function pg_catalog.coalesce(integer, integer) does not exist`. `COALESCE` er et SQL-uttrykk, ikke en vanlig funksjon i `pg_catalog`; derfor skal den brukes uten skjemaprefiks. Begge forekomstene i SQL-migrasjonen er rettet, og den tilsvarende live-RPC-en i Supabase ble oppdatert gjennom migrasjonen `fix_roboflow_quota_coalesce`.
+
+Verifisering: RPC-en er testet under en simulert Owner-kontekst i en deltransaksjon som ble rullet tilbake. Kontrollen returnerte `true`, og ingen kvotetellere ble stående etter testen. Faktisk Roboflow-modellkall krever fortsatt separat test fra brukerens innloggede nettleser.

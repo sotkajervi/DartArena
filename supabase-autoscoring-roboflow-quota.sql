@@ -25,7 +25,7 @@ BEGIN
   WHERE day_utc = day_key AND bucket = user_bucket;
   SELECT call_count INTO total_used FROM public.autoscoring_roboflow_usage
   WHERE day_utc = day_key AND bucket = 'global';
-  IF pg_catalog.coalesce(user_used, 0) >= 25 OR pg_catalog.coalesce(total_used, 0) >= 100 THEN
+  IF coalesce(user_used, 0) >= 25 OR coalesce(total_used, 0) >= 100 THEN
     RETURN false;
   END IF;
   INSERT INTO public.autoscoring_roboflow_usage(day_utc, bucket, call_count)
