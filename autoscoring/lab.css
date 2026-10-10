@@ -60,3 +60,6 @@
 .lab-page .lab-dataset-optin input{margin-top:3px;width:18px;height:18px;accent-color:#00eaf4;flex:none}
 .lab-page .lab-dataset-optin strong,.lab-page .lab-dataset-optin small{display:block}
 .lab-page .lab-dataset-optin small{margin-top:5px;font-size:12px;line-height:1.45;color:var(--muted)}
+
+.lab-page #labOverlay.calibration-edit{touch-action:none!important;cursor:move}
+.lab-page #labAdjust:not(:disabled){border-color:rgba(0,234,244,.5)}

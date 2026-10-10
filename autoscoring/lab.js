@@ -12,7 +12,7 @@
   const els={
     gate:$('labGate'),app:$('labApp'),camera:$('labCamera'),start:$('labStart'),
     stop:$('labStop'),video:$('labVideo'),overlay:$('labOverlay'),stage:$('labStage'),
-    stageMessage:$('labStageMessage'),cameraState:$('labCameraState'),calibrate:$('labCalibrate'),undo:$('labUndo'),
+    stageMessage:$('labStageMessage'),cameraState:$('labCameraState'),calibrate:$('labCalibrate'),undo:$('labUndo'),adjust:$('labAdjust'),
     baseline:$('labBaseline'),reset:$('labReset'),step:$('labStep'),coords:$('labCoords'),
     analysisState:$('labAnalysisState'),motion:$('labMotion'),count:$('labCount'),
     accuracy:$('labAccuracy'),proposal:$('labProposal'),proposalDetail:$('labProposalDetail'),
@@ -26,7 +26,7 @@
   };
   if(!db||!G||!els.app)return;
 
-  let authorized=false,stream=null,starting=false,epoch=0,calibrating=false;
+  let authorized=false,stream=null,starting=false,epoch=0,calibrating=false,adjusting=false,dragging=null;
   let calibrationPoints=[],board=null,baseline=null,previous=null,samples=[];
   let pending=null,selected=null,stableFrames=0,records=[],tickTimer=0,lastAnalysis=null;
   let aiLoading=false,aiInferring=false,aiSerial=0;
@@ -49,15 +49,17 @@
     els.stop.disabled=!live;
     els.calibrate.disabled=!live;
     els.undo.disabled=!calibrating||!calibrationPoints.length;
-    els.baseline.disabled=!ready;
+    els.adjust.disabled=!ready||calibrating;
+    els.adjust.textContent=adjusting?'Ferdig med justering':'Finjuster punkter';
+    els.baseline.disabled=!ready||adjusting||calibrating;
     els.reset.disabled=!live;
-    els.confirm.disabled=!active||!selected;
+    els.confirm.disabled=!active||!selected||adjusting;
     els.reject.disabled=!active||!pending;
     els.newRound.disabled=!ready;
     els.export.disabled=!records.length;
     els.camera.disabled=!authorized||live||starting;
     els.aiLoad.disabled=!authorized||aiLoading;
-    els.aiTest.disabled=!authorized||!ready||!AI?.ready()||aiInferring;
+    els.aiTest.disabled=!authorized||!ready||adjusting||!AI?.ready()||aiInferring;
     els.aiFile.disabled=!authorized||aiLoading;
     els.datasetOptIn.disabled=!authorized;
     els.datasetExport.disabled=!authorized||!dataset.length;
@@ -103,7 +105,7 @@
     if(tickTimer){clearInterval(tickTimer);tickTimer=0}
     if(stream){for(const track of stream.getTracks())track.stop();stream=null}
     els.video.pause();els.video.srcObject=null;
-    resetAnalysis(false);calibrating=false;calibrationPoints=[];board=null;
+    resetAnalysis(false);calibrating=false;adjusting=false;dragging=null;calibrationPoints=[];board=null;
     ctx.clearRect(0,0,els.overlay.width,els.overlay.height);
     showStage('Kamera stoppet');cameraStatus('Kamera av');status('Ikke startet');
     updateButtons();
@@ -146,7 +148,7 @@
     samples=arr;
   }
   function captureReference(clearPending=true){
-    if(!board||!stream||calibrating)return;
+    if(!board||!stream||calibrating||adjusting)return;
     const pixels=readFrame();
     if(!pixels){status('Venter på videobilde');return}
     baseline=new Uint8ClampedArray(pixels);
@@ -159,7 +161,7 @@
     updateButtons();
   }
   function detectionTick(){
-    if(!authorized||!baseline||!board||!stream||calibrating)return;
+    if(!authorized||!baseline||!board||!stream||calibrating||adjusting)return;
     const pixels=readFrame();if(!pixels)return;
     let changed=0,moving=0,sumx=0,sumy=0;
     for(const [i,x,y] of samples){
@@ -192,8 +194,69 @@
   function undoCalibrationPoint(){
     if(!calibrating||!calibrationPoints.length)return;
     calibrationPoints.pop();
-    els.step.textContent='Klikk '+(calibrationPoints.length+1)+'/5: '+G.CALIBRATION_NAMES[calibrationPoints.length];
+    els.step.textContent='Klikk '+(calibrationPoints.length+1)+'/'+G.CALIBRATION_NAMES.length+': '+G.CALIBRATION_NAMES[calibrationPoints.length];
     status('Forrige punkt angret');updateButtons();drawOverlay();
+  }
+  function toggleAdjustment(){
+    if(!authorized||!board||!stream||calibrating)return;
+    if(adjusting){
+      adjusting=false;dragging=null;els.overlay.classList.remove('calibration-edit');
+      status('Kalibrering ferdig · avvik '+board.errorPx.toFixed(1)+' px. Kontroller linjene før referansebilde.');
+      els.step.textContent='Er alle ringene på trådene? Ta referansebilde. Ellers finjuster på nytt.';
+    }else{
+      resetAnalysis(true);
+      adjusting=true;els.overlay.classList.add('calibration-edit');
+      status('Juster kalibreringen: dra de gule merkene til midten av dobbelringen.');
+      els.step.textContent='Dra gule kontrollpunkter; 1 = Bull, 2–9 = doble felter rundt skiven.';
+    }
+    updateButtons();drawOverlay();
+  }
+  function pointerDown(event){
+    if(!adjusting||!authorized||!board||!stream)return;
+    const p=eventToCanvasPoint(event);
+    const rect=els.overlay.getBoundingClientRect();
+    const radius=24*els.overlay.width/Math.max(1,rect.width);
+    let best=-1,distance=Infinity;
+    calibrationPoints.forEach((q,i)=>{
+      const d=Math.hypot(q.x-p.x,q.y-p.y);
+      if(d<distance){distance=d;best=i}
+    });
+    if(best<0||distance>radius)return;
+    dragging={index:best,original:{...calibrationPoints[best]},originalBoard:board,pointerId:event.pointerId};
+    els.overlay.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+    drawOverlay();
+  }
+  function pointerMove(event){
+    if(!adjusting||!dragging||event.pointerId!==dragging.pointerId)return;
+    const p=eventToCanvasPoint(event);
+    calibrationPoints[dragging.index]={
+      x:Math.min(els.overlay.width,Math.max(0,p.x)),
+      y:Math.min(els.overlay.height,Math.max(0,p.y))
+    };
+    try{
+      const trial=G.prepare(calibrationPoints);
+      board=trial;
+      status('Finjustering · gjennomsnittlig avvik '+trial.errorPx.toFixed(1)+' px');
+    }catch(e){
+      board=dragging.originalBoard;
+      status('Flytt tilbake mot dobbelringen: '+e.message);
+    }
+    drawOverlay();event.preventDefault();
+  }
+  function pointerUp(event){
+    if(!dragging||event.pointerId!==dragging.pointerId)return;
+    try{
+      const trial=G.prepare(calibrationPoints);
+      board=trial;
+      status('Punkt justert · avvik '+trial.errorPx.toFixed(1)+' px. Kontroller linjene.');
+    }catch(e){
+      calibrationPoints[dragging.index]=dragging.original;
+      board=dragging.originalBoard;
+      status('Punktet ble ikke godtatt og er satt tilbake. '+e.message);
+    }
+    dragging=null;updateButtons();drawOverlay();
+    if(els.overlay.hasPointerCapture?.(event.pointerId))els.overlay.releasePointerCapture(event.pointerId);
   }
   function drawCross(point,color,radius=9){
     ctx.save();ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(point.x,point.y,radius,0,Math.PI*2);ctx.stroke();
@@ -233,8 +296,13 @@
       drawCross(board.bull,'#00eaf4',5);
       ctx.restore();
     }
-    if(calibrating){
-      calibrationPoints.forEach((p,i)=>{drawCross(p,'#ffbf54',7);ctx.fillStyle='#fff';ctx.font='bold 16px system-ui';ctx.fillText(String(i+1),p.x+13,p.y-10)});
+    if(calibrating||adjusting){
+      const scale=els.overlay.width/Math.max(1,els.overlay.getBoundingClientRect().width);
+      calibrationPoints.forEach((p,i)=>{
+        drawCross(p,adjusting&&dragging?.index===i?'#fff':'#ffbf54',(adjusting?9:7)*scale);
+        ctx.fillStyle='#fff';ctx.font='bold '+Math.round(13*scale)+'px system-ui';
+        ctx.fillText(String(i+1),p.x+13*scale,p.y-10*scale);
+      });
     }
     if(pending?.candidate)drawCross(pending.candidate,'#ffbf54',13);
     if(pending?.ai?.point)drawCross(pending.ai.point,'#ff4fda',12);
@@ -294,29 +362,37 @@
   }
   function startCalibration(){
     if(!stream||!authorized)return;
-    resetAnalysis(true);board=null;calibrationPoints=[];calibrating=true;
-    els.step.textContent='Klikk 1/5: '+G.CALIBRATION_NAMES[0];
+    resetAnalysis(true);board=null;calibrationPoints=[];adjusting=false;dragging=null;calibrating=true;
+    els.overlay.classList.remove('calibration-edit');
+    els.step.textContent='Klikk 1/'+G.CALIBRATION_NAMES.length+': '+G.CALIBRATION_NAMES[0];
     status('Kalibrering pågår');updateButtons();drawOverlay();
   }
-  function overlayClick(event){
-    if(!authorized||!stream)return;
+  function eventToCanvasPoint(event){
     const rect=els.overlay.getBoundingClientRect();
-    const point={x:(event.clientX-rect.left)/rect.width*els.overlay.width,
+    return {x:(event.clientX-rect.left)/rect.width*els.overlay.width,
       y:(event.clientY-rect.top)/rect.height*els.overlay.height};
+  }
+  function overlayClick(event){
+    if(!authorized||!stream||adjusting)return;
+    const point=eventToCanvasPoint(event);
     if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||point.x<0||point.x>els.overlay.width||point.y<0||point.y>els.overlay.height)return;
     els.coords.textContent=Math.round(point.x)+', '+Math.round(point.y);
     if(calibrating){
       calibrationPoints.push(point);
-      if(calibrationPoints.length===5){
+      if(calibrationPoints.length===G.CALIBRATION_NAMES.length){
         try{
-          board=G.prepare(calibrationPoints);calibrating=false;status('Kalibrering fullført – kontroller at alle 20 felt og ringer stemmer');
-          els.step.textContent='Sjekk at turkise skillelinjer følger trådene og D20 peker rett opp. Ved avvik: kalibrer på nytt.';
-          els.proposalDetail.textContent='Turkise ringer og sektorer skal følge skiven. Helt høyre OBS-zoom blir holdt utenfor bildeanalysen. Ta referansebilde først når oppsettet stemmer.';
+          board=G.prepare(calibrationPoints);calibrating=false;
+          status('Kalibrering registrert · avvik '+board.errorPx.toFixed(1)+' px. Kontroller alle ringene.');
+          els.step.textContent='Ligger linjene feil? Trykk Finjuster punkter og dra de gule punktene på dobbelringen.';
+          els.proposalDetail.textContent='Ikke ta referansebilde før både dobbel- og trippelring følger trådene. Gult område viser AI-utsnitt.';
         }catch(e){
-          board=null;calibrationPoints=[];calibrating=false;status(e.message);
-          els.step.textContent='Ugyldig kalibrering – trykk Kalibrer skive på nytt';
+          board=null;calibrationPoints.pop();
+          status('Punktet ble ikke godkjent: '+e.message);
+          els.step.textContent='Korriger punkt '+G.CALIBRATION_NAMES.length+'/'+G.CALIBRATION_NAMES.length+' eller bruk Angre for å rette tidligere punkter.';
         }
-      }else{els.step.textContent='Klikk '+(calibrationPoints.length+1)+'/5: '+G.CALIBRATION_NAMES[calibrationPoints.length]+' (Angre kan brukes)'}
+      }else{
+        els.step.textContent='Klikk '+(calibrationPoints.length+1)+'/'+G.CALIBRATION_NAMES.length+': '+G.CALIBRATION_NAMES[calibrationPoints.length]+' (Angre kan brukes)';
+      }
       updateButtons();drawOverlay();return;
     }
     if(!board||!baseline)return;
@@ -436,7 +512,7 @@
     }finally{aiLoading=false;updateButtons()}
   }
   async function analyseAIFrame(proposal,manual){
-    if(!authorized||!AI?.ready()||!board||!stream||aiInferring)return;
+    if(!authorized||!AI?.ready()||!board||!stream||adjusting||aiInferring)return;
     aiInferring=true;
     const ticket=++aiSerial;
     els.aiState.textContent='Analyserer…';
@@ -496,8 +572,13 @@
   els.stop.addEventListener('click',stopCamera);
   els.calibrate.addEventListener('click',startCalibration);
   els.undo.addEventListener('click',undoCalibrationPoint);
+  els.adjust.addEventListener('click',toggleAdjustment);
+  els.overlay.addEventListener('pointerdown',pointerDown);
+  els.overlay.addEventListener('pointermove',pointerMove);
+  els.overlay.addEventListener('pointerup',pointerUp);
+  els.overlay.addEventListener('pointercancel',pointerUp);
   els.baseline.addEventListener('click',()=>captureReference());
-  els.reset.addEventListener('click',()=>{resetAnalysis(true);calibrationPoints=[];board=null;calibrating=false;status('Nullstilt');els.step.textContent='Kalibrer skiven på nytt';drawOverlay();updateButtons()});
+  els.reset.addEventListener('click',()=>{resetAnalysis(true);calibrationPoints=[];board=null;calibrating=false;adjusting=false;dragging=null;els.overlay.classList.remove('calibration-edit');status('Nullstilt');els.step.textContent='Kalibrer skiven på nytt';drawOverlay();updateButtons()});
   els.newRound.addEventListener('click',()=>{if(!authorized||!board)return;captureReference();status('Ny runde: referanse oppdatert')});
   els.confirm.addEventListener('click',confirmSelection);
   els.reject.addEventListener('click',()=>{captureReference();status('Forslag avvist – ny referanse tatt')});

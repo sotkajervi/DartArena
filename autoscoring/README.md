@@ -94,21 +94,21 @@ Test ZIP-byggeren:
 node autoscoring/zip-store.test.cjs
 ```
 
-## OBS Virtual Camera – feilkalibrering rettet (10.10.2026)
+## OBS-kamera – presisjonskalibrering med 9 punkter (10. oktober 2026)
 
-Tidligere kalibrering tok utgangspunkt i en enkel affin transformasjon, og skillelinjene kunne forskyves fra dartskiven i skrått kamerabilde. Nå brukes et **perspektivtilpasset homografi-estimat** fra fem klikk (Bull + D20, D6, D3, D11).
+Den opprinnelige kalibreringen med fem klikk kunne gi betydelig avvik mellom den turkise skivegeometrien og de faktiske metalltrådene. En tidligere justering til homografi var ikke tilstrekkelig.
 
-**Nytt, viktig presiseringspunkt:** Klikk midten av selve dobbelfeltet på hver av de fire retningene – altså midt mellom ringens to tråder, ikke ytterkanten på dobbeltfeltet. Kalibreringen kontrollerer punktenes retning, størrelse, form og tilpasningsfeil. Ved feil får du beskjed og kan starte på nytt. Under kalibreringen er «Angre siste punkt» tilgjengelig.
+**Ny fremgangsmåte:**
 
-Etter kalibrering tegnes **alle ringene og alle segmentgrensene med perspektivtransformasjonen**, og D20 er merket. En **gul stiplet firkant** omslutter området som analyseres. Denne bruker også ONNX-modellen som crop, slik at en OBS-kilde med forstørret kopi av skiven på høyre side ikke påvirker AI-forslaget. Det er likevel best for oppløsning og deteksjonsnøyaktighet å sende kun hele dartskiven (uten zoomkopi) i OBS-kilden dersom det er mulig.
+1. Åpne Autoscoring Lab, oppdater med `Ctrl+F5`, velg kamera og trykk **Start kamera**.
+2. Klikk **Kalibrer skive (9 punkter)**.
+3. Klikk Bull (punkt 1).
+4. Klikk **midten av dobbelringen**, med klokken: D20 klokken 12 (2), nordøst klokken 1:30 (3), D6 klokken 3 (4), sørøst klokken 4:30 (5), D3 klokken 6 (6), sørvest klokken 7:30 (7), D11 klokken 9 (8), nordvest klokken 10:30 (9). Ikke bruk OBS-zoomkopien ved siden av.
+5. Se at de turkise linjene følger ringene og skilletrådene. Hvis ikke: Klikk **Finjuster punkter**, dra de nummererte gule merkene til midten av dobbelringen og klikk **Ferdig med justering**. Justeringen oppdaterer geometrien fortløpende. Ugyldige posisjoner forkastes.
+6. Bare når modellen følger metalltrådene, klikk **Ta referansebilde** og prøv treffregistreringen.
 
-**Sikkerhet:** ROI og kalibrering endrer bare det isolerte laboratoriet. Ingen kamerainnstillinger, scoring, lagringsformat, tilganger eller kamper ellers i DartArena er endret.
+Det brukes nå ni punkter (Bull + åtte rundt hele dobbelringen) i en overbestemt minste-kvadraters homografi. Kalibreringen avviser feil rekkefølge, svært skjeve punkter og stor gjennomsnittlig projeksjonsfeil. Dette er fortsatt **manuell kalibrering**, ikke automatisk bildesøk. Estimert projeksjonsfeil er avvik mot klikkede punkter og beviser ikke i seg selv at modellen følger metalltrådene; det skal kontrolleres visuelt.
 
-Test etter oppdatering:
-1. Gå til Autoscoring Lab, oppdater nettsiden med Ctrl+F5.
-2. Start OBS Virtual Camera eller fysisk kamera.
-3. Trykk «Kalibrer skive» og velg de fem punktene på **samme** synlige dartskive. Ikke klikk i zoomkopien.
-4. Sjekk at turkise ringgrenser følger skivetrådene, at D20 står kl. 12, og at den gule firkanten omslutter bare selve skiven.
-5. Først når dette stemmer, trykk «Ta referansebilde».
+En gul stiplet ramme viser AI-besnittet, som ekskluderer OBS-zoomkopien til høyre. Ta ikke opp testdata eller bruk scoreforslag før turkise ringer og sektorgrenser følger den fysiske skiven.
 
-Vi har ikke testet kameraet fysisk fra denne utviklingssesjonen; resultatet må bekreftes med et nytt skjermbilde.
+Dette endrer bare den isolerte testsiden og kalibreringsmatematikken, ikke DartArenas onlinekamper, turneringssystem eller databaser.

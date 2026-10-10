@@ -2,10 +2,21 @@
 (function(){
 'use strict';
 const ORDER=[20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5];
-const CALIBRATION_NAMES=['Bull (midten)','D20 – midten av ytterringen kl. 12','D6 – midten av ytterringen kl. 3','D3 – midten av ytterringen kl. 6','D11 – midten av ytterringen kl. 9'];
+const CALIBRATION_NAMES=[
+  'Bull (midten)',
+  'D20 – midt på dobbelringen kl. 12',
+  'Nordøst – midt på dobbelringen kl. 1:30',
+  'D6 – midt på dobbelringen kl. 3',
+  'Sørøst – midt på dobbelringen kl. 4:30',
+  'D3 – midt på dobbelringen kl. 6',
+  'Sørvest – midt på dobbelringen kl. 7:30',
+  'D11 – midt på dobbelringen kl. 9',
+  'Nordvest – midt på dobbelringen kl. 10:30'
+];
 const RINGS={doubleBull:6.35/170,singleBull:15.9/170,tripleInner:99/170,tripleOuter:107/170,doubleInner:162/170,doubleOuter:1};
 // In calibration, click MIDLINE of the double ring, not the external wire.
 const DOUBLE_MID=(162+170)/(2*170);
+const CALIBRATION_PARAMS=[[0,0],...Array.from({length:8},(_,i)=>[DOUBLE_MID*Math.sin(i*Math.PI/4),-DOUBLE_MID*Math.cos(i*Math.PI/4)])];
 function solve(rows,values){
   const n=8,aug=Array.from({length:n},(_,i)=>Array(n+1).fill(0));
   for(let k=0;k<rows.length;k++){
@@ -36,34 +47,43 @@ function project(m,q){
   return{x:(a*q.x+b*q.y+c)/div,y:(d*q.x+e*q.y+f)/div};
 }
 function prepare(points){
-  if(!Array.isArray(points)||points.length!==5||points.some(p=>!Number.isFinite(p?.x)||!Number.isFinite(p?.y)))throw new Error('Velg fem gyldige kalibreringspunkter.');
-  const [bull,top,right,bottom,left]=points;
-  const dTop=Math.hypot(top.x-bull.x,top.y-bull.y),dRight=Math.hypot(right.x-bull.x,right.y-bull.y),dBottom=Math.hypot(bottom.x-bull.x,bottom.y-bull.y),dLeft=Math.hypot(left.x-bull.x,left.y-bull.y);
-  const minRadius=Math.min(dTop,dRight,dBottom,dLeft);
-  if(minRadius<45||Math.max(dTop,dRight,dBottom,dLeft)>minRadius*2.8)throw new Error('Skivepunktene er for små eller ujevne. Kontroller at alle fire er på samme yttring.');
-  // Wrong ordering and points in two different OBS views must be rejected.
-  const u={x:right.x-left.x,y:right.y-left.y},v={x:bottom.x-top.x,y:bottom.y-top.y};
-  const cross=u.x*v.y-u.y*v.x;
-  if(cross<minRadius*minRadius*.75)throw new Error('Punktene må velges med klokken: Bull, D20, D6, D3, D11 – på SAMME skive.');
-  const params=[[0,0],[0,-DOUBLE_MID],[DOUBLE_MID,0],[0,DOUBLE_MID],[-DOUBLE_MID,0]];
+  if(!Array.isArray(points)||points.length!==CALIBRATION_NAMES.length||points.some(p=>!Number.isFinite(p?.x)||!Number.isFinite(p?.y)))
+    throw new Error('Velg Bull og åtte punkter på dobbelringen (9 punkter totalt).');
+  const bull=points[0],rim=points.slice(1);
+  const radii=rim.map(p=>Math.hypot(p.x-bull.x,p.y-bull.y));
+  const minRadius=Math.min(...radii);
+  if(minRadius<45||Math.max(...radii)>minRadius*2.4)
+    throw new Error('Punktene er for ujevne. Bruk samme dobbelring hele veien rundt.');
+  // Reject mixed OBS previews or wrong click order before the solve.
+  for(let i=0;i<8;i++){
+    const p=rim[i],q=rim[(i+1)%8];
+    const cross=(p.x-bull.x)*(q.y-bull.y)-(p.y-bull.y)*(q.x-bull.x);
+    if(cross<minRadius*minRadius*.18)
+      throw new Error('Punktene må gå med klokken rundt samme skive. Bruk Angre og prøv igjen.');
+  }
   const rows=[],values=[];
-  for(let i=0;i<5;i++){
-    const p=params[i],q=points[i];
+  for(let i=0;i<CALIBRATION_PARAMS.length;i++){
+    const p=CALIBRATION_PARAMS[i],q=points[i];
     rows.push([p[0],p[1],1,0,0,0,-q.x*p[0],-q.x*p[1]]);
     values.push(q.x);
     rows.push([0,0,0,p[0],p[1],1,-q.y*p[0],-q.y*p[1]]);
     values.push(q.y);
   }
   const homography=solve(rows,values);
-  const m={bull:{...bull},homography,points:points.map(p=>({...p}))};
+  const model={bull:{...bull},homography,points:points.map(p=>({...p}))};
   const rms=Math.sqrt(points.reduce((sum,p,i)=>{
-    const q=project(m,{x:params[i][0],y:params[i][1]});
+    const q=project(model,{x:CALIBRATION_PARAMS[i][0],y:CALIBRATION_PARAMS[i][1]});
     return sum+(q.x-p.x)**2+(q.y-p.y)**2;
   },0)/points.length);
-  if(!Number.isFinite(rms)||rms>minRadius*.09)throw new Error('Kalibreringen treffer ikke punktene godt nok. Velg punktene på nytt.');
-  const bounds=boardBounds(m,Infinity,Infinity,.04);
-  if(![bounds.x,bounds.y,bounds.width,bounds.height].every(Number.isFinite))throw new Error('Geometrien er ugyldig.');
-  return m;
+  model.errorPx=rms;
+  // A fitted perspective transform is only accepted if all user-selected wire
+  // centres are close to the projected locations.
+  if(!Number.isFinite(rms)||rms>Math.max(5,minRadius*.045))
+    throw new Error('Kalibreringen har for stort avvik ('+rms.toFixed(1)+' px). Finjuster dobbelringpunktene.');
+  const bounds=boardBounds(model,Infinity,Infinity,.04);
+  if(![bounds.x,bounds.y,bounds.width,bounds.height].every(Number.isFinite))
+    throw new Error('Geometrien er ugyldig.');
+  return model;
 }
 function normalize(model,p){
   const [a,b,c,d,e,f,g,h]=model.homography;
@@ -94,9 +114,8 @@ function boardBounds(m,width,height,padding=.12){
   return{x:Math.max(0,minx),y:Math.max(0,miny),width:Math.max(0,maxx-Math.max(0,minx)),height:Math.max(0,maxy-Math.max(0,miny))};
 }
 function runSanityChecks(){
-  const pts=[{x:320,y:240},{x:320,y:240-170*DOUBLE_MID},{x:320+170*DOUBLE_MID,y:240},{x:320,y:240+170*DOUBLE_MID},{x:320-170*DOUBLE_MID,y:240}];
-  const m=prepare(pts);
-  const r=170;
+  const pts=CALIBRATION_PARAMS.map(([x,y])=>({x:320+170*x,y:240+170*y}));
+  const m=prepare(pts),r=170;
   return [['T20',score(m,{x:320,y:240-r*.60}).label],
     ['D20',score(m,{x:320,y:240-r*.98}).label],
     ['S20',score(m,{x:320,y:240-r*.74}).label],
@@ -105,5 +124,5 @@ function runSanityChecks(){
     ['DB',score(m,{x:320,y:240}).label],
     ['MISS',score(m,{x:320,y:50}).label]].every(x=>x[0]===x[1]);
 }
-window.DartArenaLabGeometry={ORDER,RINGS,DOUBLE_MID,CALIBRATION_NAMES,prepare,project,normalize,score,boardBounds,runSanityChecks};
+window.DartArenaLabGeometry={ORDER,RINGS,DOUBLE_MID,CALIBRATION_NAMES,CALIBRATION_PARAMS,prepare,project,normalize,score,boardBounds,runSanityChecks};
 })();
