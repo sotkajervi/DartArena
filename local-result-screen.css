@@ -1,0 +1,28 @@
+/* Local result pages share the actual online winner-card classes and CSS. */
+.local-h2h-page.local-match-finished .local-entry-card,
+.local-special-page.local-special-finished .special-entry{display:none}
+.local-special-page.local-special-finished #specialCorrections{display:none!important}
+.local-h2h-page.da-result-open .da-result-overlay{z-index:9999}
+.local-h2h-page .da-result-card .da-result-actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+.local-h2h-page .da-result-card .da-result-scorebox{font-variant-numeric:tabular-nums}
+.local-h2h-page .da-result-card .da-result-legs-title{color:var(--cyan)}
+@media(max-width:640px){
+  .local-h2h-page .da-result-overlay{
+    padding:10px;align-items:center;
+  }
+  .local-h2h-page .da-result-card{
+    width:min(96vw,790px);
+    max-height:calc(100dvh - 24px);
+    overflow-y:auto;overscroll-behavior:contain;
+    padding:14px;
+  }
+  .local-h2h-page .da-result-card .da-result-title{font-size:clamp(25px,7vw,33px)}
+  .local-h2h-page .da-result-card .da-result-scorebox{font-size:clamp(33px,10vw,46px);margin:9px auto}
+  .local-h2h-page .da-result-card .da-result-statcard{padding:10px 12px}
+  .local-h2h-page .da-result-card .da-result-stats{gap:7px}
+  .local-h2h-page .da-result-card .da-result-statrow{padding:5px 2px}
+  .local-h2h-page .da-result-card .da-result-actions{grid-template-columns:1fr 1fr;gap:8px}
+  .local-h2h-page .da-result-card #daLocalResultReview{grid-column:1/-1}
+  .local-h2h-page .da-result-card .da-result-actions button{padding:10px 8px;font-size:13px}
+  .local-h2h-page .da-result-card .da-result-legs{margin-top:8px}
+}
