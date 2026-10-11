@@ -13,9 +13,23 @@
    document.body.classList.remove('da-result-open');
  }
  function statRows(rows){
-   const safe=(rows||[]).slice(0,4);
-   while(safe.length<4)safe.push({label:'–',value:'–'});
-   return safe.map(row=>'<div class="da-result-statrow"><span>'+esc(row.label)+'</span><b>'+esc(row.value)+'</b></div>').join('');
+   return (rows||[]).map(row=>'<div class="da-result-statrow"><span>'+esc(row.label)+'</span><b>'+esc(row.value)+'</b></div>').join('');
+ }
+ function comparisonTable(state,rows,order){
+   const [first,second]=order;
+   const valuesA=rows[first]||[],valuesB=rows[second]||[];
+   const lineCount=Math.max(valuesA.length,valuesB.length);
+   const values=Array.from({length:lineCount},(_,i)=>{
+     const a=valuesA[i],b=valuesB[i];
+     return '<tr><th scope="row">'+esc(a?.label||b?.label||'–')+'</th>'+
+       '<td>'+esc(a?.value??'–')+'</td><td>'+esc(b?.value??'–')+'</td></tr>';
+   }).join('');
+   const name=p=>esc(state.players[p])+(state.winner===p?'<small>VINNER</small>':'');
+   return '<section class="da-local-comparison" aria-label="Kampstatistikk">'+
+     '<table><thead><tr><th scope="col">STATISTIKK</th>'+
+     '<th scope="col"'+(state.winner===first?' class="is-winner"':'')+'>'+name(first)+'</th>'+
+     '<th scope="col"'+(state.winner===second?' class="is-winner"':'')+'>'+name(second)+'</th>'+
+     '</tr></thead><tbody>'+values+'</tbody></table></section>';
  }
  function playerCard(p,state,rows){
    const winning=state.winner===p;
@@ -46,12 +60,15 @@
    }));
    const stats=[0,1].map(p=>{
      const s=root.DartArenaX01Stats?.statsFor(rows,p);
-     if(!s)return [{label:'AVG',value:'–'},{label:'FIRST 9',value:'–'},{label:'HØYESTE UT',value:'–'},{label:'180',value:'–'}];
      return [
-       {label:'AVG',value:fmt(s.avg)},
-       {label:'FIRST 9',value:fmt(s.first9)},
-       {label:'HØYESTE UT',value:s.high||'–'},
-       {label:'180',value:s.c180||0}
+       {label:'3-DART AVG',value:s?fmt(s.avg):'–'},
+       {label:'FIRST 9 AVG',value:s?fmt(s.first9):'–'},
+       {label:'HØYESTE UT',value:s?.high||'–'},
+       {label:'RASKESTE LEG',value:s?.fast?s.fast+' piler':'–'},
+       {label:'100+',value:s?.c100??0},
+       {label:'140+',value:s?.c140??0},
+       {label:'170+',value:s?.c170??0},
+       {label:'180',value:s?.c180??0}
      ];
    });
    let previousSet=null,legWins=[0,0];
@@ -166,6 +183,7 @@
      '<div class="da-result-sub">'+esc(payload.label)+' • '+esc(payload.format)+'</div>'+
      '<div class="da-result-scorebox">'+esc(result[a])+'<span>–</span>'+esc(result[b])+'</div>'+
      '<div class="da-result-stats">'+playerCard(a,state,payload.stats)+playerCard(b,state,payload.stats)+'</div>'+
+     comparisonTable(state,payload.stats,order)+
      summaryHtml(payload.summary,state)+
      '<div class="da-result-actions"><button type="button" class="primary" id="daLocalResultNew">Ny kamp</button>'+
      '<button type="button" class="outline" id="daLocalResultLobby">Til lobby</button>'+
