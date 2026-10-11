@@ -116,5 +116,30 @@ async function compare(client,frame,region,onResult){
   }
   return results;
 }
-window.DartArenaLabRoboflow={check,infer,preview,compare,mapDetections,makeImage,explain};
+// A/B test: identical JPEG input for both hosted keypoint models.
+async function compareModels(client,frame,region,onResult){
+  const img=makeImage(frame,region);
+  const variants=[{label:'Roboflow v17',id:'v17'},{label:'Universal V3',id:'universal-v3'}];
+  const results=[];
+  for(const variant of variants){
+    try{
+      const {data,error}=await client.functions.invoke(ENDPOINT,{body:{image:img.image,model:variant.id}});
+      if(error||data?.error)throw new Error(await errorMessage(error,data));
+      const result={label:variant.label,model:data.model,
+        width:img.width,height:img.height,
+        objects:Number(data.diagnostics?.providerPredictions)||0,
+        keypoints:Number(data.diagnostics?.validKeypoints)||0,
+        detections:mapDetections(data,img.region,{width:img.width,height:img.height}),
+        diagnostics:data.diagnostics||null};
+      results.push(result);onResult?.(result);
+    }catch(e){
+      const result={label:variant.label,error:e?.message||String(e)};
+      results.push(result);onResult?.(result);
+      // Only abort subsequent calls on authentication, quota, or transport failures.
+      if(/dagens testgrense|quota|401|403|logg inn|forbidden|unauthorized|Kunne ikke nå/i.test(result.error))break;
+    }
+  }
+  return results;
+}
+window.DartArenaLabRoboflow={check,infer,preview,compare,compareModels,mapDetections,makeImage,explain};
 })();
