@@ -239,6 +239,37 @@
     els.rfZoomImage.removeAttribute('src');
     els.rfZoomResult.textContent='Ta referansebilde av tom skive, kast og frys bildet. Godkjenn engangsopplasting over før zoomtesten.';
   }
+  // Cluster changed pixels in a bounded local window. A few unrelated changes
+  // elsewhere on the board must not enlarge the crop to the whole dartboard.
+  function densestChangeRegion(changed,w,h){
+    const radius=Math.max(18,Math.round(Math.min(w,h)*.09));
+    const stride=w+1;
+    const summed=new Uint32Array(stride*(h+1));
+    for(const p of changed)summed[(p.y+1)*stride+p.x+1]=1;
+    for(let y=1;y<=h;y++){
+      let row=0,idx=y*stride;
+      for(let x=1;x<=w;x++){
+        row+=summed[idx+x];
+        summed[idx+x]=summed[idx-stride+x]+row;
+      }
+    }
+    let best=null,bestCount=0;
+    for(const p of changed){
+      const x0=Math.max(0,p.x-radius),y0=Math.max(0,p.y-radius);
+      const x1=Math.min(w-1,p.x+radius),y1=Math.min(h-1,p.y+radius);
+      const hits=summed[(y1+1)*stride+x1+1]-summed[y0*stride+x1+1]-
+        summed[(y1+1)*stride+x0]+summed[y0*stride+x0];
+      if(hits>bestCount){best=p;bestCount=hits}
+    }
+    const minimum=Math.max(10,Math.ceil(changed.length*.15));
+    if(!best||bestCount<minimum)
+      throw new Error('Bildeendringene er for spredte ('+bestCount+' av '+changed.length+
+        ' i tetteste område). Kontroller at referansebildet ble tatt før kastet.');
+    const local=changed.filter(p=>Math.abs(p.x-best.x)<=radius&&Math.abs(p.y-best.y)<=radius);
+    const minx=Math.min(...local.map(p=>p.x)),maxx=Math.max(...local.map(p=>p.x));
+    const miny=Math.min(...local.map(p=>p.y)),maxy=Math.max(...local.map(p=>p.y));
+    return {minx,maxx,miny,maxy,localCount:local.length,discarded:changed.length-local.length};
+  }
   function getAutoZoomRegion(){
     if(!baseline||!board||!frozen||!samples.length)throw new Error('Mangler referansebilde eller fryst treffbilde.');
     const w=analysisCanvas.width,h=analysisCanvas.height;
@@ -247,26 +278,26 @@
     const workCtx=work.getContext('2d',{willReadFrequently:true});
     workCtx.drawImage(els.frozenFrame,0,0,w,h);
     const now=workCtx.getImageData(0,0,w,h).data;
-    let count=0,minx=w,miny=h,maxx=0,maxy=0;
+    const changed=[];
     for(const [i,x,y] of samples){
       const delta=Math.abs(now[i]-baseline[i])+Math.abs(now[i+1]-baseline[i+1])+Math.abs(now[i+2]-baseline[i+2]);
-      if(delta<=DIFF_THRESHOLD)continue;
-      count++;
-      minx=Math.min(minx,x);maxx=Math.max(maxx,x);miny=Math.min(miny,y);maxy=Math.max(maxy,y);
+      if(delta>DIFF_THRESHOLD)changed.push({x,y});
     }
+    const count=changed.length;
     if(count<10)throw new Error('For få endrede piksler ('+count+'). Ta referanse av tom skive før kast, og frys bildet etter kastet.');
     if(count>samples.length*.23)throw new Error('For stor bildeendring: '+count+' piksler. Kontroller belysning og at kameraet står stille.');
+    const cluster=densestChangeRegion(changed,w,h);
     const sx=els.overlay.width/w,sy=els.overlay.height/h;
-    const cx=(minx+maxx)/2*sx,cy=(miny+maxy)/2*sy;
-    const changeWidth=(maxx-minx+2)*sx,changeHeight=(maxy-miny+2)*sy;
-    const side=Math.round(Math.max(100,Math.max(changeWidth,changeHeight)*1.7));
+    const cx=(cluster.minx+cluster.maxx)/2*sx,cy=(cluster.miny+cluster.maxy)/2*sy;
+    const changeWidth=(cluster.maxx-cluster.minx+2)*sx,changeHeight=(cluster.maxy-cluster.miny+2)*sy;
     const full=G.boardBounds(board,els.overlay.width,els.overlay.height,.04);
-    if(side>Math.max(full.width,full.height)*.92)
-      throw new Error('Endringsområdet ble for stort for zoom. Kontroller referansebildet eller velg et annet kast.');
-    const size=Math.min(side,els.overlay.width,els.overlay.height);
+    const size=Math.round(Math.min(Math.max(220,Math.max(changeWidth,changeHeight)*2),
+      Math.max(full.width,full.height)*.78,els.overlay.width,els.overlay.height));
+    if(size<100)throw new Error('Fant ikke et stort nok område for zoom.');
     return {region:{x:Math.min(Math.max(0,Math.round(cx-size/2)),els.overlay.width-size),
       y:Math.min(Math.max(0,Math.round(cy-size/2)),els.overlay.height-size),
-      width:size,height:size},count,changeWidth:Math.round(changeWidth),changeHeight:Math.round(changeHeight)};
+      width:size,height:size},count,localCount:cluster.localCount,discarded:cluster.discarded,
+      changeWidth:Math.round(changeWidth),changeHeight:Math.round(changeHeight)};
   }
   async function testAutoZoom(){
     if(!authorized||!RF?.inferZoom||rfBusy||!stream||!board||!baseline||!frozen||!els.rfConsent.checked||adjusting||calibrating)return;
@@ -292,7 +323,7 @@
       const best=valid.reduce((a,b)=>!a||b.confidence>a.confidence?b:a,null);
       const objects=Number(result.diagnostics?.providerPredictions)||0;
       els.rfZoomResult.textContent='Endret område: '+target.changeWidth+' × '+target.changeHeight+
-        ' piksler ('+target.count+' endrede målepunkter). AI-utsnitt: '+result.sourceSize+
+        ' piksler ('+target.localCount+' av '+target.count+' endrede målepunkter i tetteste område, '+target.discarded+' utelatt). AI-utsnitt: '+result.sourceSize+
         ' × '+result.sourceSize+' → 768 × 768 (digital zoom). Roboflow v17: '+objects+
         ' objekt(er), '+valid.length+' gyldig(e) pilspiss(er) på skiven.'+
         (best?' Beste forslag: '+G.score(board,best).label+' ('+Math.round(best.confidence*100)+' % konfidens).':' Fant ingen sikker pilspiss i utsnittet.')+
