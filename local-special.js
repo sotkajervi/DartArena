@@ -301,7 +301,8 @@ function renderHistory(){
 function render(){
  dom.setup.hidden=!!state;dom.game.hidden=!state;
  document.body.classList.toggle('local-cricket-playing',state?.game==='cricket');
- if(!state)return;
+ document.body.classList.toggle('local-special-finished',state?.status==='finished');
+ if(!state){window.DartArenaLocalResults?.syncSpecial(null,newGame);return;}
  if(state.game==='cricket'&&!cricketDisclosureInitialized){
    $('specialCorrections').open=!cricketMobile();
    cricketDisclosureInitialized=true;
@@ -326,6 +327,8 @@ function render(){
    dom.submit.hidden=true;dom.miss.hidden=true;dom.remove.hidden=true;dom.selected.parentElement.hidden=true;
  }
  const x=$('specialX01');if(x&&state.status==='playing')x.focus({preventScroll:true});
+ if(state.status==='finished'&&document.body.classList.contains('special-cricket-stats-open'))closeCricketStats();
+ window.DartArenaLocalResults?.syncSpecial(state,newGame);
 }
 function commit(fn,msg){
  try{state=fn();resetPending();message=msg||'Registrert.';isError=false;store();render()}
