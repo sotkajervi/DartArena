@@ -340,8 +340,8 @@ $('localCheckoutBust').addEventListener('click',()=>{
   commit(()=>E.submit(state,score,{bust:true}),'BUST for '+name+'.');
 });
 function newMatch(){
-  clearTimeout(betweenTimer);betweenTimer=null;
   if(state&&state.status!=='finished'&&!window.confirm('Avslutte denne lokale kampen? Resultatet kan ikke gjenopprettes etterpå.'))return;
+  clearTimeout(betweenTimer);betweenTimer=null;
   const oldPlayers=state?.players||[];
   state=null;pendingCheckout=null;editingIndex=null;ui.checkout.hidden=true;ui.correction.hidden=true;
   ui.name1.value=oldPlayers[0]||'';ui.name2.value=oldPlayers[1]||'';
