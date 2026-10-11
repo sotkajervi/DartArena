@@ -143,5 +143,21 @@ async function compareModels(client,frame,region,onResult){
   }
   return results;
 }
-window.DartArenaLabRoboflow={check,infer,preview,compare,compareModels,mapDetections,makeImage,explain};
+// Analyse an already saved AI JPEG without cropping it again.
+async function inferSavedImage(client,image){
+  if(!image||!Number.isFinite(image.naturalWidth)||!image.naturalWidth||!image.naturalHeight)throw new Error('Bildet kunne ikke leses.');
+  const canvas=document.createElement('canvas');
+  canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+  if(canvas.width>2000||canvas.height>2000)throw new Error('Bildet er for stort; bruk AI-utsnittet.');
+  canvas.getContext('2d',{alpha:false}).drawImage(image,0,0,canvas.width,canvas.height);
+  const encoded=canvas.toDataURL('image/jpeg',.78).split(',')[1];
+  if(!encoded||encoded.length>800000)throw new Error('JPEG-bildet er for stort.');
+  const {data,error}=await client.functions.invoke(ENDPOINT,{body:{image:encoded,model:'v17'}});
+  if(error||data?.error)throw new Error(await errorMessage(error,data));
+  return {objects:Number(data.diagnostics?.providerPredictions)||0,
+    keypoints:Number(data.diagnostics?.validKeypoints)||0,
+    detections:mapDetections(data,{x:0,y:0,width:canvas.width,height:canvas.height},
+      {width:canvas.width,height:canvas.height}),width:canvas.width,height:canvas.height};
+}
+window.DartArenaLabRoboflow={check,infer,preview,compare,compareModels,inferSavedImage,mapDetections,makeImage,explain};
 })();
