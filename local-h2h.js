@@ -5,7 +5,7 @@ const E=window.DartArenaLocalH2HEngine;
 const $=id=>document.getElementById(id);
 if(!E||!$('localSetupForm'))return;
 const KEY='dartarena-local-h2h-state-v1';
-let state=null,pendingCheckout=null,message='Skriv score og trykk Enter.',isError=false;
+let state=null,pendingCheckout=null,editingIndex=null,message='Skriv score og trykk Enter.',isError=false;
 const ui={
   setup:$('localSetup'),setupForm:$('localSetupForm'),setupError:$('localSetupError'),
   name1:$('localName1'),name2:$('localName2'),format:$('localFormat'),bestOf:$('localBestOf'),starter:$('localStarter'),
@@ -13,7 +13,11 @@ const ui={
   submit:$('localSubmit'),bust:$('localBust'),turn:$('localTurn'),
   between:$('localBetween'),finished:$('localFinished'),checkout:$('localCheckout'),
   checkoutForm:$('localCheckoutForm'),checkoutDarts:$('localCheckoutDarts'),checkoutTitle:$('localCheckoutTitle'),
-  checkoutText:$('localCheckoutText'),history:$('localHistory'),message:$('localMessage')
+  checkoutText:$('localCheckoutText'),history:$('localHistory'),message:$('localMessage'),
+  correction:$('localCorrectionModal'),correctionForm:$('localCorrectionForm'),
+  correctionScore:$('localCorrectionScore'),correctionTitle:$('localCorrectionTitle'),
+  correctionContext:$('localCorrectionContext'),correctionError:$('localCorrectionError'),
+  correctionCheckout:$('localCorrectionCheckout'),correctionDarts:$('localCorrectionDarts')
 };
 function showMessage(text,error=false){message=text;isError=error;ui.message.textContent=text;ui.message.classList.toggle('is-error',error)}
 function safeSave(){
@@ -21,7 +25,7 @@ function safeSave(){
   catch{showMessage('Kampen kjører, men kunne ikke lagres i denne nettleseren.',true)}
 }
 function focusScore(){
-  if(state?.status==='playing'&&!pendingCheckout){
+  if(state?.status==='playing'&&!pendingCheckout&&editingIndex===null){
     ui.score.focus({preventScroll:true});
     // Numeric inputs cannot reliably select text across all browsers.
   }
@@ -52,6 +56,7 @@ function render(){
     statValue('localLegs'+i,state.legs[i]);
     statValue('localAverage'+i,'3-dart snitt: '+(onlineThrows.some(v=>v.player_id===i)?st.avg.toFixed(2):'–'));
     statValue('localStatsName'+i,player(i));
+    statValue('localStatsName'+i+'b',player(i));
     statValue('localStatAvg'+i,st.avg.toFixed(2));
     statValue('localStatFirst9'+i,st.first9.toFixed(2));
     statValue('localStatCheckout'+i,st.high||'–');
@@ -76,6 +81,7 @@ function render(){
     statValue('localFinalText',state.legs[0]+' – '+state.legs[1]+' i legs · '+state.format+' · best av '+state.bestOf);
   }
   showMessage(message,isError);
+  renderCorrections();
   ui.history.replaceChildren();
   if(!state.visits.length){
     const empty=document.createElement('p');
@@ -92,11 +98,86 @@ function render(){
     }
   }
 }
+function renderCorrections(){
+  if(!state)return;
+  const active=state.status==='playing';
+  for(let playerIndex=0;playerIndex<2;playerIndex++){
+    const host=$('localThrows'+playerIndex);
+    const name=$('localThrowsName'+playerIndex);
+    name.textContent=state.players[playerIndex];
+    host.replaceChildren();
+    const recent=state.visits.map((visit,index)=>({visit,index}))
+      .filter(({visit})=>visit.player===playerIndex&&visit.leg===state.leg)
+      .slice(-3);
+    const editable=new Set(E.editableIndices(state,playerIndex));
+    if(!recent.length){
+      const empty=document.createElement('span');
+      empty.className='local-throw-empty';empty.textContent='Ingen kast ennå';
+      host.appendChild(empty);continue;
+    }
+    for(const item of recent){
+      const isEditable=active&&editable.has(item.index);
+      const chip=document.createElement(isEditable?'button':'span');
+      chip.className='local-throw-chip'+(isEditable?' editable':'');
+      chip.textContent=item.visit.checkout?item.visit.score+' ('+item.visit.darts+'p)':
+        item.visit.bust?'BUST':String(item.visit.score);
+      if(isEditable){
+        chip.type='button';
+        chip.title='Korriger score for '+state.players[playerIndex];
+        chip.setAttribute('aria-label','Korriger kast '+chip.textContent+' for '+state.players[playerIndex]);
+        const icon=document.createElement('span');
+        icon.className='local-throw-edit-icon';icon.textContent='✎';icon.setAttribute('aria-hidden','true');
+        chip.appendChild(icon);
+        chip.addEventListener('click',()=>openCorrection(item.index));
+      }
+      host.appendChild(chip);
+    }
+  }
+}
+function closeCorrection(){
+  editingIndex=null;
+  ui.correction.hidden=true;
+  ui.correctionCheckout.hidden=true;
+  ui.correctionError.hidden=true;
+  focusScore();
+}
+function openCorrection(index){
+  if(!state||state.status!=='playing')return;
+  const visit=state.visits[index];
+  if(!visit||!E.editableIndices(state,visit.player).includes(index))return;
+  editingIndex=index;
+  ui.correctionTitle.textContent='Korriger kast';
+  ui.correctionContext.textContent=state.players[visit.player]+' · leg '+visit.leg+' · tidligere '+(visit.bust?'BUST':visit.score+' poeng');
+  ui.correctionScore.value=String(visit.score);
+  ui.correction.hidden=false;
+  ui.correctionError.hidden=true;
+  updateCorrectionCheckout();
+  ui.correctionScore.focus();
+}
+function updateCorrectionCheckout(){
+  ui.correctionCheckout.hidden=true;
+  if(editingIndex===null||!state)return;
+  const visit=state.visits[editingIndex];
+  const remainingBefore=visit.remaining+visit.score;
+  const value=Number(ui.correctionScore.value);
+  if(ui.correctionScore.value.trim()===''||!Number.isInteger(value)||value!==remainingBefore)return;
+  const valid=E.checkoutOptions(value);
+  if(!valid.length||editingIndex!==state.visits.length-1)return;
+  const select=ui.correctionDarts;select.replaceChildren();
+  for(const dartCount of valid){
+    const option=document.createElement('option');option.value=String(dartCount);
+    option.textContent=dartCount+' pil'+(dartCount===1?'':'er');select.appendChild(option);
+  }
+  select.value=String(valid[valid.length-1]);
+  ui.correctionCheckout.hidden=false;
+}
 function commit(fn,msg){
   try{
     state=fn();
     pendingCheckout=null;
     ui.checkout.hidden=true;
+    editingIndex=null;
+    ui.correction.hidden=true;
     ui.score.value='';
     showMessage(msg||'Score registrert.');
     safeSave();render();focusScore();
@@ -153,11 +234,26 @@ $('localBust').addEventListener('click',()=>{
   const name=player(state.turn);
   commit(()=>E.bust(state),'BUST for '+name+'.');
 });
-document.querySelectorAll('[data-local-score]').forEach(btn=>btn.addEventListener('click',()=>{
-  if(!state||state.status!=='playing')return;
-  ui.score.value=btn.dataset.localScore;
-  focusScore();
-}));
+
+ui.correctionScore.addEventListener('input',()=>{ui.correctionError.hidden=true;updateCorrectionCheckout()});
+ui.correctionForm.addEventListener('submit',event=>{
+  event.preventDefault();
+  if(!state||editingIndex===null)return;
+  const index=editingIndex,score=ui.correctionScore.value.trim();
+  const darts=ui.correctionCheckout.hidden?null:Number(ui.correctionDarts.value);
+  try{
+    const next=E.correctVisit(state,index,score,darts);
+    state=next;
+    editingIndex=null;ui.correction.hidden=true;
+    ui.score.value='';
+    showMessage('Kast korrigert til '+score+' poeng.');
+    safeSave();render();focusScore();
+  }catch(e){
+    ui.correctionError.textContent=e?.message||'Korrigeringen kunne ikke lagres.';
+    ui.correctionError.hidden=false;
+  }
+});
+$('localCorrectionCancel').addEventListener('click',closeCorrection);
 $('localUndo').addEventListener('click',()=>{
   if(!state?.undo?.length)return;
   commit(()=>E.undo(state),'Siste registrering angret.');
@@ -178,13 +274,16 @@ $('localCheckoutBust').addEventListener('click',()=>{
 function newMatch(){
   if(state&&state.status!=='finished'&&!window.confirm('Avslutte denne lokale kampen? Resultatet kan ikke gjenopprettes etterpå.'))return;
   const oldPlayers=state?.players||[];
-  state=null;pendingCheckout=null;ui.checkout.hidden=true;
+  state=null;pendingCheckout=null;editingIndex=null;ui.checkout.hidden=true;ui.correction.hidden=true;
   ui.name1.value=oldPlayers[0]||'';ui.name2.value=oldPlayers[1]||'';
   safeSave();render();ui.name1.focus();
 }
 $('localNewMatch').addEventListener('click',newMatch);
 $('localPlayAgain').addEventListener('click',newMatch);
-document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!ui.checkout.hidden){event.preventDefault();closeCheckout()}});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){
+  if(!ui.correction.hidden){event.preventDefault();closeCorrection()}
+  else if(!ui.checkout.hidden){event.preventDefault();closeCheckout()}
+}});
 try{state=E.restore(JSON.parse(localStorage.getItem(KEY)||'null'))}catch{state=null}
 if(state){message='Lokal kamp gjenopprettet fra denne nettleseren.';isError=false}
 render();
