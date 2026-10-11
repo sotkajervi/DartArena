@@ -186,3 +186,67 @@
   .local-h2h-page .stats-grid>*{padding:8px 5px}
   .local-h2h-page .stats-grid .label,.local-h2h-page .stats-grid .head{font-size:11px}
 }
+
+
+/* Local Head-to-Head: full-width player scoreboard with shared compact stats beneath score entry. */
+.local-h2h-page .local-play-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.local-h2h-page .local-play-main{display:flex;flex-direction:column;gap:8px;width:100%}
+.local-h2h-page .local-board{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.local-h2h-page .local-player{padding:14px 18px;min-width:0}
+.local-h2h-page .local-player h2{font-size:clamp(18px,2.4vw,25px);margin:4px 0 0}
+.local-h2h-page .local-score{font-size:clamp(66px,10vh,106px);line-height:1.02}
+.local-h2h-page .local-leg-label{margin-top:2px}
+.local-h2h-page .local-entry-card{width:100%;padding:12px 16px}
+.local-h2h-page .local-turn{margin-bottom:6px}
+.local-h2h-page .local-score-form{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.local-h2h-page .local-score-form>label{margin:0;white-space:nowrap}
+.local-h2h-page .local-entry-controls{flex:1;align-items:center;min-width:260px}
+.local-h2h-page .local-entry-controls input{max-width:360px;min-width:140px;flex:1}
+.local-h2h-page .local-message{margin:4px 0 0}
+.local-h2h-page .local-stats-card{width:100%;margin:0;padding:12px 15px}
+.local-h2h-page .local-stats-card .heading{margin-bottom:8px}
+.local-h2h-page .local-stats-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.local-h2h-page .stats-grid{grid-template-columns:minmax(115px,1.2fr) repeat(2,minmax(0,1fr))}
+.local-h2h-page .stats-grid>*{padding:7px 7px}
+.local-h2h-page .local-corrections{padding:9px 13px;border-radius:12px;box-shadow:none;margin:0}
+.local-corrections-header{display:flex;justify-content:space-between;gap:8px;align-items:center;margin:0 0 7px}
+.local-corrections-header strong{font-size:12px}
+.local-corrections-header small{letter-spacing:0;color:var(--muted);font-size:10px;font-weight:600}
+.local-correction-line{display:grid;grid-template-columns:minmax(75px,110px) minmax(0,1fr);align-items:center;gap:8px;margin-top:5px}
+.local-correction-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--cyan);font-size:11px;font-weight:800}
+.local-correction-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;min-width:0}
+.local-throw-chip{min-height:27px;min-width:0;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035);border-radius:7px;padding:4px 6px;color:var(--text);font-size:12px;font-weight:900;text-align:center;display:flex;justify-content:center;align-items:center;gap:5px;overflow:hidden;white-space:nowrap}
+button.local-throw-chip.editable{border-color:rgba(0,234,244,.35);background:rgba(0,234,244,.075);cursor:pointer}
+button.local-throw-chip.editable:hover,button.local-throw-chip.editable:focus-visible{border-color:var(--cyan);color:var(--cyan)}
+.local-throw-edit-icon{color:var(--cyan);font-size:12px}
+.local-throw-empty{grid-column:1/-1;color:var(--muted);font-size:11px;padding:4px}
+.local-h2h-page #localCorrectionModal input,.local-h2h-page #localCorrectionModal select{
+  background:#07191c!important;color:var(--text)!important;color-scheme:dark;border:1px solid #2a555b!important;
+}
+.local-h2h-page #localCorrectionModal input:focus{border-color:var(--cyan)!important}
+@media(max-height:700px) and (min-width:880px){
+  .local-h2h-page .local-score{font-size:clamp(48px,9.6vh,80px)}
+  .local-h2h-page .local-player{padding:9px 14px}
+  .local-h2h-page .local-player h2{font-size:19px}
+  .local-h2h-page .local-stats-card{padding:9px 13px}
+  .local-h2h-page .stats-grid>*{padding:5px 6px}
+  .local-h2h-page .local-corrections{padding:6px 11px}
+  .local-h2h-page .local-throw-chip{min-height:24px;padding:3px}
+}
+@media(max-width:879px){
+  .local-h2h-page .local-stats-groups{grid-template-columns:1fr}
+  .local-h2h-page .local-play-layout{grid-template-columns:1fr}
+  .local-h2h-page .local-board{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .local-h2h-page .local-entry-controls{min-width:0;flex:1 1 100%}
+}
+@media(max-width:650px){
+  .local-h2h-page .local-player{padding:10px}
+  .local-h2h-page .local-player h2{font-size:16px;overflow-wrap:anywhere}
+  .local-h2h-page .local-score{font-size:clamp(47px,9vw,70px)}
+  .local-h2h-page .local-entry-card{padding:10px}
+  .local-h2h-page .local-score-form{gap:7px}
+  .local-h2h-page .local-entry-controls input{min-width:0;flex:1 1 100%;max-width:none}
+  .local-h2h-page .local-corrections-header small{display:none}
+  .local-h2h-page .local-correction-line{grid-template-columns:minmax(55px,78px) minmax(0,1fr)}
+  .local-h2h-page .local-throw-chip{font-size:11px}
+}
