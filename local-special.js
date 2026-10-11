@@ -173,7 +173,25 @@ function renderPad(){
  const max=game==='jdc'?neededJdc():3;
  dom.submit.disabled=state.paused||!pending.length||(game==='half'&&pending.length!==3)||(game==='jdc'&&pending.length!==max);
  dom.remove.disabled=!pending.length;
- if(usual)dom.selected.textContent=pending.length?pending.map(labelDart).join(' · ')+' ('+pending.length+'/'+max+')':'–';
+ if(usual){
+   dom.selected.replaceChildren();
+   if(!pending.length)dom.selected.textContent='–';
+   else{
+     for(const d of pending){
+       const chip=document.createElement('span');chip.className='special-dart-chip';
+       if(game==='half'){
+         const color=E.dartColor(d);
+         chip.classList.add('dart-'+color);
+         chip.title=({black:'SORT',white:'HVIT',red:'RØD',green:'GRØNN',miss:'MISS'})[color]||color;
+       }
+       chip.textContent=labelDart(d);
+       dom.selected.appendChild(chip);
+     }
+     const count=document.createElement('small');
+     count.textContent=pending.length+'/'+max;
+     dom.selected.appendChild(count);
+   }
+ }
  $('specialInfo').textContent=game==='half'?'Runde '+Math.min(12,E.round(state))+'/12 • Mål: '+String(E.halfRule(state)).toUpperCase():
  game==='jdc'?'Velg treff eller bom for hver pil i turen.':
  game==='cricket'?'Lukk 20–15 og Bull, ta poeng ved overskytende merker.':'';
