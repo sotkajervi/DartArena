@@ -80,8 +80,8 @@ function stats(state,p){
   }
   return {visits:visits.length,scored,darts,average:darts?3*scored/darts:0,
     fastestLeg,highestCheckout,busts:visits.filter(v=>v.bust).length,
-    hundreds:visits.filter(v=>v.score>=100&&v.score<140).length,
-    forties:visits.filter(v=>v.score>=140&&v.score<180).length,
+    hundreds:visits.filter(v=>v.score>=100).length,
+    forties:visits.filter(v=>v.score>=140).length,
     oneEighties:visits.filter(v=>v.score===180).length};
 }
 function restore(value){
