@@ -25,10 +25,12 @@ function safeSave(){
   catch{showMessage('Kampen kjører, men kunne ikke lagres i denne nettleseren.',true)}
 }
 function focusScore(){
-  if(state?.status==='playing'&&!pendingCheckout&&editingIndex===null){
+  if(state?.status!=='playing'||pendingCheckout||editingIndex!==null)return;
+  requestAnimationFrame(()=>{
+    if(state?.status!=='playing'||pendingCheckout||editingIndex!==null)return;
     ui.score.focus({preventScroll:true});
-    // Numeric inputs cannot reliably select text across all browsers.
-  }
+    ui.score.select();
+  });
 }
 function player(i){return state.players[i]}
 function statValue(id,value){$(id).textContent=String(value)}
@@ -54,7 +56,12 @@ function render(){
     statValue('localPlayerName'+i,player(i));
     statValue('localScore'+i,state.scores[i]);
     statValue('localLegs'+i,state.legs[i]);
-    statValue('localAverage'+i,'3-dart snitt: '+(onlineThrows.some(v=>v.player_id===i)?st.avg.toFixed(2):'–'));
+    // Match the online live-darts counter: current leg only, 3 darts per
+    // ordinary visit and the actual number used for a winning checkout.
+    const currentLegDarts=onlineThrows.filter(v=>v.player_id===i&&v.leg_no===state.leg)
+      .reduce((sum,v)=>sum+window.DartArenaX01Stats.dartsFor(v),0);
+    statValue('localDarts'+i,currentLegDarts);
+    statValue('localAverage'+i,onlineThrows.some(v=>v.player_id===i)?st.avg.toFixed(2):'–');
     statValue('localStatsName'+i,player(i));
     statValue('localStatsName'+i+'b',player(i));
     statValue('localStatAvg'+i,st.avg.toFixed(2));
@@ -229,6 +236,22 @@ ui.scoreForm.addEventListener('submit',event=>{
   const isBust=value>old||old-value===1;
   commit(()=>E.submit(state,value),isBust?'BUST – '+player(p)+' beholder '+old+'.':'Registrert: '+value+' poeng.');
 });
+// Keyboard-first scoring: after a mouse click elsewhere, the first digit
+// redirects typing to the score field. Enter then submits the same form.
+document.addEventListener('keydown',event=>{
+  if(event.defaultPrevented||event.ctrlKey||event.altKey||event.metaKey||
+      event.isComposing||!state||state.status!=='playing'||
+      pendingCheckout||editingIndex!==null||!ui.checkout.hidden||!ui.correction.hidden)return;
+  const target=event.target;
+  if(target===ui.score)return;
+  if(target?.isContentEditable||['INPUT','TEXTAREA','SELECT'].includes(target?.tagName))return;
+  if(event.key>='0'&&event.key<='9'&&event.key.length===1){
+    event.preventDefault();
+    ui.score.value=event.key;
+    ui.score.focus({preventScroll:true});
+    ui.score.setSelectionRange(ui.score.value.length,ui.score.value.length);
+  }
+});
 $('localBust').addEventListener('click',()=>{
   if(!state||state.status!=='playing')return;
   const name=player(state.turn);
@@ -287,4 +310,5 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){
 try{state=E.restore(JSON.parse(localStorage.getItem(KEY)||'null'))}catch{state=null}
 if(state){message='Lokal kamp gjenopprettet fra denne nettleseren.';isError=false}
 render();
+focusScore();
 })();
