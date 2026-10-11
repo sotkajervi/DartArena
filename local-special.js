@@ -7,7 +7,7 @@ const KEY_PREFIX='dartarena-local-special-v1:',config={
  cricket:'Cricket',half_standard:'Half-It (Standard)',half_dartcounter:'Half-It (DartCounter)',
  sixty_one:'61',jdc:'JDC Challenge',chicago:'Chicago Style'
 };
-let state=null,pending=[],selectedMult=1,editingIndex=null,message='',isError=false,nextTimer=null;
+let state=null,pending=[],selectedMult=1,editingIndex=null,message='',isError=false,nextTimer=null,cricketDisclosureInitialized=false;
 const w=window,dom={
  setup:$('specialSetup'),game:$('specialGame'),mode:$('specialMode'),name1:$('specialSetupName1'),
  name2:$('specialSetupName2'),legs:$('specialLegs'),minutes:$('specialMinutes'),starter:$('specialStarter'),
@@ -27,6 +27,33 @@ function store(gameToDelete){
   }catch(e){fail('Kunne ikke lagre kampen lokalt.')}
 }
 function resetPending(){pending=[];selectedMult=1;editingIndex=null;dom.checkout.hidden=true}
+function cricketMobile(){return state?.game==='cricket'&&!!w.matchMedia?.('(max-width: 700px)')?.matches}
+function closeCricketStats(){
+ document.body.classList.remove('special-cricket-stats-open');
+ $('specialStatsBackdrop').hidden=true;
+ $('specialStatsOpen').setAttribute('aria-expanded','false');
+ $('specialStatsPanel').removeAttribute('role');
+ $('specialStatsPanel').removeAttribute('aria-modal');
+}
+function openCricketStats(){
+ if(!cricketMobile())return;
+ document.body.classList.add('special-cricket-stats-open');
+ $('specialStatsBackdrop').hidden=false;
+ $('specialStatsOpen').setAttribute('aria-expanded','true');
+ $('specialStatsPanel').setAttribute('role','dialog');
+ $('specialStatsPanel').setAttribute('aria-modal','true');
+ $('specialStatsClose').focus({preventScroll:true});
+}
+$('specialStatsOpen').addEventListener('click',openCricketStats);
+$('specialStatsClose').addEventListener('click',closeCricketStats);
+$('specialStatsBackdrop').addEventListener('click',closeCricketStats);
+document.addEventListener('keydown',event=>{
+ if(event.key==='Escape'&&document.body.classList.contains('special-cricket-stats-open')){
+   event.preventDefault();
+   event.stopImmediatePropagation();
+   closeCricketStats();
+ }
+},true);
 function formatScore(value){return Number(value||0).toLocaleString('nb-NO')}
 function labelDart(d){
  if(typeof d==='string')return ({M:'MISS',S:'Single',D:'Double',T:'Triple',H:'Treff'})[d]||d;
@@ -272,7 +299,13 @@ function renderHistory(){
  }
 }
 function render(){
- dom.setup.hidden=!!state;dom.game.hidden=!state;if(!state)return;
+ dom.setup.hidden=!!state;dom.game.hidden=!state;
+ document.body.classList.toggle('local-cricket-playing',state?.game==='cricket');
+ if(!state)return;
+ if(state.game==='cricket'&&!cricketDisclosureInitialized){
+   $('specialCorrections').open=!cricketMobile();
+   cricketDisclosureInitialized=true;
+ }
  $('localSpecialHeading').textContent=config[state.game]||'Lokale spill';
  $('specialGameName').textContent=E.stageName(state);
  $('specialStage').textContent=state.game==='chicago'?'Game '+state.stage+'/3':'Leg '+state.leg;
@@ -348,6 +381,7 @@ $('specialSetupForm').addEventListener('submit',event=>{
  event.preventDefault();try{
   state=E.init({game:dom.mode.value,name1:dom.name1.value,name2:dom.name2.value,
     bestOf:dom.legs.value,minutes:dom.minutes.value,starter:dom.starter.value});
+  closeCricketStats();cricketDisclosureInitialized=false;
   resetPending();store();message='Kampen startet.';isError=false;render();
  }catch(e){$('specialSetupError').textContent=e.message;$('specialSetupError').hidden=false}
 });
@@ -372,7 +406,9 @@ $('specialCancelEdit').addEventListener('click',()=>{editingIndex=null;pending=[
 $('specialUndo').addEventListener('click',()=>{if(pending.length){pending.pop();renderPad()}else if(state?.undo?.length)commit(()=>E.undo(state),'Angret siste registrering.')});
 $('specialNext').addEventListener('click',()=>commit(()=>E.next(state),'Neste leg startet.'));
 function newGame(){if(state?.status==='playing'&&!w.confirm('Avslutte lokal kamp?'))return;
- const players=state?.players||[],oldGame=state?.game;state=null;resetPending();dom.name1.value=players[0]||'';dom.name2.value=players[1]||'';store(oldGame);render();}
+ const players=state?.players||[],oldGame=state?.game;
+ closeCricketStats();cricketDisclosureInitialized=false;
+ state=null;resetPending();dom.name1.value=players[0]||'';dom.name2.value=players[1]||'';store(oldGame);render();}
 $('specialNew').addEventListener('click',newGame);$('specialAgain').addEventListener('click',newGame);
 document.addEventListener('keydown',event=>{
  if(event.ctrlKey||event.altKey||event.metaKey||event.isComposing||!state||state.status!=='playing')return;
