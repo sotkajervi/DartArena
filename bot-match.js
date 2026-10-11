@@ -163,7 +163,7 @@ function start(event){
    state=E.setup({name1:name,name2:LABELS[profile]+' · '+avg.toFixed(0),
      format:Number(el.format.value),mode:'legs',bestOf:Number(el.bestOf.value),
      starter:Number(el.starter.value)});
-   config={mode,profile,average:avg,sigma:B.calibrate(avg,profile)};
+   config={mode,profile,average:avg,format:Number(el.format.value),sigma:B.calibrate(avg,profile,Number(el.format.value))};
    recorded=false;window.DartArenaLocalNameHistory?.remember(name);
    saveMatch();resetCheckout();el.input.value='';
    msg('Kampen er i gang.');render();
