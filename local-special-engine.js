@@ -53,33 +53,6 @@ function halfPoints(s,darts,p){
 // Tap each Cricket field once per mark, independent of single/double/triple.
 // Encode those marks into at most three virtual darts for the existing engine.
 // Padding with MISS preserves the three-dart visit and accurate darts/MPR.
-// Interpret an entered dart's point value as a real board hit.
-// Some values (e.g. 24 = D12 or T8) require an explicit board selection
-// unless the round's target/double/triple rule resolves the ambiguity.
-function halfDartFromScore(raw,rule){
- const text=String(raw??'').trim();
- need(/^\d{1,2}$/.test(text),'Skriv poeng for én pil (0–60).');
- const score=Number(text);
- need(score>=0&&score<=60,'Én pil kan gi 0–60 poeng.');
- if(score===0)return{n:0,mult:0};
- const possible=[];
- for(let n=1;n<=20;n++)for(let mult=1;mult<=3;mult++)
-   if(n*mult===score)possible.push({n,mult});
- if(score===25)possible.push({n:25,mult:1});
- if(score===50)possible.push({n:25,mult:2});
- need(possible.length,'Denne scoren er ikke mulig med én pil.');
- const preferred=typeof rule==='number'&&rule!==41?
-   possible.filter(d=>d.n===rule):
-   rule==='double'?possible.filter(d=>d.mult===2):
-   rule==='treble'?possible.filter(d=>d.mult===3):
-   rule==='bull'?possible.filter(d=>d.n===25):[];
- if(preferred.length===1)return preferred[0];
- // A single 13 always means S13, including color and exact-score rounds.
- const single=possible.find(d=>d.mult===1);
- if(single)return single;
- need(possible.length===1,'Denne scoren kan være flere felt. Velg S/D/T under «Feltvalg».');
- return possible[0];
-}
 function cricketMarkDarts(taps){
  need(Array.isArray(taps)&&taps.length,'Trykk på et felt eller MISS før registrering.');
  const counts=emptyMarks();let misses=0;
@@ -276,5 +249,5 @@ function pause(state){need(state?.game==='sixty_one','Pause er kun for 61.');con
  else{s.paused=true;s.pausedAt=Date.now()}
  return save(state,s)}
 function restore(s){return s&&s.version===1&&['cricket','half_standard','half_dartcounter','sixty_one','jdc','chicago'].includes(s.game)?s:null}
-root.DartArenaLocalSpecial={init,submit,next,undo,tick,pause,restore,stageMode,stageName,halfRule,halfPoints,round,emptyMarks,TARGETS,dartColor,dartScore,editableCricket,correctCricket,cricketMarkDarts,cricketDartTaps,halfDartFromScore};
+root.DartArenaLocalSpecial={init,submit,next,undo,tick,pause,restore,stageMode,stageName,halfRule,halfPoints,round,emptyMarks,TARGETS,dartColor,dartScore,editableCricket,correctCricket,cricketMarkDarts,cricketDartTaps};
 })(window);
