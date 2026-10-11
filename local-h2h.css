@@ -455,16 +455,22 @@ button.local-throw-chip.editable:hover,button.local-throw-chip.editable:focus-vi
   .local-h2h-page .local-stats-card{display:none!important}
   .local-h2h-page .local-mobile-stats-close{display:inline-flex;align-items:center;justify-content:center;padding:9px 11px}
   .local-h2h-page.local-stats-open{overflow:hidden}
+  /* The sticky site header lives at z-index 5; raise the shell's stacking
+     context so a dialog inside it is not painted *behind* that header. */
+  .local-h2h-page.local-stats-open .local-h2h-shell{z-index:10}
   .local-h2h-page.local-stats-open .local-stats-backdrop:not([hidden]){
     display:block;position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.80);
   }
   .local-h2h-page.local-stats-open #localGame .local-stats-card{
     display:block!important;
     position:fixed;z-index:121;
-    top:max(15px,env(safe-area-inset-top));
-    bottom:max(15px,env(safe-area-inset-bottom));
+    top:50%;bottom:auto;
     left:12px;right:12px;
-    width:auto;max-width:500px;max-height:none;
+    transform:translateY(-50%);
+    width:auto;max-width:500px;
+    height:max-content;
+    max-height:calc(100vh - 32px);
+    max-height:calc(100dvh - 32px);
     overflow-y:auto;overscroll-behavior:contain;
     margin:0 auto;padding:15px 13px;
     background:#0b1b1e;border:1px solid rgba(0,234,244,.4);
@@ -472,7 +478,8 @@ button.local-throw-chip.editable:hover,button.local-throw-chip.editable:focus-vi
     border-radius:16px
   }
   .local-h2h-page.local-stats-open .local-stats-card .heading{
-    display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px
+    display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;
+    position:sticky;top:-15px;z-index:1;background:#0b1b1e;padding:6px 0 10px
   }
   .local-h2h-page.local-stats-open .local-stats-card h2{font-size:21px}
   .local-h2h-page.local-stats-open .local-stats-groups{display:grid;grid-template-columns:1fr;gap:12px}
