@@ -38,7 +38,7 @@
       <label class="field">Kampformat<select id="localMode"><option value="legs">Legs</option><option value="sets">Sets</option></select></label>
       <label class="field">Antall legs<select id="localBestOf"><option value="1">Best av 1</option><option value="3" selected>Best av 3</option><option value="5">Best av 5</option><option value="7">Best av 7</option><option value="9">Best av 9</option><option value="11">Best av 11</option><option value="13">Best av 13</option><option value="15">Best av 15</option></select></label>
       <label class="field" id="localSetsField" hidden>Antall sets<select id="localBestOfSets"><option value="1">Best av 1</option><option value="3" selected>Best av 3</option><option value="5">Best av 5</option><option value="7">Best av 7</option><option value="9">Best av 9</option><option value="11">Best av 11</option><option value="13">Best av 13</option><option value="15">Best av 15</option></select></label>
-      <label class="field">Starter første leg<select id="localStarter"><option value="0">Spiller 1</option><option value="1">Spiller 2</option></select></label>
+      <label class="field">Hvem starter første leg?<select id="localStarter"><option value="coin" selected>Myntkast – tilfeldig starter</option><option value="0">Spiller 1</option><option value="1">Spiller 2 / Bot</option></select></label>
       <div class="local-setup-submit"><button class="primary" type="submit">Start kampen</button></div>
     </form>
     <p class="muted compact">Samme X01-regler som online: gyldige 3-pilsscorer, dobbel-ut, leg-/set-veksling og antall piler ved utsjekk.</p>
@@ -145,6 +145,7 @@
 <script src="./local-result-screen.js?v=20261011-fullstats1"></script>
 <script src="./local-player-name-history.js?v=20261011-names1"></script>
 <script src="./bot-engine.js?v=20261011-h2hbot1"></script>
-<script src="./local-h2h.js?v=20261011-personas2"></script>
+<script src="./room-coin-flip.js?v=20261012-local1"></script>
+<script src="./local-h2h.js?v=20261012-coin1"></script>
 </body>
 </html>
