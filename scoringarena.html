@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="./brand-header.css?v=20261009-mobile1">
 <link rel="stylesheet" href="./training-games.css?v=20260930-cleanup1">
 <link rel="stylesheet" href="./scoringarena.css?v=20261012-h2hhistory1">
+<link rel="stylesheet" href="./match-history-layout.css?v=20261012-matchlayout1">
 </head><body class="scoringarena-page">
 <header>
   <div class="brand"><a href="./" aria-label="DartArena – lobby"><img class="brand-logo" src="./assets/dartarena-logo.jpg?v=20261009-global1" alt="DartArena" width="420" height="116"></a></div>
@@ -22,24 +23,23 @@
 <div class="training-games-grid"><article class="training-game-card"><div class="training-game-main"><div class="training-icon">1v1</div><div><h3>X01 – 1v1 mot spiller eller bot</h3><p>170 / 301 / 501 / 1001 · velg motstander i kampoppsettet. Dobbel-ut, legs, sets og full statistikk.</p></div></div><button class="primary" type="button" onclick="window.open('local-head-to-head.html','dartarena-local-head-to-head')">Spill 1v1</button></article><article class="training-game-card"><div class="training-game-main"><div class="training-icon">◎</div><div><h3>Cricket</h3><p>20–15 og Bull, lukking, MPR og poeng.</p></div></div><button class="primary" type="button" onclick="window.open('local-special.html?game=cricket','dartarena-local-cricket')">Spill 1v1</button></article><article class="training-game-card"><div class="training-game-main"><div class="training-icon">3</div><div><h3>Chicago Style</h3><p>301 DIDO → Cricket → 501 SIDO.</p></div></div><button class="primary" type="button" onclick="window.open('local-special.html?game=chicago','dartarena-local-chicago')">Spill 1v1</button></article><article class="training-game-card"><div class="training-game-main"><div class="training-icon">½</div><div><h3>Half-It (Standard)</h3><p>12 runder etter standardreglene.</p></div></div><button class="primary" type="button" onclick="window.open('local-special.html?game=half_standard','dartarena-local-half_standard')">Spill 1v1</button></article><article class="training-game-card"><div class="training-game-main"><div class="training-icon">½</div><div><h3>Half-It (DartCounter)</h3><p>12 runder med farger og eksakt score.</p></div></div><button class="primary" type="button" onclick="window.open('local-special.html?game=half_dartcounter','dartarena-local-half_dartcounter')">Spill 1v1</button></article><article class="training-game-card"><div class="training-game-main"><div class="training-icon">61</div><div><h3>61</h3><p>Treff/bom, mål og klokke.</p></div></div><button class="primary" type="button" onclick="window.open('local-special.html?game=sixty_one','dartarena-local-sixty_one')">Spill 1v1</button></article><article class="training-game-card"><div class="training-game-main"><div class="training-icon">JDC</div><div><h3>JDC Challenge</h3><p>33 mål: Shanghai og doubles.</p></div></div><button class="primary" type="button" onclick="window.open('local-special.html?game=jdc','dartarena-local-jdc')">Spill 1v1</button></article></div>
 </section>
   <section id="saH2HHistory" class="card sa-history-section">
-    <div class="heading sa-history-heading">
-      <div><small>KAMPARKIV · X01 HEAD-TO-HEAD</small><h2>Kamphistorikk</h2></div>
-      <div class="sa-history-controls"><label for="saHistoryFilter">Vis</label>
-        <select id="saHistoryFilter" aria-label="Filtrer Head-to-Head historikken"><option value="all">Alle kamper</option><option value="human">Mot spiller</option><option value="bot">Mot bot</option></select>
+    <div class="history-head">
+      <div><small>LOKALE KAMPER • X01</small><h2>Kamphistorikk</h2><p class="muted compact">Ferdige lokale Head-to-Head-kamper. Samme resultat- og statistikkvisning som online, men lagret kun på denne enheten.</p></div>
+    </div>
+    <div class="history-toolbar">
+      <div id="saHistoryFilters" class="history-filters">
+        <button class="outline history-filter active" type="button" data-filter="all">Alle</button>
+        <button class="outline history-filter" type="button" data-filter="human">Mot spiller</button>
+        <button class="outline history-filter" type="button" data-filter="bot">Mot bot</button>
       </div>
     </div>
-    <p class="muted compact">Ferdige X01-kamper lagres automatisk på denne enheten. Åpne en kamp for detaljer, statistikk og kastlogg.</p>
-    <div id="saHistoryCount" class="sa-history-count">0 kamper</div>
-    <div id="saHistoryList" class="sa-history-list" aria-live="polite"><p class="muted compact">Laster historikk…</p></div>
-    <button id="saHistoryMore" class="outline sa-history-more" type="button" hidden>Vis flere kamper</button>
+    <div class="history-summary"><span id="saHistoryCount">Laster…</span><span>Nyeste først</span></div>
+    <div class="history-list" id="saHistoryList" aria-live="polite"><p class="muted history-empty">Laster kamper…</p></div>
+    <button id="saHistoryMore" type="button" class="outline sa-history-more" hidden>Vis alle kamper</button>
   </section>
-  <dialog id="saHistoryDialog" class="sa-history-dialog" aria-label="Detaljer om historisk kamp" hidden>
-    <div class="sa-history-dialog-top"><strong>Kampdetaljer</strong><button id="saHistoryClose" type="button" class="outline">Lukk ✕</button></div>
-    <div id="saHistoryDetails" class="sa-history-details"></div>
-  </dialog>
   <p class="muted compact scoringarena-footnote">Lokale kamper lagres i nettleseren. De påvirker ikke online ranking eller turneringsresultater.</p>
 </main>
 <script src="./x01-stats.js?v=20261011-localonline1"></script>
-<script src="./local-h2h-history.js?v=20261012-h2hhistory1"></script>
-<script src="./scoringarena-history.js?v=20261012-h2hhistory1"></script>
+<script src="./local-h2h-history.js?v=20261012-recover1"></script>
+<script src="./scoringarena-history.js?v=20261012-premiumhistory2"></script>
 </body></html>
