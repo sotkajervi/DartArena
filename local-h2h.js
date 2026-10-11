@@ -23,7 +23,7 @@ const ui={
   opponentType:$('localOpponentType'),opponentField:$('localHumanOpponentField'),opponentLabel:$('localOpponentCardLabel'),
   botSettings:$('localBotSettings'),botMode:$('localBotMode'),botAverage:$('localBotAverage'),
   botProfile:$('localBotProfile'),botName:$('localBotName'),botHint:$('localBotHint'),
-  mode:$('localMode'),setsField:$('localSetsField'),bestOfSets:$('localBestOfSets'),starter:$('localStarter'),
+  mode:$('localMode'),setsField:$('localSetsField'),bestOfSets:$('localBestOfSets'),
   game:$('localGame'),scoreForm:$('localScoreForm'),score:$('localScoreInput'),
   keypad:$('localMobileKeypad'),statsOpen:$('localStatsOpen'),statsClose:$('localStatsClose'),
   statsPanel:$('localStatsPanel'),statsBackdrop:$('localStatsBackdrop'),
@@ -76,7 +76,6 @@ function updateBotFields(){
   ui.opponentField.hidden=selected;ui.name2.disabled=selected;ui.name2.required=!selected;
   ui.botSettings.hidden=!selected;
   for(const element of [ui.botMode,ui.botAverage,ui.botProfile,ui.botName])element.disabled=!selected;
-  ui.starter.options[2].textContent=selected?'Bot':'Spiller 2';
   if(!selected)return;
   updateBotNames();
   const adaptive=readAdaptive();
@@ -423,20 +422,12 @@ document.addEventListener('keydown',event=>{
   event.preventDefault();event.stopImmediatePropagation();
   finishCheckoutDarts(Number(event.key));
 },true);
-function randomFirstStarter(){
-  if(window.crypto?.getRandomValues){
-    const values=new Uint32Array(1);
-    window.crypto.getRandomValues(values);
-    return values[0]%2;
-  }
-  return Math.random()<.5?0:1;
-}
 ui.setupForm.addEventListener('submit',async event=>{
   event.preventDefault();
   if(coinBusy)return;
   try{
-    const coinRequested=ui.starter.value==='coin';
-    const starter=coinRequested?randomFirstStarter():Number(ui.starter.value);
+    if(!window.DartArenaLocalCoin)throw Error('Myntkastet er ikke tilgjengelig. Oppdater siden.');
+    const starter=window.DartArenaLocalCoin.winner();
     const selectedBot=ui.opponentType.value==='bot';
     const profile=ui.botProfile.value,botMode=ui.botMode.value,level=Number(ui.botAverage.value);
     if(selectedBot&&(!B||!B.profiles.includes(profile)||!['standard','adaptive'].includes(botMode)||
@@ -450,25 +441,16 @@ ui.setupForm.addEventListener('submit',async event=>{
     const created=E.setup({name1:ui.name1.value,name2:opponent,
       format:ui.format.value,mode:ui.mode.value,bestOf:ui.bestOf.value,
       bestOfSets:ui.bestOfSets.value,starter});
+    coinBusy=true;
+    const startButton=ui.setupForm.querySelector('button[type="submit"]');
+    if(startButton)startButton.disabled=true;
     let coinAnimationFailed=false;
-    if(coinRequested){
-      coinBusy=true;
-      const startButton=ui.setupForm.querySelector('button[type="submit"]');
-      if(startButton)startButton.disabled=true;
-      try{
-        if(!window.DartArenaCoinFlip?.play)throw Error('Myntkastvisningen ble ikke lastet.');
-        await window.DartArenaCoinFlip.play({
-          player1Id:'player-1',player2Id:'player-2',
-          player1Name:created.players[0],player2Name:created.players[1],
-          winnerId:starter===0?'player-1':'player-2'
-        });
-      }catch(error){
-        console.warn('Lokal myntkast-animasjon feilet:',error);
-        coinAnimationFailed=true;
-      }finally{
-        coinBusy=false;
-        if(startButton)startButton.disabled=false;
-      }
+    try{
+      const result=await window.DartArenaLocalCoin.animate(created.players,starter);
+      coinAnimationFailed=result.animationFailed;
+    }finally{
+      coinBusy=false;
+      if(startButton)startButton.disabled=false;
     }
     cancelBot();
     state=created;botRecorded=false;
@@ -476,8 +458,8 @@ ui.setupForm.addEventListener('submit',async event=>{
       sigma:B.calibrate(selectedLevel,profile,state.format)}:null;
     window.DartArenaLocalNameHistory?.remember(selectedBot?[state.players[0]]:state.players);
     ui.setupError.hidden=true;
-    message=coinRequested?(coinAnimationFailed?'Myntkast trukket, men animasjonen kunne ikke vises. ':'' )+
-      created.players[starter]+' starter første leg.':'Skriv score og trykk Enter.';
+    message=(coinAnimationFailed?'Myntkast trukket, men animasjonen kunne ikke vises. ':'')+
+      created.players[starter]+' starter første leg.';
     isError=false;
     safeSave();render();
   }catch(e){ui.setupError.textContent=e.message;ui.setupError.hidden=false}
