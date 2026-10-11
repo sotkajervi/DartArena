@@ -35,6 +35,7 @@
     rfSaveCrop:$('labRfSaveCrop'),rfFileA:$('labRfFileA'),rfFileB:$('labRfFileB'),
     rfCompareSaved:$('labRfCompareSaved'),rfSavedResult:$('labRfSavedResult'),
     rfZoomTest:$('labRfZoomTest'),rfZoomResult:$('labRfZoomResult'),rfZoomSize:$('labRfZoomSize'),
+    rfZoomLocal:$('labRfZoomLocal'),rfZoomSave:$('labRfZoomSave'),
     rfZoomPreview:$('labRfZoomPreview'),rfZoomImage:$('labRfZoomImage'),
     deepState:$('labDeepState'),deepFile:$('labDeepFile'),
     deepLoad:$('labDeepLoad'),deepTest:$('labDeepTest'),
@@ -157,6 +158,8 @@
     els.rfCompareSaved.disabled=!authorized||!RF?.inferSavedImage||rfBusy||!els.rfConsent.checked||!els.rfFileA.files?.length||!els.rfFileB.files?.length;
     els.rfZoomTest.disabled=!authorized||!RF?.inferZoom||!ready||!baseline||!samples.length||!frozen||!els.rfConsent.checked||calibrating||adjusting||rfBusy;
     els.rfZoomSize.disabled=!authorized||!ready||!frozen||calibrating||adjusting||rfBusy;
+    els.rfZoomLocal.disabled=!authorized||!RF?.previewZoom||!ready||!baseline||!samples.length||!frozen||calibrating||adjusting||rfBusy;
+    els.rfZoomSave.disabled=!authorized||!frozen||els.rfZoomPreview.hidden||!els.rfZoomImage.src;
     els.datasetOptIn.disabled=!authorized;
     els.datasetExport.disabled=!authorized||!dataset.length;
     els.datasetClear.disabled=!authorized||!dataset.length;
@@ -301,14 +304,38 @@
       width:size,height:size},count,localCount:cluster.localCount,discarded:cluster.discarded,
       changeWidth:Math.round(changeWidth),changeHeight:Math.round(changeHeight)};
   }
+  function showLocalAutoZoom(){
+    if(!authorized||!RF?.previewZoom||!stream||!board||!baseline||!frozen||calibrating||adjusting)return null;
+    try{
+      const target=getAutoZoomRegion();
+      const crop=RF.previewZoom(els.frozenFrame,target.region);
+      els.rfZoomImage.src=crop.preview;
+      els.rfZoomPreview.hidden=false;
+      els.rfZoomResult.textContent='Lokal forhåndsvisning: '+crop.sourceSize+' × '+crop.sourceSize+
+        ' kildepiksler → 768 × 768 JPEG. '+target.localCount+' av '+target.count+
+        ' endrede målepunkter i området. Bildet er IKKE sendt til Roboflow.';
+      updateButtons();
+      return {target,crop};
+    }catch(e){
+      els.rfZoomResult.textContent='Kunne ikke forhåndsvise autozoom: '+(e?.message||String(e));
+      els.rfZoomPreview.hidden=true;
+      els.rfZoomImage.removeAttribute('src');
+      updateButtons();
+      return null;
+    }
+  }
+  function saveLocalAutoZoom(){
+    if(!authorized||!frozen||els.rfZoomPreview.hidden||!els.rfZoomImage.src)return;
+    const link=document.createElement('a');
+    link.href=els.rfZoomImage.src;
+    link.download='dartarena-autozoom-'+els.rfZoomSize.value+'px-'+Date.now()+'.jpg';
+    document.body.appendChild(link);link.click();link.remove();
+  }
   async function testAutoZoom(){
     if(!authorized||!RF?.inferZoom||rfBusy||!stream||!board||!baseline||!frozen||!els.rfConsent.checked||adjusting||calibrating)return;
-    let target;
-    try{target=getAutoZoomRegion()}catch(e){
-      els.rfZoomResult.textContent=e?.message||String(e);
-      els.rfZoomPreview.hidden=true;
-      return;
-    }
+    const local=showLocalAutoZoom();
+    if(!local)return;
+    const target=local.target;
     rfBusy=true;
     const ticket=++rfSerial;
     els.rfZoomResult.textContent='Analyserer zoomutsnitt ('+target.region.width+' × '+target.region.height+' kildepiksler)…';
@@ -332,8 +359,7 @@
         ' Ingen score er registrert.';
     }catch(e){
       if(ticket===rfSerial){
-        els.rfZoomResult.textContent='Zoomanalyse feilet: '+(e?.message||String(e));
-        els.rfZoomPreview.hidden=true;
+        els.rfZoomResult.textContent='Zoomanalyse feilet: '+(e?.message||String(e))+'. Zoom-JPEG er fortsatt tilgjengelig lokalt.';
       }
     }finally{
       rfBusy=false;
@@ -1096,6 +1122,9 @@
   }
   els.rfPreviewBtn.addEventListener('click',showRoboflowPreview);
   els.rfZoomTest.addEventListener('click',testAutoZoom);
+  els.rfZoomLocal.addEventListener('click',showLocalAutoZoom);
+  els.rfZoomSave.addEventListener('click',saveLocalAutoZoom);
+  els.rfZoomSize.addEventListener('change',()=>{els.rfZoomPreview.hidden=true;els.rfZoomImage.removeAttribute('src');updateButtons()});
   els.rfCompareBtn.addEventListener('click',compareRoboflowResolutions);
   els.rfABBtn.addEventListener('click',compareRoboflowModels);
   els.rfSaveCrop.addEventListener('click',saveRoboflowCrop);
