@@ -250,3 +250,54 @@ button.local-throw-chip.editable:hover,button.local-throw-chip.editable:focus-vi
   .local-h2h-page .local-correction-line{grid-template-columns:minmax(55px,78px) minmax(0,1fr)}
   .local-h2h-page .local-throw-chip{font-size:11px}
 }
+
+
+/* Match the live online player-card statistics: PILER at left, AVG at right. */
+.local-h2h-page .local-score-band{
+  display:grid;
+  grid-template-columns:clamp(46px,5.2vw,70px) minmax(0,1fr) clamp(46px,5.2vw,70px);
+  gap:6px;align-items:center;width:100%;margin:4px 0 3px
+}
+.local-h2h-page .local-score-band .local-score{
+  min-width:0;text-align:center;font-variant-numeric:tabular-nums;
+  font-size:clamp(48px,7.8vh,84px);line-height:1.04
+}
+.local-h2h-page .local-score-band .local-live-darts,
+.local-h2h-page .local-score-band .local-avg{
+  margin:0!important;min-width:0;min-height:54px;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;
+  padding:7px 4px;background:rgba(0,0,0,.36);
+  border:1px solid rgba(0,234,244,.18);border-radius:9px;
+  font-weight:900;letter-spacing:.04em
+}
+.local-h2h-page .local-score-band .local-live-darts b,
+.local-h2h-page .local-score-band .local-avg b{
+  font-size:18px;line-height:1;color:var(--text);
+  font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:-.03em
+}
+.local-h2h-page .local-score-band .local-live-darts span,
+.local-h2h-page .local-score-band .local-avg span{
+  font-size:9px;line-height:1.15;color:var(--muted);letter-spacing:.10em
+}
+.local-h2h-page #localScoreInput{
+  color-scheme:dark;
+  background:#07191c!important;color:var(--text)!important;
+  caret-color:var(--cyan)
+}
+@media(max-height:700px) and (min-width:880px){
+  .local-h2h-page .local-score-band .local-score{font-size:clamp(48px,8vh,66px)}
+  .local-h2h-page .local-score-band .local-live-darts,
+  .local-h2h-page .local-score-band .local-avg{min-height:46px;padding:5px 3px}
+  .local-h2h-page .local-score-band .local-live-darts b,
+  .local-h2h-page .local-score-band .local-avg b{font-size:16px}
+}
+@media(max-width:650px){
+  .local-h2h-page .local-score-band{grid-template-columns:43px minmax(0,1fr) 43px;gap:3px}
+  .local-h2h-page .local-score-band .local-score{font-size:clamp(35px,9vw,63px)}
+  .local-h2h-page .local-score-band .local-live-darts,
+  .local-h2h-page .local-score-band .local-avg{min-height:42px;padding:4px 2px}
+  .local-h2h-page .local-score-band .local-live-darts b,
+  .local-h2h-page .local-score-band .local-avg b{font-size:13px}
+  .local-h2h-page .local-score-band .local-live-darts span,
+  .local-h2h-page .local-score-band .local-avg span{font-size:7px}
+}
