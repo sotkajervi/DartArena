@@ -2,13 +2,21 @@
 (function(){
 'use strict';
 const E=window.DartArenaLocalH2HEngine;
+const B=window.DartArenaBotEngine;
+const BOT_SESSION_KEY='dartarena-local-h2h-bot-session-v1';
+const ADAPT_KEY='dartarena-bot-adaptive-v1';
+const BOT_NAMES={steady:'Jevn',erratic:'Ustabil',scorer:'Power Scorer',finisher:'Finisher'};
 const $=id=>document.getElementById(id);
 if(!E||!$('localSetupForm'))return;
 const KEY='dartarena-local-h2h-state-v1';
-let state=null,pendingCheckout=null,editingIndex=null,betweenTimer=null,message='Skriv score og trykk Enter.',isError=false;
+let state=null,pendingCheckout=null,editingIndex=null,betweenTimer=null,botTimer=null,
+  botConfig=null,botRecorded=false,message='Skriv score og trykk Enter.',isError=false;
 const ui={
   setup:$('localSetup'),setupForm:$('localSetupForm'),setupError:$('localSetupError'),
   name1:$('localName1'),name2:$('localName2'),format:$('localFormat'),bestOf:$('localBestOf'),
+  opponentType:$('localOpponentType'),opponentField:$('localHumanOpponentField'),opponentLabel:$('localOpponentCardLabel'),
+  botSettings:$('localBotSettings'),botMode:$('localBotMode'),botAverage:$('localBotAverage'),
+  botProfile:$('localBotProfile'),botHint:$('localBotHint'),
   mode:$('localMode'),setsField:$('localSetsField'),bestOfSets:$('localBestOfSets'),starter:$('localStarter'),
   game:$('localGame'),scoreForm:$('localScoreForm'),score:$('localScoreInput'),
   keypad:$('localMobileKeypad'),statsOpen:$('localStatsOpen'),statsClose:$('localStatsClose'),
@@ -25,18 +33,47 @@ const ui={
 window.DartArenaLocalNameHistory?.attach(['localName1','localName2']);
 function showMessage(text,error=false){message=text;isError=error;ui.message.textContent=text;ui.message.classList.toggle('is-error',error)}
 function safeSave(){
-  try{if(state)localStorage.setItem(KEY,JSON.stringify(state));else localStorage.removeItem(KEY)}
-  catch{showMessage('Kampen kjører, men kunne ikke lagres i denne nettleseren.',true)}
+  try{
+    if(state)localStorage.setItem(KEY,JSON.stringify(state));else localStorage.removeItem(KEY);
+    if(state&&botConfig)localStorage.setItem(BOT_SESSION_KEY,JSON.stringify({id:state.id,config:botConfig,recorded:botRecorded}));
+    else localStorage.removeItem(BOT_SESSION_KEY);
+  }catch{showMessage('Kampen kjører, men kunne ikke lagres i denne nettleseren.',true)}
 }
+function readAdaptive(){
+  try{
+    const data=JSON.parse(localStorage.getItem(ADAPT_KEY)||'null');
+    return {level:Math.max(20,Math.min(120,Number(data?.level)||55)),games:Math.max(0,Number(data?.games)||0)};
+  }catch{return {level:55,games:0}}
+}
+function updateBotFields(){
+  const selected=ui.opponentType.value==='bot';
+  ui.opponentField.hidden=selected;ui.name2.disabled=selected;ui.name2.required=!selected;
+  ui.botSettings.hidden=!selected;
+  for(const element of [ui.botMode,ui.botAverage,ui.botProfile])element.disabled=!selected;
+  ui.starter.options[1].textContent=selected?'Bot':'Spiller 2';
+  if(!selected)return;
+  const adaptive=readAdaptive();
+  ui.botHint.textContent=ui.botMode.value==='adaptive'
+    ?adaptive.games?'Adaptive AI: nivå '+adaptive.level.toFixed(1)+' etter '+adaptive.games+' kamper. Justeres mellom kampene.':
+      'Adaptive AI starter på valgt nivå og lærer mellom fullførte kamper.'
+    :'Standard: valgt snitt er et langsiktig mål. Faktiske legs varierer.';
+}
+ui.opponentType.addEventListener('change',updateBotFields);
+ui.botMode.addEventListener('change',updateBotFields);
 const mobileMatch=window.matchMedia('(max-width: 700px)');
 function isMobileView(){return mobileMatch.matches}
+function canEnterHumanScore(){
+  return state?.status==='playing'&&(!botConfig||state.turn===0)&&!pendingCheckout&&
+    editingIndex===null&&ui.checkout.hidden&&ui.correction.hidden;
+}
 function focusScore(){
-  if(isMobileView()||state?.status!=='playing'||pendingCheckout||editingIndex!==null)return;
-  requestAnimationFrame(()=>{
-    if(state?.status!=='playing'||pendingCheckout||editingIndex!==null)return;
-    ui.score.focus({preventScroll:true});
-    ui.score.select();
-  });
+  if(isMobileView()||!canEnterHumanScore())return;
+  const id=state.id;
+  // A click on Registrer can change focus after submit; restore it after the event.
+  setTimeout(()=>{
+    if(!state||state.id!==id||!canEnterHumanScore()||ui.scoreForm.hidden)return;
+    ui.score.focus({preventScroll:true});ui.score.select();
+  },0);
 }
 function closeStats(){
   document.body.classList.remove('local-stats-open');
@@ -84,17 +121,47 @@ ui.keypad.addEventListener('click',event=>{
   }
 });
 function player(i){return state.players[i]}
+function cancelBot(){if(botTimer!==null){clearTimeout(botTimer);botTimer=null}}
+function scheduleBot(){
+  if(botTimer!==null||!botConfig||!B||state?.status!=='playing'||state.turn!==1||
+    pendingCheckout||editingIndex!==null)return;
+  const id=state.id,set=state.currentSet,leg=state.leg,remaining=state.scores[1];
+  botTimer=setTimeout(()=>{
+    botTimer=null;
+    if(!state||state.id!==id||state.status!=='playing'||state.turn!==1||
+      state.currentSet!==set||state.leg!==leg||state.scores[1]!==remaining||
+      pendingCheckout||editingIndex!==null)return;
+    try{
+      const outcome=B.visit(remaining,botConfig);
+      const updated=E.submit(state,outcome.score,{bust:outcome.bust,doubleConfirmed:outcome.checkout,darts:outcome.darts});
+      const visit=updated.visits[updated.visits.length-1];visit.dartDetails=outcome.throws;
+      state=updated;
+      showMessage(visit.bust?'Bot: BUST.':visit.checkout?'Bot sjekket ut '+visit.score+' med '+visit.darts+' piler.':'Bot scoret '+visit.score+' poeng.');
+      safeSave();render();focusScore();
+    }catch(err){showMessage('Botfeil: '+(err?.message||String(err)),true)}
+  },700);
+}
+function recordAdaptiveMatch(){
+  if(!botConfig||botRecorded||state?.status!=='finished')return;
+  botRecorded=true;
+  if(botConfig.mode==='adaptive'){
+    const saved=readAdaptive(),actual=E.stats(state,0).average;
+    if(actual>0){
+      try{localStorage.setItem(ADAPT_KEY,JSON.stringify({level:B.nextAdaptive(botConfig.average,actual),games:saved.games+1}))}catch{}
+    }
+  }
+  safeSave();
+}
 function scheduleBetween(){
   clearTimeout(betweenTimer);betweenTimer=null;
   if(state?.status!=='between')return;
-  // Online starts the next leg immediately, but blocks score entry for 3s.
-  // The local interstitial gives the same short pause before entering scores.
+  // Advance automatically after a brief result transition, without clicking.
   const matchId=state.id,leg=state.leg,setNo=state.currentSet;
   betweenTimer=setTimeout(()=>{
     betweenTimer=null;
     if(state?.status!=='between'||state.id!==matchId||state.leg!==leg||state.currentSet!==setNo)return;
     commit(()=>E.nextLeg(state),'Neste '+(state.betweenType==='set'?'sett':'leg')+' startet.');
-  },3000);
+  },1200);
 }
 function updateSetsField(){ui.setsField.hidden=ui.mode.value!=='sets';}
 ui.mode.addEventListener('change',updateSetsField);
