@@ -48,7 +48,71 @@
   const ANALYSIS_INTERVAL=240;
   const MIN_CHANGED_RATIO=.003;
   const DIFF_THRESHOLD=87;
+  // Calibration is stored only in this browser, scoped to the exact video device and resolution.
+  const CALIBRATION_STORAGE_KEY='dartarena-autoscoring-calibration-v1';
+  let activeCameraId=null;
   let authRequest=0;
+
+  function calibrationKey(){
+    const w=els.overlay.width,h=els.overlay.height;
+    return activeCameraId&&w>0&&h>0?JSON.stringify([activeCameraId,w,h]):null;
+  }
+  function calibrationStore(){
+    try{
+      const parsed=JSON.parse(localStorage.getItem(CALIBRATION_STORAGE_KEY)||'null');
+      if(parsed?.version===1&&parsed.entries&&typeof parsed.entries==='object'&&!Array.isArray(parsed.entries))
+        return parsed;
+    }catch{}
+    return {version:1,entries:{}};
+  }
+  function saveCalibration(){
+    const key=calibrationKey();
+    if(!key||!board||calibrationPoints.length!==G.CALIBRATION_NAMES.length)return false;
+    const w=els.overlay.width,h=els.overlay.height;
+    if(!calibrationPoints.every(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y)&&p.x>=0&&p.x<=w&&p.y>=0&&p.y<=h))return false;
+    try{
+      G.prepare(calibrationPoints); // Never persist an invalid or half-finished adjustment.
+      const store=calibrationStore();
+      store.entries[key]={points:calibrationPoints.map(p=>({x:p.x,y:p.y})),savedAt:Date.now()};
+      // Bound storage if different cameras/resolutions have been used over time.
+      const keys=Object.keys(store.entries).sort((a,b)=>(store.entries[b]?.savedAt||0)-(store.entries[a]?.savedAt||0));
+      for(const oldKey of keys.slice(10))delete store.entries[oldKey];
+      localStorage.setItem(CALIBRATION_STORAGE_KEY,JSON.stringify(store));
+      return true;
+    }catch{return false}
+  }
+  function clearSavedCalibration(){
+    const key=calibrationKey();
+    if(!key)return;
+    try{
+      const store=calibrationStore();
+      delete store.entries[key];
+      localStorage.setItem(CALIBRATION_STORAGE_KEY,JSON.stringify(store));
+    }catch{}
+  }
+  function restoreCalibration(){
+    const key=calibrationKey();
+    if(!key)return false;
+    const entry=calibrationStore().entries[key];
+    if(!entry)return false;
+    const points=entry.points,w=els.overlay.width,h=els.overlay.height;
+    try{
+      if(!Array.isArray(points)||points.length!==G.CALIBRATION_NAMES.length||
+         !points.every(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y)&&p.x>=0&&p.x<=w&&p.y>=0&&p.y<=h))
+        throw new Error('Ugyldige lagrede punkter');
+      const restored=points.map(p=>({x:p.x,y:p.y}));
+      const geometry=G.prepare(restored);
+      calibrationPoints=restored;board=geometry;calibrating=false;adjusting=false;
+      els.step.textContent='Kalibrering hentet fra denne nettleseren. Kontroller at ringene følger trådene; ta deretter referansebilde.';
+      status('Lagret kalibrering gjenbrukt · avvik '+geometry.errorPx.toFixed(1)+' px');
+      drawOverlay();updateButtons();
+      return true;
+    }catch{
+      // Corrupt/incompatible data must not be silently applied to scoring geometry.
+      clearSavedCalibration();
+      return false;
+    }
+  }
 
   function status(message){els.analysisState.textContent=message}
   function showStage(message){els.stageMessage.textContent=message;els.stageMessage.hidden=!message}
@@ -153,7 +217,7 @@
     if(tickTimer){clearInterval(tickTimer);tickTimer=0}
     if(stream){for(const track of stream.getTracks())track.stop();stream=null}
     els.video.pause();els.video.srcObject=null;
-    resetAnalysis(false);calibrating=false;adjusting=false;dragging=null;calibrationPoints=[];board=null;
+    resetAnalysis(false);calibrating=false;adjusting=false;dragging=null;calibrationPoints=[];board=null;activeCameraId=null;
     ctx.clearRect(0,0,els.overlay.width,els.overlay.height);
     showStage('Kamera stoppet');cameraStatus('Kamera av');status('Ikke startet');
     updateButtons();
@@ -250,7 +314,8 @@
     if(!authorized||!board||!stream||calibrating)return;
     if(adjusting){
       adjusting=false;dragging=null;els.overlay.classList.remove('calibration-edit');
-      status('Kalibrering ferdig · avvik '+board.errorPx.toFixed(1)+' px. Kontroller linjene før referansebilde.');
+      const saved=saveCalibration();
+      status('Kalibrering ferdig · avvik '+board.errorPx.toFixed(1)+' px.'+(saved?' Lagret lokalt.':' Kontroller linjene før referansebilde.'));
       els.step.textContent='Er alle ringene på trådene? Ta referansebilde. Ellers finjuster på nytt.';
     }else{
       resetAnalysis(true);
@@ -298,7 +363,8 @@
     try{
       const trial=G.prepare(calibrationPoints);
       board=trial;
-      status('Punkt justert · avvik '+trial.errorPx.toFixed(1)+' px. Kontroller linjene.');
+      const saved=saveCalibration();
+      status('Punkt justert · avvik '+trial.errorPx.toFixed(1)+' px.'+(saved?' Lagret lokalt.':' Kontroller linjene.'));
     }catch(e){
       calibrationPoints[dragging.index]=dragging.original;
       board=dragging.originalBoard;
@@ -398,9 +464,11 @@
       const factor=Math.min(1,720/w);
       analysisCanvas.width=Math.round(w*factor);
       analysisCanvas.height=Math.round(h*factor);
-      calibrationPoints=[];board=null;resetAnalysis(true);
+      calibrationPoints=[];board=null;activeCameraId=s.getVideoTracks()[0]?.getSettings?.().deviceId||deviceId||null;
+      resetAnalysis(true);
       showStage('');cameraStatus(w+'×'+h+' • lokal videostrøm');
       status('Kamera klart');els.step.textContent='Steg 2: Kalibrer skiven med ni klikk';
+      if(restoreCalibration())cameraStatus(w+'×'+h+' • lagret kalibrering');
       await loadDevices();
       const track=s.getVideoTracks()[0];
       track?.addEventListener('ended',()=>{if(ticket===epoch)stopCamera()},{once:true});
@@ -431,7 +499,8 @@
       if(calibrationPoints.length===G.CALIBRATION_NAMES.length){
         try{
           board=G.prepare(calibrationPoints);calibrating=false;
-          status('Kalibrering registrert · avvik '+board.errorPx.toFixed(1)+' px. Kontroller alle ringene.');
+          const saved=saveCalibration();
+          status('Kalibrering registrert · avvik '+board.errorPx.toFixed(1)+' px.'+(saved?' Lagret lokalt.':' Kontroller alle ringene.'));
           els.step.textContent='Ligger linjene feil? Trykk Finjuster punkter og dra de gule punktene på dobbelringen.';
           els.proposalDetail.textContent='Ikke ta referansebilde før både dobbel- og trippelring følger trådene. Gult område viser AI-utsnitt.';
         }catch(e){
@@ -795,6 +864,7 @@
       els.aiMessage.textContent='Modellinnstillinger oppdatert. Test på nytt for å se nye resultater.';
     }});
   }
+  els.camera.addEventListener('change',()=>{try{localStorage.setItem('dartarena-preferred-camera',els.camera.value)}catch{}});
   els.start.addEventListener('click',startCamera);
   els.stop.addEventListener('click',stopCamera);
   els.calibrate.addEventListener('click',startCalibration);
@@ -807,7 +877,7 @@
   els.baseline.addEventListener('click',()=>captureReference());
   els.freeze.addEventListener('click',freezeManual);
   els.resume.addEventListener('click',()=>{captureReference();status('Tilbake til live – ny referanse tatt.');});
-  els.reset.addEventListener('click',()=>{resetAnalysis(true);calibrationPoints=[];board=null;calibrating=false;adjusting=false;dragging=null;els.overlay.classList.remove('calibration-edit');status('Nullstilt');els.step.textContent='Kalibrer skiven på nytt';drawOverlay();updateButtons()});
+  els.reset.addEventListener('click',()=>{clearSavedCalibration();resetAnalysis(true);calibrationPoints=[];board=null;calibrating=false;adjusting=false;dragging=null;els.overlay.classList.remove('calibration-edit');status('Nullstilt – lagret kalibrering for dette kameraet er slettet');els.step.textContent='Kalibrer skiven på nytt';drawOverlay();updateButtons()});
   els.newRound.addEventListener('click',()=>{if(!authorized||!board)return;captureReference();status('Ny runde: referanse oppdatert')});
   els.confirm.addEventListener('click',confirmSelection);
   els.reject.addEventListener('click',()=>{captureReference();status('Forslag avvist – ny referanse tatt')});
