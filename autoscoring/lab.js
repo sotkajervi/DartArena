@@ -31,6 +31,7 @@
     rfMessage:$('labRoboflowMessage'),rfPreviewBtn:$('labRoboflowPreviewBtn'),
     rfPreview:$('labRoboflowPreview'),rfPreviewInfo:$('labRoboflowPreviewInfo'),rfPreviewImage:$('labRoboflowPreviewImage'),
     rfCompareBtn:$('labRoboflowCompareBtn'),rfCompareResult:$('labRoboflowCompareResult'),
+    rfABBtn:$('labRoboflowABBtn'),rfABResult:$('labRoboflowABResult'),
     deepState:$('labDeepState'),deepFile:$('labDeepFile'),
     deepLoad:$('labDeepLoad'),deepTest:$('labDeepTest'),
     deepThreshold:$('labDeepThreshold'),deepMessage:$('labDeepMessage')
@@ -147,6 +148,7 @@
     els.rfTest.disabled=!authorized||!RF||!ready||!frozen||!els.rfConsent.checked||adjusting||calibrating||rfBusy;
     els.rfPreviewBtn.disabled=!authorized||!RF?.preview||!ready||!frozen||adjusting||calibrating;
     els.rfCompareBtn.disabled=!authorized||!RF?.compare||!ready||!frozen||!els.rfConsent.checked||adjusting||calibrating||rfBusy;
+    els.rfABBtn.disabled=!authorized||!RF?.compareModels||!ready||!frozen||!els.rfConsent.checked||adjusting||calibrating||rfBusy;
     els.datasetOptIn.disabled=!authorized;
     els.datasetExport.disabled=!authorized||!dataset.length;
     els.datasetClear.disabled=!authorized||!dataset.length;
@@ -793,6 +795,35 @@
   }
   els.deepLoad.addEventListener('click',loadDeepDarts);
   els.deepTest.addEventListener('click',analyseDeepDarts);
+  async function compareRoboflowModels(){
+    if(!authorized||!RF?.compareModels||rfBusy||!stream||!board||!frozen||!els.rfConsent.checked||adjusting||calibrating)return;
+    rfBusy=true;
+    const ticket=++rfSerial;
+    const frame=els.frozenFrame;
+    const lines=[];
+    els.rfABResult.textContent='Sammenligner Roboflow v17 og Universal V3 på samme bilde…';
+    updateButtons();
+    try{
+      const region=G.boardBounds(board,els.overlay.width,els.overlay.height,.045);
+      await RF.compareModels(db,frame,region,result=>{
+        if(ticket!==rfSerial)return;
+        if(result.error)lines.push(result.label+': FEIL – '+result.error);
+        else{
+          const valid=result.detections.filter(d=>{
+            const q=G.normalize(board,{x:d.x,y:d.y});
+            return Number.isFinite(q.x)&&Number.isFinite(q.y)&&q.x*q.x+q.y*q.y<=1.05*1.05;
+          });
+          const best=valid.reduce((a,b)=>!a||b.confidence>a.confidence?b:a,null);
+          lines.push(result.label+': '+result.objects+' objekt(er), '+result.keypoints+
+            ' nøkkelpunkt(er), '+valid.length+' på skiven'+
+            (best?' – beste '+G.score(board,best).label+' ('+Math.round(best.confidence*100)+' %)':''));
+        }
+        els.rfABResult.textContent=lines.join('\n');
+      });
+    }catch(e){
+      if(ticket===rfSerial)els.rfABResult.textContent=lines.join('\n')+'\nFeil: '+(e?.message||String(e));
+    }finally{rfBusy=false;els.rfConsent.checked=false;updateButtons()}
+  }
   async function compareRoboflowResolutions(){
     if(!authorized||!RF?.compare||rfBusy||!stream||!board||!frozen||!els.rfConsent.checked||adjusting||calibrating)return;
     rfBusy=true;
@@ -911,6 +942,7 @@
   }
   els.rfPreviewBtn.addEventListener('click',showRoboflowPreview);
   els.rfCompareBtn.addEventListener('click',compareRoboflowResolutions);
+  els.rfABBtn.addEventListener('click',compareRoboflowModels);
   els.rfStatus.addEventListener('click',checkRoboflowConnection);
   els.rfTest.addEventListener('click',analyseRoboflow);
   els.rfConsent.addEventListener('change',updateButtons);
