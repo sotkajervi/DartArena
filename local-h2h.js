@@ -23,7 +23,7 @@ function safeSave(){
 function focusScore(){
   if(state?.status==='playing'&&!pendingCheckout){
     ui.score.focus({preventScroll:true});
-    ui.score.select();
+    // Numeric inputs cannot reliably select text across all browsers.
   }
 }
 function player(i){return state.players[i]}
