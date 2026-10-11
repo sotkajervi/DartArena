@@ -22,6 +22,7 @@ const ui={
   correctionContext:$('localCorrectionContext'),correctionError:$('localCorrectionError'),
   correctionCheckout:$('localCorrectionCheckout'),correctionDarts:$('localCorrectionDarts')
 };
+window.DartArenaLocalNameHistory?.attach(['localName1','localName2']);
 function showMessage(text,error=false){message=text;isError=error;ui.message.textContent=text;ui.message.classList.toggle('is-error',error)}
 function safeSave(){
   try{if(state)localStorage.setItem(KEY,JSON.stringify(state));else localStorage.removeItem(KEY)}
@@ -318,6 +319,7 @@ ui.setupForm.addEventListener('submit',event=>{
     state=E.setup({name1:ui.name1.value,name2:ui.name2.value,
       format:ui.format.value,mode:ui.mode.value,bestOf:ui.bestOf.value,
       bestOfSets:ui.bestOfSets.value,starter});
+    window.DartArenaLocalNameHistory?.remember(state.players);
     ui.setupError.hidden=true;message='Skriv score og trykk Enter.';isError=false;
     safeSave();render();focusScore();
   }catch(e){ui.setupError.textContent=e.message;ui.setupError.hidden=false}
@@ -409,7 +411,7 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){
   else if(!ui.checkout.hidden){event.preventDefault();closeCheckout()}
 }});
 try{state=E.restore(JSON.parse(localStorage.getItem(KEY)||'null'))}catch{state=null}
-if(state){message='Lokal kamp gjenopprettet fra denne nettleseren.';isError=false}
+if(state){window.DartArenaLocalNameHistory?.remember(state.players);message='Lokal kamp gjenopprettet fra denne nettleseren.';isError=false}
 render();
 focusScore();
 })();
