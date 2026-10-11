@@ -79,5 +79,42 @@ function preview(frame,region){
   const img=makeImage(frame,region);
   return {src:'data:image/jpeg;base64,'+img.image,width:img.width,height:img.height,region:img.region};
 }
-window.DartArenaLabRoboflow={check,infer,preview,mapDetections,makeImage,explain};
+// Comparison experiment: same frozen frame and board crop, three JPEG resolutions.
+function resizeImage(frame,region,size){
+  const base=makeImage(frame,region);
+  if(size===0)return base;
+  //   // reconstruct from original frozen frame using the same pixel rectangle and JPEG settings.
+  const canvas=document.createElement('canvas');
+  canvas.width=size;canvas.height=size;
+  canvas.getContext('2d',{alpha:false}).drawImage(
+    frame,base.region.x,base.region.y,base.region.width,base.region.height,
+    0,0,size,size);
+  const image=canvas.toDataURL('image/jpeg',.78).split(',')[1];
+  if(!image||image.length>800000)throw new Error('Bildet i '+size+' × '+size+' er for stort.');
+  return {image,width:size,height:size,region:base.region};
+}
+async function compare(client,frame,region,onResult){
+  const variants=[{label:'Original',size:0},{label:'800 × 800',size:800},{label:'1024 × 1024',size:1024}];
+  const results=[];
+  for(const variant of variants){
+    const img=resizeImage(frame,region,variant.size);
+    try{
+      const {data,error}=await client.functions.invoke(ENDPOINT,{body:{image:img.image}});
+      if(error||data?.error)throw new Error(await errorMessage(error,data));
+      const detections=mapDetections(data,img.region,{width:img.width,height:img.height});
+      const result={label:variant.label,width:img.width,height:img.height,
+        objects:Number(data.diagnostics?.providerPredictions)||0,
+        keypoints:Number(data.diagnostics?.validKeypoints)||0,
+        detections,diagnostics:data.diagnostics||null};
+      results.push(result);onResult?.(result);
+    }catch(e){
+      const result={label:variant.label,width:img.width,height:img.height,error:e?.message||String(e)};
+      results.push(result);onResult?.(result);
+      // On quota/auth/network issues do not spend additional attempts blindly.
+      break;
+    }
+  }
+  return results;
+}
+window.DartArenaLabRoboflow={check,infer,preview,compare,mapDetections,makeImage,explain};
 })();
