@@ -5,7 +5,7 @@ const E=window.DartArenaLocalH2HEngine;
 const B=window.DartArenaBotEngine;
 const BOT_SESSION_KEY='dartarena-local-h2h-bot-session-v1';
 const ADAPT_KEY='dartarena-bot-adaptive-v1';
-const BOT_NAMES={steady:'Jevn',erratic:'Ustabil',scorer:'Power Scorer',finisher:'Finisher'};
+const BOT_NAMES={steady:'Clockwork',erratic:'Wildcard',scorer:'Triple Threat',finisher:'The Closer'};
 const $=id=>document.getElementById(id);
 if(!E||!$('localSetupForm'))return;
 const KEY='dartarena-local-h2h-state-v1';
@@ -400,7 +400,7 @@ ui.setupForm.addEventListener('submit',event=>{
       !Number.isInteger(level)||level<20||level>120))throw Error('Velg botnivå 20–120 og en gyldig spillestil.');
     const adaptive=readAdaptive();
     const selectedLevel=selectedBot&&botMode==='adaptive'&&adaptive.games?adaptive.level:level;
-    const opponent=selectedBot?BOT_NAMES[profile]+' Bot ('+Math.round(selectedLevel)+')':ui.name2.value;
+    const opponent=selectedBot?BOT_NAMES[profile]+' BOT ('+Math.round(selectedLevel)+')':ui.name2.value;
     const created=E.setup({name1:ui.name1.value,name2:opponent,
       format:ui.format.value,mode:ui.mode.value,bestOf:ui.bestOf.value,
       bestOfSets:ui.bestOfSets.value,starter});
