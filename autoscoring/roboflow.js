@@ -159,8 +159,8 @@ async function inferSavedImage(client,image){
     detections:mapDetections(data,{x:0,y:0,width:canvas.width,height:canvas.height},
       {width:canvas.width,height:canvas.height}),width:canvas.width,height:canvas.height};
 }
-// Diagnostic only: upscale a small square crop around image change, not the whole board.
-async function inferZoom(client,frame,region){
+// Render exactly the JPEG that Roboflow would receive; this never uploads.
+function previewZoom(frame,region){
   const fw=frame?.videoWidth||frame?.width,fh=frame?.videoHeight||frame?.height;
   if(!fw||!fh)throw new Error('Kamerabildet mangler.');
   const side=Math.floor(Math.min(region.width,region.height,fw,fh));
@@ -171,14 +171,20 @@ async function inferZoom(client,frame,region){
   canvas.getContext('2d',{alpha:false}).drawImage(frame,x,y,side,side,0,0,768,768);
   const encoded=canvas.toDataURL('image/jpeg',.78).split(',')[1];
   if(!encoded||encoded.length>800000)throw new Error('Zoomutsnittet er for stort.');
-  const {data,error}=await client.functions.invoke(ENDPOINT,{body:{image:encoded,model:'v17'}});
+  return {width:768,height:768,sourceSize:side,region:{x,y,width:side,height:side},
+    preview:'data:image/jpeg;base64,'+encoded,image:encoded};
+}
+// The local preview and the actual inference use identical encoded input.
+async function inferZoom(client,frame,region){
+  const crop=previewZoom(frame,region);
+  const {data,error}=await client.functions.invoke(ENDPOINT,{body:{image:crop.image,model:'v17'}});
   if(error||data?.error)throw new Error(await errorMessage(error,data));
   return {
-    width:768,height:768,sourceSize:side,region:{x,y,width:side,height:side},
-    preview:'data:image/jpeg;base64,'+encoded,
-    detections:mapDetections(data,{x,y,width:side,height:side},{width:768,height:768}),
+    width:crop.width,height:crop.height,sourceSize:crop.sourceSize,region:crop.region,
+    preview:crop.preview,
+    detections:mapDetections(data,crop.region,{width:crop.width,height:crop.height}),
     diagnostics:data.diagnostics||null
   };
 }
-window.DartArenaLabRoboflow={check,infer,preview,compare,compareModels,inferSavedImage,inferZoom,mapDetections,makeImage,explain};
+window.DartArenaLabRoboflow={check,infer,preview,compare,compareModels,inferSavedImage,previewZoom,inferZoom,mapDetections,makeImage,explain};
 })();
