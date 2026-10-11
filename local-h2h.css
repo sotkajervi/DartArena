@@ -490,3 +490,12 @@ button.local-throw-chip.editable:hover,button.local-throw-chip.editable:focus-vi
   .local-h2h-page .local-entry-controls{grid-template-columns:minmax(0,1fr) 72px}
   .local-h2h-page .local-game-actions button{padding:6px 7px;font-size:10px}
 }
+
+/* Optional bot opponent uses existing Head-to-Head match cards and stats. */
+.local-h2h-page #localBotSettings[hidden]{display:none!important}
+.local-h2h-page .local-bot-settings{grid-column:1/-1;margin:0;padding:13px 16px 16px;border:1px solid var(--line);border-radius:12px;background:rgba(0,234,244,.025);min-width:0}
+.local-h2h-page .local-bot-settings legend{color:var(--cyan);font-size:12px;font-weight:850;padding:0 7px}
+.local-h2h-page .local-bot-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end}
+.local-h2h-page .local-bot-grid .field{min-width:0}
+.local-h2h-page .local-bot-grid #localBotHint{grid-column:1/-1;margin:0}
+@media(max-width:760px){.local-h2h-page .local-bot-grid{grid-template-columns:1fr}}
