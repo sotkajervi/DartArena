@@ -51,7 +51,9 @@ function explain(error,data){
     unauthorized:'Logg inn igjen før AI-testen.',
     forbidden:'Bare Admin og Owner kan bruke testen.'
   };
-  return labels[String(code)]||('Roboflow-test feilet: '+String(code).slice(0,110));
+  const message=labels[String(code)]||('Roboflow-test feilet: '+String(code).slice(0,110));
+  const upstream=Number(data?.upstreamStatus);
+  return message+(Number.isInteger(upstream)&&upstream>=400&&upstream<=599?' (HTTP '+upstream+' fra Roboflow)':'');
 }
 async function errorMessage(error,data){
   let parsed=data;
