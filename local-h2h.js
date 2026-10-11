@@ -172,6 +172,7 @@ function render(){
   document.body.classList.toggle('local-match-active',!!state);
   document.body.classList.toggle('local-match-finished',state?.status==='finished');
   if(!state){window.DartArenaLocalResults?.syncX01(null,newMatch);return;}
+  ui.opponentLabel.textContent=botConfig?'BOT':'SPILLER 2';
   statValue('localFormatLabel',state.format);
   $('localSetLabel').hidden=state.mode!=='sets';
   statValue('localSetLabel','Set '+state.currentSet);
@@ -216,9 +217,11 @@ function render(){
     statValue('localStat180'+i,st.c180);
   }
   const playing=state.status==='playing';
-  ui.scoreForm.hidden=!playing;ui.keypad.hidden=!playing;ui.bust.disabled=!playing;ui.submit.disabled=!playing;
+  const humanTurn=playing&&(!botConfig||state.turn===0);
+  ui.scoreForm.hidden=!humanTurn;ui.keypad.hidden=!humanTurn;
+  ui.bust.disabled=!humanTurn;ui.submit.disabled=!humanTurn;ui.score.disabled=!humanTurn;
   ui.between.hidden=state.status!=='between';ui.finished.hidden=state.status!=='finished';
-  if(playing)ui.turn.textContent=player(state.turn)+' kaster · '+state.scores[state.turn]+' igjen';
+  if(playing)ui.turn.textContent=player(state.turn)+(botConfig&&state.turn===1?' tenker…':' kaster')+' · '+state.scores[state.turn]+' igjen';
   else if(state.status==='between'){
     const last=state.visits[state.visits.length-1];
     ui.turn.textContent='Leg '+state.leg+' ferdig';
@@ -247,11 +250,17 @@ function render(){
       title.textContent=player(visit.player);
       score.textContent=visit.bust?'BUST':visit.score+' poeng';
       detail.textContent='Leg '+visit.leg+' · '+(visit.checkout?'Utsjekk med '+visit.darts+' pil'+(visit.darts!==1?'er':''):visit.remaining+' igjen');
+      if(botConfig&&visit.player===1&&Array.isArray(visit.dartDetails))detail.textContent+=' · '+visit.dartDetails.map(d=>d.hit).join(' + ');
       row.append(title,score,detail);ui.history.append(row);
     }
   }
-  if(state.status==='finished'&&document.body.classList.contains('local-stats-open'))closeStats();
+  if(state.status==='finished'){
+    cancelBot();recordAdaptiveMatch();
+    if(document.body.classList.contains('local-stats-open'))closeStats();
+  }
   window.DartArenaLocalResults?.syncX01(state,newMatch);
+  if(humanTurn)focusScore();
+  else if(playing)scheduleBot();
 }
 function renderCorrections(){
   if(!state)return;
@@ -271,7 +280,7 @@ function renderCorrections(){
       host.appendChild(empty);continue;
     }
     for(const item of recent){
-      const isEditable=active&&editable.has(item.index);
+      const isEditable=active&&editable.has(item.index)&&!(botConfig&&playerIndex===1);
       const chip=document.createElement(isEditable?'button':'span');
       chip.className='local-throw-chip'+(isEditable?' editable':'');
       chip.textContent=item.visit.checkout?item.visit.score+' ('+item.visit.darts+'p)':
@@ -295,9 +304,11 @@ function closeCorrection(){
   ui.correctionCheckout.hidden=true;
   ui.correctionError.hidden=true;
   focusScore();
+  scheduleBot();
 }
 function openCorrection(index){
   if(!state||state.status!=='playing')return;
+  cancelBot();
   const visit=state.visits[index];
   if(!visit||!E.editableIndices(state,visit.player).includes(index))return;
   editingIndex=index;
@@ -328,6 +339,7 @@ function updateCorrectionCheckout(){
   ui.correctionCheckout.hidden=false;
 }
 function commit(fn,msg){
+  cancelBot();
   try{
     state=fn();
     pendingCheckout=null;
