@@ -35,23 +35,31 @@ function render(){
   statValue('localLegLabel','Leg '+state.leg);
   statValue('localBestLabel','Best av '+state.bestOf);
   $('localUndo').disabled=!state.undo?.length;
+  // Reuse the exact X01 statistics calculation from online Head-to-Head.
+  // Local visits are adapted in memory; nothing is uploaded to Supabase.
+  const onlineThrows=state.visits.map(v=>({
+    player_id:v.player,score:v.score,is_checkout:v.checkout,
+    darts_used:v.darts,set_no:1,leg_no:v.leg
+  }));
   for(let i=0;i<2;i++){
-    const st=E.stats(state,i),active=state.status==='playing'&&state.turn===i;
+    const st=window.DartArenaX01Stats.statsFor(onlineThrows,i);
+    const active=state.status==='playing'&&state.turn===i;
     const card=$('localPlayer'+i);
     card.classList.toggle('active',active);
     card.classList.toggle('winner',state.status==='finished'&&state.winner===i);
     statValue('localPlayerName'+i,player(i));
     statValue('localScore'+i,state.scores[i]);
     statValue('localLegs'+i,state.legs[i]);
-    statValue('localAverage'+i,'3-dart snitt: '+(st.darts?st.average.toFixed(2).replace('.',','):'–'));
+    statValue('localAverage'+i,'3-dart snitt: '+(onlineThrows.some(v=>v.player_id===i)?st.avg.toFixed(2):'–'));
     statValue('localStatsName'+i,player(i));
-    statValue('localStatAvg'+i,st.darts?st.average.toFixed(2).replace('.',','):'–');
-    statValue('localStat100'+i,st.hundreds);
-    statValue('localStat140'+i,st.forties);
-    statValue('localStat180'+i,st.oneEighties);
-    statValue('localStatCheckout'+i,st.highestCheckout||'–');
-    statValue('localStatFastest'+i,st.fastestLeg!==null?st.fastestLeg+' piler':'–');
-    statValue('localStatVisits'+i,st.visits);
+    statValue('localStatAvg'+i,st.avg.toFixed(2));
+    statValue('localStatFirst9'+i,st.first9.toFixed(2));
+    statValue('localStatCheckout'+i,st.high||'–');
+    statValue('localStatFastest'+i,st.fast?st.fast+' piler':'–');
+    statValue('localStat100'+i,st.c100);
+    statValue('localStat140'+i,st.c140);
+    statValue('localStat170'+i,st.c170);
+    statValue('localStat180'+i,st.c180);
   }
   const playing=state.status==='playing';
   ui.scoreForm.hidden=!playing;ui.bust.disabled=!playing;ui.submit.disabled=!playing;
