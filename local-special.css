@@ -424,8 +424,6 @@
   .local-special-page .special-half-fields .special-choice{
     min-height:38px;font-size:11px
   }
-  .local-special-page .special-actions:has(+ #specialMessage) #specialSubmit,
-  .local-special-page .special-actions:has(+ #specialMessage) #specialMiss{display:none}
 }
 @media(max-width:700px) and (max-height:730px){
  .local-special-page .special-half-keypad>button{min-height:42px}
