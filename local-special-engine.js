@@ -20,7 +20,7 @@ function init(config){
  const exactOptions=[60+Math.floor(Math.random()*25),85+Math.floor(Math.random()*16),121];
  return {version:1,id:String(Date.now()),game,players,bestOf,starter,firstStarter:starter,turn:starter,
  leg:1,legs:[0,0],stage:game==='chicago'?1:0,scores:game==='chicago'?[301,301]:[0,0],marks:[emptyMarks(),emptyMarks()],
- round:[1,1],target:[61,61],attempts:[0,0],minutes,startedAt:Date.now(),paused:false,pausedAt:null,
+ round:[1,1],target:[61,61],attempts:[0,0],high61:[0,0],minutes,startedAt:Date.now(),paused:false,pausedAt:null,
  sudden:false,suddenFirst:null,visits:[],undo:[],status:'playing',winner:null,
  exactOptions,exactChoice:exactOptions[0],entered:[false,false],
  phaseStart:Date.now()};
@@ -132,6 +132,7 @@ function submit(state,payload){
    const hit=payload?.hit;need(typeof hit==='boolean','Registrer treff eller bom.');
    let target=s.target[p]+(hit?5:-1);target=Math.max(2,Math.min(170,target));
    while(BAD.has(target))target+=hit?1:-1;
+   if(hit)s.high61[p]=Math.max(s.high61[p],s.target[p]);
    s.target[p]=target;s.attempts[p]++;
    Object.assign(entry,{hit,points:target,round:s.attempts[p]});s.visits.push(entry);s.turn=1-p;
    if(s.sudden){
@@ -166,7 +167,7 @@ function next(state){
  need(state?.status==='between','Neste leg er ikke klart.');
  const s=snapshot(state);s.leg++;s.starter=1-s.starter;s.turn=s.starter;
  s.scores=[0,0];s.marks=[emptyMarks(),emptyMarks()];
- s.round=[1,1];s.target=[61,61];s.attempts=[0,0];s.sudden=false;s.suddenFirst=null;
+ s.round=[1,1];s.target=[61,61];s.attempts=[0,0];s.high61=[0,0];s.sudden=false;s.suddenFirst=null;
  s.exactOptions=[60+Math.floor(Math.random()*25),85+Math.floor(Math.random()*16),121];
  s.exactChoice=s.exactOptions[0];s.phaseStart=Date.now();s.status='playing';
  return save(state,s);
@@ -176,9 +177,14 @@ function elapsed(s){return s.paused?(s.pausedAt-s.phaseStart):Date.now()-s.phase
 function tick(state){
  if(state.game!=='sixty_one'||state.status!=='playing'||state.sudden||state.paused)return state;
  if(elapsed(state)<state.minutes*60*1000)return state;
- if(state.attempts[0]!==state.attempts[1])return state;
+ if(state.attempts[0]!==state.attempts[1]){
+   const p=state.attempts[0]<state.attempts[1]?0:1;
+   if(state.turn===p)return state;
+   const adjusted=snapshot(state);adjusted.turn=p;
+   return save(state,adjusted);
+ }
  const s=snapshot(state);
- if(s.target[0]!==s.target[1])finishLeg(s,s.target[0]>s.target[1]?0:1);
+ if(s.high61[0]!==s.high61[1])finishLeg(s,s.high61[0]>s.high61[1]?0:1);
  else{s.sudden=true;s.suddenFirst=null}
  return save(state,s);
 }
