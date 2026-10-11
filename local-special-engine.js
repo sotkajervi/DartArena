@@ -193,5 +193,5 @@ function pause(state){need(state?.game==='sixty_one','Pause er kun for 61.');con
  else{s.paused=true;s.pausedAt=Date.now()}
  return save(state,s)}
 function restore(s){return s&&s.version===1&&['cricket','half_standard','half_dartcounter','sixty_one','jdc','chicago'].includes(s.game)?s:null}
-root.DartArenaLocalSpecial={init,submit,next,undo,tick,pause,restore,stageMode,stageName,halfRule,halfPoints,round,emptyMarks,TARGETS};
+root.DartArenaLocalSpecial={init,submit,next,undo,tick,pause,restore,stageMode,stageName,halfRule,halfPoints,round,emptyMarks,TARGETS,dartColor,dartScore};
 })(window);
