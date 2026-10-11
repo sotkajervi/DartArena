@@ -50,6 +50,34 @@ function halfPoints(s,darts,p){
  if(!['different','same','exact',41].includes(rule))success=points>0;
  return {points,success,round:s.round[p],rule};
 }
+// Tap each Cricket field once per mark, independent of single/double/triple.
+// Encode those marks into at most three virtual darts for the existing engine.
+// Padding with MISS preserves the three-dart visit and accurate darts/MPR.
+function cricketMarkDarts(taps){
+ need(Array.isArray(taps)&&taps.length,'Trykk på et felt eller MISS før registrering.');
+ const counts=emptyMarks();let misses=0;
+ for(const value of taps){
+   const t=String(value).toUpperCase();
+   need(t==='MISS'||TARGETS.includes(t),'Ugyldig Cricket-felt.');
+   if(t==='MISS')misses++;else counts[t]++;
+ }
+ const darts=[];
+ for(const t of TARGETS){
+   let marks=counts[t],limit=t==='B'?2:3;
+   while(marks>0){const mult=Math.min(marks,limit);darts.push({target:t,mult});marks-=mult}
+ }
+ need(darts.length+misses<=3,
+   'Dette krever mer enn 3 piler. Fjern noen merker eller registrer turen først.');
+ while(misses-->0)darts.push({target:'MISS',mult:0});
+ while(darts.length<3)darts.push({target:'MISS',mult:0});
+ return darts;
+}
+function cricketDartTaps(darts){
+ return (Array.isArray(darts)?darts:[]).flatMap(dart=>{
+   const t=String(dart.target||'').toUpperCase();
+   return t==='MISS'?[]:Array(Math.max(0,Math.min(3,Number(dart.mult)||0))).fill(t);
+ });
+}
 function cricketVisit(s,darts,p){
  let scored=0;
  for(const dart of darts){
@@ -221,5 +249,5 @@ function pause(state){need(state?.game==='sixty_one','Pause er kun for 61.');con
  else{s.paused=true;s.pausedAt=Date.now()}
  return save(state,s)}
 function restore(s){return s&&s.version===1&&['cricket','half_standard','half_dartcounter','sixty_one','jdc','chicago'].includes(s.game)?s:null}
-root.DartArenaLocalSpecial={init,submit,next,undo,tick,pause,restore,stageMode,stageName,halfRule,halfPoints,round,emptyMarks,TARGETS,dartColor,dartScore,editableCricket,correctCricket};
+root.DartArenaLocalSpecial={init,submit,next,undo,tick,pause,restore,stageMode,stageName,halfRule,halfPoints,round,emptyMarks,TARGETS,dartColor,dartScore,editableCricket,correctCricket,cricketMarkDarts,cricketDartTaps};
 })(window);
