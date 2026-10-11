@@ -61,7 +61,9 @@ function estimate(sigma,profile){
  return total*3/1800;
 }
 function calibrate(average,profile){
- const desired=clamp(Number(average)||55,20,120);
+ // Account for setup darts and missed doubles: a full X01 leg averages
+ // about 12 points below unrestricted T20 scoring in initial simulations.
+ const desired=clamp(Number(average)||55,20,120)+12;
  let low=2,high=150;
  for(let i=0;i<13;i++){
    const middle=(low+high)/2,observed=estimate(middle,profile);
