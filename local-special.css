@@ -90,3 +90,14 @@
 .special-dart-chip.dart-green{background:#267844;color:#fff;border-color:#62c188}
 .special-dart-chip.dart-miss{background:#162024;color:#98adb1;border-color:#293e43}
 .special-darts #specialPending small{font-size:11px;color:var(--muted);letter-spacing:0}
+
+
+.local-special-page .local-corrections{padding:9px 13px;margin:9px 0 0;box-shadow:none;border-radius:11px}
+.local-special-page .special-edit-actions{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-top:7px;border-top:1px solid rgba(255,255,255,.08);padding-top:7px}
+.local-special-page .special-edit-actions strong{font-size:11px;color:var(--cyan)}
+.local-special-page .special-edit-actions button{padding:6px 10px;font-size:11px}
+.local-special-page .local-throw-chip{font-size:11px}
+@media(max-height:700px) and (min-width:880px){
+ .local-special-page .local-corrections{padding:6px 10px}
+ .local-special-page .local-throw-chip{min-height:23px;padding:3px}
+}
