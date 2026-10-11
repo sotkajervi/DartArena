@@ -518,6 +518,7 @@ if(state){
   window.DartArenaLocalNameHistory?.remember(botConfig?[state.players[0]]:state.players);
   message='Lokal kamp gjenopprettet fra denne nettleseren.';isError=false;
 }
+if(!state&&/(?:[?&])opponent=bot(?:&|$)/.test(window.location?.search||''))ui.opponentType.value='bot';
 updateBotFields();
 render();
 focusScore();
