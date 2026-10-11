@@ -35,7 +35,7 @@
             <div class="heading"><div><small>ROBOFLOW V17 • HOVEDTEST</small><h2>Ferdigtrent AI – pilspisser</h2></div><span id="labRoboflowState" class="lab-pill">Ikke kontrollert</span></div>
             <p class="muted compact">Aktiv testmodell: <strong>dart-tip-detection-6d3mw/17</strong>. Analysen bruker bare det frosne skiveutsnittet, ikke OBS-zoomen ved siden av. Resultatet er et forslag som må kontrolleres manuelt.</p>
             <label class="lab-dataset-optin"><input id="labRoboflowConsent" type="checkbox"><span><strong>Jeg godkjenner en engangsopplasting til Roboflow</strong><small>Kun når jeg trykker analyser. Bildet behandles av ekstern AI-leverandør. Ikke aktiver hvis kamerabildet viser private opplysninger.</small></span></label>
-            <div class="lab-actions"><button id="labRoboflowStatus" class="outline" type="button">Sjekk Roboflow</button><button id="labRoboflowTest" class="primary" type="button" disabled>Analyser fryst bilde</button></div>
+            <div class="lab-actions"><button id="labRoboflowStatus" class="outline" type="button">Sjekk Roboflow</button><button id="labRoboflowTest" class="primary" type="button" disabled>Analyser fryst bilde</button><button id="labRoboflowPreviewBtn" class="outline" type="button" disabled>Vis bildet som sendes til AI</button></div><div id="labRoboflowPreview" class="lab-rf-preview" hidden><p class="muted compact" id="labRoboflowPreviewInfo"></p><img id="labRoboflowPreviewImage" alt="Eksakt JPEG-bilde av skiveutsnittet som sendes til Roboflow" style="display:block;max-width:100%;height:auto;border-radius:8px" /></div>
             <p id="labRoboflowMessage" class="muted compact" role="status" aria-live="polite">Roboflow REST krever <strong>Private API Key</strong> lagret som ROBOFLOW_API_KEY i Supabase Edge Functions / Secrets. «Sjekk Roboflow» kontrollerer bare at nøkkelen er lagret – ikke modelltilgangen. Del aldri nøkkelen.</p>
           </div>
           <details class="lab-optional"><summary>Andre metoder: DeepDarts D1 og ONNX (lokale tester)</summary>
@@ -97,8 +97,8 @@
   <script src="./autoscoring/geometry.js?v=20261010-ninepoints1"></script>
   <script src="./autoscoring/ai-onnx.js?v=20261010-frozen1"></script>
   <script src="./autoscoring/zip-store.js?v=20261010-dataset1"></script>
-  <script src="./autoscoring/roboflow.js?v=20261010-rfdiag1"></script>
+  <script src="./autoscoring/roboflow.js?v=20261011-preview1"></script>
   <script src="./autoscoring/deepdarts-tflite.js?v=20261010-d1decode1"></script>
-  <script src="./autoscoring/lab.js?v=20261011-calibration-save1"></script>
+  <script src="./autoscoring/lab.js?v=20261011-preview1"></script>
 </body>
 </html>
