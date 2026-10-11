@@ -1,0 +1,82 @@
+/* Same DartArena local Head-to-Head dimensions, player colors and keypad styling. */
+.local-special-page .local-h2h-shell{max-width:1180px;margin:9px auto 0;padding-bottom:12px}
+.local-special-page .local-board{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.local-special-page .local-player{padding:12px 16px}
+.local-special-page .local-player.active{border-color:#00eaf4!important;background:linear-gradient(145deg,rgba(0,234,244,.075),rgba(8,19,21,.98))!important;
+ box-shadow:inset 0 0 0 1px rgba(0,234,244,.46),inset 0 0 30px rgba(0,234,244,.10),0 0 10px rgba(0,234,244,.48),0 0 24px rgba(0,234,244,.20)!important}
+.local-special-page .local-player .local-score-band .local-score{font-size:clamp(55px,8.2vh,82px)}
+.local-special-page .local-entry-card{margin:9px 0 0;padding:12px 16px}
+.local-special-page .local-message{margin:5px 0 0}
+.local-special-page .special-entry .local-turn{margin-bottom:4px}
+.local-special-page #specialInfo{font-size:11px;margin:0 0 8px}
+.local-special-page #specialProgress{margin:0}
+.special-two-panel{display:grid;grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr);gap:14px;align-items:start}
+.special-cricket-board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid rgba(255,255,255,.08);border-radius:9px;overflow:hidden;margin-top:5px}
+.special-cricket-cell{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 1px;border-right:1px solid rgba(255,255,255,.06)}
+.special-cricket-cell:last-child{border-right:0}
+.special-cricket-cell strong{font-size:13px;color:var(--cyan)}
+.special-cricket-cell b{font-size:20px;line-height:1.15}
+.special-cricket-keypad{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:5px}
+.special-cricket-keys{display:flex;flex-direction:column;align-items:stretch;gap:4px;min-width:0}
+.special-cricket-keys strong{text-align:center;font-size:11px;color:var(--text)}
+.special-choice{min-width:0;padding:6px 3px;border-radius:7px;font-size:12px;font-weight:850}
+.special-cricket-keypad .special-choice{font-size:12px}
+.special-numbers{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:5px}
+.special-half-controls{display:grid;gap:7px}
+.special-choice-row{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.special-choice-row button{padding:9px 14px;font-weight:900;border-radius:9px}
+.special-target{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px;border:1px solid rgba(0,234,244,.22);border-radius:10px;background:rgba(0,234,244,.035)}
+.special-target strong{font-size:clamp(19px,3vw,27px);color:var(--cyan);white-space:normal}
+.special-target small{font-size:10px}
+.special-target span{font-size:12px;color:var(--muted)}
+.special-darts{display:flex;align-items:center;gap:8px;min-height:30px;font-size:12px;color:var(--muted);margin:8px 0 5px}
+.special-darts>div{font-size:12px;color:var(--text);font-weight:850;line-height:1.4}
+.special-actions{display:flex;justify-content:flex-start;flex-wrap:wrap;gap:7px}
+.special-actions button{padding:8px 12px;font-size:12px}
+.da-key{opacity:.65;font-size:10px;margin-left:5px;font-weight:700}
+.special-stats-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 15px}
+.special-stats-names,.special-stats-cell{display:grid;grid-template-columns:minmax(95px,1.2fr) minmax(0,1fr) minmax(0,1fr);align-items:center;gap:6px;padding:6px 9px;border-bottom:1px solid rgba(255,255,255,.07);font-size:12px}
+.special-stats-names{grid-column:1/-1;border-radius:9px 9px 0 0;color:var(--cyan);font-size:12px;background:rgba(255,255,255,.02)}
+.special-stats-grid strong{text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.special-stats-cell span{color:var(--muted)}
+.local-special-page .local-stats-card{padding:12px 15px;margin:9px 0 0}
+.local-special-page .local-stats-card .heading{margin:0 0 5px}
+.local-special-page .local-stats-card h2{font-size:17px}
+.local-special-page .local-history-card{margin:9px 0 0}
+.special-x01-input{display:flex;gap:8px;margin:10px 0 6px}
+.special-x01-input input{width:min(280px,50vw);border:1px solid #31505a;border-radius:9px;background:#061012!important;color:var(--text)!important;text-align:center;font-size:25px;font-weight:850;min-height:42px;outline:0}
+.special-x01-input input:focus{border-color:var(--cyan)}
+.special-double-in{display:flex;gap:8px;align-items:center;font-size:12px;font-weight:750;color:var(--text)}
+.special-double-in input{width:18px;height:18px;accent-color:var(--cyan)}
+.special-checkout{margin:9px 0;padding:12px;border:1px solid rgba(0,234,244,.35);border-radius:10px;background:#0b1a1d}
+.special-checkout strong{display:block;font-size:19px;color:var(--cyan);margin-top:4px}
+.local-special-page [hidden]{display:none!important}
+@media(max-height:700px) and (min-width:880px){
+ .local-special-page .local-player{padding:8px 14px}
+ .local-special-page .local-player .local-score-band .local-score{font-size:clamp(44px,7.6vh,63px)}
+ .local-special-page .local-entry-card{padding:9px 12px}
+ .local-special-page .special-cricket-cell b{font-size:17px}
+ .local-special-page .local-stats-card{padding:9px 12px}
+ .special-stats-cell{padding:5px 8px}
+ .special-choice{padding:5px 3px}
+}
+@media(max-width:780px){
+ .special-two-panel{grid-template-columns:1fr}
+ .special-stats-grid{grid-template-columns:1fr}
+ .special-cricket-board{grid-template-columns:repeat(7,minmax(0,1fr))}
+ .special-numbers{grid-template-columns:repeat(5,minmax(0,1fr))}
+}
+@media(max-width:520px){
+ .local-special-page .local-player{padding:9px}
+ .local-special-page .local-player h2{font-size:14px}
+ .local-special-page .local-player .local-score-band .local-score{font-size:clamp(35px,9vw,56px)}
+ .special-cricket-keys strong{font-size:10px}
+ .special-cricket-keypad{gap:3px}
+ .special-cricket-keypad .special-choice{font-size:11px;padding:5px 2px}
+ .special-cricket-cell strong{font-size:11px}
+ .special-cricket-cell b{font-size:15px}
+ .special-choice-row button{flex:1;padding:8px 7px;font-size:12px}
+ .special-target{padding:9px}
+ .special-x01-input input{width:45vw;min-width:0}
+ .special-stats-names,.special-stats-cell{font-size:11px}
+}
