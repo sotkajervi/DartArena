@@ -58,6 +58,18 @@ function save(state,config){
     return {ok:true,alreadySaved:false};
   }catch(error){return {ok:false,reason:'storage',message:error?.message||'Lagring feilet'};}
 }
+function recover(){
+  // Backfill the last finished local game if it has not been archived.
+  try{
+    const store=getStore();
+    const raw=JSON.parse(store?.getItem('dartarena-local-h2h-state-v1')||'null');
+    if(!raw||raw.status!=='finished'||![0,1].includes(raw.winner))return {ok:false,reason:'none'};
+    const session=JSON.parse(store?.getItem('dartarena-local-h2h-bot-session-v1')||'null');
+    const remembered=session?.id===raw.id?session.config:null;
+    const isBot=String(raw.players?.[1]||'').includes(' BOT (');
+    return save(raw,remembered||(isBot?{mode:'standard'}:null));
+  }catch(error){return {ok:false,reason:'recovery',message:String(error?.message||error)}}
+}
 function remove(id){
   const old=read();
   const next=old.filter(v=>v.id!==String(id));
@@ -67,5 +79,5 @@ function remove(id){
 function clear(){
   try{getStore().removeItem(KEY);return true}catch{return false}
 }
-root.DartArenaH2HHistory={read,save,remove,clear,storageKey:KEY,limit:LIMIT};
+root.DartArenaH2HHistory={read,save,recover,remove,clear,storageKey:KEY,limit:LIMIT};
 })(window);
