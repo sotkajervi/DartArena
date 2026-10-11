@@ -13,7 +13,7 @@
     <div class="lab-heading"><div><small>OWNER / ADMIN • EKSPERIMENT</small><h1>Autoscoring Lab</h1><p class="muted compact">PC-test med ett kamera. Ingen scoring sendes til onlinekamper eller turneringer.</p></div><a class="outline lab-back" href="./">Tilbake til lobby</a></div>
     <section id="labGate" class="card lab-gate" role="status" aria-live="polite">Kontrollerer tilgang …</section>
     <div id="labApp" hidden>
-      <div class="lab-warning" role="note"><strong>Autoscoring – eksperiment:</strong> DeepDarts D1 (.tflite) er nå primær lokal AI-test. Modellfilen åpnes på din PC og lastes aldri opp. Roboflow er en separat valgfri skytest, og ONNX er en alternativ lokal test. Ingen AI-score registreres i kamper eller turneringer uten manuell bekreftelse.</div>
+      <div class="lab-warning" role="note"><strong>Autoscoring – eksperiment:</strong> Roboflow v17 er hovedmodellen vi tester for pilspissdeteksjon. Ett fryst skiveutsnitt sendes kun når du godkjenner det og trykker «Analyser fryst bilde». DeepDarts D1 og ONNX ligger under «Andre metoder». Ingen AI-score registreres i kamper eller turneringer uten manuell bekreftelse.</div>
       <div class="lab-columns">
         <section class="card lab-cam-card">
           <div class="heading"><div><small>KAMERA OG KALIBRERING</small><h2>Skiveanalyse</h2></div><span id="labCameraState" class="lab-pill">Kamera av</span></div>
@@ -31,6 +31,14 @@
           <p class="muted compact">Kalibrer på skiven, ikke OBS-zoomen: Klikk Bull først. Klikk deretter <strong>midt på den fargede dobbelringen</strong> med klokken: øverst (D20), nordøst, høyre (D6), sørøst, nederst (D3), sørvest, venstre (D11), nordvest. Totalt ni punkter. Ved skjevhet: <strong>Finjuster punkter</strong> og dra de gule merkene direkte på skiven.</p><p class="muted compact lab-roi-note"><strong>Nytt ved merking:</strong> Når et kast oppdages, fryses kamerabildet. Klikk på pilspissen i det frosne bildet og bekreft. Hvis varselet uteblir, trykk «Frys treffbilde» etter kastet. Forkast bilder som viser at piler fjernes i stedet for å komme til.</p><p class="muted compact lab-roi-note"><strong>Gule stiplede linjer</strong> viser området som AI analyserer. OBS-forstørrelsen til høyre skal ligge utenfor rammen. <strong>Turkise linjer</strong> må ligge direkte på metalltrådene på dartskiven. Start ikke scoring dersom de ligger utenfor.</p>
         </section>
         <section class="card lab-data-card">
+          <div class="lab-ai-panel">
+            <div class="heading"><div><small>ROBOFLOW V17 • HOVEDTEST</small><h2>Ferdigtrent AI – pilspisser</h2></div><span id="labRoboflowState" class="lab-pill">Ikke kontrollert</span></div>
+            <p class="muted compact">Aktiv testmodell: <strong>dart-tip-detection-6d3mw/17</strong>. Analysen bruker bare det frosne skiveutsnittet, ikke OBS-zoomen ved siden av. Resultatet er et forslag som må kontrolleres manuelt.</p>
+            <label class="lab-dataset-optin"><input id="labRoboflowConsent" type="checkbox"><span><strong>Jeg godkjenner en engangsopplasting til Roboflow</strong><small>Kun når jeg trykker analyser. Bildet behandles av ekstern AI-leverandør. Ikke aktiver hvis kamerabildet viser private opplysninger.</small></span></label>
+            <div class="lab-actions"><button id="labRoboflowStatus" class="outline" type="button">Sjekk Roboflow</button><button id="labRoboflowTest" class="primary" type="button" disabled>Analyser fryst bilde</button></div>
+            <p id="labRoboflowMessage" class="muted compact" role="status" aria-live="polite">Roboflow REST krever <strong>Private API Key</strong> lagret som ROBOFLOW_API_KEY i Supabase Edge Functions / Secrets. «Sjekk Roboflow» kontrollerer bare at nøkkelen er lagret – ikke modelltilgangen. Del aldri nøkkelen.</p>
+          </div>
+          <details class="lab-optional"><summary>Andre metoder: DeepDarts D1 og ONNX (lokale tester)</summary>
           <div class="lab-ai-panel lab-deep-panel">
             <div class="heading"><div><small>DEEPDARTS D1 • LOKAL TEST</small><h2>Ferdigtrent modell fra PC</h2></div><span id="labDeepState" class="lab-pill">Ingen modell</span></div>
             <p class="muted compact">Dette er en annen modell enn Roboflow, laget for én fast kameravinkel. Den krever <strong>DeepDarts D1 (.tflite)</strong>, ikke ONNX. Modellen kjøres lokalt i nettleseren, og den kan foreslå pilspisser uten at du merker nye kast for trening.</p>
@@ -43,14 +51,6 @@
               <input id="labDeepThreshold" type="number" min="0.05" max="0.95" step="0.05" value="0.50" inputmode="decimal">
             </label>
             <p id="labDeepMessage" class="muted compact" role="status" aria-live="polite">Velg en D1-modell på PC-en og last den inn. Ved test analyseres bare den kalibrerte skiven i et frosset bilde. Ingen bilder eller modellvekter sendes til nettjenester.</p>
-          </div>
-          <details class="lab-optional"><summary>Andre metoder: Roboflow (sky) og ONNX (lokal)</summary>
-          <div class="lab-ai-panel">
-            <div class="heading"><div><small>ROBOFLOW • VALGFRI SKYTEST</small><h2>Ferdigtrent AI – pilspisser</h2></div><span id="labRoboflowState" class="lab-pill">Ikke kontrollert</span></div>
-            <p class="muted compact">Testmodell: dart-tip-detection-6d3mw/17. Testen bruker det frosne bildet av kun skiven, ikke hele OBS-kildens zoom eller annet fra skjermen. Resultatet er et forslag, ikke en automatisk score.</p>
-            <label class="lab-dataset-optin"><input id="labRoboflowConsent" type="checkbox"><span><strong>Jeg godkjenner en engangsopplasting til Roboflow</strong><small>Kun når jeg trykker analyser. Bildet behandles av ekstern AI-leverandør. Ikke aktiver hvis kamerabildet viser private opplysninger.</small></span></label>
-            <div class="lab-actions"><button id="labRoboflowStatus" class="outline" type="button">Sjekk Roboflow</button><button id="labRoboflowTest" class="primary" type="button" disabled>Analyser fryst bilde</button></div>
-            <p id="labRoboflowMessage" class="muted compact" role="status" aria-live="polite">Roboflow REST krever <strong>Private API Key</strong> lagret som ROBOFLOW_API_KEY i Supabase Edge Functions / Secrets. «Sjekk Roboflow» kontrollerer bare at nøkkelen er lagret – ikke modelltilgangen. Del aldri nøkkelen.</p>
           </div>
           <div class="lab-ai-panel">
             <div class="heading"><div><small>ONNX • LOKAL MASKINLÆRING</small><h2>AI-pilspissdeteksjon</h2></div><span id="labAiState" class="lab-pill">Ingen modell</span></div>
