@@ -7,7 +7,7 @@
 <title>DartArena • Lokal Head-to-Head</title>
 <link rel="stylesheet" href="./style.css?v=20260928-ui2">
 <link rel="stylesheet" href="./brand-header.css?v=20261009-mobile1">
-<link rel="stylesheet" href="./local-h2h.css?v=20261011-online-parity1">
+<link rel="stylesheet" href="./local-h2h.css?v=20261011-mobilekey1">
 </head>
 <body class="local-h2h-page">
 <header>
@@ -34,7 +34,7 @@
   <section id="localGame" hidden>
     <div class="local-game-top">
       <div><span class="local-pill" id="localFormatLabel">501</span><span class="local-pill" id="localSetLabel" hidden>Set 1</span><span class="local-pill" id="localLegLabel">Leg 1</span><span class="local-pill" id="localBestLabel">Best av 3</span></div>
-      <div class="local-game-actions"><button id="localUndo" class="outline" type="button" disabled>Angre</button><button id="localNewMatch" class="outline" type="button">Ny kamp</button></div>
+      <div class="local-game-actions"><button id="localStatsOpen" class="outline local-mobile-stats-trigger" type="button" aria-expanded="false" aria-controls="localStatsPanel">Statistikk</button><button id="localUndo" class="outline" type="button" disabled>Angre</button><button id="localNewMatch" class="outline" type="button">Ny kamp</button></div>
     </div>
     <div class="local-play-layout"><div class="local-play-main"><div class="local-board" id="localBoard">
       <article class="local-player" id="localPlayer0"><div class="local-player-top"><small>SPILLER 1</small><span class="local-current-marker" aria-hidden="true">Kaster nå</span></div><h2 class="local-match-name"><span id="localPlayerName0">Spiller 1</span><span id="localStarterMarker0" class="local-starter-mark" aria-label="Starter leget" title="Starter leget" hidden><svg viewBox="0 0 34 30" aria-hidden="true" focusable="false"><g transform="translate(7.2 0) rotate(-10 0 13)"><path class="dart-flight" d="M0 0 -4.2 2.2 -2.7 6.2 0 4.6 2.7 6.2 4.2 2.2Z"/><path class="dart-shaft" d="M0 4.5V12"/><path class="dart-barrel" d="M-1.8 11.5H1.8L2.3 18.4 1.25 21H-1.25L-2.3 18.4Z"/><path class="dart-grip" d="M-1.65 14.2H1.65M-1.8 16.2H1.8M-1.65 18.2H1.65"/><path class="dart-point" d="M0 21V28"/></g><g transform="translate(17 0) rotate(0 0 13)"><path class="dart-flight" d="M0 0 -4.2 2.2 -2.7 6.2 0 4.6 2.7 6.2 4.2 2.2Z"/><path class="dart-shaft" d="M0 4.5V12"/><path class="dart-barrel" d="M-1.8 11.5H1.8L2.3 18.4 1.25 21H-1.25L-2.3 18.4Z"/><path class="dart-grip" d="M-1.65 14.2H1.65M-1.8 16.2H1.8M-1.65 18.2H1.65"/><path class="dart-point" d="M0 21V28"/></g><g transform="translate(26.8 0) rotate(10 0 13)"><path class="dart-flight" d="M0 0 -4.2 2.2 -2.7 6.2 0 4.6 2.7 6.2 4.2 2.2Z"/><path class="dart-shaft" d="M0 4.5V12"/><path class="dart-barrel" d="M-1.8 11.5H1.8L2.3 18.4 1.25 21H-1.25L-2.3 18.4Z"/><path class="dart-grip" d="M-1.65 14.2H1.65M-1.8 16.2H1.8M-1.65 18.2H1.65"/><path class="dart-point" d="M0 21V28"/></g></svg></span></h2><div class="local-score-band"><div class="local-live-darts"><b id="localDarts0">0</b><span>PILER</span></div><div class="local-score" id="localScore0">501</div><div class="local-avg"><b id="localAverage0">–</b><span>AVG</span></div></div><div class="local-leg-label"><span><strong id="localLegs0">0</strong> LEGS</span><span id="localSetsWrap0" class="local-sets-label" hidden><strong id="localSets0">0</strong> SETS</span></div></article>
@@ -46,6 +46,20 @@
         <label for="localScoreInput">Score for tre piler</label>
         <div class="local-entry-controls"><input id="localScoreInput" type="text" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" autocomplete="off" placeholder="0–180" aria-label="Score for tre piler" required><button id="localSubmit" class="primary" type="submit">Registrer / Enter</button><button id="localBust" class="outline" type="button">BUST</button></div>
       </form>
+      <div id="localMobileKeypad" class="local-mobile-keypad" role="group" aria-label="Talltastatur for score">
+        <button type="button" data-keypad-digit="1">1</button>
+        <button type="button" data-keypad-digit="2">2</button>
+        <button type="button" data-keypad-digit="3">3</button>
+        <button type="button" data-keypad-digit="4">4</button>
+        <button type="button" data-keypad-digit="5">5</button>
+        <button type="button" data-keypad-digit="6">6</button>
+        <button type="button" data-keypad-digit="7">7</button>
+        <button type="button" data-keypad-digit="8">8</button>
+        <button type="button" data-keypad-digit="9">9</button>
+        <button type="button" data-keypad-action="delete" aria-label="Slett siste siffer">⌫</button>
+        <button type="button" data-keypad-digit="0">0</button>
+        <button type="button" data-keypad-action="enter" class="local-keypad-enter" aria-label="Registrer scoren">Enter</button>
+      </div>
       <p id="localMessage" class="local-message" role="status" aria-live="polite">Skriv score og trykk Enter.</p>
     </section>
     <section class="card local-corrections" id="localCorrections" aria-label="Korriger nylige kast">
@@ -55,7 +69,11 @@
     </section>
     <section id="localBetween" class="card local-between" hidden><h2 id="localBetweenTitle">Leg vunnet</h2><p id="localBetweenText"></p><button id="localNextLeg" class="primary" type="button">Neste leg</button><p class="local-autonext-hint">Neste leg/set starter automatisk etter 3 sekunder</p></section>
     <section id="localFinished" class="card local-between" hidden><small>KAMP FERDIG</small><h2 id="localWinnerText"></h2><p id="localFinalText"></p><button id="localPlayAgain" class="primary" type="button">Spill ny kamp</button></section>
-    </div><section class="card local-stats-card"><div class="heading"><div><small>HELE KAMPEN</small><h2>Live-statistikk</h2></div></div>
+    </div><div id="localStatsBackdrop" class="local-stats-backdrop" hidden></div>
+    <section id="localStatsPanel" class="card local-stats-card" aria-labelledby="localStatsTitle">
+      <div class="heading"><div><small>HELE KAMPEN</small><h2 id="localStatsTitle">Live-statistikk</h2></div>
+        <button id="localStatsClose" class="outline local-mobile-stats-close" type="button">Lukk ✕</button>
+      </div>
       <div class="local-stats-groups">
         <div class="stats-grid local-stat-table" aria-label="Kampstatistikk, del 1">
           <div class="label"></div><div class="val head" id="localStatsName0">Spiller 1</div><div class="val head" id="localStatsName1">Spiller 2</div>
@@ -111,6 +129,6 @@
 </div>
 <script src="./x01-stats.js?v=20261011-localonline1"></script>
 <script src="./local-h2h-engine.js?v=20261011-online-parity1"></script>
-<script src="./local-h2h.js?v=20261011-online-parity1"></script>
+<script src="./local-h2h.js?v=20261011-mobilekey1"></script>
 </body>
 </html>

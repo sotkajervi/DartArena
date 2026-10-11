@@ -11,6 +11,8 @@ const ui={
   name1:$('localName1'),name2:$('localName2'),format:$('localFormat'),bestOf:$('localBestOf'),
   mode:$('localMode'),setsField:$('localSetsField'),bestOfSets:$('localBestOfSets'),starter:$('localStarter'),
   game:$('localGame'),scoreForm:$('localScoreForm'),score:$('localScoreInput'),
+  keypad:$('localMobileKeypad'),statsOpen:$('localStatsOpen'),statsClose:$('localStatsClose'),
+  statsPanel:$('localStatsPanel'),statsBackdrop:$('localStatsBackdrop'),
   submit:$('localSubmit'),bust:$('localBust'),turn:$('localTurn'),
   between:$('localBetween'),finished:$('localFinished'),checkout:$('localCheckout'),
   checkoutForm:$('localCheckoutForm'),checkoutDarts:$('localCheckoutDarts'),checkoutTitle:$('localCheckoutTitle'),
@@ -25,14 +27,61 @@ function safeSave(){
   try{if(state)localStorage.setItem(KEY,JSON.stringify(state));else localStorage.removeItem(KEY)}
   catch{showMessage('Kampen kjører, men kunne ikke lagres i denne nettleseren.',true)}
 }
+const mobileMatch=window.matchMedia('(max-width: 700px)');
+function isMobileView(){return mobileMatch.matches}
 function focusScore(){
-  if(state?.status!=='playing'||pendingCheckout||editingIndex!==null)return;
+  if(isMobileView()||state?.status!=='playing'||pendingCheckout||editingIndex!==null)return;
   requestAnimationFrame(()=>{
     if(state?.status!=='playing'||pendingCheckout||editingIndex!==null)return;
     ui.score.focus({preventScroll:true});
     ui.score.select();
   });
 }
+function closeStats(){
+  document.body.classList.remove('local-stats-open');
+  ui.statsBackdrop.hidden=true;
+  ui.statsPanel.removeAttribute('role');
+  ui.statsPanel.removeAttribute('aria-modal');
+  ui.statsOpen.setAttribute('aria-expanded','false');
+  if(isMobileView())ui.statsOpen.focus({preventScroll:true});
+}
+function openStats(){
+  if(!state||!isMobileView()||!ui.checkout.hidden||!ui.correction.hidden)return;
+  document.body.classList.add('local-stats-open');
+  ui.statsBackdrop.hidden=false;
+  ui.statsPanel.setAttribute('role','dialog');
+  ui.statsPanel.setAttribute('aria-modal','true');
+  ui.statsOpen.setAttribute('aria-expanded','true');
+  ui.statsClose.focus({preventScroll:true});
+}
+function syncMobileControls(){
+  // Keep PC keyboard-first behavior; suppress the system keyboard only in the
+  // narrow layout where the in-page keypad is visible.
+  ui.score.readOnly=isMobileView();
+  ui.score.setAttribute('inputmode',isMobileView()?'none':'numeric');
+  if(!isMobileView()&&document.body.classList.contains('local-stats-open'))closeStats();
+}
+ui.statsOpen.addEventListener('click',openStats);
+ui.statsClose.addEventListener('click',closeStats);
+ui.statsBackdrop.addEventListener('click',closeStats);
+mobileMatch.addEventListener('change',syncMobileControls);
+syncMobileControls();
+ui.keypad.addEventListener('click',event=>{
+  const button=event.target.closest('button');
+  if(!button||!state||state.status!=='playing'||pendingCheckout||editingIndex!==null||
+     !ui.checkout.hidden||!ui.correction.hidden)return;
+  const digit=button.dataset.keypadDigit,action=button.dataset.keypadAction;
+  if(digit!==undefined){
+    if(ui.score.value.length>=3)return;
+    ui.score.value+=digit;
+    showMessage('Score: '+ui.score.value);
+  }else if(action==='delete'){
+    ui.score.value=ui.score.value.slice(0,-1);
+    showMessage(ui.score.value?'Score: '+ui.score.value:'Skriv score og trykk Enter.');
+  }else if(action==='enter'){
+    ui.scoreForm.requestSubmit();
+  }
+});
 function player(i){return state.players[i]}
 function scheduleBetween(){
   clearTimeout(betweenTimer);betweenTimer=null;
@@ -52,6 +101,7 @@ updateSetsField();
 function statValue(id,value){$(id).textContent=String(value)}
 function render(){
   ui.setup.hidden=!!state;ui.game.hidden=!state;
+  document.body.classList.toggle('local-match-active',!!state);
   if(!state)return;
   statValue('localFormatLabel',state.format);
   $('localSetLabel').hidden=state.mode!=='sets';
@@ -343,6 +393,7 @@ function newMatch(){
   if(state&&state.status!=='finished'&&!window.confirm('Avslutte denne lokale kampen? Resultatet kan ikke gjenopprettes etterpå.'))return;
   clearTimeout(betweenTimer);betweenTimer=null;
   const oldPlayers=state?.players||[];
+  closeStats();
   state=null;pendingCheckout=null;editingIndex=null;ui.checkout.hidden=true;ui.correction.hidden=true;
   ui.name1.value=oldPlayers[0]||'';ui.name2.value=oldPlayers[1]||'';
   safeSave();render();ui.name1.focus();
@@ -350,7 +401,8 @@ function newMatch(){
 $('localNewMatch').addEventListener('click',newMatch);
 $('localPlayAgain').addEventListener('click',newMatch);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'){
-  if(!ui.correction.hidden){event.preventDefault();closeCorrection()}
+  if(document.body.classList.contains('local-stats-open')){event.preventDefault();closeStats()}
+  else if(!ui.correction.hidden){event.preventDefault();closeCorrection()}
   else if(!ui.checkout.hidden){event.preventDefault();closeCheckout()}
 }});
 try{state=E.restore(JSON.parse(localStorage.getItem(KEY)||'null'))}catch{state=null}
