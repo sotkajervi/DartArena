@@ -79,8 +79,14 @@ function submit(state,payload){
    const result=cricketVisit(s,ds,p);
    Object.assign(entry,{darts:clone(ds),points:result.scored,marks:ds.reduce((n,d)=>n+(Number(d.mult)||0),0)});
    s.visits.push(entry);
-   if(result.win){if(s.game==='chicago'){s.stage=3;s.scores=[501,501];s.entered=[true,true];s.marks=[emptyMarks(),emptyMarks()];s.turn=1-s.firstStarter}
-     else finishLeg(s,p);}
+   if(result.win){
+     if(s.game==='chicago'){
+       s.legs[p]++;
+       if(s.legs[p]>=2){s.status='finished';s.winner=p}
+       else{s.stage=3;s.scores=[501,501];s.entered=[true,true];
+         s.marks=[emptyMarks(),emptyMarks()];s.turn=s.firstStarter}
+     }else finishLeg(s,p);
+   }
    else s.turn=1-p;
  }else if(kind==='half'){
    const darts=payload?.darts||[];
@@ -149,8 +155,9 @@ function submit(state,payload){
    Object.assign(entry,{score:points,attempt:value,bust,checkout,darts:checkout?payload.darts:3});
    s.visits.push(entry);
    if(checkout){
+     s.legs[p]++;
      if(s.stage===1){s.stage=2;s.scores=[0,0];s.marks=[emptyMarks(),emptyMarks()];s.turn=1-s.firstStarter}
-     else {s.status='finished';s.winner=p;s.legs[p]=2}
+     else {s.status='finished';s.winner=p}
    }else s.turn=1-p;
  }else throw Error('Ukjent spillmodus.');
  return save(state,s);
