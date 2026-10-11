@@ -7,7 +7,7 @@ const KEY_PREFIX='dartarena-local-special-v1:',config={
  cricket:'Cricket',half_standard:'Half-It (Standard)',half_dartcounter:'Half-It (DartCounter)',
  sixty_one:'61',jdc:'JDC Challenge',chicago:'Chicago Style'
 };
-let state=null,pending=[],selectedMult=1,editingIndex=null,message='',isError=false,nextTimer=null,cricketDisclosureInitialized=false;
+let state=null,pending=[],selectedMult=1,editingIndex=null,message='',isError=false,nextTimer=null,cricketDisclosureInitialized=false,halfSelectedDart=null,halfFieldOpen=false;
 const w=window,dom={
  setup:$('specialSetup'),game:$('specialGame'),mode:$('specialMode'),name1:$('specialSetupName1'),
  name2:$('specialSetupName2'),legs:$('specialLegs'),minutes:$('specialMinutes'),starter:$('specialStarter'),
@@ -26,7 +26,8 @@ function store(gameToDelete){
     if(state)localStorage.setItem(storageKey(state.game),JSON.stringify(state));
   }catch(e){fail('Kunne ikke lagre kampen lokalt.')}
 }
-function resetPending(){pending=[];selectedMult=1;editingIndex=null;dom.checkout.hidden=true}
+function resetPending(){pending=[];selectedMult=1;editingIndex=null;halfSelectedDart=null;halfFieldOpen=false;dom.checkout.hidden=true}
+function halfMobile(){return !!w.matchMedia?.('(max-width: 700px)')?.matches}
 function cricketMobile(){return state?.game==='cricket'&&!!w.matchMedia?.('(max-width: 700px)')?.matches}
 function closeCricketStats(){
  document.body.classList.remove('special-cricket-stats-open');
@@ -76,6 +77,7 @@ function renderScores(){
    const value=game==='sixty_one'?state.target[p]:state.scores[p];
    $('specialScore'+p).textContent=formatScore(value);
    let darts=legVisits.reduce((sum,v)=>sum+(Array.isArray(v.darts)?v.darts.length:Number.isInteger(v.darts)?v.darts:Array.isArray(v.codes)?v.codes.length:(typeof v.hit==='boolean'?1:3)),0);
+   if(mode()==='half'&&state.status==='playing'&&state.turn===p)darts+=pending.length;
    $('specialDarts'+p).textContent=String(darts);
    let average=0,unit='AVG';
    if(mode()==='cricket'){
@@ -155,18 +157,37 @@ function cricketBoard(){
 }
 function halfPad(){
  const rule=E.halfRule(state),n=E.round(state),choice=rule==='exact'?
-  '<div class="special-choice-row">'+state.exactOptions.map(x=>'<button class="'+(state.exactChoice===x?'primary':'outline')+'" type="button" data-exact="'+x+'">'+x+'</button>').join('')+'</div>':'';
- let keys='';
- if(typeof rule==='number'&&rule!==41){
-   keys=[1,2,3].map(m=>({n:rule,m}));
- }else if(rule==='bull'){keys=[{n:25,m:1},{n:25,m:2}]}
- else{
-   if(rule==='double'||rule==='treble'){keys=Array.from({length:20},(_,i)=>({n:i+1,m:rule==='double'?2:3}));if(rule==='double')keys.push({n:25,m:2})}
-   else{keys=Array.from({length:20},(_,i)=>({n:i+1,m:selectedMult}));if(selectedMult<=2)keys.push({n:25,m:selectedMult})}
+   '<div class="special-choice-row">'+state.exactOptions.map(x=>'<button class="'+(state.exactChoice===x?'primary':'outline')+'" type="button" data-exact="'+x+'">'+x+'</button>').join('')+'</div>':'';
+ let keys=[];
+ if(typeof rule==='number'&&rule!==41){keys=[1,2,3].map(m=>({n:rule,m}))}
+ else if(rule==='bull'){keys=[{n:25,m:1},{n:25,m:2}]}
+ else if(rule==='double'||rule==='treble'){
+   keys=Array.from({length:20},(_,i)=>({n:i+1,m:rule==='double'?2:3}));
+   if(rule==='double')keys.push({n:25,m:2});
+ }else{
+   keys=Array.from({length:20},(_,i)=>({n:i+1,m:selectedMult}));
+   if(selectedMult<=2)keys.push({n:25,m:selectedMult});
  }
- const multis=(['same','different','exact',41].includes(rule))?'<div class="special-choice-row">'+
-  [1,2,3].map(m=>'<button type="button" class="'+(selectedMult===m?'primary':'outline')+'" data-mult="'+m+'">'+({1:'SINGLE',2:'DOBBEL',3:'TRIPPEL'})[m]+'</button>').join('')+'</div>':'';
- return '<div class="special-half-controls">'+choice+multis+'<div class="special-numbers">'+keys.map(d=>'<button type="button" class="outline special-choice" data-n="'+d.n+'" data-m="'+d.m+'">'+labelDart(d)+'</button>').join('')+'</div></div><p class="muted compact">1 / 2 / 3 velger treff når ett nummer vises. 0=Miss, Backspace=fjern, Enter=registrer.</p>';
+ const multis=['same','different','exact',41].includes(rule)?
+   '<div class="special-choice-row">'+[1,2,3].map(m=>
+   '<button type="button" class="'+(selectedMult===m?'primary':'outline')+'" data-mult="'+m+'">'+
+   ({1:'SINGLE',2:'DOBBEL',3:'TRIPPEL'})[m]+'</button>').join('')+'</div>':'';
+ const open=!halfMobile()||halfFieldOpen?' open':'';
+ const digits=['1','2','3','4','5','6','7','8','9','del','0','enter'];
+ const keypad=digits.map(d=>d==='del'?
+   '<button type="button" data-half-action="delete" aria-label="Slett siffer">⌫</button>':
+   d==='enter'?'<button type="button" class="primary" data-half-action="enter">Enter</button>':
+   '<button type="button" data-half-digit="'+d+'">'+d+'</button>').join('');
+ return '<div class="special-half-controls">'+choice+
+  '<div class="special-half-input"><input id="specialHalfInput" type="text" inputmode="'+(halfMobile()?'none':'numeric')+'"'+
+  (halfMobile()?' readonly':'')+
+  ' maxlength="2" autocomplete="off" aria-label="Poeng for neste pil" placeholder="0–60 per pil">'+
+  '<button type="button" class="primary" data-half-action="enter">Enter / MISS</button></div>'+
+  '<div class="special-half-keypad" role="group" aria-label="Tall for én pil">'+keypad+'</div>'+
+  '<p class="special-half-hint">Skriv f.eks. 13 + Enter. Tom Enter = MISS. Etter 3 piler byttes spiller.</p>'+
+  '<details id="specialHalfFields" class="special-half-fields"'+open+'>'+
+  '<summary>Feltvalg: single, dobbel, trippel</summary>'+multis+
+  '<div class="special-numbers">'+keys.map(d=>'<button type="button" class="outline special-choice" data-n="'+d.n+'" data-m="'+d.m+'">'+labelDart(d)+'</button>').join('')+'</div></details></div>';
 }
 function jdcPad(){
  const r=E.round(state),double=r>=7&&r<=27,expected=neededJdc(),target=r<=6?9+r:r>=28?r-13:null;
@@ -203,10 +224,10 @@ function renderPad(){
  dom.controls.innerHTML=contents;
  const usual=['cricket','half','jdc'].includes(game);
  dom.selected.parentElement.hidden=!usual;
- dom.submit.hidden=!usual;dom.remove.hidden=!usual;dom.miss.hidden=!['cricket','half'].includes(game);
+ dom.submit.hidden=!usual||game==='half';dom.remove.hidden=!usual;dom.miss.hidden=game!=='cricket';
  dom.miss.innerHTML=game==='cricket'?'MISS <span class="da-key">M</span>':'MISS <span class="da-key">0</span>';
  const max=game==='jdc'?neededJdc():3;
- dom.submit.disabled=state.paused||!pending.length||(game==='half'&&pending.length!==3)||(game==='jdc'&&pending.length!==max);
+ dom.submit.disabled=state.paused||!pending.length||(game==='jdc'&&pending.length!==max);
  dom.submit.innerHTML=editingIndex===null?'Registrer <span class="da-key">Enter</span>':'Lagre korrigering <span class="da-key">Enter</span>';
  dom.remove.disabled=!pending.length;
  if(usual){
@@ -244,7 +265,7 @@ function renderPad(){
    }
    }
  }
- $('specialInfo').textContent=game==='half'?'Runde '+Math.min(12,E.round(state))+'/12 • Mål: '+String(E.halfRule(state)).toUpperCase():
+ $('specialInfo').textContent=game==='half'?'Runde '+Math.min(12,E.round(state))+'/12 • Mål: '+String(E.halfRule(state)).toUpperCase()+' • Pil '+(pending.length+1)+'/3':
  game==='jdc'?'Velg treff eller bom for hver pil i turen.':
  game==='cricket'?'Lukk 20–15 og Bull, ta poeng ved overskytende merker.':'';
 }
@@ -327,6 +348,7 @@ function render(){
    dom.submit.hidden=true;dom.miss.hidden=true;dom.remove.hidden=true;dom.selected.parentElement.hidden=true;
  }
  const x=$('specialX01');if(x&&state.status==='playing')x.focus({preventScroll:true});
+ if(state.status==='playing'&&mode()==='half'&&!halfMobile())halfInput()?.focus({preventScroll:true});
  if(state.status==='finished'&&document.body.classList.contains('special-cricket-stats-open'))closeCricketStats();
  window.DartArenaLocalResults?.syncSpecial(state,newGame);
 }
@@ -345,9 +367,46 @@ function push(dart){if(!state||state.status!=='playing'||state.paused)return;
  const max=mode()==='jdc'?neededJdc():3;if(pending.length>=max)return fail('Maks '+max+' piler per tur.');
  pending.push(dart);info('');renderPad();
 }
+function halfInput(){return $('specialHalfInput')}
+function halfTypeDigit(digit){
+ const input=halfInput();if(!input||input.value.length>=2)return;
+ input.value+=digit;halfSelectedDart=null;
+}
+function halfDeleteDigit(){
+ const input=halfInput();if(!input)return;
+ input.value=input.value.slice(0,-1);halfSelectedDart=null;
+}
+function halfChooseField(n,mult){
+ const input=halfInput();if(!input)return;
+ const dart={n,mult};
+ halfSelectedDart=dart;
+ input.value=String(E.dartScore(dart));
+ info(labelDart(dart)+' valgt. Trykk Enter for å registrere pilen.');
+ input.focus({preventScroll:true});
+}
+function submitHalfDart(){
+ if(!state||mode()!=='half'||state.status!=='playing'||state.paused)return;
+ const input=halfInput(),raw=String(input?.value??'').trim();
+ let dart;
+ try{
+   if(raw==='')dart={n:0,mult:0};
+   else if(halfSelectedDart&&raw===String(E.dartScore(halfSelectedDart)))dart={...halfSelectedDart};
+   else dart=E.halfDartFromScore(raw,E.halfRule(state));
+ }catch(error){return fail(error?.message||'Ugyldig score for én pil.')}
+ if(pending.length>=3)return;
+ pending.push(dart);halfSelectedDart=null;
+ if(pending.length===3){
+   const darts=clonePending();
+   commit(()=>E.submit(state,{darts,exactChoice:state.exactChoice}),'Tre piler registrert. Neste spiller.');
+ }else{
+   info((dart.n===0?'MISS':labelDart(dart))+' registrert. Pil '+(pending.length+1)+' av 3.');
+   renderPad();renderScores();
+   if(!halfMobile())halfInput()?.focus({preventScroll:true});
+ }
+}
 function submit(){
  if(!state||state.status!=='playing')return;
- if(mode()==='half'&&pending.length!==3)return fail('Half-It krever tre piler.');
+ if(mode()==='half')return submitHalfDart();
  if(mode()==='jdc'&&pending.length!==neededJdc())return fail('Registrer alle pilene før Enter.');
  if(!pending.length)return fail('Velg minst én pil.');
  let darts;
@@ -392,9 +451,12 @@ dom.controls.addEventListener('click',event=>{
  const button=event.target.closest('button');if(!button||!state)return;
  if(button.dataset.ct)push({target:button.dataset.ct,mult:Number(button.dataset.cm)});
  else if(button.dataset.mark)pushCricketMark(button.dataset.mark);
- else if(button.dataset.n)push({n:Number(button.dataset.n),mult:Number(button.dataset.m)});
+ else if(button.dataset.n){if(mode()==='half')halfChooseField(Number(button.dataset.n),Number(button.dataset.m));else push({n:Number(button.dataset.n),mult:Number(button.dataset.m)})}
+ else if(button.dataset.halfDigit!==undefined)halfTypeDigit(button.dataset.halfDigit);
+ else if(button.dataset.halfAction==='delete')halfDeleteDigit();
+ else if(button.dataset.halfAction==='enter')submitHalfDart();
  else if(button.dataset.jdc)push(button.dataset.jdc);
- else if(button.dataset.mult){selectedMult=Number(button.dataset.mult);renderPad()}
+ else if(button.dataset.mult){halfFieldOpen=true;selectedMult=Number(button.dataset.mult);renderPad()}
  else if(button.dataset.exact){state.exactChoice=Number(button.dataset.exact);store();renderPad()}
  else if(button.dataset.hit)submit61(button.dataset.hit==='yes');
  else if(button.dataset.pause)commit(()=>E.pause(state),state.paused?'Fortsett':'Pause');
@@ -402,11 +464,11 @@ dom.controls.addEventListener('click',event=>{
 });
 dom.choice.addEventListener('click',e=>{if(e.target.dataset.checkout)finalizeCheckout(Number(e.target.dataset.checkout))});
 $('specialCheckoutCancel').addEventListener('click',()=>{dom.checkout.hidden=true;$('specialX01')?.focus()});
-dom.miss.addEventListener('click',()=>mode()==='cricket'?pushCricketMark('MISS'):push({n:0,mult:0}));
-dom.remove.addEventListener('click',()=>{pending.pop();renderPad()});
+dom.miss.addEventListener('click',()=>mode()==='cricket'?pushCricketMark('MISS'):mode()==='half'?submitHalfDart():push({n:0,mult:0}));
+dom.remove.addEventListener('click',()=>{pending.pop();halfSelectedDart=null;renderPad();if(mode()==='half')renderScores()});
 dom.submit.addEventListener('click',submit);
 $('specialCancelEdit').addEventListener('click',()=>{editingIndex=null;pending=[];info('Korrigeringen er avbrutt.');render()});
-$('specialUndo').addEventListener('click',()=>{if(pending.length){pending.pop();renderPad()}else if(state?.undo?.length)commit(()=>E.undo(state),'Angret siste registrering.')});
+$('specialUndo').addEventListener('click',()=>{if(pending.length){pending.pop();halfSelectedDart=null;renderPad();if(mode()==='half')renderScores()}else if(state?.undo?.length)commit(()=>E.undo(state),'Angret siste registrering.')});
 $('specialNext').addEventListener('click',()=>commit(()=>E.next(state),'Neste leg startet.'));
 function newGame(){if(state?.status==='playing'&&!w.confirm('Avslutte lokal kamp?'))return;
  const players=state?.players||[],oldGame=state?.game;
@@ -429,6 +491,18 @@ document.addEventListener('keydown',event=>{
      const input=$('specialX01');if(input){event.preventDefault();input.value=event.key;input.focus()}
    }return;
  }
+ if(mode()==='half'){
+   const input=halfInput();
+   if(event.key==='Enter'){event.preventDefault();submitHalfDart();return}
+   if(event.target===input)return; // Desktop input accepts native digits and Backspace
+   if(event.target?.tagName==='INPUT'||event.target?.tagName==='TEXTAREA'||event.target?.tagName==='SELECT')return;
+   if(/^\\d$/.test(event.key)){
+     event.preventDefault();halfTypeDigit(event.key);
+     if(!halfMobile())input?.focus({preventScroll:true});
+   }else if(event.key==='Backspace'){
+     event.preventDefault();halfDeleteDigit();
+   }return;
+ }
  if(event.target?.tagName==='INPUT'||event.target?.tagName==='TEXTAREA'||event.target?.tagName==='SELECT')return;
  const modeNow=mode(),key=event.key.toLowerCase();
  if(modeNow==='sixty_one'){
@@ -448,14 +522,6 @@ document.addEventListener('keydown',event=>{
    const code=E.round(state)>=7&&E.round(state)<=27?({'0':'M','2':'H'})[key]:
       ({'0':'M','1':'S','2':'D','3':'T'})[key];
    if(code){event.preventDefault();push(code)}
- }else if(modeNow==='half'){
-   if(key==='0'){event.preventDefault();push({n:0,mult:0})}
-   else if(['1','2','3'].includes(key)){
-     const rule=E.halfRule(state);
-     if(typeof rule==='number'&&rule!==41){event.preventDefault();push({n:rule,mult:Number(key)})}
-     else if(rule==='bull'&&key!=='3'){event.preventDefault();push({n:25,mult:Number(key)})}
-     else{selectedMult=Number(key);renderPad()}
-   }
  }
 });
 const q=new URLSearchParams(location.search).get('game');
