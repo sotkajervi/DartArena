@@ -165,3 +165,191 @@
  .local-special-page .special-cricket-row .special-cricket-target{font-size:19px}
  .local-special-page .special-cricket-row .special-cricket-mark{font-size:20px}
 }
+
+
+/* Cricket compact mobile layout. Other local games retain their existing sizes. */
+.local-special-page .special-mobile-stats-trigger,
+.local-special-page .special-stats-close,
+.local-special-page .special-stats-backdrop{display:none}
+.local-special-page .special-correction-summary{
+  cursor:pointer;color:var(--text);font-size:12px;font-weight:850
+}
+.local-special-page .special-correction-summary span{
+  float:right;color:var(--muted);font-size:11px;font-weight:600
+}
+.local-special-page #specialCorrections[open] .local-corrections-header{margin-top:10px}
+@media(max-width:700px){
+  .local-special-page.local-cricket-playing header{
+    min-height:48px;height:auto;padding:3px 10px;gap:6px
+  }
+  .local-special-page.local-cricket-playing header .brand-logo{width:min(116px,31vw)}
+  .local-special-page.local-cricket-playing header .live{font-size:10px}
+  .local-special-page.local-cricket-playing .local-h2h-shell{
+    margin:3px auto 0;padding:0 10px 10px
+  }
+  .local-special-page.local-cricket-playing .local-h2h-heading{
+    margin:0 0 5px;gap:6px;align-items:center;flex-wrap:nowrap
+  }
+  .local-special-page.local-cricket-playing .local-h2h-heading small,
+  .local-special-page.local-cricket-playing .local-h2h-heading .muted{display:none}
+  .local-special-page.local-cricket-playing .local-h2h-heading h1{
+    font-size:21px;line-height:1.15;margin:0
+  }
+  .local-special-page.local-cricket-playing .local-back{
+    padding:6px 9px;font-size:11px;border-radius:9px
+  }
+  .local-special-page.local-cricket-playing .local-game-top{
+    margin:0 0 5px;gap:5px;display:flex;justify-content:space-between;flex-wrap:wrap
+  }
+  .local-special-page.local-cricket-playing .local-game-top>div{
+    gap:5px;flex-wrap:wrap
+  }
+  .local-special-page.local-cricket-playing .local-game-top .local-pill{
+    padding:3px 7px;font-size:10px;line-height:1.3
+  }
+  .local-special-page.local-cricket-playing .local-game-actions button{
+    font-size:10px;padding:5px 8px;min-height:30px
+  }
+  .local-special-page.local-cricket-playing .special-mobile-stats-trigger{
+    display:inline-flex;align-items:center;color:var(--cyan);
+    border-color:rgba(0,234,244,.4)
+  }
+  .local-special-page.local-cricket-playing .local-board{gap:6px}
+  .local-special-page.local-cricket-playing .local-player{
+    padding:7px 8px;border-radius:11px;min-width:0
+  }
+  .local-special-page.local-cricket-playing .local-player-top small,
+  .local-special-page.local-cricket-playing .local-current-marker{
+    font-size:9px;line-height:1
+  }
+  .local-special-page.local-cricket-playing .local-player h2{
+    font-size:15px;line-height:1.15;margin:4px 0 1px;min-height:0
+  }
+  .local-special-page.local-cricket-playing .local-player .local-score-band{
+    grid-template-columns:35px minmax(0,1fr) 43px;gap:3px;margin:2px 0
+  }
+  .local-special-page.local-cricket-playing .local-player .local-score-band .local-score{
+    font-size:clamp(30px,8vw,45px);line-height:1.05
+  }
+  .local-special-page.local-cricket-playing .local-player .local-score-band .local-live-darts,
+  .local-special-page.local-cricket-playing .local-player .local-score-band .local-avg{
+    min-height:35px;padding:4px 2px;gap:2px;border-radius:7px
+  }
+  .local-special-page.local-cricket-playing .local-player .local-score-band .local-live-darts b,
+  .local-special-page.local-cricket-playing .local-player .local-score-band .local-avg b{
+    font-size:12px
+  }
+  .local-special-page.local-cricket-playing .local-player .local-score-band .local-live-darts span,
+  .local-special-page.local-cricket-playing .local-player .local-score-band .local-avg span{
+    font-size:7px
+  }
+  .local-special-page.local-cricket-playing .local-leg-label{
+    font-size:11px!important;margin:0;letter-spacing:0
+  }
+  .local-special-page.local-cricket-playing .local-entry-card{
+    margin:6px 0 0;padding:8px 10px;border-radius:12px
+  }
+  .local-special-page.local-cricket-playing .local-entry-card .local-turn{
+    font-size:18px;line-height:1.2;margin:0 0 5px
+  }
+  .local-special-page.local-cricket-playing #specialInfo,
+  .local-special-page.local-cricket-playing .special-cricket-hint,
+  .local-special-page.local-cricket-playing #specialProgress{display:none}
+  .local-special-page.local-cricket-playing .special-cricket-vertical{
+    gap:3px;margin:0 auto
+  }
+  .local-special-page.local-cricket-playing .special-cricket-head{
+    font-size:10px;padding:0 3px 2px
+  }
+  .local-special-page.local-cricket-playing .special-cricket-row{
+    min-height:40px;padding:2px 5px;gap:4px;border-radius:7px
+  }
+  .local-special-page.local-cricket-playing .special-cricket-row .special-cricket-mark{
+    font-size:20px
+  }
+  .local-special-page.local-cricket-playing .special-cricket-row .special-cricket-target{
+    min-height:36px;font-size:20px;border-radius:7px
+  }
+  .local-special-page.local-cricket-playing .special-cricket-row .special-cricket-target small{
+    font-size:10px;right:5px
+  }
+  .local-special-page.local-cricket-playing .special-entry .special-darts{
+    margin:5px 0 4px;min-height:24px;font-size:11px;gap:6px
+  }
+  .local-special-page.local-cricket-playing .special-dart-chip{
+    min-height:22px;padding:2px 6px;font-size:11px
+  }
+  .local-special-page.local-cricket-playing .special-actions{
+    display:grid;grid-template-columns:.9fr 1.1fr 1.15fr;gap:5px
+  }
+  .local-special-page.local-cricket-playing .special-actions button{
+    min-width:0;min-height:39px;padding:7px 4px;font-size:11px;
+    white-space:nowrap
+  }
+  .local-special-page.local-cricket-playing .special-actions .da-key{display:none}
+  .local-special-page.local-cricket-playing #specialMessage:not(.is-error){display:none}
+  .local-special-page.local-cricket-playing #specialMessage.is-error{
+    margin:4px 0;font-size:11px;line-height:1.3
+  }
+  .local-special-page.local-cricket-playing #specialCorrections{
+    padding:7px 10px;margin:6px 0 0
+  }
+  .local-special-page.local-cricket-playing #specialCorrections[open]{
+    padding-bottom:10px
+  }
+  .local-special-page.local-cricket-playing #specialCorrections .special-correction-summary{
+    font-size:11px
+  }
+  .local-special-page.local-cricket-playing #specialCorrections .special-correction-summary span{
+    font-size:10px
+  }
+  .local-special-page.local-cricket-playing .local-history-card{
+    margin:5px 0 0;padding:7px 10px
+  }
+  .local-special-page.local-cricket-playing #specialStatsPanel{display:none!important}
+  .local-special-page.local-cricket-playing .special-stats-close{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-height:37px;padding:8px 10px
+  }
+  .local-special-page.local-cricket-playing.special-cricket-stats-open{
+    overflow:hidden
+  }
+  .local-special-page.local-cricket-playing.special-cricket-stats-open .local-h2h-shell{
+    position:relative;z-index:10
+  }
+  .local-special-page.local-cricket-playing.special-cricket-stats-open .special-stats-backdrop:not([hidden]){
+    display:block;position:fixed;inset:0;z-index:120;
+    background:rgba(0,0,0,.80)
+  }
+  .local-special-page.local-cricket-playing.special-cricket-stats-open #specialStatsPanel{
+    display:block!important;position:fixed;z-index:121;
+    top:50%;bottom:auto;left:12px;right:12px;
+    transform:translateY(-50%);
+    width:auto;max-width:480px;height:max-content;
+    max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);
+    overflow-y:auto;overscroll-behavior:contain;
+    margin:0 auto;padding:13px 12px;
+    border:1px solid rgba(0,234,244,.43);border-radius:14px;
+    background:#0b1b1e;box-shadow:0 24px 80px rgba(0,0,0,.7)
+  }
+  .local-special-page.local-cricket-playing.special-cricket-stats-open #specialStatsPanel .heading{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    margin:0 0 12px;position:sticky;top:-13px;z-index:1;
+    background:#0b1b1e;padding:5px 0 7px
+  }
+  .local-special-page.local-cricket-playing.special-cricket-stats-open #specialStatsPanel .special-stats-grid{
+    display:grid;grid-template-columns:1fr;gap:0
+  }
+  .local-special-page.local-cricket-playing.special-cricket-stats-open #specialStatsPanel .special-stats-cell{
+    padding:11px 8px
+  }
+}
+@media(max-width:700px) and (max-height:740px){
+ .local-special-page.local-cricket-playing .local-player{padding:5px 7px}
+ .local-special-page.local-cricket-playing .local-game-top{margin-bottom:3px}
+ .local-special-page.local-cricket-playing .special-cricket-vertical{gap:2px}
+ .local-special-page.local-cricket-playing .special-cricket-row{min-height:37px}
+ .local-special-page.local-cricket-playing .special-cricket-row .special-cricket-target{min-height:33px}
+ .local-special-page.local-cricket-playing .local-entry-card{padding:6px 9px}
+ .local-special-page.local-cricket-playing .special-entry .special-darts{margin:3px 0}
+}
