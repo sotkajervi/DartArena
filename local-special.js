@@ -109,15 +109,22 @@ function stats(){
  dom.stats.innerHTML='<div class="special-stats-names"><span></span><strong>'+esc(state.players[0])+'</strong><strong>'+esc(state.players[1])+'</strong></div>'+cards.join('');
 }
 function cricketBoard(){
- const lines=E.TARGETS.map(t=>{
-   const glyph=n=>n===0?'–':n===1?'╱':n===2?'×':'⊗';
-   return '<div class="special-cricket-cell"><b>'+glyph(state.marks[0][t])+'</b><strong>'+
-     (t==='B'?'BULL':t)+'</strong><b>'+glyph(state.marks[1][t])+'</b></div>';
+ const counts=Object.fromEntries(E.TARGETS.map(t=>[t,0]));
+ for(const t of pending){if(counts[t]!==undefined)counts[t]++}
+ const glyph=n=>n===0?'–':n===1?'╱':n===2?'×':'⊗';
+ const rows=E.TARGETS.map(t=>{
+   const label=t==='B'?'BULL':t,n=counts[t];
+   return '<div class="special-cricket-row">'+
+      '<span class="special-cricket-mark" aria-label="'+esc(state.players[0])+': '+state.marks[0][t]+' merker">'+glyph(state.marks[0][t])+'</span>'+
+      '<button type="button" class="special-cricket-target'+(n?' has-pending':'')+
+      '" data-mark="'+t+'" aria-label="Legg til ett merke på '+label+'">'+label+
+      (n?'<small>+'+n+'</small>':'')+'</button>'+
+      '<span class="special-cricket-mark" aria-label="'+esc(state.players[1])+': '+state.marks[1][t]+' merker">'+glyph(state.marks[1][t])+'</span>'+
+      '</div>';
  }).join('');
- const keys=E.TARGETS.map(t=>'<div class="special-cricket-keys"><strong>'+ (t==='B'?'BULL':t)+
-   '</strong>'+[1,2,3].filter(m=>t!=='B'||m<=2).map(m=>'<button type="button" class="outline special-choice" data-ct="'+t+'" data-cm="'+m+'">'+
-     (m===1?'S':m===2?'D':'T')+'</button>').join('')+'</div>').join('');
- return '<div class="special-two-panel"><div><small>MERKER – SPILLER 1 / 2</small><div class="special-cricket-board">'+lines+'</div></div><div><small>CRICKET-PILER</small><div class="special-cricket-keypad">'+keys+'</div></div></div><p class="muted compact">Tastatur: 0=20, 9=19, 8=18, 7=17, 6=16, 5=15, B=Bull. Enter registrerer.</p>';
+ return '<div class="special-cricket-vertical" aria-label="Cricket – 20 til 15 og Bull">'+
+   '<div class="special-cricket-head"><span>'+esc(state.players[0])+'</span><strong>FELT</strong><span>'+esc(state.players[1])+'</span></div>'+
+   rows+'</div><p class="muted compact special-cricket-hint">Trykk én gang per merke, f.eks. 20 fire ganger = 4 merker. Maks tre piler per tur. Trykk Enter for å registrere.</p>';
 }
 function halfPad(){
  const rule=E.halfRule(state),n=E.round(state),choice=rule==='exact'?
@@ -179,6 +186,21 @@ function renderPad(){
    dom.selected.replaceChildren();
    if(!pending.length)dom.selected.textContent='–';
    else{
+     if(game==='cricket'){
+     const counts=Object.fromEntries(E.TARGETS.map(t=>[t,0]));
+     let misses=0;
+     for(const t of pending){if(t==='MISS')misses++;else if(counts[t]!==undefined)counts[t]++}
+     for(const t of E.TARGETS){
+       if(!counts[t])continue;
+       const chip=document.createElement('span');chip.className='special-dart-chip';
+       chip.textContent=(t==='B'?'BULL':t)+' × '+counts[t];
+       dom.selected.appendChild(chip);
+     }
+     if(misses){const chip=document.createElement('span');chip.className='special-dart-chip';chip.textContent='MISS × '+misses;dom.selected.appendChild(chip)}
+     const count=document.createElement('small');
+     count.textContent=pending.filter(t=>t!=='MISS').length+' merker';
+     dom.selected.appendChild(count);
+   }else{
      for(const d of pending){
        const chip=document.createElement('span');chip.className='special-dart-chip';
        if(game==='half'){
@@ -192,6 +214,7 @@ function renderPad(){
      const count=document.createElement('small');
      count.textContent=pending.length+'/'+max;
      dom.selected.appendChild(count);
+   }
    }
  }
  $('specialInfo').textContent=game==='half'?'Runde '+Math.min(12,E.round(state))+'/12 • Mål: '+String(E.halfRule(state)).toUpperCase():
@@ -218,13 +241,15 @@ function renderCorrections(){
      const editable=allowed.has(row.index);
      const node=document.createElement(editable?'button':'span');
      node.className='local-throw-chip'+(editable?' editable':'');
-     const label=row.visit.darts.map(labelDart).join(', ');
+     const taps=E.cricketDartTaps(row.visit.darts);
+     const labels=E.TARGETS.filter(t=>taps.includes(t)).map(t=>(t==='B'?'BULL':t)+'×'+taps.filter(x=>x===t).length);
+     const label=labels.join(' ')||'MISS';
      node.textContent=label+' ('+(row.visit.points||0)+'p)';
      if(editable){
        node.type='button';node.title='Korriger '+label;
        node.setAttribute('aria-label','Korriger '+label);
        node.addEventListener('click',()=>{
-         editingIndex=row.index;pending=row.visit.darts.map(x=>({...x}));
+         editingIndex=row.index;pending=E.cricketDartTaps(row.visit.darts);
          info('Korriger kastet, og trykk Lagre korrigering.');
          renderPad();renderCorrections();
        });
@@ -273,6 +298,13 @@ function commit(fn,msg){
  try{state=fn();resetPending();message=msg||'Registrert.';isError=false;store();render()}
  catch(e){fail(e?.message||String(e))}
 }
+function pushCricketMark(target){
+ if(!state||state.status!=='playing'||state.paused)return;
+ const candidate=[...pending,target];
+ try{E.cricketMarkDarts(candidate)}
+ catch(e){return fail(e?.message||'Maks tre piler per tur.')}
+ pending=candidate;info('');renderPad();
+}
 function push(dart){if(!state||state.status!=='playing'||state.paused)return;
  const max=mode()==='jdc'?neededJdc():3;if(pending.length>=max)return fail('Maks '+max+' piler per tur.');
  pending.push(dart);info('');renderPad();
@@ -282,7 +314,9 @@ function submit(){
  if(mode()==='half'&&pending.length!==3)return fail('Half-It krever tre piler.');
  if(mode()==='jdc'&&pending.length!==neededJdc())return fail('Registrer alle pilene før Enter.');
  if(!pending.length)return fail('Velg minst én pil.');
- const darts=clonePending();
+ let darts;
+ try{darts=mode()==='cricket'?E.cricketMarkDarts(pending):clonePending()}
+ catch(e){return fail(e?.message||String(e))}
  if(editingIndex!==null){
    const index=editingIndex;
    commit(()=>E.correctCricket(state,index,darts),'Cricket-kast korrigert.');
@@ -320,6 +354,7 @@ $('specialSetupForm').addEventListener('submit',event=>{
 dom.controls.addEventListener('click',event=>{
  const button=event.target.closest('button');if(!button||!state)return;
  if(button.dataset.ct)push({target:button.dataset.ct,mult:Number(button.dataset.cm)});
+ else if(button.dataset.mark)pushCricketMark(button.dataset.mark);
  else if(button.dataset.n)push({n:Number(button.dataset.n),mult:Number(button.dataset.m)});
  else if(button.dataset.jdc)push(button.dataset.jdc);
  else if(button.dataset.mult){selectedMult=Number(button.dataset.mult);renderPad()}
@@ -330,7 +365,7 @@ dom.controls.addEventListener('click',event=>{
 });
 dom.choice.addEventListener('click',e=>{if(e.target.dataset.checkout)finalizeCheckout(Number(e.target.dataset.checkout))});
 $('specialCheckoutCancel').addEventListener('click',()=>{dom.checkout.hidden=true;$('specialX01')?.focus()});
-dom.miss.addEventListener('click',()=>push(mode()==='cricket'?{target:'MISS',mult:0}:{n:0,mult:0}));
+dom.miss.addEventListener('click',()=>mode()==='cricket'?pushCricketMark('MISS'):push({n:0,mult:0}));
 dom.remove.addEventListener('click',()=>{pending.pop();renderPad()});
 dom.submit.addEventListener('click',submit);
 $('specialCancelEdit').addEventListener('click',()=>{editingIndex=null;pending=[];info('Korrigeringen er avbrutt.');render()});
@@ -368,8 +403,8 @@ document.addEventListener('keydown',event=>{
  if(event.key==='Backspace'){event.preventDefault();pending.pop();renderPad();return}
  if(modeNow==='cricket'){
    const t=({'0':'20','9':'19','8':'18','7':'17','6':'16','5':'15','b':'B'})[key];
-   if(t){event.preventDefault();push({target:t,mult:1})}
-   else if(key==='m'){event.preventDefault();push({target:'MISS',mult:0})}
+   if(t){event.preventDefault();pushCricketMark(t)}
+   else if(key==='m'){event.preventDefault();pushCricketMark('MISS')}
  }else if(modeNow==='jdc'){
    const code=E.round(state)>=7&&E.round(state)<=27?({'0':'M','2':'H'})[key]:
       ({'0':'M','1':'S','2':'D','3':'T'})[key];
