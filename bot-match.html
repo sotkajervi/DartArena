@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="no"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#071012">
+<title>DartArena • Spill mot bot</title>
+<link rel="stylesheet" href="./style.css?v=20261011-unified-bg1">
+<link rel="stylesheet" href="./brand-header.css?v=20261009-mobile1">
+<link rel="stylesheet" href="./bot-match.css?v=20261011-bot1">
+</head><body class="bot-page">
+<header><div class="brand"><a href="./" aria-label="DartArena – lobby"><img class="brand-logo" src="./assets/dartarena-logo.jpg?v=20261009-global1" alt="DartArena" width="420" height="116"></a></div><div class="live"><i></i> BOT LAB • BETA</div></header>
+<main class="shell bot-shell">
+<div class="bot-heading"><div><small>TRENING • LOKAL TESTMODUS</small><h1>Spill mot bot</h1><p class="muted compact">Enkeltpiler, ekte felt og dobbel-ut. Ingen kamera, API-kostnader eller påvirkning på online ranking.</p></div><a class="outline bot-back" href="./">Tilbake til lobby</a></div>
+<section id="botSetup" class="card bot-setup">
+ <div class="heading"><div><small>BOTMOTOR V1</small><h2>Ny kamp</h2></div><span class="bot-pill">Lokal simulering</span></div>
+ <form id="botForm" class="bot-grid">
+  <label class="field">Ditt navn<input id="botPlayerName" maxlength="32" placeholder="Spillernavn" autocomplete="off" required></label>
+  <label class="field">Modus<select id="botMode"><option value="standard">Standard Bot</option><option value="adaptive">Adaptive AI (lærer mellom kamper)</option></select></label>
+  <label class="field">3-dart-snitt (ønsket botnivå)<input type="number" id="botAverage" min="20" max="120" step="1" value="55" required></label>
+  <label class="field">Spillestil<select id="botProfile"><option value="steady">Jevn</option><option value="erratic">Ustabil</option><option value="scorer">Power Scorer</option><option value="finisher">Finisher</option></select></label>
+  <label class="field">Spilltype<select id="botFormat"><option value="501">501</option><option value="301">301</option><option value="170">170</option></select></label>
+  <label class="field">Kampformat<select id="botBestOf"><option value="1">Best av 1</option><option value="3" selected>Best av 3</option><option value="5">Best av 5</option><option value="7">Best av 7</option><option value="9">Best av 9</option></select></label>
+  <label class="field">Hvem starter?<select id="botStarter"><option value="0">Du</option><option value="1">Botten</option></select></label>
+  <div class="bot-start"><p id="botAdaptiveHint" class="muted compact" aria-live="polite">Standard: angitt snitt brukes som statistisk mål. Faktiske kampsnitt vil variere.</p><button class="primary" type="submit">Start botkamp</button></div>
+ </form>
+ <p class="muted compact bot-disclaimer">Adaptive AI justerer botnivået mellom fullførte kamper basert på ditt registrerte 3-dart-snitt. Dette er lokal statistisk tilpasning, ikke en ekstern språkmodell.</p>
+ <p id="botSetupError" class="bot-error" role="alert" hidden></p>
+ <div class="bot-history"><div class="bot-history-header"><h3>Siste botkamper</h3><button id="botResetAdaptive" class="outline" type="button">Nullstill adaptivt nivå</button></div><div id="botHistory" class="muted compact">Ingen botkamper ennå.</div></div>
+</section>
+<section id="botMatch" hidden>
+  <div class="bot-match-actions"><span id="botMatchMeta" class="bot-pill"></span><button id="botNewMatch" class="outline" type="button">Ny kamp</button></div>
+  <div class="bot-board">
+    <article class="bot-player" id="botHumanCard"><div class="bot-player-header"><small>SPILLER</small><span id="botHumanTurn" class="bot-turn">Din tur</span></div><h2 id="botHumanName">Spiller</h2><div id="botHumanScore" class="bot-score">501</div><div class="bot-stats"><span><b id="botHumanAvg">–</b> 3-dart-snitt</span><span><b id="botHumanLegs">0</b> legs</span></div></article>
+    <article class="bot-player" id="botAiCard"><div class="bot-player-header"><small>BOT</small><span id="botAiTurn" class="bot-turn">Botten kaster</span></div><h2 id="botAiName">Jevn</h2><div id="botAiScore" class="bot-score">501</div><div class="bot-stats"><span><b id="botAiAvg">–</b> 3-dart-snitt</span><span><b id="botAiLegs">0</b> legs</span></div></article>
+  </div>
+  <div class="bot-game-bottom">
+    <section class="card bot-input-card">
+      <div class="heading"><div><small>DIN TUR</small><h2>Registrer poeng</h2></div></div>
+      <form id="botScoreForm">
+        <label class="field">Score med inntil 3 piler<input id="botScoreInput" type="number" inputmode="numeric" min="0" max="180" placeholder="0–180" autocomplete="off" required></label>
+        <div id="botCheckoutFields" class="bot-checkout" hidden>
+          <p class="muted compact">Utsjekk: velg antall piler og bekreft siste pil i dobbel.</p>
+          <label class="field">Piler brukt<select id="botCheckoutDarts"><option value="1">1 pil</option><option value="2">2 piler</option><option value="3">3 piler</option></select></label>
+          <label class="bot-check"><input type="checkbox" id="botCheckoutConfirm"> Siste pil traff dobbel (eller bull 50)</label>
+        </div>
+        <button id="botSubmit" class="primary wide" type="submit">Registrer score</button>
+      </form>
+      <p id="botMessage" class="muted compact" role="status" aria-live="polite">Klar for kamp.</p>
+      <div id="botBetween" class="bot-next" hidden><strong id="botBetweenText">Leg ferdig</strong><button id="botNextLeg" class="primary" type="button">Neste leg</button></div>
+      <div id="botFinished" class="bot-next" hidden><h3 id="botWinner">Kampen er ferdig</h3><button id="botPlayAgain" class="primary" type="button">Ny kamp</button></div>
+    </section>
+    <section class="card bot-log-card"><div class="heading"><div><small>LIVE</small><h2>Kastlogg</h2></div></div><p class="muted compact">Botten kaster én pil om gangen internt; du ser hvilke felter den forsøkte og traff.</p><div id="botThrows" class="bot-throws" aria-live="polite">Ingen kast ennå.</div></section>
+  </div>
+</section>
+</main>
+<script src="./local-h2h-engine.js?v=20261011-online-parity1"></script>
+<script src="./local-player-name-history.js?v=20261011-names1"></script>
+<script src="./bot-engine.js?v=20261011-bot1"></script>
+<script src="./bot-match.js?v=20261011-bot1"></script>
+</body></html>
