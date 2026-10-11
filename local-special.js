@@ -48,7 +48,7 @@ function renderScores(){
    const game=state.game;
    const value=game==='sixty_one'?state.target[p]:state.scores[p];
    $('specialScore'+p).textContent=formatScore(value);
-   let darts=legVisits.reduce((sum,v)=>sum+(v.darts?.length||v.codes?.length||(v.hit===true||v.hit===false?1:3)),0);
+   let darts=legVisits.reduce((sum,v)=>sum+(Array.isArray(v.darts)?v.darts.length:Number.isInteger(v.darts)?v.darts:Array.isArray(v.codes)?v.codes.length:(typeof v.hit==='boolean'?1:3)),0);
    $('specialDarts'+p).textContent=String(darts);
    let average=0,unit='AVG';
    if(mode()==='cricket'){
@@ -241,7 +241,7 @@ function renderHistory(){
    const item=document.createElement('div');item.className='local-history-row';
    const title=document.createElement('strong'),detail=document.createElement('span'),point=document.createElement('strong');
    title.textContent=state.players[v.player];
-   detail.textContent=(v.round?'Runde '+v.round:'Leg '+v.leg)+(v.codes?' · '+v.codes.join(','):v.darts?' · '+v.darts.map(labelDart).join(' '):v.hit!==undefined?' · '+(v.hit?'Treff':'Bom'):'');
+   detail.textContent=(v.round?'Runde '+v.round:'Leg '+v.leg)+(v.codes?' · '+v.codes.join(','):Array.isArray(v.darts)?' · '+v.darts.map(labelDart).join(' '):v.hit!==undefined?' · '+(v.hit?'Treff':'Bom'):'');
    point.textContent=v.score!==undefined?String(v.score):v.points!==undefined?String(v.points):'';
    item.append(title,detail,point);dom.hist.append(item);
  }
