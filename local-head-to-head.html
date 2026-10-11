@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#071012">
+<title>DartArena • Lokal Head-to-Head</title>
+<link rel="stylesheet" href="./style.css?v=20260928-ui2">
+<link rel="stylesheet" href="./brand-header.css?v=20261009-mobile1">
+<link rel="stylesheet" href="./local-h2h.css?v=20261011-local1">
+</head>
+<body class="local-h2h-page">
+<header>
+  <div class="brand"><a href="./" aria-label="Tilbake til DartArena"><img class="brand-logo" src="./assets/dartarena-logo.jpg?v=20261009-global1" alt="DartArena" width="420" height="116"></a></div>
+  <div class="live"><i></i> LOKAL HEAD-TO-HEAD</div>
+</header>
+<main class="shell local-h2h-shell">
+  <div class="local-h2h-heading"><div><small>LOKAL KAMP • TO SPILLERE</small><h1>Head-to-Head</h1><p class="muted compact">Spill på samme PC eller nettbrett. Manuell scoring. Ingen kamera, mikrofon eller onlinekamp.</p></div><a class="outline local-back" href="./">Tilbake til lobby</a></div>
+  <section id="localSetup" class="card local-setup">
+    <div class="heading"><div><small>KAMPINNSTILLINGER</small><h2>Start lokal kamp</h2></div><span class="local-pill">Ingen kamera</span></div>
+    <form id="localSetupForm" class="local-setup-form">
+      <label class="field">Spiller 1<input id="localName1" maxlength="32" placeholder="Spiller 1" autocomplete="off" required></label>
+      <label class="field">Spiller 2<input id="localName2" maxlength="32" placeholder="Spiller 2" autocomplete="off" required></label>
+      <label class="field">Spilltype<select id="localFormat"><option value="501" selected>501</option><option value="301">301</option><option value="170">170</option></select></label>
+      <label class="field">Antall legs<select id="localBestOf"><option value="1">Best av 1</option><option value="3" selected>Best av 3</option><option value="5">Best av 5</option><option value="7">Best av 7</option><option value="9">Best av 9</option><option value="11">Best av 11</option></select></label>
+      <label class="field">Starter første leg<select id="localStarter"><option value="0">Spiller 1</option><option value="1">Spiller 2</option></select></label>
+      <div class="local-setup-submit"><button class="primary" type="submit">Start kampen</button></div>
+    </form>
+    <p class="muted compact">Standard X01 med dobbel-ut. Spilleren som starter, veksler for hvert leg. Utsjekk bekreftes manuelt med antall piler.</p>
+    <p id="localSetupError" class="local-message" role="alert" hidden></p>
+  </section>
+  <section id="localGame" hidden>
+    <div class="local-game-top">
+      <div><span class="local-pill" id="localFormatLabel">501</span><span class="local-pill" id="localLegLabel">Leg 1</span><span class="local-pill" id="localBestLabel">Best av 3</span></div>
+      <div class="local-game-actions"><button id="localUndo" class="outline" type="button" disabled>Angre</button><button id="localNewMatch" class="outline" type="button">Ny kamp</button></div>
+    </div>
+    <div class="local-board" id="localBoard">
+      <article class="local-player" id="localPlayer0"><div class="local-player-top"><small>SPILLER 1</small><span class="local-current-marker" aria-hidden="true">Kaster nå</span></div><h2 id="localPlayerName0">Spiller 1</h2><div class="local-score" id="localScore0">501</div><div class="local-leg-label"><strong id="localLegs0">0</strong> legs</div><p class="local-avg" id="localAverage0">3-dart snitt: –</p></article>
+      <article class="local-player" id="localPlayer1"><div class="local-player-top"><small>SPILLER 2</small><span class="local-current-marker" aria-hidden="true">Kaster nå</span></div><h2 id="localPlayerName1">Spiller 2</h2><div class="local-score" id="localScore1">501</div><div class="local-leg-label"><strong id="localLegs1">0</strong> legs</div><p class="local-avg" id="localAverage1">3-dart snitt: –</p></article>
+    </div>
+    <section class="card local-entry-card" id="localEntryCard">
+      <div class="local-turn" id="localTurn" aria-live="polite">Spiller 1 kaster</div>
+      <form id="localScoreForm" class="local-score-form">
+        <label for="localScoreInput">Score for tre piler</label>
+        <div class="local-entry-controls"><input id="localScoreInput" type="number" min="0" max="180" inputmode="numeric" autocomplete="off" placeholder="0–180" required><button id="localSubmit" class="primary" type="submit">Registrer / Enter</button><button id="localBust" class="outline" type="button">BUST</button></div>
+      </form>
+      <div class="local-quick" aria-label="Hurtigscore"><button type="button" data-local-score="26">26</button><button type="button" data-local-score="45">45</button><button type="button" data-local-score="60">60</button><button type="button" data-local-score="100">100</button><button type="button" data-local-score="140">140</button><button type="button" data-local-score="180">180</button></div>
+      <p id="localMessage" class="local-message" role="status" aria-live="polite">Skriv score og trykk Enter.</p>
+    </section>
+    <section id="localBetween" class="card local-between" hidden><h2 id="localBetweenTitle">Leg vunnet</h2><p id="localBetweenText"></p><button id="localNextLeg" class="primary" type="button">Start neste leg</button></section>
+    <section id="localFinished" class="card local-between" hidden><small>KAMP FERDIG</small><h2 id="localWinnerText"></h2><p id="localFinalText"></p><button id="localPlayAgain" class="primary" type="button">Spill ny kamp</button></section>
+    <section class="card local-stats-card"><div class="heading"><div><small>KAMPSTATISTIKK</small><h2>Statistikk</h2></div></div>
+      <div class="local-stat-table"><div class="local-stat-head"><span></span><strong id="localStatsName0">Spiller 1</strong><strong id="localStatsName1">Spiller 2</strong></div>
+        <div><span>3-dart snitt</span><strong id="localStatAvg0">–</strong><strong id="localStatAvg1">–</strong></div>
+        <div><span>100+</span><strong id="localStat1000">0</strong><strong id="localStat1001">0</strong></div>
+        <div><span>140+</span><strong id="localStat1400">0</strong><strong id="localStat1401">0</strong></div>
+        <div><span>180</span><strong id="localStat1800">0</strong><strong id="localStat1801">0</strong></div>
+        <div><span>Høyeste utsjekk</span><strong id="localStatCheckout0">–</strong><strong id="localStatCheckout1">–</strong></div>
+        <div><span>Raskeste leg</span><strong id="localStatFastest0">–</strong><strong id="localStatFastest1">–</strong></div>
+        <div><span>Kast (besøk)</span><strong id="localStatVisits0">0</strong><strong id="localStatVisits1">0</strong></div>
+      </div>
+    </section>
+    <section class="card local-history-card"><div class="heading"><div><small>HISTORIKK</small><h2>Siste kast</h2></div></div><div id="localHistory" class="local-history"></div></section>
+    <p class="muted compact local-storage-note">Kampen lagres automatisk i denne nettleseren, også ved oppdatering. Lokal kamp påvirker ikke onlineprofil, ranking eller turneringsstatistikk.</p>
+  </section>
+</main>
+<div id="localCheckout" class="local-modal" hidden role="dialog" aria-modal="true" aria-labelledby="localCheckoutTitle">
+  <div class="local-modal-backdrop"></div>
+  <form id="localCheckoutForm" class="card local-modal-card">
+    <small>DOBBEL-UT</small><h2 id="localCheckoutTitle">Bekreft utsjekk</h2>
+    <p id="localCheckoutText"></p>
+    <label class="field">Piler brukt i dette besøket<select id="localCheckoutDarts"><option value="1">1 pil</option><option value="2">2 piler</option><option value="3" selected>3 piler</option></select></label>
+    <p class="muted compact">Bekreft bare hvis siste pil traff en dobbel (bull 50 teller som dobbel).</p>
+    <div class="local-checkout-actions"><button id="localCheckoutCancel" class="outline" type="button">Avbryt</button><button id="localCheckoutBust" class="outline" type="button">Ikke dobbel / BUST</button><button id="localCheckoutConfirm" class="primary" type="submit">Bekreft utsjekk</button></div>
+  </form>
+</div>
+<script src="./local-h2h-engine.js?v=20261011-local1"></script>
+<script src="./local-h2h.js?v=20261011-local1"></script>
+</body>
+</html>
