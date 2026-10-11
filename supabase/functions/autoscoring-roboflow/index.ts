@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 
 // DartArena Autoscoring Lab only. All Roboflow credentials stay in Supabase secrets.
 const MODEL_ID = "dart-tip-detection-6d3mw/17";
+const ALT_MODEL_ID = "nicholas-tonderys/universal-dart-tip-detection-v3-1-yolo26n-pose-t1";
 const API_HOST = "https://serverless.roboflow.com";
 const MAX_B64_LENGTH = 800000;
 const MAX_BODY_LENGTH = 840000;
@@ -101,9 +102,13 @@ Deno.serve(async (req: Request) => {
     if (declared > MAX_BODY_LENGTH) return respond(413, {error: "image_too_large"});
     const raw = await req.text();
     if (raw.length > MAX_BODY_LENGTH) return respond(413, {error: "image_too_large"});
-    let params: {image?: unknown};
+    let params: {image?: unknown; model?: unknown};
     try { params = JSON.parse(raw); }
     catch { return respond(400, {error: "invalid_json"}); }
+    const requestedModel = params?.model;
+    if(requestedModel !== undefined && requestedModel !== "v17" && requestedModel !== "universal-v3")
+      return respond(400, {error: "invalid_model"});
+    const targetModel = requestedModel === "universal-v3" ? ALT_MODEL_ID : MODEL_ID;
     const image = params?.image;
     if (typeof image !== "string" || image.length < 100 || image.length > MAX_B64_LENGTH
         || !/^[a-zA-Z0-9+/]+={0,2}$/.test(image))
@@ -121,7 +126,7 @@ Deno.serve(async (req: Request) => {
     try {
       // Roboflow defaults to a 40% object threshold. Use 15% only in this
       // isolated, manually verified experimental view to inspect weak detections.
-      const uri = API_HOST + "/" + MODEL_ID + "?api_key=" + encodeURIComponent(apiKey) + "&confidence=15";
+      const uri = API_HOST + "/" + targetModel + "?api_key=" + encodeURIComponent(apiKey) + "&confidence=15";
       remote = await fetch(uri, {
         method: "POST",
         headers: {"Content-Type": "application/x-www-form-urlencoded"},
@@ -146,7 +151,7 @@ Deno.serve(async (req: Request) => {
     const width = Number(metadata?.width), height = Number(metadata?.height);
     const analyzed = normalizedDetections(output);
     return respond(200, {
-      model: MODEL_ID, method: "roboflow-keypoint",
+      model: targetModel, method: "roboflow-keypoint",
       detections: analyzed.detections,
       diagnostics: {...analyzed.diagnostics, queryConfidence: 15},
       image: {
