@@ -157,16 +157,16 @@ function halfPad(){
  const rule=E.halfRule(state),choice=rule==='exact'?
   '<div class="special-choice-row">'+state.exactOptions.map(x=>'<button class="'+(state.exactChoice===x?'primary':'outline')+'" type="button" data-exact="'+x+'">'+x+'</button>').join('')+'</div>':'';
  let keys='';
- if(typeof rule==='number'&&rule!==41){keys=[1,2,3].map(m=>({n:rule,m}))}
- else if(rule==='bull'){keys=[{n:25,m:1},{n:25,m:2}]}
+ if(typeof rule==='number'&&rule!==41){keys=[1,2,3].map(mult=>({n:rule,mult}))}
+ else if(rule==='bull'){keys=[{n:25,mult:1},{n:25,mult:2}]}
  else{
-   if(rule==='double'||rule==='treble'){keys=Array.from({length:20},(_,i)=>({n:i+1,m:rule==='double'?2:3}));if(rule==='double')keys.push({n:25,m:2})}
-   else{keys=Array.from({length:20},(_,i)=>({n:i+1,m:selectedMult}));if(selectedMult<=2)keys.push({n:25,m:selectedMult})}
+   if(rule==='double'||rule==='treble'){keys=Array.from({length:20},(_,i)=>({n:i+1,mult:rule==='double'?2:3}));if(rule==='double')keys.push({n:25,mult:2})}
+   else{keys=Array.from({length:20},(_,i)=>({n:i+1,mult:selectedMult}));if(selectedMult<=2)keys.push({n:25,mult:selectedMult})}
  }
  const multis=['same','different','exact',41].includes(rule)?'<div class="special-choice-row">'+
   [1,2,3].map(m=>'<button type="button" class="'+(selectedMult===m?'primary':'outline')+'" data-mult="'+m+'">'+({1:'SINGLE',2:'DOBBEL',3:'TRIPPEL'})[m]+'</button>').join('')+'</div>':'';
  return '<div class="special-half-controls">'+choice+multis+
-  '<div class="special-numbers">'+keys.map(d=>'<button type="button" class="outline special-choice" data-n="'+d.n+'" data-m="'+d.m+'">'+labelDart(d)+'</button>').join('')+'</div></div>'+
+  '<div class="special-numbers">'+keys.map(d=>'<button type="button" class="outline special-choice" data-n="'+d.n+'" data-m="'+d.mult+'">'+labelDart(d)+'</button>').join('')+'</div></div>'+
   '<p class="muted compact special-half-classic-hint">Velg treff og trykk Enter for å avslutte turen. Ubrukte piler regnes som MISS. Bare Enter = tre bom.</p>';
 }
 function jdcPad(){
