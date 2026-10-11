@@ -5,7 +5,13 @@ const E=window.DartArenaLocalH2HEngine;
 const B=window.DartArenaBotEngine;
 const BOT_SESSION_KEY='dartarena-local-h2h-bot-session-v1';
 const ADAPT_KEY='dartarena-bot-adaptive-v1';
-const BOT_NAMES={steady:'Clockwork',erratic:'Wildcard',scorer:'Triple Threat',finisher:'The Closer'};
+const BOT_PERSONAS={
+  steady:['Clockwork','The Metronome','Iron Mike'],
+  erratic:['Wildcard','Chaos Engine','Boom or Bust'],
+  scorer:['Triple Threat','Maximum Max','T20 Titan'],
+  finisher:['The Closer','Double Trouble','Deadeye'],
+  adaptive:['Nemesis','Chameleon','Evolver']
+};
 const $=id=>document.getElementById(id);
 if(!E||!$('localSetupForm'))return;
 const KEY='dartarena-local-h2h-state-v1';
@@ -16,7 +22,7 @@ const ui={
   name1:$('localName1'),name2:$('localName2'),format:$('localFormat'),bestOf:$('localBestOf'),
   opponentType:$('localOpponentType'),opponentField:$('localHumanOpponentField'),opponentLabel:$('localOpponentCardLabel'),
   botSettings:$('localBotSettings'),botMode:$('localBotMode'),botAverage:$('localBotAverage'),
-  botProfile:$('localBotProfile'),botHint:$('localBotHint'),
+  botProfile:$('localBotProfile'),botName:$('localBotName'),botHint:$('localBotHint'),
   mode:$('localMode'),setsField:$('localSetsField'),bestOfSets:$('localBestOfSets'),starter:$('localStarter'),
   game:$('localGame'),scoreForm:$('localScoreForm'),score:$('localScoreInput'),
   keypad:$('localMobileKeypad'),statsOpen:$('localStatsOpen'),statsClose:$('localStatsClose'),
@@ -45,21 +51,43 @@ function readAdaptive(){
     return {level:Math.max(20,Math.min(120,Number(data?.level)||55)),games:Math.max(0,Number(data?.games)||0)};
   }catch{return {level:55,games:0}}
 }
+let botNameContext=null;
+function updateBotNames(){
+  const context=ui.botMode.value==='adaptive'?'adaptive':ui.botProfile.value;
+  const names=BOT_PERSONAS[context]||BOT_PERSONAS.steady;
+  if(context===botNameContext&&ui.botName.options.length===names.length)return;
+  const previous=ui.botName.value;
+  const savedName=botConfig?.mode===ui.botMode.value&&
+    (botConfig.mode==='adaptive'||botConfig.profile===ui.botProfile.value)
+      ?botConfig.name:null;
+  ui.botName.replaceChildren();
+  for(const name of names){
+    const option=document.createElement('option');
+    option.value=name;
+    option.textContent=name;
+    ui.botName.appendChild(option);
+  }
+  ui.botName.value=names.includes(previous)?previous:
+    names.includes(savedName)?savedName:names[0];
+  botNameContext=context;
+}
 function updateBotFields(){
   const selected=ui.opponentType.value==='bot';
   ui.opponentField.hidden=selected;ui.name2.disabled=selected;ui.name2.required=!selected;
   ui.botSettings.hidden=!selected;
-  for(const element of [ui.botMode,ui.botAverage,ui.botProfile])element.disabled=!selected;
+  for(const element of [ui.botMode,ui.botAverage,ui.botProfile,ui.botName])element.disabled=!selected;
   ui.starter.options[1].textContent=selected?'Bot':'Spiller 2';
   if(!selected)return;
+  updateBotNames();
   const adaptive=readAdaptive();
   ui.botHint.textContent=ui.botMode.value==='adaptive'
-    ?adaptive.games?'Adaptive AI: nivå '+adaptive.level.toFixed(1)+' etter '+adaptive.games+' kamper. Justeres mellom kampene.':
-      'Adaptive AI starter på valgt nivå og lærer mellom fullførte kamper.'
-    :'Standard: valgt snitt er et langsiktig mål. Faktiske legs varierer.';
+    ?adaptive.games?'Adaptive AI: nivå '+adaptive.level.toFixed(1)+' etter '+adaptive.games+' kamper. Justeres mellom kampene. Botnavnet endrer ikke styrken.':
+      'Adaptive AI starter på valgt nivå og lærer mellom fullførte kamper. Botnavnet endrer ikke styrken.'
+    :'Standard: valgt snitt er et langsiktig mål. Velg et botnavn for spillestilen.';
 }
 ui.opponentType.addEventListener('change',updateBotFields);
 ui.botMode.addEventListener('change',updateBotFields);
+ui.botProfile.addEventListener('change',updateBotFields);
 const mobileMatch=window.matchMedia('(max-width: 700px)');
 function isMobileView(){return mobileMatch.matches}
 function canEnterHumanScore(){
@@ -400,13 +428,16 @@ ui.setupForm.addEventListener('submit',event=>{
       !Number.isInteger(level)||level<20||level>120))throw Error('Velg botnivå 20–120 og en gyldig spillestil.');
     const adaptive=readAdaptive();
     const selectedLevel=selectedBot&&botMode==='adaptive'&&adaptive.games?adaptive.level:level;
-    const opponent=selectedBot?BOT_NAMES[profile]+' BOT ('+Math.round(selectedLevel)+')':ui.name2.value;
+    const context=botMode==='adaptive'?'adaptive':profile;
+    const persona=ui.botName.value;
+    if(selectedBot&&!BOT_PERSONAS[context]?.includes(persona))throw Error('Velg et botnavn fra listen.');
+    const opponent=selectedBot?persona+' BOT ('+Math.round(selectedLevel)+')':ui.name2.value;
     const created=E.setup({name1:ui.name1.value,name2:opponent,
       format:ui.format.value,mode:ui.mode.value,bestOf:ui.bestOf.value,
       bestOfSets:ui.bestOfSets.value,starter});
     cancelBot();
     state=created;botRecorded=false;
-    botConfig=selectedBot?{mode:botMode,profile,average:selectedLevel,format:state.format,
+    botConfig=selectedBot?{mode:botMode,profile,name:persona,average:selectedLevel,format:state.format,
       sigma:B.calibrate(selectedLevel,profile,state.format)}:null;
     window.DartArenaLocalNameHistory?.remember(selectedBot?[state.players[0]]:state.players);
     ui.setupError.hidden=true;message='Skriv score og trykk Enter.';isError=false;
