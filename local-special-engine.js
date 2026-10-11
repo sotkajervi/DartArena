@@ -19,7 +19,7 @@ function init(config){
  need([10,20,30,60].includes(minutes),'Velg gyldig varighet.');
  const exactOptions=[60+Math.floor(Math.random()*25),85+Math.floor(Math.random()*16),121];
  return {version:1,id:String(Date.now()),game,players,bestOf,starter,firstStarter:starter,turn:starter,
- leg:1,legs:[0,0],stage:game==='chicago'?1:0,scores:[0,0],marks:[emptyMarks(),emptyMarks()],
+ leg:1,legs:[0,0],stage:game==='chicago'?1:0,scores:game==='chicago'?[301,301]:[0,0],marks:[emptyMarks(),emptyMarks()],
  round:[1,1],target:[61,61],attempts:[0,0],minutes,startedAt:Date.now(),paused:false,pausedAt:null,
  sudden:false,suddenFirst:null,visits:[],undo:[],status:'playing',winner:null,
  exactOptions,exactChoice:exactOptions[0],entered:[false,false],
@@ -139,17 +139,19 @@ function submit(state,payload){
       ![163,166,169,172,173,175,176,178,179].includes(value),'Ugyldig score.');
    const remaining=s.scores[p],bust=value>remaining||remaining-value===1;
    const checkout=!bust&&value===remaining;
-   if(s.stage===1&&!s.entered[p])need(payload.doubleIn===true||bust,'301 DIDO krever bekreftet dobbel-in.');
+   if(s.stage===1&&!s.entered[p]&&value>0&&!bust)need(payload.doubleIn===true,'301 DIDO krever bekreftet dobbel-in.');
    if(checkout)need(Number.isInteger(payload.darts)&&payload.darts>=1&&payload.darts<=3&&
       root.DartArenaLocalH2HEngine?.validCheckout(value,payload.darts),
       'Bekreft en gyldig dobbel-ut (1–3 piler).');
    let points=bust?0:value;
    s.scores[p]-=points;
-   if(s.stage===1&&!bust)s.entered[p]=true;
+   if(s.stage===1&&!bust&&value>0)s.entered[p]=true;
    Object.assign(entry,{score:points,attempt:value,bust,checkout,darts:checkout?payload.darts:3});
    s.visits.push(entry);
-   if(checkout){s.stage=2;s.scores=[0,0];s.marks=[emptyMarks(),emptyMarks()];s.turn=1-s.firstStarter}
-   else s.turn=1-p;
+   if(checkout){
+     if(s.stage===1){s.stage=2;s.scores=[0,0];s.marks=[emptyMarks(),emptyMarks()];s.turn=1-s.firstStarter}
+     else {s.status='finished';s.winner=p;s.legs[p]=2}
+   }else s.turn=1-p;
  }else throw Error('Ukjent spillmodus.');
  return save(state,s);
 }
