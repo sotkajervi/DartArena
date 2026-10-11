@@ -170,6 +170,7 @@ function renderPad(){
  const usual=['cricket','half','jdc'].includes(game);
  dom.selected.parentElement.hidden=!usual;
  dom.submit.hidden=!usual;dom.remove.hidden=!usual;dom.miss.hidden=!['cricket','half'].includes(game);
+ dom.miss.innerHTML=game==='cricket'?'MISS <span class="da-key">M</span>':'MISS <span class="da-key">0</span>';
  const max=game==='jdc'?neededJdc():3;
  dom.submit.disabled=state.paused||!pending.length||(game==='half'&&pending.length!==3)||(game==='jdc'&&pending.length!==max);
  dom.remove.disabled=!pending.length;
@@ -328,6 +329,7 @@ document.addEventListener('keydown',event=>{
  if(modeNow==='cricket'){
    const t=({'0':'20','9':'19','8':'18','7':'17','6':'16','5':'15','b':'B'})[key];
    if(t){event.preventDefault();push({target:t,mult:1})}
+   else if(key==='m'){event.preventDefault();push({target:'MISS',mult:0})}
  }else if(modeNow==='jdc'){
    const code=E.round(state)>=7&&E.round(state)<=27?({'0':'M','2':'H'})[key]:
       ({'0':'M','1':'S','2':'D','3':'T'})[key];
