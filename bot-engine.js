@@ -60,10 +60,11 @@ function estimate(sigma,profile){
  }
  return total*3/1800;
 }
-function calibrate(average,profile){
- // Account for setup darts and missed doubles: a full X01 leg averages
- // about 12 points below unrestricted T20 scoring in initial simulations.
- const desired=clamp(Number(average)||55,20,120)+12;
+function calibrate(average,profile,format=501){
+ // X01 scoring averages depend on leg length; shorter formats have more
+ // setup/finishing darts. Offsets are experimental beta calibration values.
+ const compensation=Number(format)===170?31:Number(format)===301?20:12;
+ const desired=clamp(Number(average)||55,20,120)+compensation;
  let low=2,high=150;
  for(let i=0;i<13;i++){
    const middle=(low+high)/2,observed=estimate(middle,profile);
@@ -119,7 +120,7 @@ function chooseAim(remaining,darts,profile,rand){
 function visit(remaining,config,random=Math.random){
  if(!Number.isInteger(remaining)||remaining<2)throw Error('Ugyldig restscore.');
  const profile=MODES.has(config.profile)?config.profile:'steady';
- const sigma=Number(config.sigma)||calibrate(config.average,profile);
+ const sigma=Number(config.sigma)||calibrate(config.average,profile,config.format);
  const throws=[];
  let rest=remaining,bust=false,checkout=false;
  const scale=profileScale(profile,random);
@@ -127,7 +128,7 @@ function visit(remaining,config,random=Math.random){
    const aim=chooseAim(rest,3-i,profile,random);
    const doubleScale=aim.startsWith('D')||aim==='B50'
      ?(profile==='finisher'?.67:profile==='scorer'?1.55:1.03):1;
-   const hit=shot(aim,Math.min(34,sigma*doubleScale),random,scale);
+   const hit=shot(aim,Math.min(34,sigma)*doubleScale,random,scale);
    throws.push(hit);
    rest-=hit.score;
    if(rest<0||rest===1||(rest===0&&!hit.double)){bust=true;break}
