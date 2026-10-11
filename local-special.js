@@ -496,7 +496,7 @@ document.addEventListener('keydown',event=>{
    if(event.key==='Enter'){event.preventDefault();submitHalfDart();return}
    if(event.target===input)return; // Desktop input accepts native digits and Backspace
    if(event.target?.tagName==='INPUT'||event.target?.tagName==='TEXTAREA'||event.target?.tagName==='SELECT')return;
-   if(/^\\d$/.test(event.key)){
+   if(/^\d$/.test(event.key)){
      event.preventDefault();halfTypeDigit(event.key);
      if(!halfMobile())input?.focus({preventScroll:true});
    }else if(event.key==='Backspace'){
