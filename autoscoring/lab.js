@@ -28,7 +28,8 @@
     datasetState:$('labDatasetState'),
     rfState:$('labRoboflowState'),rfConsent:$('labRoboflowConsent'),
     rfStatus:$('labRoboflowStatus'),rfTest:$('labRoboflowTest'),
-    rfMessage:$('labRoboflowMessage'),
+    rfMessage:$('labRoboflowMessage'),rfPreviewBtn:$('labRoboflowPreviewBtn'),
+    rfPreview:$('labRoboflowPreview'),rfPreviewInfo:$('labRoboflowPreviewInfo'),rfPreviewImage:$('labRoboflowPreviewImage'),
     deepState:$('labDeepState'),deepFile:$('labDeepFile'),
     deepLoad:$('labDeepLoad'),deepTest:$('labDeepTest'),
     deepThreshold:$('labDeepThreshold'),deepMessage:$('labDeepMessage')
@@ -143,6 +144,7 @@
     els.deepThreshold.disabled=!authorized||deepInferring;
     els.rfStatus.disabled=!authorized||rfBusy;
     els.rfTest.disabled=!authorized||!RF||!ready||!frozen||!els.rfConsent.checked||adjusting||calibrating||rfBusy;
+    els.rfPreviewBtn.disabled=!authorized||!RF?.preview||!ready||!frozen||adjusting||calibrating;
     els.datasetOptIn.disabled=!authorized;
     els.datasetExport.disabled=!authorized||!dataset.length;
     els.datasetClear.disabled=!authorized||!dataset.length;
@@ -172,6 +174,7 @@
     }
   }
   function clearFrozen(){
+    clearRoboflowPreview();
     frozen=false;frozenAt=null;freezeMethod=null;
     els.frozenFrame.hidden=true;
     const c=els.frozenFrame.getContext('2d');
@@ -200,6 +203,24 @@
     els.proposalDetail.textContent='Kontroller at én NY pil er synlig. Klikk spissen, og bekreft.';
     updateButtons();drawOverlay();
     if(AI?.ready())void analyseAIFrame(pending,true);
+  }
+  function clearRoboflowPreview(){
+    els.rfPreview.hidden=true;
+    els.rfPreviewImage.removeAttribute('src');
+    els.rfPreviewInfo.textContent='';
+  }
+  function showRoboflowPreview(){
+    if(!authorized||!stream||!board||!frozen||calibrating||adjusting||!RF?.preview)return;
+    try{
+      const region=G.boardBounds(board,els.overlay.width,els.overlay.height,.045);
+      const img=RF.preview(els.frozenFrame,region);
+      els.rfPreviewImage.src=img.src;
+      els.rfPreviewInfo.textContent='Eksakt JPEG (kvalitet 78 %) sendt ved analyse: '+img.width+' × '+img.height+' piksler. Utsnitt i originalbildet: x='+img.region.x+', y='+img.region.y+', bredde='+img.region.width+', høyde='+img.region.height+'. Forhåndsvisning lagres ikke og sendes ikke ved visning.';
+      els.rfPreview.hidden=false;
+    }catch(e){
+      clearRoboflowPreview();
+      els.rfMessage.textContent='Kunne ikke vise AI-bildet: '+(e?.message||String(e));
+    }
   }
   function clearProposal(message='Ingen forslag'){
     aiSerial++;rfSerial++;deepSerial++;pending=null;selected=null;stableFrames=0;clearFrozen();
@@ -853,6 +874,7 @@
       updateButtons();
     }
   }
+  els.rfPreviewBtn.addEventListener('click',showRoboflowPreview);
   els.rfStatus.addEventListener('click',checkRoboflowConnection);
   els.rfTest.addEventListener('click',analyseRoboflow);
   els.rfConsent.addEventListener('change',updateButtons);
