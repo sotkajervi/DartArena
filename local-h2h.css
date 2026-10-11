@@ -301,3 +301,93 @@ button.local-throw-chip.editable:hover,button.local-throw-chip.editable:focus-vi
   .local-h2h-page .local-score-band .local-live-darts span,
   .local-h2h-page .local-score-band .local-avg span{font-size:7px}
 }
+
+
+/* Online X01 parity: use the same active player glow, colors and meta badges. */
+.local-h2h-page .local-player{
+  background:#081315;
+  border:1px solid var(--line);
+  border-radius:12px;
+  transition:border-color .16s ease,box-shadow .16s ease
+}
+.local-h2h-page .local-player.active{
+  border-color:#00eaf4!important;
+  background:linear-gradient(145deg,rgba(0,234,244,.075),rgba(8,19,21,.98))!important;
+  box-shadow:inset 0 0 0 1px rgba(0,234,244,.46),
+    inset 0 0 30px rgba(0,234,244,.10),
+    0 0 10px rgba(0,234,244,.48),
+    0 0 24px rgba(0,234,244,.20)!important
+}
+.local-h2h-page .local-player .local-score-band .local-score{
+  font-weight:950;letter-spacing:-.05em;color:var(--text)
+}
+.local-h2h-page .local-player.active .local-score-band .local-score{color:var(--cyan)}
+.local-h2h-page .local-match-name{display:flex;align-items:center;gap:6px}
+.local-h2h-page .local-leg-label{
+  display:flex;align-items:center;justify-content:flex-end;gap:14px;
+  color:#00eaf4!important;font-size:18px!important;font-weight:950;
+  letter-spacing:.02em;text-transform:uppercase;
+  text-shadow:0 2px 4px rgba(0,0,0,.95),0 0 8px rgba(0,0,0,.72)
+}
+.local-h2h-page .local-leg-label strong{font-size:23px!important}
+.local-h2h-page .local-sets-label{color:var(--text);font-size:18px}
+.local-h2h-page .local-sets-label strong{color:var(--text);font-size:23px}
+.local-h2h-page .local-score-band .local-live-darts,
+.local-h2h-page .local-score-band .local-avg{
+  border-color:rgba(0,234,244,.16);background:rgba(0,0,0,.38);
+  gap:3px;letter-spacing:.10em;pointer-events:none
+}
+.local-h2h-page .local-starter-mark{
+  display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
+  width:34px;height:30px;color:var(--cyan);filter:drop-shadow(0 0 5px rgba(0,234,244,.6))
+}
+.local-h2h-page .local-starter-mark svg{width:34px;height:30px;display:block;overflow:visible}
+.local-h2h-page .local-starter-mark .dart-flight{fill:rgba(0,234,244,.18);stroke:currentColor;stroke-width:1.05;stroke-linejoin:round}
+.local-h2h-page .local-starter-mark .dart-shaft{stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.local-h2h-page .local-starter-mark .dart-barrel{fill:rgba(0,234,244,.35);stroke:currentColor;stroke-width:1}
+.local-h2h-page .local-starter-mark .dart-grip{stroke:currentColor;stroke-width:.75;opacity:.8}
+.local-h2h-page .local-starter-mark .dart-point{stroke:currentColor;stroke-width:1.15;stroke-linecap:round}
+.local-h2h-page .local-stats-card .stats-grid{
+  background:rgba(255,255,255,.018);
+  border:1px solid rgba(255,255,255,.08);border-radius:12px
+}
+.local-h2h-page .local-stats-card .stats-grid .head{color:#00eaf4}
+.local-h2h-page .local-entry-card .local-turn{color:#00eaf4;font-weight:850}
+.local-h2h-page .local-entry-card #localScoreInput{
+  background:#061012!important;border:1px solid #31505a!important;
+  color:#f2f7f7!important;font-weight:850;letter-spacing:.03em
+}
+.local-h2h-page .local-entry-card #localScoreInput:focus{
+  border-color:#00eaf4!important;box-shadow:0 0 0 1px rgba(0,234,244,.32)
+}
+.local-h2h-page .local-correction-name{color:#54e6d0}
+.local-h2h-page .local-throw-chip.editable{
+  border-color:rgba(0,234,244,.28);background:rgba(0,234,244,.055);color:#dffdf9
+}
+.local-h2h-page .local-throw-chip.editable:hover,
+.local-h2h-page .local-throw-chip.editable:focus-visible{color:#00eaf4;border-color:#00eaf4}
+.local-h2h-page .checkout-darts-buttons{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;margin:15px 0
+}
+.local-h2h-page .checkout-darts-buttons button{
+  font-size:1.45rem;font-weight:850;padding:14px 8px;
+  border-radius:9px;min-width:0
+}
+.local-h2h-page .local-autonext-hint{font-size:11px;color:var(--muted);margin:6px 0 0}
+.local-h2h-page .local-between{border-color:rgba(0,234,244,.3)}
+.local-h2h-page .local-setup #localSetsField{margin:13px 0}
+@media (max-height:700px) and (min-width:880px){
+ .local-h2h-page .local-leg-label{font-size:14px!important}
+ .local-h2h-page .local-leg-label strong,
+ .local-h2h-page .local-sets-label strong{font-size:19px!important}
+ .local-h2h-page .local-sets-label{font-size:14px}
+ .local-h2h-page .local-match-name{font-size:17px}
+}
+@media (max-width:650px){
+ .local-h2h-page .local-leg-label{font-size:12px!important;gap:6px}
+ .local-h2h-page .local-leg-label strong,
+ .local-h2h-page .local-sets-label strong{font-size:15px!important}
+ .local-h2h-page .local-sets-label{font-size:12px}
+ .local-h2h-page .local-starter-mark,.local-h2h-page .local-starter-mark svg{width:28px;height:26px}
+}

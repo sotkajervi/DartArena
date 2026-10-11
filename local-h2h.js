@@ -5,15 +5,16 @@ const E=window.DartArenaLocalH2HEngine;
 const $=id=>document.getElementById(id);
 if(!E||!$('localSetupForm'))return;
 const KEY='dartarena-local-h2h-state-v1';
-let state=null,pendingCheckout=null,editingIndex=null,message='Skriv score og trykk Enter.',isError=false;
+let state=null,pendingCheckout=null,editingIndex=null,betweenTimer=null,message='Skriv score og trykk Enter.',isError=false;
 const ui={
   setup:$('localSetup'),setupForm:$('localSetupForm'),setupError:$('localSetupError'),
-  name1:$('localName1'),name2:$('localName2'),format:$('localFormat'),bestOf:$('localBestOf'),starter:$('localStarter'),
+  name1:$('localName1'),name2:$('localName2'),format:$('localFormat'),bestOf:$('localBestOf'),
+  mode:$('localMode'),setsField:$('localSetsField'),bestOfSets:$('localBestOfSets'),starter:$('localStarter'),
   game:$('localGame'),scoreForm:$('localScoreForm'),score:$('localScoreInput'),
   submit:$('localSubmit'),bust:$('localBust'),turn:$('localTurn'),
   between:$('localBetween'),finished:$('localFinished'),checkout:$('localCheckout'),
   checkoutForm:$('localCheckoutForm'),checkoutDarts:$('localCheckoutDarts'),checkoutTitle:$('localCheckoutTitle'),
-  checkoutText:$('localCheckoutText'),history:$('localHistory'),message:$('localMessage'),
+  checkoutText:$('localCheckoutText'),checkoutChoices:$('localCheckoutChoices'),history:$('localHistory'),message:$('localMessage'),
   correction:$('localCorrectionModal'),correctionForm:$('localCorrectionForm'),
   correctionScore:$('localCorrectionScore'),correctionTitle:$('localCorrectionTitle'),
   correctionContext:$('localCorrectionContext'),correctionError:$('localCorrectionError'),
@@ -33,32 +34,54 @@ function focusScore(){
   });
 }
 function player(i){return state.players[i]}
+function scheduleBetween(){
+  clearTimeout(betweenTimer);betweenTimer=null;
+  if(state?.status!=='between')return;
+  // Online starts the next leg immediately, but blocks score entry for 3s.
+  // The local interstitial gives the same short pause before entering scores.
+  const matchId=state.id,leg=state.leg,setNo=state.currentSet;
+  betweenTimer=setTimeout(()=>{
+    betweenTimer=null;
+    if(state?.status!=='between'||state.id!==matchId||state.leg!==leg||state.currentSet!==setNo)return;
+    commit(()=>E.nextLeg(state),'Neste '+(state.betweenType==='set'?'sett':'leg')+' startet.');
+  },3000);
+}
+function updateSetsField(){ui.setsField.hidden=ui.mode.value!=='sets';}
+ui.mode.addEventListener('change',updateSetsField);
+updateSetsField();
 function statValue(id,value){$(id).textContent=String(value)}
 function render(){
   ui.setup.hidden=!!state;ui.game.hidden=!state;
   if(!state)return;
   statValue('localFormatLabel',state.format);
+  $('localSetLabel').hidden=state.mode!=='sets';
+  statValue('localSetLabel','Set '+state.currentSet);
   statValue('localLegLabel','Leg '+state.leg);
-  statValue('localBestLabel','Best av '+state.bestOf);
+  statValue('localBestLabel',state.mode==='sets'?'Best av '+state.bestOfSets+' sets · '+state.bestOf+' legs':'Best av '+state.bestOf+' legs');
   $('localUndo').disabled=!state.undo?.length;
   // Reuse the exact X01 statistics calculation from online Head-to-Head.
   // Local visits are adapted in memory; nothing is uploaded to Supabase.
   const onlineThrows=state.visits.map(v=>({
     player_id:v.player,score:v.score,is_checkout:v.checkout,
-    darts_used:v.darts,set_no:1,leg_no:v.leg
+    darts_used:v.darts,set_no:v.set||1,leg_no:v.leg
   }));
   for(let i=0;i<2;i++){
     const st=window.DartArenaX01Stats.statsFor(onlineThrows,i);
     const active=state.status==='playing'&&state.turn===i;
     const card=$('localPlayer'+i);
+    // Online X01 puts the original match starter in the left player card.
+    card.style.order=i===state.firstStarter?0:1;
     card.classList.toggle('active',active);
     card.classList.toggle('winner',state.status==='finished'&&state.winner===i);
     statValue('localPlayerName'+i,player(i));
     statValue('localScore'+i,state.scores[i]);
     statValue('localLegs'+i,state.legs[i]);
+    $('localSetsWrap'+i).hidden=state.mode!=='sets';
+    statValue('localSets'+i,state.sets[i]);
+    $('localStarterMarker'+i).hidden=state.status!=='playing'||state.starter!==i;
     // Match the online live-darts counter: current leg only, 3 darts per
     // ordinary visit and the actual number used for a winning checkout.
-    const currentLegDarts=onlineThrows.filter(v=>v.player_id===i&&v.leg_no===state.leg)
+    const currentLegDarts=onlineThrows.filter(v=>v.player_id===i&&v.set_no===state.currentSet&&v.leg_no===state.leg)
       .reduce((sum,v)=>sum+window.DartArenaX01Stats.dartsFor(v),0);
     statValue('localDarts'+i,currentLegDarts);
     statValue('localAverage'+i,onlineThrows.some(v=>v.player_id===i)?st.avg.toFixed(2):'–');
@@ -80,14 +103,18 @@ function render(){
   else if(state.status==='between'){
     const last=state.visits[state.visits.length-1];
     ui.turn.textContent='Leg '+state.leg+' ferdig';
-    statValue('localBetweenTitle',player(last.player)+' vant leg '+state.leg);
-    statValue('localBetweenText',player(1-state.starter)+' starter neste leg.');
+    const setWon=state.betweenType==='set';
+    statValue('localBetweenTitle',player(last.player)+' vant '+(setWon?'sett '+state.currentSet:'leg '+state.leg));
+    const nextStarter=E.legStarter(state,setWon?state.currentSet+1:state.currentSet,setWon?1:state.leg+1);
+    statValue('localBetweenText',player(nextStarter)+' starter neste '+(setWon?'sett':'leg')+'.');
+    $('localNextLeg').textContent='Start neste '+(setWon?'sett':'leg');
   }else{
     ui.turn.textContent='Kampen er ferdig';
     statValue('localWinnerText',player(state.winner)+' vant!');
-    statValue('localFinalText',state.legs[0]+' – '+state.legs[1]+' i legs · '+state.format+' · best av '+state.bestOf);
+    statValue('localFinalText',state.mode==='sets'?(state.sets[0]+' – '+state.sets[1]+' i sets · '+state.format+' · best av '+state.bestOfSets+' sets'):(state.legs[0]+' – '+state.legs[1]+' i legs · '+state.format+' · best av '+state.bestOf));
   }
   showMessage(message,isError);
+  scheduleBetween();
   renderCorrections();
   ui.history.replaceChildren();
   if(!state.visits.length){
@@ -114,7 +141,7 @@ function renderCorrections(){
     name.textContent=state.players[playerIndex];
     host.replaceChildren();
     const recent=state.visits.map((visit,index)=>({visit,index}))
-      .filter(({visit})=>visit.player===playerIndex&&visit.leg===state.leg)
+      .filter(({visit})=>visit.player===playerIndex&&visit.leg===state.leg&&(visit.set||1)===state.currentSet)
       .slice(-3);
     const editable=new Set(E.editableIndices(state,playerIndex));
     if(!recent.length){
@@ -165,7 +192,8 @@ function updateCorrectionCheckout(){
   ui.correctionCheckout.hidden=true;
   if(editingIndex===null||!state)return;
   const visit=state.visits[editingIndex];
-  const remainingBefore=visit.remaining+visit.score;
+  const previous=state.visits.slice(0,editingIndex).filter(v=>v.player===visit.player&&v.leg===visit.leg&&(v.set||1)===(visit.set||1));
+  const remainingBefore=previous.length?previous[previous.length-1].remaining:state.format;
   const value=Number(ui.correctionScore.value);
   if(ui.correctionScore.value.trim()===''||!Number.isInteger(value)||value!==remainingBefore)return;
   const valid=E.checkoutOptions(value);
@@ -205,21 +233,38 @@ function openCheckout(score){
   ui.checkoutTitle.textContent='Utsjekk: '+score+' poeng';
   ui.checkoutText.textContent=player(state.turn)+': bekreft at siste pil traff en dobbel.';
   ui.checkoutDarts.replaceChildren();
+  ui.checkoutChoices.replaceChildren();
   for(const darts of available){
     const option=document.createElement('option');
     option.value=String(darts);
     option.textContent=darts+' pil'+(darts===1?'':'er');
     ui.checkoutDarts.appendChild(option);
+    const button=document.createElement('button');button.type='button';
+    button.textContent=String(darts);button.className='primary';
+    button.title=darts+' '+(darts===1?'pil':'piler');
+    button.addEventListener('click',()=>finishCheckoutDarts(darts));
+    ui.checkoutChoices.appendChild(button);
   }
   ui.checkoutDarts.value=String(available[available.length-1]);
   ui.checkout.hidden=false;ui.checkoutDarts.focus();
 }
+function finishCheckoutDarts(darts){
+  if(!pendingCheckout||!E.checkoutOptions(pendingCheckout.score).includes(darts))return;
+  ui.checkoutDarts.value=String(darts);
+  ui.checkoutForm.requestSubmit();
+}
+document.addEventListener('keydown',event=>{
+  if(ui.checkout.hidden||!['1','2','3'].includes(event.key))return;
+  event.preventDefault();event.stopImmediatePropagation();
+  finishCheckoutDarts(Number(event.key));
+},true);
 ui.setupForm.addEventListener('submit',event=>{
   event.preventDefault();
   try{
     const starter=Number(ui.starter.value);
     state=E.setup({name1:ui.name1.value,name2:ui.name2.value,
-      format:ui.format.value,bestOf:ui.bestOf.value,starter});
+      format:ui.format.value,mode:ui.mode.value,bestOf:ui.bestOf.value,
+      bestOfSets:ui.bestOfSets.value,starter});
     ui.setupError.hidden=true;message='Skriv score og trykk Enter.';isError=false;
     safeSave();render();focusScore();
   }catch(e){ui.setupError.textContent=e.message;ui.setupError.hidden=false}
@@ -296,6 +341,7 @@ $('localCheckoutBust').addEventListener('click',()=>{
 });
 function newMatch(){
   if(state&&state.status!=='finished'&&!window.confirm('Avslutte denne lokale kampen? Resultatet kan ikke gjenopprettes etterpå.'))return;
+  clearTimeout(betweenTimer);betweenTimer=null;
   const oldPlayers=state?.players||[];
   state=null;pendingCheckout=null;editingIndex=null;ui.checkout.hidden=true;ui.correction.hidden=true;
   ui.name1.value=oldPlayers[0]||'';ui.name2.value=oldPlayers[1]||'';
