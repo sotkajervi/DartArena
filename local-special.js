@@ -3,7 +3,7 @@
 'use strict';
 const E=window.DartArenaLocalSpecial,$=id=>document.getElementById(id);
 if(!E||!$('specialSetupForm'))return;
-const KEY='dartarena-local-special-v1',config={
+const KEY_PREFIX='dartarena-local-special-v1:',config={
  cricket:'Cricket',half_standard:'Half-It (Standard)',half_dartcounter:'Half-It (DartCounter)',
  sixty_one:'61',jdc:'JDC Challenge',chicago:'Chicago Style'
 };
@@ -19,7 +19,13 @@ const esc=text=>String(text).replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':
 const mode=()=>E.stageMode(state);
 function fail(text){message=text;isError=true;$('specialMessage').textContent=text;$('specialMessage').classList.add('is-error')}
 function info(text){message=text;isError=false;$('specialMessage').textContent=text;$('specialMessage').classList.remove('is-error')}
-function store(){try{state?localStorage.setItem(KEY,JSON.stringify(state)):localStorage.removeItem(KEY)}catch(e){fail('Kunne ikke lagre kampen lokalt.')}}
+function storageKey(game){return KEY_PREFIX+game}
+function store(gameToDelete){
+  try{
+    if(gameToDelete)localStorage.removeItem(storageKey(gameToDelete));
+    if(state)localStorage.setItem(storageKey(state.game),JSON.stringify(state));
+  }catch(e){fail('Kunne ikke lagre kampen lokalt.')}
+}
 function resetPending(){pending=[];selectedMult=1;dom.checkout.hidden=true}
 function formatScore(value){return Number(value||0).toLocaleString('nb-NO')}
 function labelDart(d){
@@ -84,6 +90,7 @@ function stats(){
  }else if(mode()==='sixty_one'){
    cards.push(card('Nåværende mål',state.target));
    cards.push(card('Forsøk',state.attempts));
+   cards.push(card('Høyeste checkout',state.high61||[0,0]));
    cards.push(card('Treff',[0,1].map(p=>stat(p,v=>v.filter(t=>t.hit).length))));
    cards.push(card('Bom',[0,1].map(p=>stat(p,v=>v.filter(t=>!t.hit).length))));
  }else if(mode()==='jdc'){
@@ -91,6 +98,8 @@ function stats(){
    cards.push(card('Mål fullført',[0,1].map(p=>(state.round[p]-1)+'/33')));
    cards.push(card('Shanghai-bonus',[0,1].map(p=>stat(p,v=>v.filter(t=>t.bonus).length))));
    cards.push(card('Beste runde',[0,1].map(p=>stat(p,v=>Math.max(0,...v.map(t=>t.points||0))))));
+   const tier=score=>score>=1250?'Gold':score>=850?'Black':score>=700?'Red':score>=600?'Blue':score>=450?'Green':score>=300?'Yellow':score>=150?'Purple':'White';
+   cards.push(card('JDC tier',state.scores.map(tier)));
  }else{
    cards.push(card('Gjenstår',state.scores));
    cards.push(card('Fase',[state.stage,state.stage]));
@@ -269,7 +278,7 @@ dom.submit.addEventListener('click',submit);
 $('specialUndo').addEventListener('click',()=>{if(pending.length){pending.pop();renderPad()}else if(state?.undo?.length)commit(()=>E.undo(state),'Angret siste registrering.')});
 $('specialNext').addEventListener('click',()=>commit(()=>E.next(state),'Neste leg startet.'));
 function newGame(){if(state?.status==='playing'&&!w.confirm('Avslutte lokal kamp?'))return;
- const players=state?.players||[];state=null;resetPending();dom.name1.value=players[0]||'';dom.name2.value=players[1]||'';store();render();}
+ const players=state?.players||[],oldGame=state?.game;state=null;resetPending();dom.name1.value=players[0]||'';dom.name2.value=players[1]||'';store(oldGame);render();}
 $('specialNew').addEventListener('click',newGame);$('specialAgain').addEventListener('click',newGame);
 document.addEventListener('keydown',event=>{
  if(event.ctrlKey||event.altKey||event.metaKey||event.isComposing||!state||state.status!=='playing')return;
@@ -315,9 +324,11 @@ document.addEventListener('keydown',event=>{
    }
  }
 });
-const stored=(()=>{try{return E.restore(JSON.parse(localStorage.getItem(KEY)||'null'))}catch{return null}})();
+const q=new URLSearchParams(location.search).get('game');
+const chosen=q&&config[q]?q:'cricket';
+const stored=(()=>{try{return E.restore(JSON.parse(localStorage.getItem(storageKey(chosen))||'null'))}catch{return null}})();
 if(stored){state=stored;message='Kamp gjenopprettet fra denne nettleseren.'}
-const q=new URLSearchParams(location.search).get('game');if(!state&&q&&config[q])dom.mode.value=q;
+if(!state)dom.mode.value=chosen;
 setupVisibility();render();
 setInterval(()=>{
  if(state?.game==='sixty_one'&&state.status==='playing'){
