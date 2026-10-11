@@ -9,8 +9,8 @@ const KEY_PREFIX='dartarena-local-special-v1:',config={
 };
 let state=null,pending=[],selectedMult=1,message='',isError=false,nextTimer=null;
 const w=window,dom={
- setup:$('specialSetup'),game:$('specialGame'),mode:$('specialMode'),name1:$('specialName1'),
- name2:$('specialName2'),legs:$('specialLegs'),minutes:$('specialMinutes'),starter:$('specialStarter'),
+ setup:$('specialSetup'),game:$('specialGame'),mode:$('specialMode'),name1:$('specialSetupName1'),
+ name2:$('specialSetupName2'),legs:$('specialLegs'),minutes:$('specialMinutes'),starter:$('specialStarter'),
  controls:$('specialControls'),submit:$('specialSubmit'),miss:$('specialMiss'),remove:$('specialRemove'),
  selected:$('specialPending'),progress:$('specialProgress'),stats:$('specialStats'),
  hist:$('specialHistory'),checkout:$('specialCheckout'),choice:$('specialCheckoutButtons')
