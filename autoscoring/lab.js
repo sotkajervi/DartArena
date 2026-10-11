@@ -34,7 +34,7 @@
     rfABBtn:$('labRoboflowABBtn'),rfABResult:$('labRoboflowABResult'),
     rfSaveCrop:$('labRfSaveCrop'),rfFileA:$('labRfFileA'),rfFileB:$('labRfFileB'),
     rfCompareSaved:$('labRfCompareSaved'),rfSavedResult:$('labRfSavedResult'),
-    rfZoomTest:$('labRfZoomTest'),rfZoomResult:$('labRfZoomResult'),
+    rfZoomTest:$('labRfZoomTest'),rfZoomResult:$('labRfZoomResult'),rfZoomSize:$('labRfZoomSize'),
     rfZoomPreview:$('labRfZoomPreview'),rfZoomImage:$('labRfZoomImage'),
     deepState:$('labDeepState'),deepFile:$('labDeepFile'),
     deepLoad:$('labDeepLoad'),deepTest:$('labDeepTest'),
@@ -156,6 +156,7 @@
     els.rfSaveCrop.disabled=!authorized||!RF?.preview||!ready||!frozen||adjusting||calibrating;
     els.rfCompareSaved.disabled=!authorized||!RF?.inferSavedImage||rfBusy||!els.rfConsent.checked||!els.rfFileA.files?.length||!els.rfFileB.files?.length;
     els.rfZoomTest.disabled=!authorized||!RF?.inferZoom||!ready||!baseline||!samples.length||!frozen||!els.rfConsent.checked||calibrating||adjusting||rfBusy;
+    els.rfZoomSize.disabled=!authorized||!ready||!frozen||calibrating||adjusting||rfBusy;
     els.datasetOptIn.disabled=!authorized;
     els.datasetExport.disabled=!authorized||!dataset.length;
     els.datasetClear.disabled=!authorized||!dataset.length;
@@ -291,7 +292,8 @@
     const cx=(cluster.minx+cluster.maxx)/2*sx,cy=(cluster.miny+cluster.maxy)/2*sy;
     const changeWidth=(cluster.maxx-cluster.minx+2)*sx,changeHeight=(cluster.maxy-cluster.miny+2)*sy;
     const full=G.boardBounds(board,els.overlay.width,els.overlay.height,.04);
-    const size=Math.round(Math.min(Math.max(220,Math.max(changeWidth,changeHeight)*2),
+    const requestedSize=Number(els.rfZoomSize.value)||440;
+    const size=Math.round(Math.min(Math.max(requestedSize,Math.max(changeWidth,changeHeight)*2),
       Math.max(full.width,full.height)*.78,els.overlay.width,els.overlay.height));
     if(size<100)throw new Error('Fant ikke et stort nok område for zoom.');
     return {region:{x:Math.min(Math.max(0,Math.round(cx-size/2)),els.overlay.width-size),
