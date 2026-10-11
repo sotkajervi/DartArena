@@ -142,6 +142,7 @@
   font-size:12px;
 }
 .local-h2h-page .stats-grid>*{
+  display:block;
   min-width:0;
   padding:8px 7px;
   border-bottom:1px solid rgba(255,255,255,.06);
