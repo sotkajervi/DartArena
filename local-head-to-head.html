@@ -7,7 +7,7 @@
 <title>DartArena • Lokal Head-to-Head</title>
 <link rel="stylesheet" href="./style.css?v=20260928-ui2">
 <link rel="stylesheet" href="./brand-header.css?v=20261009-mobile1">
-<link rel="stylesheet" href="./local-h2h.css?v=20261011-compactstats1">
+<link rel="stylesheet" href="./local-h2h.css?v=20261011-local-correct1">
 </head>
 <body class="local-h2h-page">
 <header>
@@ -44,28 +44,53 @@
         <label for="localScoreInput">Score for tre piler</label>
         <div class="local-entry-controls"><input id="localScoreInput" type="number" min="0" max="180" inputmode="numeric" autocomplete="off" placeholder="0–180" required><button id="localSubmit" class="primary" type="submit">Registrer / Enter</button><button id="localBust" class="outline" type="button">BUST</button></div>
       </form>
-      <div class="local-quick" aria-label="Hurtigscore"><button type="button" data-local-score="26">26</button><button type="button" data-local-score="45">45</button><button type="button" data-local-score="60">60</button><button type="button" data-local-score="100">100</button><button type="button" data-local-score="140">140</button><button type="button" data-local-score="180">180</button></div>
       <p id="localMessage" class="local-message" role="status" aria-live="polite">Skriv score og trykk Enter.</p>
+    </section>
+    <section class="card local-corrections" id="localCorrections" aria-label="Korriger nylige kast">
+      <div class="local-corrections-header"><strong>Siste kast i dette leget</strong><small>Trykk på score for å korrigere</small></div>
+      <div class="local-correction-line"><span id="localThrowsName0" class="local-correction-name">Spiller 1</span><div id="localThrows0" class="local-correction-chips"></div></div>
+      <div class="local-correction-line"><span id="localThrowsName1" class="local-correction-name">Spiller 2</span><div id="localThrows1" class="local-correction-chips"></div></div>
     </section>
     <section id="localBetween" class="card local-between" hidden><h2 id="localBetweenTitle">Leg vunnet</h2><p id="localBetweenText"></p><button id="localNextLeg" class="primary" type="button">Start neste leg</button></section>
     <section id="localFinished" class="card local-between" hidden><small>KAMP FERDIG</small><h2 id="localWinnerText"></h2><p id="localFinalText"></p><button id="localPlayAgain" class="primary" type="button">Spill ny kamp</button></section>
     </div><section class="card local-stats-card"><div class="heading"><div><small>HELE KAMPEN</small><h2>Live-statistikk</h2></div></div>
-      <div class="stats-grid local-stat-table" aria-label="Kampstatistikk">
-        <div class="label"></div><div class="val head" id="localStatsName0">Spiller 1</div><div class="val head" id="localStatsName1">Spiller 2</div>
-        <div class="label">3-dart avg</div><div class="val" id="localStatAvg0">–</div><div class="val" id="localStatAvg1">–</div>
-        <div class="label">First 9 AVG</div><div class="val" id="localStatFirst90">–</div><div class="val" id="localStatFirst91">–</div>
-        <div class="label">Høyeste checkout</div><div class="val" id="localStatCheckout0">–</div><div class="val" id="localStatCheckout1">–</div>
-        <div class="label">Raskeste leg</div><div class="val" id="localStatFastest0">–</div><div class="val" id="localStatFastest1">–</div>
-        <div class="label">100+</div><div class="val" id="localStat1000">–</div><div class="val" id="localStat1001">–</div>
-        <div class="label">140+</div><div class="val" id="localStat1400">–</div><div class="val" id="localStat1401">–</div>
-        <div class="label">170+</div><div class="val" id="localStat1700">–</div><div class="val" id="localStat1701">–</div>
-        <div class="label">180</div><div class="val" id="localStat1800">–</div><div class="val" id="localStat1801">–</div>
+      <div class="local-stats-groups">
+        <div class="stats-grid local-stat-table" aria-label="Kampstatistikk, del 1">
+          <div class="label"></div><div class="val head" id="localStatsName0">Spiller 1</div><div class="val head" id="localStatsName1">Spiller 2</div>
+          <div class="label">3-dart avg</div><div class="val" id="localStatAvg0">–</div><div class="val" id="localStatAvg1">–</div>
+          <div class="label">First 9 AVG</div><div class="val" id="localStatFirst90">–</div><div class="val" id="localStatFirst91">–</div>
+          <div class="label">Høyeste checkout</div><div class="val" id="localStatCheckout0">–</div><div class="val" id="localStatCheckout1">–</div>
+          <div class="label">Raskeste leg</div><div class="val" id="localStatFastest0">–</div><div class="val" id="localStatFastest1">–</div>
+        </div>
+        <div class="stats-grid local-stat-table" aria-label="Kampstatistikk, del 2">
+          <div class="label"></div><div class="val head" id="localStatsName0b">Spiller 1</div><div class="val head" id="localStatsName1b">Spiller 2</div>
+          <div class="label">100+</div><div class="val" id="localStat1000">–</div><div class="val" id="localStat1001">–</div>
+          <div class="label">140+</div><div class="val" id="localStat1400">–</div><div class="val" id="localStat1401">–</div>
+          <div class="label">170+</div><div class="val" id="localStat1700">–</div><div class="val" id="localStat1701">–</div>
+          <div class="label">180</div><div class="val" id="localStat1800">–</div><div class="val" id="localStat1801">–</div>
+        </div>
       </div>
     </section></div>
     <details class="card local-history-card"><summary>Siste kast <span>Vis kastlogg</span></summary><div class="heading"><div><small>HISTORIKK</small><h2>Siste kast</h2></div></div><div id="localHistory" class="local-history"></div></details>
     <p class="muted compact local-storage-note">Kampen lagres automatisk i denne nettleseren, også ved oppdatering. Lokal kamp påvirker ikke onlineprofil, ranking eller turneringsstatistikk.</p>
   </section>
 </main>
+<div id="localCorrectionModal" class="local-modal" hidden role="dialog" aria-modal="true" aria-labelledby="localCorrectionTitle">
+  <div class="local-modal-backdrop"></div>
+  <form id="localCorrectionForm" class="card local-modal-card">
+    <small>KORRIGER KAST</small>
+    <h2 id="localCorrectionTitle">Korriger score</h2>
+    <p id="localCorrectionContext" class="muted"></p>
+    <label class="field">Ny score
+      <input id="localCorrectionScore" type="number" min="0" max="180" inputmode="numeric" autocomplete="off" required>
+    </label>
+    <p id="localCorrectionError" class="local-message is-error" role="alert" hidden></p>
+    <div class="local-checkout-actions">
+      <button type="button" id="localCorrectionCancel" class="outline">Avbryt</button>
+      <button type="submit" id="localCorrectionSubmit" class="primary">Lagre korrigering</button>
+    </div>
+  </form>
+</div>
 <div id="localCheckout" class="local-modal" hidden role="dialog" aria-modal="true" aria-labelledby="localCheckoutTitle">
   <div class="local-modal-backdrop"></div>
   <form id="localCheckoutForm" class="card local-modal-card">
@@ -77,7 +102,7 @@
   </form>
 </div>
 <script src="./x01-stats.js?v=20261011-localonline1"></script>
-<script src="./local-h2h-engine.js?v=20261011-local1"></script>
-<script src="./local-h2h.js?v=20261011-compactstats1"></script>
+<script src="./local-h2h-engine.js?v=20261011-local-correct1"></script>
+<script src="./local-h2h.js?v=20261011-local-correct1"></script>
 </body>
 </html>
