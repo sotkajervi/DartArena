@@ -137,7 +137,7 @@ function scheduleBot(){
       const visit=updated.visits[updated.visits.length-1];visit.dartDetails=outcome.throws;
       state=updated;
       showMessage(visit.bust?'Bot: BUST.':visit.checkout?'Bot sjekket ut '+visit.score+' med '+visit.darts+' piler.':'Bot scoret '+visit.score+' poeng.');
-      safeSave();render();focusScore();
+      safeSave();render();
     }catch(err){showMessage('Botfeil: '+(err?.message||String(err)),true)}
   },700);
 }
@@ -348,7 +348,7 @@ function commit(fn,msg){
     ui.correction.hidden=true;
     ui.score.value='';
     showMessage(msg||'Score registrert.');
-    safeSave();render();focusScore();
+    safeSave();render();
   }catch(e){showMessage(e?.message||'Ugyldig registrering.',true)}
 }
 function closeCheckout(){
@@ -410,7 +410,7 @@ ui.setupForm.addEventListener('submit',event=>{
       sigma:B.calibrate(selectedLevel,profile,state.format)}:null;
     window.DartArenaLocalNameHistory?.remember(selectedBot?[state.players[0]]:state.players);
     ui.setupError.hidden=true;message='Skriv score og trykk Enter.';isError=false;
-    safeSave();render();focusScore();
+    safeSave();render();
   }catch(e){ui.setupError.textContent=e.message;ui.setupError.hidden=false}
 });
 ui.scoreForm.addEventListener('submit',event=>{
@@ -461,7 +461,7 @@ ui.correctionForm.addEventListener('submit',event=>{
     editingIndex=null;ui.correction.hidden=true;
     ui.score.value='';
     showMessage('Kast korrigert til '+score+' poeng.');
-    safeSave();render();focusScore();
+    safeSave();render();
   }catch(e){
     ui.correctionError.textContent=e?.message||'Korrigeringen kunne ikke lagres.';
     ui.correctionError.hidden=false;
@@ -521,5 +521,4 @@ if(state){
 if(!state&&/(?:[?&])opponent=bot(?:&|$)/.test(window.location?.search||''))ui.opponentType.value='bot';
 updateBotFields();
 render();
-focusScore();
 })();
