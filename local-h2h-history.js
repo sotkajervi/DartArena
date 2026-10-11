@@ -2,6 +2,7 @@
 (function(root){
 'use strict';
 const KEY='dartarena-local-h2h-history-v1';
+const DELETED_KEY=KEY+'-deleted-ids';
 const LIMIT=150;
 const STATS=root.DartArenaX01Stats;
 function getStore(){try{return root.localStorage}catch{return null}}
@@ -13,6 +14,12 @@ function read(){
       Array.isArray(v.visits)&&Number.isInteger(v.winner)&&[0,1].includes(v.winner))
       .sort((a,b)=>String(b.finishedAt||'').localeCompare(String(a.finishedAt||''))).slice(0,LIMIT):[];
   }catch{return []}
+}
+function deletedIds(){
+ try{
+   const saved=JSON.parse(getStore()?.getItem(DELETED_KEY)||'[]');
+   return new Set(Array.isArray(saved)?saved.filter(x=>typeof x==='string').slice(-500):[]);
+ }catch{return new Set()}
 }
 function stats(visits,player){
   const mapped=visits.map(v=>({
@@ -49,7 +56,7 @@ function save(state,config){
   const item=snapshot(state,config);
   if(!item)return {ok:false,reason:'unfinished'};
   const stored=read();
-  if(stored.some(v=>v.id===item.id))return {ok:true,alreadySaved:true};
+  if(stored.some(v=>v.id===item.id)||deletedIds().has(item.id))return {ok:true,alreadySaved:true};
   const next=[item,...stored].slice(0,LIMIT);
   try{
     const store=getStore();
@@ -74,7 +81,13 @@ function remove(id){
   const old=read();
   const next=old.filter(v=>v.id!==String(id));
   if(old.length===next.length)return false;
-  try{getStore().setItem(KEY,JSON.stringify(next));return true}catch{return false}
+  try{
+    const store=getStore(),removed=deletedIds();
+    removed.add(String(id));
+    store.setItem(DELETED_KEY,JSON.stringify([...removed].slice(-500)));
+    store.setItem(KEY,JSON.stringify(next));
+    return true;
+  }catch{return false}
 }
 function clear(){
   try{getStore().removeItem(KEY);return true}catch{return false}
