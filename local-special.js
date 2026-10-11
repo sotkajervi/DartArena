@@ -15,6 +15,7 @@ const w=window,dom={
  selected:$('specialPending'),progress:$('specialProgress'),stats:$('specialStats'),
  hist:$('specialHistory'),checkout:$('specialCheckout'),choice:$('specialCheckoutButtons')
 };
+window.DartArenaLocalNameHistory?.attach(['specialSetupName1','specialSetupName2']);
 const esc=text=>String(text).replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 const mode=()=>E.stageMode(state);
 function fail(text){message=text;isError=true;$('specialMessage').textContent=text;$('specialMessage').classList.add('is-error')}
@@ -385,6 +386,7 @@ $('specialSetupForm').addEventListener('submit',event=>{
  event.preventDefault();try{
   state=E.init({game:dom.mode.value,name1:dom.name1.value,name2:dom.name2.value,
     bestOf:dom.legs.value,minutes:dom.minutes.value,starter:dom.starter.value});
+  window.DartArenaLocalNameHistory?.remember(state.players);
   closeCricketStats();cricketDisclosureInitialized=false;
   resetPending();store();message='Kampen startet.';isError=false;render();
  }catch(e){$('specialSetupError').textContent=e.message;$('specialSetupError').hidden=false}
@@ -462,7 +464,7 @@ document.addEventListener('keydown',event=>{
 const q=new URLSearchParams(location.search).get('game');
 const chosen=q&&config[q]?q:'cricket';
 const stored=(()=>{try{return E.restore(JSON.parse(localStorage.getItem(storageKey(chosen))||'null'))}catch{return null}})();
-if(stored){state=stored;message='Kamp gjenopprettet fra denne nettleseren.'}
+if(stored){state=stored;window.DartArenaLocalNameHistory?.remember(state.players);message='Kamp gjenopprettet fra denne nettleseren.'}
 if(!state)dom.mode.value=chosen;
 setupVisibility();render();
 setInterval(()=>{
