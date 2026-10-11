@@ -10,7 +10,7 @@ const KEY_PREFIX='dartarena-local-special-v1:',config={
 let state=null,pending=[],selectedMult=1,editingIndex=null,message='',isError=false,nextTimer=null,cricketDisclosureInitialized=false,coinBusy=false;
 const w=window,dom={
  setup:$('specialSetup'),game:$('specialGame'),mode:$('specialMode'),name1:$('specialSetupName1'),
- name2:$('specialSetupName2'),legs:$('specialLegs'),minutes:$('specialMinutes'),
+ name2:$('specialSetupName2'),legs:$('specialLegs'),minutes:$('specialMinutes'),starter:$('specialStarter'),
  controls:$('specialControls'),submit:$('specialSubmit'),miss:$('specialMiss'),remove:$('specialRemove'),
  selected:$('specialPending'),progress:$('specialProgress'),stats:$('specialStats'),
  hist:$('specialHistory'),checkout:$('specialCheckout'),choice:$('specialCheckoutButtons')
@@ -386,27 +386,31 @@ $('specialSetupForm').addEventListener('submit',async event=>{
  event.preventDefault();
  if(coinBusy)return;
  try{
-  if(!w.DartArenaLocalCoin)throw Error('Myntkastet er ikke tilgjengelig. Oppdater siden.');
-  const starter=w.DartArenaLocalCoin.winner();
+  const useCoin=dom.starter.value==='coin';
+  if(useCoin&&!w.DartArenaLocalCoin)throw Error('Myntkastet er ikke tilgjengelig. Oppdater siden.');
+  const starter=useCoin?w.DartArenaLocalCoin.winner():Number(dom.starter.value);
+  if(![0,1].includes(starter))throw Error('Velg hvem som starter første leg.');
   // Validate the game before animation; do not expose state until the toss is finished.
   const created=E.init({game:dom.mode.value,name1:dom.name1.value,name2:dom.name2.value,
     bestOf:dom.legs.value,minutes:dom.minutes.value,starter});
-  coinBusy=true;
-  const startButton=$('specialSetupForm').querySelector('button[type="submit"]');
-  if(startButton)startButton.disabled=true;
   let animationFailed=false;
-  try{
-   const result=await w.DartArenaLocalCoin.animate(created.players,starter);
-   animationFailed=result.animationFailed;
-  }finally{
-   coinBusy=false;
-   if(startButton)startButton.disabled=false;
+  if(useCoin){
+    coinBusy=true;
+    const startButton=$('specialSetupForm').querySelector('button[type="submit"]');
+    if(startButton)startButton.disabled=true;
+    try{
+      const result=await w.DartArenaLocalCoin.animate(created.players,starter);
+      animationFailed=result.animationFailed;
+    }finally{
+      coinBusy=false;
+      if(startButton)startButton.disabled=false;
+    }
   }
   state=created;
   window.DartArenaLocalNameHistory?.remember(state.players);
   closeCricketStats();cricketDisclosureInitialized=false;
   resetPending();store();
-  message=(animationFailed?'Myntkast trukket, men animasjonen kunne ikke vises. ':'')+
+  message=(useCoin?(animationFailed?'Myntkast trukket, men animasjonen kunne ikke vises. ':''):'')+
     created.players[starter]+' starter kampen.';
   isError=false;render();
  }catch(e){$('specialSetupError').textContent=e?.message||'Kunne ikke starte kampen.';$('specialSetupError').hidden=false}
