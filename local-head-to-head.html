@@ -84,6 +84,12 @@
     <label class="field">Ny score
       <input id="localCorrectionScore" type="number" min="0" max="180" inputmode="numeric" autocomplete="off" required>
     </label>
+    <div id="localCorrectionCheckout" hidden>
+      <label class="field">Utsjekk med antall piler
+        <select id="localCorrectionDarts"></select>
+      </label>
+      <p class="muted compact">Bekreft at siste pil traff dobbel. Korrigert utsjekk avslutter leget.</p>
+    </div>
     <p id="localCorrectionError" class="local-message is-error" role="alert" hidden></p>
     <div class="local-checkout-actions">
       <button type="button" id="localCorrectionCancel" class="outline">Avbryt</button>
