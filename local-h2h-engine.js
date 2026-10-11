@@ -69,6 +69,42 @@ function undo(state){
   const stack=state.undo.slice(),previous=stack.pop();
   previous.undo=stack;return previous;
 }
+// Same correction window as online: a player's last three visits in the active leg.
+function editableIndices(state,player){
+  if(state?.status!=='playing')return [];
+  return state.visits.map((visit,index)=>({visit,index}))
+    .filter(({visit})=>visit.leg===state.leg&&visit.player===player&&!visit.checkout)
+    .slice(-3).map(({index})=>index);
+}
+function correctVisit(state,index,newScore,checkoutDarts=null){
+  assert(state?.version===1&&state.status==='playing','Korrigering krever et aktivt leg.');
+  const original=state.visits?.[index];
+  assert(original&&editableIndices(state,original.player).includes(index),'Bare spillerens tre siste kast i aktivt leg kan korrigeres.');
+  const raw=String(newScore).trim(),value=Number(raw);
+  assert(raw!==''&&Number.isInteger(value)&&value>=0&&value<=180,'Ny score må være 0–180.');
+  let replay=setup({name1:state.players[0],name2:state.players[1],format:state.format,bestOf:state.bestOf,starter:state.firstStarter});
+  replay.id=state.id;replay.startedAt=state.startedAt;
+  for(let i=0;i<state.visits.length;i++){
+    const old=state.visits[i];
+    if(replay.status==='between'){replay=nextLeg(replay);replay.undo=[]}
+    assert(replay.status==='playing'&&replay.leg===old.leg&&replay.turn===old.player,
+      'Korrigeringen endrer tidligere leg eller spillerrekkefølge.');
+    const changed=i===index,score=changed?value:old.attempt;
+    const options=changed?{}:{bust:old.bust,doubleConfirmed:old.checkout,darts:old.darts};
+    if(changed&&score===replay.scores[old.player]){
+      assert(i===state.visits.length-1,'Kan ikke avslutte leg når senere kast er registrert.');
+      options.doubleConfirmed=true;options.darts=checkoutDarts;
+    }
+    replay=submit(replay,score,options);
+    const recorded=replay.visits[replay.visits.length-1];recorded.at=old.at;
+    if(!changed&&(recorded.checkout!==old.checkout||recorded.bust!==old.bust||recorded.score!==old.score))
+      throw Error('Endringen gjør senere kast ugyldige. Korriger siste kast først.');
+    replay.undo=[];
+  }
+  assert(replay.leg===state.leg,'Korrigeringen endrer aktivt leg.');
+  replay.undo=[...(state.undo||[]),snapshot(state)].slice(-100);
+  return replay;
+}
 function stats(state,p){
   const visits=state.visits.filter(v=>v.player===p);
   const scored=visits.reduce((a,v)=>a+v.score,0),darts=visits.reduce((a,v)=>a+v.darts,0);
@@ -92,5 +128,5 @@ function restore(value){
     !Array.isArray(value.visits)||!['playing','between','finished'].includes(value.status))return null;
   return value;
 }
-global.DartArenaLocalH2HEngine={setup,submit,bust,nextLeg,undo,stats,restore,validCheckout,checkoutOptions};
+global.DartArenaLocalH2HEngine={setup,submit,bust,nextLeg,undo,stats,restore,validCheckout,checkoutOptions,editableIndices,correctVisit};
 })(window);
