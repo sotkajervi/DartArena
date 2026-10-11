@@ -7,10 +7,10 @@ const KEY_PREFIX='dartarena-local-special-v1:',config={
  cricket:'Cricket',half_standard:'Half-It (Standard)',half_dartcounter:'Half-It (DartCounter)',
  sixty_one:'61',jdc:'JDC Challenge',chicago:'Chicago Style'
 };
-let state=null,pending=[],selectedMult=1,editingIndex=null,message='',isError=false,nextTimer=null,cricketDisclosureInitialized=false;
+let state=null,pending=[],selectedMult=1,editingIndex=null,message='',isError=false,nextTimer=null,cricketDisclosureInitialized=false,coinBusy=false;
 const w=window,dom={
  setup:$('specialSetup'),game:$('specialGame'),mode:$('specialMode'),name1:$('specialSetupName1'),
- name2:$('specialSetupName2'),legs:$('specialLegs'),minutes:$('specialMinutes'),starter:$('specialStarter'),
+ name2:$('specialSetupName2'),legs:$('specialLegs'),minutes:$('specialMinutes'),
  controls:$('specialControls'),submit:$('specialSubmit'),miss:$('specialMiss'),remove:$('specialRemove'),
  selected:$('specialPending'),progress:$('specialProgress'),stats:$('specialStats'),
  hist:$('specialHistory'),checkout:$('specialCheckout'),choice:$('specialCheckoutButtons')
@@ -382,14 +382,34 @@ function finalizeCheckout(darts){
  commit(()=>E.submit(state,{score:n,darts,doubleIn}),'Checkout registrert.');
 }
 dom.mode.addEventListener('change',setupVisibility);
-$('specialSetupForm').addEventListener('submit',event=>{
- event.preventDefault();try{
-  state=E.init({game:dom.mode.value,name1:dom.name1.value,name2:dom.name2.value,
-    bestOf:dom.legs.value,minutes:dom.minutes.value,starter:dom.starter.value});
+$('specialSetupForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ if(coinBusy)return;
+ try{
+  if(!w.DartArenaLocalCoin)throw Error('Myntkastet er ikke tilgjengelig. Oppdater siden.');
+  const starter=w.DartArenaLocalCoin.winner();
+  // Validate the game before animation; do not expose state until the toss is finished.
+  const created=E.init({game:dom.mode.value,name1:dom.name1.value,name2:dom.name2.value,
+    bestOf:dom.legs.value,minutes:dom.minutes.value,starter});
+  coinBusy=true;
+  const startButton=$('specialSetupForm').querySelector('button[type="submit"]');
+  if(startButton)startButton.disabled=true;
+  let animationFailed=false;
+  try{
+   const result=await w.DartArenaLocalCoin.animate(created.players,starter);
+   animationFailed=result.animationFailed;
+  }finally{
+   coinBusy=false;
+   if(startButton)startButton.disabled=false;
+  }
+  state=created;
   window.DartArenaLocalNameHistory?.remember(state.players);
   closeCricketStats();cricketDisclosureInitialized=false;
-  resetPending();store();message='Kampen startet.';isError=false;render();
- }catch(e){$('specialSetupError').textContent=e.message;$('specialSetupError').hidden=false}
+  resetPending();store();
+  message=(animationFailed?'Myntkast trukket, men animasjonen kunne ikke vises. ':'')+
+    created.players[starter]+' starter kampen.';
+  isError=false;render();
+ }catch(e){$('specialSetupError').textContent=e?.message||'Kunne ikke starte kampen.';$('specialSetupError').hidden=false}
 });
 dom.controls.addEventListener('click',event=>{
  const button=event.target.closest('button');if(!button||!state)return;
