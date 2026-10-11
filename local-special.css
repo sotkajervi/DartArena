@@ -354,79 +354,12 @@
  .local-special-page.local-cricket-playing .special-entry .special-darts{margin:3px 0}
 }
 
-
-/* Half-It: one dart per Enter. Field-specific S/D/T choices stay optional. */
-.local-special-page .special-half-controls{gap:8px}
-.local-special-page .special-half-input{
-  display:flex;gap:8px;align-items:stretch;width:100%;
-}
-.local-special-page .special-half-input input{
-  flex:1;min-width:0;max-width:280px;height:49px;
-  border:1px solid #31505a;border-radius:10px;
-  background:#061012;color:#edfafa;text-align:center;
-  font-size:26px;line-height:1;font-weight:850;
-  font-variant-numeric:tabular-nums;outline:0;
-}
-.local-special-page .special-half-input input:focus{
-  border-color:var(--cyan);box-shadow:0 0 0 1px rgba(0,234,244,.25)
-}
-.local-special-page .special-half-input>button{
-  padding:8px 13px;min-height:49px;font-size:14px;font-weight:900;
-  white-space:nowrap;border-radius:9px;
-}
-.local-special-page .special-half-keypad{display:none}
-.local-special-page .special-half-hint{
-  font-size:11px;color:var(--muted);line-height:1.35;margin:1px 0 0
-}
-.local-special-page .special-half-fields{
-  margin:3px 0 0;padding:7px 9px;
-  border:1px solid rgba(117,159,164,.2);
-  background:rgba(4,20,23,.40);border-radius:10px
-}
-.local-special-page .special-half-fields>summary{
-  color:var(--cyan);font-size:12px;font-weight:800;cursor:pointer;
-  user-select:none
-}
-.local-special-page .special-half-fields[open] .special-numbers{margin-top:9px}
-.local-special-page .special-half-fields .special-choice-row{margin-top:9px}
+/* Classic Half-It: one Enter completes the turn; spare darts are misses. */
+.local-special-page .special-half-classic-hint{font-size:11px;line-height:1.35;margin:4px 0 0}
 @media(max-width:700px){
-  .local-special-page .special-half-input{gap:6px}
-  .local-special-page .special-half-input input{
-    max-width:none;min-height:43px;height:43px;font-size:23px;
-  }
-  .local-special-page .special-half-input>button{
-    min-height:43px;padding:7px 9px;font-size:12px;
-  }
-  .local-special-page .special-half-keypad{
-    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;
-    user-select:none;-webkit-user-select:none
-  }
-  .local-special-page .special-half-keypad>button{
-    min-width:0;min-height:48px;padding:5px 6px;
-    border:1px solid rgba(117,159,164,.26);
-    border-radius:9px;
-    background:linear-gradient(155deg,#102124,#091619);
-    color:#f2fafb;font-size:24px;font-weight:900;
-    touch-action:manipulation;-webkit-tap-highlight-color:transparent;
-  }
-  .local-special-page .special-half-keypad>button.primary{
-    background:var(--cyan);color:#041314;border-color:var(--cyan);
-    font-size:16px
-  }
-  .local-special-page .special-half-keypad>button:active{
-    border-color:var(--cyan);background:#174047;color:#f2ffff
-  }
-  .local-special-page .special-half-hint{font-size:10px;line-height:1.3}
-  .local-special-page .special-half-fields>summary{font-size:11px}
-  .local-special-page .special-half-fields[open] .special-numbers{
-    display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
-  }
-  .local-special-page .special-half-fields .special-choice{
-    min-height:38px;font-size:11px
-  }
-}
-@media(max-width:700px) and (max-height:730px){
- .local-special-page .special-half-keypad>button{min-height:42px}
- .local-special-page .special-half-input input,
- .local-special-page .special-half-input>button{min-height:39px;height:39px}
+ .local-special-page .special-half-classic-hint{font-size:10px}
+ .local-special-page .special-half-controls .special-numbers{
+   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;
+ }
+ .local-special-page .special-half-controls .special-choice{min-height:45px;font-size:15px}
 }
