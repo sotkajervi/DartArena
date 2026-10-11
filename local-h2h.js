@@ -394,18 +394,28 @@ document.addEventListener('keydown',event=>{
 ui.setupForm.addEventListener('submit',event=>{
   event.preventDefault();
   try{
-    const starter=Number(ui.starter.value);
-    state=E.setup({name1:ui.name1.value,name2:ui.name2.value,
+    const starter=Number(ui.starter.value),selectedBot=ui.opponentType.value==='bot';
+    const profile=ui.botProfile.value,botMode=ui.botMode.value,level=Number(ui.botAverage.value);
+    if(selectedBot&&(!B||!B.profiles.includes(profile)||!['standard','adaptive'].includes(botMode)||
+      !Number.isInteger(level)||level<20||level>120))throw Error('Velg botnivå 20–120 og en gyldig spillestil.');
+    const adaptive=readAdaptive();
+    const selectedLevel=selectedBot&&botMode==='adaptive'&&adaptive.games?adaptive.level:level;
+    const opponent=selectedBot?BOT_NAMES[profile]+' Bot ('+Math.round(selectedLevel)+')':ui.name2.value;
+    const created=E.setup({name1:ui.name1.value,name2:opponent,
       format:ui.format.value,mode:ui.mode.value,bestOf:ui.bestOf.value,
       bestOfSets:ui.bestOfSets.value,starter});
-    window.DartArenaLocalNameHistory?.remember(state.players);
+    cancelBot();
+    state=created;botRecorded=false;
+    botConfig=selectedBot?{mode:botMode,profile,average:selectedLevel,format:state.format,
+      sigma:B.calibrate(selectedLevel,profile,state.format)}:null;
+    window.DartArenaLocalNameHistory?.remember(selectedBot?[state.players[0]]:state.players);
     ui.setupError.hidden=true;message='Skriv score og trykk Enter.';isError=false;
     safeSave();render();focusScore();
   }catch(e){ui.setupError.textContent=e.message;ui.setupError.hidden=false}
 });
 ui.scoreForm.addEventListener('submit',event=>{
   event.preventDefault();
-  if(!state||state.status!=='playing'||pendingCheckout)return;
+  if(!state||state.status!=='playing'||pendingCheckout||(botConfig&&state.turn===1))return;
   const raw=ui.score.value.trim();
   if(!raw){showMessage('Skriv en score fra 0 til 180.',true);return}
   const value=Number(raw);
@@ -420,7 +430,8 @@ ui.scoreForm.addEventListener('submit',event=>{
 document.addEventListener('keydown',event=>{
   if(event.defaultPrevented||event.ctrlKey||event.altKey||event.metaKey||
       event.isComposing||!state||state.status!=='playing'||
-      pendingCheckout||editingIndex!==null||!ui.checkout.hidden||!ui.correction.hidden)return;
+      pendingCheckout||editingIndex!==null||!ui.checkout.hidden||!ui.correction.hidden||
+      (botConfig&&state.turn===1))return;
   const target=event.target;
   if(target===ui.score)return;
   if(target?.isContentEditable||['INPUT','TEXTAREA','SELECT'].includes(target?.tagName))return;
@@ -432,7 +443,7 @@ document.addEventListener('keydown',event=>{
   }
 });
 $('localBust').addEventListener('click',()=>{
-  if(!state||state.status!=='playing')return;
+  if(!state||state.status!=='playing'||(botConfig&&state.turn===1))return;
   const name=player(state.turn);
   commit(()=>E.bust(state),'BUST for '+name+'.');
 });
@@ -444,6 +455,7 @@ ui.correctionForm.addEventListener('submit',event=>{
   const index=editingIndex,score=ui.correctionScore.value.trim();
   const darts=ui.correctionCheckout.hidden?null:Number(ui.correctionDarts.value);
   try{
+    cancelBot();
     const next=E.correctVisit(state,index,score,darts);
     state=next;
     editingIndex=null;ui.correction.hidden=true;
@@ -476,10 +488,13 @@ $('localCheckoutBust').addEventListener('click',()=>{
 function newMatch(){
   if(state&&state.status!=='finished'&&!window.confirm('Avslutte denne lokale kampen? Resultatet kan ikke gjenopprettes etterpå.'))return;
   clearTimeout(betweenTimer);betweenTimer=null;
-  const oldPlayers=state?.players||[];
+  cancelBot();
+  const oldPlayers=state?.players||[],wasBot=!!botConfig;
   closeStats();
-  state=null;pendingCheckout=null;editingIndex=null;ui.checkout.hidden=true;ui.correction.hidden=true;
-  ui.name1.value=oldPlayers[0]||'';ui.name2.value=oldPlayers[1]||'';
+  state=null;botConfig=null;botRecorded=false;pendingCheckout=null;editingIndex=null;
+  ui.checkout.hidden=true;ui.correction.hidden=true;
+  ui.name1.value=oldPlayers[0]||'';ui.name2.value=wasBot?'':oldPlayers[1]||'';
+  ui.opponentType.value=wasBot?'bot':'human';updateBotFields();
   safeSave();render();ui.name1.focus();
 }
 $('localNewMatch').addEventListener('click',newMatch);
@@ -490,7 +505,20 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){
   else if(!ui.checkout.hidden){event.preventDefault();closeCheckout()}
 }});
 try{state=E.restore(JSON.parse(localStorage.getItem(KEY)||'null'))}catch{state=null}
-if(state){window.DartArenaLocalNameHistory?.remember(state.players);message='Lokal kamp gjenopprettet fra denne nettleseren.';isError=false}
+if(state){
+  try{
+    const saved=JSON.parse(localStorage.getItem(BOT_SESSION_KEY)||'null');
+    if(saved?.id===state.id&&saved.config&&B?.profiles.includes(saved.config.profile)&&
+      ['adaptive','standard'].includes(saved.config.mode)&&Number(saved.config.sigma)>0){
+      botConfig=saved.config;botRecorded=saved.recorded===true;
+      ui.opponentType.value='bot';ui.botMode.value=botConfig.mode;
+      ui.botProfile.value=botConfig.profile;ui.botAverage.value=String(Math.round(botConfig.average));
+    }
+  }catch{}
+  window.DartArenaLocalNameHistory?.remember(botConfig?[state.players[0]]:state.players);
+  message='Lokal kamp gjenopprettet fra denne nettleseren.';isError=false;
+}
+updateBotFields();
 render();
 focusScore();
 })();
