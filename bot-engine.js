@@ -63,8 +63,9 @@ function estimate(sigma,profile){
 function calibrate(average,profile,format=501){
  // X01 scoring averages depend on leg length; shorter formats have more
  // setup/finishing darts. Offsets are experimental beta calibration values.
- const compensation=Number(format)===170?31:Number(format)===301?20:12;
- const desired=clamp(Number(average)||55,20,120)+compensation;
+ const base=clamp(Number(average)||55,20,120);
+ const compensation=Number(format)===170?Math.min(31,13+base*.4):Number(format)===301?20:12;
+ const desired=base+compensation;
  let low=2,high=150;
  for(let i=0;i<13;i++){
    const middle=(low+high)/2,observed=estimate(middle,profile);
