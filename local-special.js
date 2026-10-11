@@ -395,6 +395,7 @@ function submitHalfDart(){
  }catch(error){return fail(error?.message||'Ugyldig score for én pil.')}
  if(pending.length>=3)return;
  pending.push(dart);halfSelectedDart=null;
+ if(input)input.value=''; // Clear the next dart's score even in non-DOM test environments.
  if(pending.length===3){
    const darts=clonePending();
    commit(()=>E.submit(state,{darts,exactChoice:state.exactChoice}),'Tre piler registrert. Neste spiller.');
