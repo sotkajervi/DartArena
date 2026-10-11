@@ -102,7 +102,8 @@ function statValue(id,value){$(id).textContent=String(value)}
 function render(){
   ui.setup.hidden=!!state;ui.game.hidden=!state;
   document.body.classList.toggle('local-match-active',!!state);
-  if(!state)return;
+  document.body.classList.toggle('local-match-finished',state?.status==='finished');
+  if(!state){window.DartArenaLocalResults?.syncX01(null,newMatch);return;}
   statValue('localFormatLabel',state.format);
   $('localSetLabel').hidden=state.mode!=='sets';
   statValue('localSetLabel','Set '+state.currentSet);
@@ -147,7 +148,7 @@ function render(){
     statValue('localStat180'+i,st.c180);
   }
   const playing=state.status==='playing';
-  ui.scoreForm.hidden=!playing;ui.bust.disabled=!playing;ui.submit.disabled=!playing;
+  ui.scoreForm.hidden=!playing;ui.keypad.hidden=!playing;ui.bust.disabled=!playing;ui.submit.disabled=!playing;
   ui.between.hidden=state.status!=='between';ui.finished.hidden=state.status!=='finished';
   if(playing)ui.turn.textContent=player(state.turn)+' kaster · '+state.scores[state.turn]+' igjen';
   else if(state.status==='between'){
@@ -181,6 +182,8 @@ function render(){
       row.append(title,score,detail);ui.history.append(row);
     }
   }
+  if(state.status==='finished'&&document.body.classList.contains('local-stats-open'))closeStats();
+  window.DartArenaLocalResults?.syncX01(state,newMatch);
 }
 function renderCorrections(){
   if(!state)return;
