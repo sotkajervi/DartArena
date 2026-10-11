@@ -69,6 +69,8 @@ function render(){
     const st=window.DartArenaX01Stats.statsFor(onlineThrows,i);
     const active=state.status==='playing'&&state.turn===i;
     const card=$('localPlayer'+i);
+    // Online X01 puts the original match starter in the left player card.
+    card.style.order=i===state.firstStarter?0:1;
     card.classList.toggle('active',active);
     card.classList.toggle('winner',state.status==='finished'&&state.winner===i);
     statValue('localPlayerName'+i,player(i));
