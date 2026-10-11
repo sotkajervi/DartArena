@@ -46,7 +46,9 @@ function snapshot(state,config){
     bestOf:Number(state.bestOf),bestOfSets:Number(state.bestOfSets)||1,
     winner:state.winner,legs:(state.legs||[0,0]).slice(0,2),
     sets:(state.sets||[0,0]).slice(0,2),firstStarter:state.firstStarter,
-    startedAt:state.startedAt||null,finishedAt:new Date().toISOString(),
+    startedAt:state.startedAt||null,
+    finishedAt:visits.length&&Number.isFinite(Date.parse(visits[visits.length-1].at||''))
+      ?new Date(visits[visits.length-1].at).toISOString():new Date().toISOString(),
     opponent:config?.mode==='adaptive'?'adaptive':config?'bot':'human',
     profile:config?.profile||null,botLevel:config?Number(config.average):null,
     visits,stats:[stats(visits,0),stats(visits,1)]
