@@ -23,7 +23,7 @@ const ui={
   opponentType:$('localOpponentType'),opponentField:$('localHumanOpponentField'),opponentLabel:$('localOpponentCardLabel'),
   botSettings:$('localBotSettings'),botMode:$('localBotMode'),botAverage:$('localBotAverage'),
   botProfile:$('localBotProfile'),botName:$('localBotName'),botHint:$('localBotHint'),
-  mode:$('localMode'),setsField:$('localSetsField'),bestOfSets:$('localBestOfSets'),
+  mode:$('localMode'),setsField:$('localSetsField'),bestOfSets:$('localBestOfSets'),starter:$('localStarter'),
   game:$('localGame'),scoreForm:$('localScoreForm'),score:$('localScoreInput'),
   keypad:$('localMobileKeypad'),statsOpen:$('localStatsOpen'),statsClose:$('localStatsClose'),
   statsPanel:$('localStatsPanel'),statsBackdrop:$('localStatsBackdrop'),
@@ -76,6 +76,7 @@ function updateBotFields(){
   ui.opponentField.hidden=selected;ui.name2.disabled=selected;ui.name2.required=!selected;
   ui.botSettings.hidden=!selected;
   for(const element of [ui.botMode,ui.botAverage,ui.botProfile,ui.botName])element.disabled=!selected;
+  ui.starter.options[1].textContent=selected?'Bot':'Spiller 2';
   if(!selected)return;
   updateBotNames();
   const adaptive=readAdaptive();
@@ -426,8 +427,10 @@ ui.setupForm.addEventListener('submit',async event=>{
   event.preventDefault();
   if(coinBusy)return;
   try{
-    if(!window.DartArenaLocalCoin)throw Error('Myntkastet er ikke tilgjengelig. Oppdater siden.');
-    const starter=window.DartArenaLocalCoin.winner();
+    const useCoin=ui.starter.value==='coin';
+    if(useCoin&&!window.DartArenaLocalCoin)throw Error('Myntkastet er ikke tilgjengelig. Oppdater siden.');
+    const starter=useCoin?window.DartArenaLocalCoin.winner():Number(ui.starter.value);
+    if(![0,1].includes(starter))throw Error('Velg hvem som starter første leg.');
     const selectedBot=ui.opponentType.value==='bot';
     const profile=ui.botProfile.value,botMode=ui.botMode.value,level=Number(ui.botAverage.value);
     if(selectedBot&&(!B||!B.profiles.includes(profile)||!['standard','adaptive'].includes(botMode)||
@@ -441,16 +444,18 @@ ui.setupForm.addEventListener('submit',async event=>{
     const created=E.setup({name1:ui.name1.value,name2:opponent,
       format:ui.format.value,mode:ui.mode.value,bestOf:ui.bestOf.value,
       bestOfSets:ui.bestOfSets.value,starter});
-    coinBusy=true;
-    const startButton=ui.setupForm.querySelector('button[type="submit"]');
-    if(startButton)startButton.disabled=true;
     let coinAnimationFailed=false;
-    try{
-      const result=await window.DartArenaLocalCoin.animate(created.players,starter);
-      coinAnimationFailed=result.animationFailed;
-    }finally{
-      coinBusy=false;
-      if(startButton)startButton.disabled=false;
+    if(useCoin){
+      coinBusy=true;
+      const startButton=ui.setupForm.querySelector('button[type="submit"]');
+      if(startButton)startButton.disabled=true;
+      try{
+        const result=await window.DartArenaLocalCoin.animate(created.players,starter);
+        coinAnimationFailed=result.animationFailed;
+      }finally{
+        coinBusy=false;
+        if(startButton)startButton.disabled=false;
+      }
     }
     cancelBot();
     state=created;botRecorded=false;
@@ -458,7 +463,7 @@ ui.setupForm.addEventListener('submit',async event=>{
       sigma:B.calibrate(selectedLevel,profile,state.format)}:null;
     window.DartArenaLocalNameHistory?.remember(selectedBot?[state.players[0]]:state.players);
     ui.setupError.hidden=true;
-    message=(coinAnimationFailed?'Myntkast trukket, men animasjonen kunne ikke vises. ':'')+
+    message=(useCoin?(coinAnimationFailed?'Myntkast trukket, men animasjonen kunne ikke vises. ':''):'')+
       created.players[starter]+' starter første leg.';
     isError=false;
     safeSave();render();
