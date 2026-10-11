@@ -284,6 +284,10 @@ function render(){
   }
   if(state.status==='finished'){
     cancelBot();recordAdaptiveMatch();
+    // Idempotent history writer: repeated renders and reloading must not duplicate a match.
+    const result=window.DartArenaH2HHistory?.save(state,botConfig);
+    if(result&&!result.ok&&result.reason==='storage')
+      showMessage('Kampen er ferdig, men historikken kunne ikke lagres i denne nettleseren.',true);
     if(document.body.classList.contains('local-stats-open'))closeStats();
   }
   window.DartArenaLocalResults?.syncX01(state,newMatch);
