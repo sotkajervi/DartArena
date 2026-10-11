@@ -34,6 +34,8 @@
     rfABBtn:$('labRoboflowABBtn'),rfABResult:$('labRoboflowABResult'),
     rfSaveCrop:$('labRfSaveCrop'),rfFileA:$('labRfFileA'),rfFileB:$('labRfFileB'),
     rfCompareSaved:$('labRfCompareSaved'),rfSavedResult:$('labRfSavedResult'),
+    rfZoomTest:$('labRfZoomTest'),rfZoomResult:$('labRfZoomResult'),
+    rfZoomPreview:$('labRfZoomPreview'),rfZoomImage:$('labRfZoomImage'),
     deepState:$('labDeepState'),deepFile:$('labDeepFile'),
     deepLoad:$('labDeepLoad'),deepTest:$('labDeepTest'),
     deepThreshold:$('labDeepThreshold'),deepMessage:$('labDeepMessage')
@@ -153,6 +155,7 @@
     els.rfABBtn.disabled=!authorized||!RF?.compareModels||!ready||!frozen||!els.rfConsent.checked||adjusting||calibrating||rfBusy;
     els.rfSaveCrop.disabled=!authorized||!RF?.preview||!ready||!frozen||adjusting||calibrating;
     els.rfCompareSaved.disabled=!authorized||!RF?.inferSavedImage||rfBusy||!els.rfConsent.checked||!els.rfFileA.files?.length||!els.rfFileB.files?.length;
+    els.rfZoomTest.disabled=!authorized||!RF?.inferZoom||!ready||!baseline||!samples.length||!frozen||!els.rfConsent.checked||calibrating||adjusting||rfBusy;
     els.datasetOptIn.disabled=!authorized;
     els.datasetExport.disabled=!authorized||!dataset.length;
     els.datasetClear.disabled=!authorized||!dataset.length;
@@ -183,6 +186,7 @@
   }
   function clearFrozen(){
     clearRoboflowPreview();
+    clearZoomPreview();
     frozen=false;frozenAt=null;freezeMethod=null;
     els.frozenFrame.hidden=true;
     const c=els.frozenFrame.getContext('2d');
@@ -228,6 +232,80 @@
     }catch(e){
       clearRoboflowPreview();
       els.rfMessage.textContent='Kunne ikke vise AI-bildet: '+(e?.message||String(e));
+    }
+  }
+  function clearZoomPreview(){
+    els.rfZoomPreview.hidden=true;
+    els.rfZoomImage.removeAttribute('src');
+    els.rfZoomResult.textContent='Ta referansebilde av tom skive, kast og frys bildet. Godkjenn engangsopplasting over før zoomtesten.';
+  }
+  function getAutoZoomRegion(){
+    if(!baseline||!board||!frozen||!samples.length)throw new Error('Mangler referansebilde eller fryst treffbilde.');
+    const w=analysisCanvas.width,h=analysisCanvas.height;
+    if(!w||!h||baseline.length!==w*h*4)throw new Error('Referansebildet har feil oppløsning.');
+    const work=document.createElement('canvas');work.width=w;work.height=h;
+    const workCtx=work.getContext('2d',{willReadFrequently:true});
+    workCtx.drawImage(els.frozenFrame,0,0,w,h);
+    const now=workCtx.getImageData(0,0,w,h).data;
+    let count=0,minx=w,miny=h,maxx=0,maxy=0;
+    for(const [i,x,y] of samples){
+      const delta=Math.abs(now[i]-baseline[i])+Math.abs(now[i+1]-baseline[i+1])+Math.abs(now[i+2]-baseline[i+2]);
+      if(delta<=DIFF_THRESHOLD)continue;
+      count++;
+      minx=Math.min(minx,x);maxx=Math.max(maxx,x);miny=Math.min(miny,y);maxy=Math.max(maxy,y);
+    }
+    if(count<10)throw new Error('For få endrede piksler ('+count+'). Ta referanse av tom skive før kast, og frys bildet etter kastet.');
+    if(count>samples.length*.23)throw new Error('For stor bildeendring: '+count+' piksler. Kontroller belysning og at kameraet står stille.');
+    const sx=els.overlay.width/w,sy=els.overlay.height/h;
+    const cx=(minx+maxx)/2*sx,cy=(miny+maxy)/2*sy;
+    const changeWidth=(maxx-minx+2)*sx,changeHeight=(maxy-miny+2)*sy;
+    const side=Math.round(Math.max(100,Math.max(changeWidth,changeHeight)*1.7));
+    const full=G.boardBounds(board,els.overlay.width,els.overlay.height,.04);
+    if(side>Math.max(full.width,full.height)*.92)
+      throw new Error('Endringsområdet ble for stort for zoom. Kontroller referansebildet eller velg et annet kast.');
+    const size=Math.min(side,els.overlay.width,els.overlay.height);
+    return {region:{x:Math.min(Math.max(0,Math.round(cx-size/2)),els.overlay.width-size),
+      y:Math.min(Math.max(0,Math.round(cy-size/2)),els.overlay.height-size),
+      width:size,height:size},count,changeWidth:Math.round(changeWidth),changeHeight:Math.round(changeHeight)};
+  }
+  async function testAutoZoom(){
+    if(!authorized||!RF?.inferZoom||rfBusy||!stream||!board||!baseline||!frozen||!els.rfConsent.checked||adjusting||calibrating)return;
+    let target;
+    try{target=getAutoZoomRegion()}catch(e){
+      els.rfZoomResult.textContent=e?.message||String(e);
+      els.rfZoomPreview.hidden=true;
+      return;
+    }
+    rfBusy=true;
+    const ticket=++rfSerial;
+    els.rfZoomResult.textContent='Analyserer zoomutsnitt ('+target.region.width+' × '+target.region.height+' kildepiksler)…';
+    updateButtons();
+    try{
+      const result=await RF.inferZoom(db,els.frozenFrame,target.region);
+      if(ticket!==rfSerial||!authorized||!stream||!frozen)return;
+      els.rfZoomImage.src=result.preview;
+      els.rfZoomPreview.hidden=false;
+      const valid=result.detections.filter(d=>{
+        const q=G.normalize(board,{x:d.x,y:d.y});
+        return Number.isFinite(q.x)&&Number.isFinite(q.y)&&q.x*q.x+q.y*q.y<=1.05*1.05;
+      });
+      const best=valid.reduce((a,b)=>!a||b.confidence>a.confidence?b:a,null);
+      const objects=Number(result.diagnostics?.providerPredictions)||0;
+      els.rfZoomResult.textContent='Endret område: '+target.changeWidth+' × '+target.changeHeight+
+        ' piksler ('+target.count+' endrede målepunkter). AI-utsnitt: '+result.sourceSize+
+        ' × '+result.sourceSize+' → 768 × 768 (digital zoom). Roboflow v17: '+objects+
+        ' objekt(er), '+valid.length+' gyldig(e) pilspiss(er) på skiven.'+
+        (best?' Beste forslag: '+G.score(board,best).label+' ('+Math.round(best.confidence*100)+' % konfidens).':' Fant ingen sikker pilspiss i utsnittet.')+
+        ' Ingen score er registrert.';
+    }catch(e){
+      if(ticket===rfSerial){
+        els.rfZoomResult.textContent='Zoomanalyse feilet: '+(e?.message||String(e));
+        els.rfZoomPreview.hidden=true;
+      }
+    }finally{
+      rfBusy=false;
+      els.rfConsent.checked=false;
+      updateButtons();
     }
   }
   function clearProposal(message='Ingen forslag'){
@@ -984,6 +1062,7 @@
     }
   }
   els.rfPreviewBtn.addEventListener('click',showRoboflowPreview);
+  els.rfZoomTest.addEventListener('click',testAutoZoom);
   els.rfCompareBtn.addEventListener('click',compareRoboflowResolutions);
   els.rfABBtn.addEventListener('click',compareRoboflowModels);
   els.rfSaveCrop.addEventListener('click',saveRoboflowCrop);
