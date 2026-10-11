@@ -15,7 +15,7 @@ const BOT_PERSONAS={
 const $=id=>document.getElementById(id);
 if(!E||!$('localSetupForm'))return;
 const KEY='dartarena-local-h2h-state-v1';
-let state=null,pendingCheckout=null,editingIndex=null,betweenTimer=null,botTimer=null,
+let state=null,pendingCheckout=null,editingIndex=null,betweenTimer=null,botTimer=null,coinBusy=false,
   botConfig=null,botRecorded=false,message='Skriv score og trykk Enter.',isError=false;
 const ui={
   setup:$('localSetup'),setupForm:$('localSetupForm'),setupError:$('localSetupError'),
@@ -76,7 +76,7 @@ function updateBotFields(){
   ui.opponentField.hidden=selected;ui.name2.disabled=selected;ui.name2.required=!selected;
   ui.botSettings.hidden=!selected;
   for(const element of [ui.botMode,ui.botAverage,ui.botProfile,ui.botName])element.disabled=!selected;
-  ui.starter.options[1].textContent=selected?'Bot':'Spiller 2';
+  ui.starter.options[2].textContent=selected?'Bot':'Spiller 2';
   if(!selected)return;
   updateBotNames();
   const adaptive=readAdaptive();
@@ -419,10 +419,21 @@ document.addEventListener('keydown',event=>{
   event.preventDefault();event.stopImmediatePropagation();
   finishCheckoutDarts(Number(event.key));
 },true);
-ui.setupForm.addEventListener('submit',event=>{
+function randomFirstStarter(){
+  if(window.crypto?.getRandomValues){
+    const values=new Uint32Array(1);
+    window.crypto.getRandomValues(values);
+    return values[0]%2;
+  }
+  return Math.random()<.5?0:1;
+}
+ui.setupForm.addEventListener('submit',async event=>{
   event.preventDefault();
+  if(coinBusy)return;
   try{
-    const starter=Number(ui.starter.value),selectedBot=ui.opponentType.value==='bot';
+    const coinRequested=ui.starter.value==='coin';
+    const starter=coinRequested?randomFirstStarter():Number(ui.starter.value);
+    const selectedBot=ui.opponentType.value==='bot';
     const profile=ui.botProfile.value,botMode=ui.botMode.value,level=Number(ui.botAverage.value);
     if(selectedBot&&(!B||!B.profiles.includes(profile)||!['standard','adaptive'].includes(botMode)||
       !Number.isInteger(level)||level<20||level>120))throw Error('Velg botnivå 20–120 og en gyldig spillestil.');
@@ -435,12 +446,35 @@ ui.setupForm.addEventListener('submit',event=>{
     const created=E.setup({name1:ui.name1.value,name2:opponent,
       format:ui.format.value,mode:ui.mode.value,bestOf:ui.bestOf.value,
       bestOfSets:ui.bestOfSets.value,starter});
+    let coinAnimationFailed=false;
+    if(coinRequested){
+      coinBusy=true;
+      const startButton=ui.setupForm.querySelector('button[type="submit"]');
+      if(startButton)startButton.disabled=true;
+      try{
+        if(!window.DartArenaCoinFlip?.play)throw Error('Myntkastvisningen ble ikke lastet.');
+        await window.DartArenaCoinFlip.play({
+          player1Id:'player-1',player2Id:'player-2',
+          player1Name:created.players[0],player2Name:created.players[1],
+          winnerId:starter===0?'player-1':'player-2'
+        });
+      }catch(error){
+        console.warn('Lokal myntkast-animasjon feilet:',error);
+        coinAnimationFailed=true;
+      }finally{
+        coinBusy=false;
+        if(startButton)startButton.disabled=false;
+      }
+    }
     cancelBot();
     state=created;botRecorded=false;
     botConfig=selectedBot?{mode:botMode,profile,name:persona,average:selectedLevel,format:state.format,
       sigma:B.calibrate(selectedLevel,profile,state.format)}:null;
     window.DartArenaLocalNameHistory?.remember(selectedBot?[state.players[0]]:state.players);
-    ui.setupError.hidden=true;message='Skriv score og trykk Enter.';isError=false;
+    ui.setupError.hidden=true;
+    message=coinRequested?(coinAnimationFailed?'Myntkast trukket, men animasjonen kunne ikke vises. ':'' )+
+      created.players[starter]+' starter første leg.':'Skriv score og trykk Enter.';
+    isError=false;
     safeSave();render();
   }catch(e){ui.setupError.textContent=e.message;ui.setupError.hidden=false}
 });
