@@ -43,6 +43,8 @@ function safeSave(){
     if(state)localStorage.setItem(KEY,JSON.stringify(state));else localStorage.removeItem(KEY);
     if(state&&botConfig)localStorage.setItem(BOT_SESSION_KEY,JSON.stringify({id:state.id,config:botConfig,recorded:botRecorded}));
     else localStorage.removeItem(BOT_SESSION_KEY);
+    // Persist a finished game before rendering the result screen.
+    if(state?.status==='finished')window.DartArenaH2HHistory?.save(state,botConfig);
   }catch{showMessage('Kampen kjører, men kunne ikke lagres i denne nettleseren.',true)}
 }
 function readAdaptive(){
@@ -285,9 +287,14 @@ function render(){
   if(state.status==='finished'){
     cancelBot();recordAdaptiveMatch();
     // Idempotent history writer: repeated renders and reloading must not duplicate a match.
-    const result=window.DartArenaH2HHistory?.save(state,botConfig);
-    if(result&&!result.ok&&result.reason==='storage')
-      showMessage('Kampen er ferdig, men historikken kunne ikke lagres i denne nettleseren.',true);
+    try{
+      const result=window.DartArenaH2HHistory?.save(state,botConfig);
+      if(!window.DartArenaH2HHistory||result?.reason==='storage')
+        showMessage('Kampen er ferdig, men historikken kunne ikke lagres her. Oppdater siden.',true);
+    }catch(error){
+      console.warn('Kunne ikke arkivere lokal Head-to-Head-kamp',error);
+      showMessage('Kampen er ferdig, men historikken kunne ikke lagres her. Oppdater siden.',true);
+    }
     if(document.body.classList.contains('local-stats-open'))closeStats();
   }
   window.DartArenaLocalResults?.syncX01(state,newMatch);
