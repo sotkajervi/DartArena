@@ -32,6 +32,8 @@
     rfPreview:$('labRoboflowPreview'),rfPreviewInfo:$('labRoboflowPreviewInfo'),rfPreviewImage:$('labRoboflowPreviewImage'),
     rfCompareBtn:$('labRoboflowCompareBtn'),rfCompareResult:$('labRoboflowCompareResult'),
     rfABBtn:$('labRoboflowABBtn'),rfABResult:$('labRoboflowABResult'),
+    rfSaveCrop:$('labRfSaveCrop'),rfFileA:$('labRfFileA'),rfFileB:$('labRfFileB'),
+    rfCompareSaved:$('labRfCompareSaved'),rfSavedResult:$('labRfSavedResult'),
     deepState:$('labDeepState'),deepFile:$('labDeepFile'),
     deepLoad:$('labDeepLoad'),deepTest:$('labDeepTest'),
     deepThreshold:$('labDeepThreshold'),deepMessage:$('labDeepMessage')
@@ -149,6 +151,8 @@
     els.rfPreviewBtn.disabled=!authorized||!RF?.preview||!ready||!frozen||adjusting||calibrating;
     els.rfCompareBtn.disabled=!authorized||!RF?.compare||!ready||!frozen||!els.rfConsent.checked||adjusting||calibrating||rfBusy;
     els.rfABBtn.disabled=!authorized||!RF?.compareModels||!ready||!frozen||!els.rfConsent.checked||adjusting||calibrating||rfBusy;
+    els.rfSaveCrop.disabled=!authorized||!RF?.preview||!ready||!frozen||adjusting||calibrating;
+    els.rfCompareSaved.disabled=!authorized||!RF?.inferSavedImage||rfBusy||!els.rfConsent.checked||!els.rfFileA.files?.length||!els.rfFileB.files?.length;
     els.datasetOptIn.disabled=!authorized;
     els.datasetExport.disabled=!authorized||!dataset.length;
     els.datasetClear.disabled=!authorized||!dataset.length;
@@ -795,6 +799,45 @@
   }
   els.deepLoad.addEventListener('click',loadDeepDarts);
   els.deepTest.addEventListener('click',analyseDeepDarts);
+  function saveRoboflowCrop(){
+    if(!authorized||!stream||!board||!frozen||!RF?.preview)return;
+    try{
+      const region=G.boardBounds(board,els.overlay.width,els.overlay.height,.045);
+      const img=RF.preview(els.frozenFrame,region);
+      const link=document.createElement('a');
+      link.href=img.src;
+      link.download='dartarena-roboflow-utsnitt-'+Date.now()+'.jpg';
+      document.body.appendChild(link);link.click();link.remove();
+      els.rfSavedResult.textContent='AI-utsnitt lagret lokalt. Velg to lagrede bilder for kontrolltest.';
+    }catch(e){els.rfSavedResult.textContent='Kunne ikke lagre AI-bildet: '+(e?.message||String(e))}
+  }
+  async function compareSavedRoboflow(){
+    if(!authorized||!RF?.inferSavedImage||rfBusy||!els.rfConsent.checked||!els.rfFileA.files?.length||!els.rfFileB.files?.length)return;
+    rfBusy=true;updateButtons();
+    const lines=[];
+    const openFile=file=>new Promise((resolve,reject)=>{
+      if(!file||file.size>4000000){reject(new Error('Bilde mangler eller er for stort'));return}
+      const url=URL.createObjectURL(file);const image=new Image();
+      image.onload=()=>{URL.revokeObjectURL(url);resolve(image)};
+      image.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Ugyldig bildefil'))};
+      image.src=url;
+    });
+    try{
+      for(const [label,file] of [['Bilde A',els.rfFileA.files[0]],['Bilde B',els.rfFileB.files[0]]]){
+        try{
+          const image=await openFile(file);
+          const result=await RF.inferSavedImage(db,image);
+          const best=result.detections.reduce((a,b)=>!a||b.confidence>a.confidence?b:a,null);
+          lines.push(label+' ('+result.width+' × '+result.height+'): '+result.objects+' objekt(er), '+
+            result.keypoints+' nøkkelpunkt(er), '+result.detections.length+' kandidater'+
+            (best?' · best '+Math.round(best.confidence*100)+' % ved x='+Math.round(best.x)+', y='+Math.round(best.y):''));
+        }catch(e){lines.push(label+': FEIL – '+(e?.message||String(e)));break}
+        els.rfSavedResult.textContent=lines.join('\n');
+      }
+    }finally{
+      rfBusy=false;els.rfConsent.checked=false;els.rfSavedResult.textContent=lines.join('\n')||'Ingen bilder analysert.';updateButtons();
+    }
+  }
   async function compareRoboflowModels(){
     if(!authorized||!RF?.compareModels||rfBusy||!stream||!board||!frozen||!els.rfConsent.checked||adjusting||calibrating)return;
     rfBusy=true;
@@ -943,6 +986,10 @@
   els.rfPreviewBtn.addEventListener('click',showRoboflowPreview);
   els.rfCompareBtn.addEventListener('click',compareRoboflowResolutions);
   els.rfABBtn.addEventListener('click',compareRoboflowModels);
+  els.rfSaveCrop.addEventListener('click',saveRoboflowCrop);
+  els.rfCompareSaved.addEventListener('click',compareSavedRoboflow);
+  els.rfFileA.addEventListener('change',updateButtons);
+  els.rfFileB.addEventListener('change',updateButtons);
   els.rfStatus.addEventListener('click',checkRoboflowConnection);
   els.rfTest.addEventListener('click',analyseRoboflow);
   els.rfConsent.addEventListener('change',updateButtons);
