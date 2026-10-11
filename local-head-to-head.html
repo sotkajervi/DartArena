@@ -38,7 +38,7 @@
       <label class="field">Kampformat<select id="localMode"><option value="legs">Legs</option><option value="sets">Sets</option></select></label>
       <label class="field">Antall legs<select id="localBestOf"><option value="1">Best av 1</option><option value="3" selected>Best av 3</option><option value="5">Best av 5</option><option value="7">Best av 7</option><option value="9">Best av 9</option><option value="11">Best av 11</option><option value="13">Best av 13</option><option value="15">Best av 15</option></select></label>
       <label class="field" id="localSetsField" hidden>Antall sets<select id="localBestOfSets"><option value="1">Best av 1</option><option value="3" selected>Best av 3</option><option value="5">Best av 5</option><option value="7">Best av 7</option><option value="9">Best av 9</option><option value="11">Best av 11</option><option value="13">Best av 13</option><option value="15">Best av 15</option></select></label>
-      <p class="muted compact local-coin-info">Hvem som starter avgjøres automatisk med myntkast før kampen.</p>
+      <label class="field">Hvem starter første leg?<select id="localStarter"><option value="0">Spiller 1</option><option value="1">Spiller 2 / Bot</option><option value="coin">Myntkast</option></select></label>
       <div class="local-setup-submit"><button class="primary" type="submit">Start kampen</button></div>
     </form>
     <p class="muted compact">Samme X01-regler som online: gyldige 3-pilsscorer, dobbel-ut, leg-/set-veksling og antall piler ved utsjekk.</p>
@@ -148,6 +148,6 @@
 <script src="./room-coin-flip.js?v=20261012-local1"></script>
 <script src="./local-coin-start.js?v=20261012-all1"></script>
 <script src="./local-h2h-history.js?v=20261012-h2hhistory1"></script>
-<script src="./local-h2h.js?v=20261012-h2hhistory1"></script>
+<script src="./local-h2h.js?v=20261012-optionalcoin2"></script>
 </body>
 </html>
