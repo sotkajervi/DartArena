@@ -558,8 +558,8 @@
       if(!user.data?.user||user.error||a.error||o.error||!(a.data===true||o.data===true))throw new Error('Tilgang er ikke godkjent.');
       const deviceId=els.camera.value;
       const s=await navigator.mediaDevices.getUserMedia({audio:false,video:{
-        ...(deviceId?{deviceId:{exact:deviceId}}:{}),width:{ideal:1280},
-        height:{ideal:720},frameRate:{ideal:30,max:30}}});
+        ...(deviceId?{deviceId:{exact:deviceId}}:{}),width:{ideal:1920},
+        height:{ideal:1080},frameRate:{ideal:30,max:30}}});
       if(ticket!==epoch||!authorized){s.getTracks().forEach(t=>t.stop());return}
       stream=s;
       els.video.srcObject=s;
