@@ -11,3 +11,37 @@
 .scoringarena-page .training-games-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .scoringarena-footnote{margin:0 5px}
 @media(max-width:760px){.scoringarena-hero{padding:17px;flex-direction:column;align-items:stretch;gap:14px}.scoringarena-hero .scoringarena-back{align-self:flex-start}.scoringarena-page .training-games-grid{grid-template-columns:1fr}.scoringarena-page .training-game-card{align-items:flex-start;flex-wrap:wrap}.scoringarena-page .training-game-card button{width:100%}}
+
+/* Local X01 Head-to-Head archive */
+.sa-history-section{margin:16px 0 20px}
+.sa-history-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.sa-history-controls{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:800;color:var(--muted)}
+.sa-history-controls select{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:8px 10px;max-width:180px}
+.sa-history-count{margin:13px 0 8px;color:var(--muted);font-size:12px;font-weight:750}
+.sa-history-list{display:grid;gap:9px}
+.sa-history-row{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(4,17,20,.55);display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:0}
+.sa-history-match{display:grid;gap:5px;min-width:0;flex:1}
+.sa-history-meta,.sa-history-averages{font-size:11px;color:var(--muted);font-weight:650}
+.sa-history-matchup{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap;font-size:15px;font-weight:760;overflow-wrap:anywhere}
+.sa-history-matchup .sa-history-score{color:var(--cyan);font-size:18px;font-variant-numeric:tabular-nums}
+.sa-history-matchup .sa-history-winner{color:var(--green)}
+.sa-history-view{flex:0 0 auto;padding:8px 12px;font-size:12px}
+.sa-history-more{margin-top:13px}
+.sa-history-dialog{width:min(740px,96vw);max-height:90vh;overflow:auto;border:1px solid rgba(0,234,244,.3);border-radius:16px;padding:18px;background:#0a181b;color:var(--text);box-shadow:0 20px 90px rgba(0,0,0,.68)}
+.sa-history-dialog::backdrop{background:rgba(0,5,6,.84)}
+.sa-history-dialog[hidden]{display:none!important}
+.sa-history-dialog-top{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px}
+.sa-history-dialog-top button{padding:7px 11px;font-size:12px}
+.sa-history-detail-kicker{color:var(--cyan);font-weight:800;letter-spacing:.08em}
+.sa-history-details h2{font-size:26px;margin:9px 0}
+.sa-history-details h3{font-size:17px;margin:19px 0 8px}
+.sa-history-detail-sub{font-weight:750;font-size:17px;overflow-wrap:anywhere}
+.sa-history-table{width:100%;border-collapse:collapse;font-size:13px}
+.sa-history-table th,.sa-history-table td{padding:8px 9px;text-align:left;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.sa-history-table thead th{color:var(--cyan);font-size:11px}
+.sa-history-table td:not(:first-child){font-variant-numeric:tabular-nums}
+.sa-history-all-visits{margin-top:15px}
+.sa-history-all-visits summary{cursor:pointer;font-weight:780;color:var(--cyan);padding:9px 0}
+.sa-history-detail-actions{display:flex;justify-content:flex-end;margin-top:16px}
+.sa-history-delete{border-color:rgba(255,111,120,.38)!important}
+@media(max-width:650px){.sa-history-row{flex-wrap:wrap;padding:11px}.sa-history-view{width:100%}.sa-history-dialog{padding:12px;width:96vw}.sa-history-table{font-size:11px}.sa-history-table th,.sa-history-table td{padding:7px 4px}.sa-history-controls{width:100%}}
