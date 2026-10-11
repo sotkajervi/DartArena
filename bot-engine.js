@@ -65,7 +65,8 @@ function calibrate(average,profile,format=501){
  // setup/finishing darts. Offsets are experimental beta calibration values.
  const base=clamp(Number(average)||55,20,120);
  const compensation=Number(format)===170?Math.min(31,13+base*.4):Number(format)===301?20:12;
- const desired=base+compensation;
+ const profileAdjustment=(profile==='scorer'?7:profile==='finisher'?-6:0)*Math.min(1,(120-base)/60);
+ const desired=base+compensation+profileAdjustment;
  let low=2,high=150;
  for(let i=0;i<13;i++){
    const middle=(low+high)/2,observed=estimate(middle,profile);
@@ -128,8 +129,9 @@ function visit(remaining,config,random=Math.random){
  for(let i=0;i<3;i++){
    const aim=chooseAim(rest,3-i,profile,random);
    const doubleScale=aim.startsWith('D')||aim==='B50'
-     ?(profile==='finisher'?.67:profile==='scorer'?1.55:1.03):1;
-   const hit=shot(aim,Math.min(34,sigma)*doubleScale,random,scale);
+     ?(profile==='finisher'?.67:profile==='scorer'?1.35:1.03):1;
+   const doubleSigma=aim.startsWith('D')||aim==='B50'?Math.min(28,sigma)*doubleScale:sigma;
+   const hit=shot(aim,doubleSigma,random,scale);
    throws.push(hit);
    rest-=hit.score;
    if(rest<0||rest===1||(rest===0&&!hit.double)){bust=true;break}
