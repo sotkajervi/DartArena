@@ -3,7 +3,7 @@
 (function(){
 'use strict';
 const ENDPOINT='autoscoring-roboflow';
-const MAX_SIDE=768;
+const MAX_SIDE=1024;
 function clamp(x,min,max){return Math.min(max,Math.max(min,x))}
 function mapDetections(response, region, sent){
   if(!response||!Array.isArray(response.detections))throw new Error('Ugyldig svar fra Roboflow-tjenesten.');
