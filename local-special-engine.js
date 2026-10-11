@@ -172,6 +172,34 @@ function next(state){
  s.exactChoice=s.exactOptions[0];s.phaseStart=Date.now();s.status='playing';
  return save(state,s);
 }
+function editableCricket(state,player){
+ if(state?.game!=='cricket'||state.status!=='playing')return [];
+ return state.visits.map((visit,index)=>({visit,index}))
+   .filter(({visit})=>visit.player===player&&visit.leg===state.leg&&visit.darts)
+   .slice(-3).map(({index})=>index);
+}
+function correctCricket(state,index,darts){
+ const old=state?.visits?.[index];
+ need(old&&editableCricket(state,old.player).includes(index),
+   'Bare spillerens tre siste Cricket-kast i aktivt leg kan korrigeres.');
+ need(Array.isArray(darts)&&darts.length>=1&&darts.length<=3,'Registrer 1–3 piler.');
+ let current=init({game:state.game,name1:state.players[0],name2:state.players[1],
+   bestOf:state.bestOf,starter:state.firstStarter,minutes:state.minutes});
+ current.id=state.id;current.startedAt=state.startedAt;
+ for(let i=0;i<state.visits.length;i++){
+   const visit=state.visits[i];
+   if(current.status==='between')current=next(current);
+   need(current.status==='playing'&&current.turn===visit.player&&current.leg===visit.leg,
+     'Denne korrigeringen påvirker senere kast. Korriger et nyere kast først.');
+   current=submit(current,{darts:i===index?darts:visit.darts});
+   current.visits.at(-1).at=visit.at;
+   current.undo=[];
+ }
+ need(current.leg===state.leg&&current.status==='playing',
+   'Denne korrigeringen endrer leg-avslutningen.');
+ current.undo=[...(state.undo||[]),snapshot(state)].slice(-90);
+ return current;
+}
 function undo(state){need(state?.undo?.length,'Ingen kast å angre.');const u=[...state.undo],s=u.pop();s.undo=u;return s}
 function elapsed(s){return s.paused?(s.pausedAt-s.phaseStart):Date.now()-s.phaseStart}
 function tick(state){
@@ -193,5 +221,5 @@ function pause(state){need(state?.game==='sixty_one','Pause er kun for 61.');con
  else{s.paused=true;s.pausedAt=Date.now()}
  return save(state,s)}
 function restore(s){return s&&s.version===1&&['cricket','half_standard','half_dartcounter','sixty_one','jdc','chicago'].includes(s.game)?s:null}
-root.DartArenaLocalSpecial={init,submit,next,undo,tick,pause,restore,stageMode,stageName,halfRule,halfPoints,round,emptyMarks,TARGETS,dartColor,dartScore};
+root.DartArenaLocalSpecial={init,submit,next,undo,tick,pause,restore,stageMode,stageName,halfRule,halfPoints,round,emptyMarks,TARGETS,dartColor,dartScore,editableCricket,correctCricket};
 })(window);
