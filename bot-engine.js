@@ -78,6 +78,13 @@ function route(remaining,darts){
  for(const target of doubleTargets){
    if(target.score===remaining){found=[target.label];break}
  }
+ // Prefer familiar single + preferred double routes for short finishes.
+ if(!found&&darts>1&&remaining<=70){
+   for(const target of doubleTargets){
+     const first=remaining-target.score;
+     if(first>=1&&first<=20){found=['S'+first,target.label];break}
+   }
+ }
  if(!found&&darts>1){
    for(const target of targets){
      if(target.score>=remaining-1)continue;
@@ -118,7 +125,7 @@ function visit(remaining,config,random=Math.random){
    const aim=chooseAim(rest,3-i,profile,random);
    const doubleScale=aim.startsWith('D')||aim==='B50'
      ?(profile==='finisher'?.67:profile==='scorer'?1.55:1.03):1;
-   const hit=shot(aim,sigma,random,scale*doubleScale);
+   const hit=shot(aim,Math.min(34,sigma*doubleScale),random,scale);
    throws.push(hit);
    rest-=hit.score;
    if(rest<0||rest===1||(rest===0&&!hit.double)){bust=true;break}
