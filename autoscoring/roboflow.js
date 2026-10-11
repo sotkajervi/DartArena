@@ -74,5 +74,10 @@ async function infer(client,frame,region){
     detections:mapDetections(data,img.region,{width:img.width,height:img.height}),
     diagnostics:data.diagnostics||null};
 }
-window.DartArenaLabRoboflow={check,infer,mapDetections,makeImage,explain};
+// Same JPEG generator as infer(): preview is local-only, no HTTP request.
+function preview(frame,region){
+  const img=makeImage(frame,region);
+  return {src:'data:image/jpeg;base64,'+img.image,width:img.width,height:img.height,region:img.region};
+}
+window.DartArenaLabRoboflow={check,infer,preview,mapDetections,makeImage,explain};
 })();
