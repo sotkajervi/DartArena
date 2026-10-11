@@ -77,3 +77,111 @@
   .local-entry-controls button{flex:1}
   .local-stat-table>div{grid-template-columns:minmax(100px,1.3fr) repeat(2,minmax(50px,1fr));gap:4px}
 }
+
+
+/* Compact local match: online X01 stats visible alongside scoring, no desktop page scroll. */
+.local-h2h-page header{height:58px;min-height:58px}
+.local-h2h-page .local-h2h-shell{max-width:1180px;margin:9px auto 0;padding-bottom:12px}
+.local-h2h-page .local-h2h-heading{margin:0 0 5px;align-items:center}
+.local-h2h-page .local-h2h-heading h1{font-size:24px;margin:0}
+.local-h2h-page .local-h2h-heading .muted{font-size:11px;margin:3px 0 0}
+.local-h2h-page .local-h2h-heading small{font-size:10px}
+.local-h2h-page .local-back{padding:8px 11px;font-size:12px}
+.local-h2h-page .local-game-top{margin:5px 0 9px;gap:7px}
+.local-h2h-page .local-game-actions button{padding:7px 12px}
+.local-h2h-page .local-pill{padding:4px 9px;font-size:10px}
+.local-play-layout{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(320px,.90fr);gap:12px;align-items:start}
+.local-play-main{min-width:0;display:flex;flex-direction:column;gap:9px}
+.local-h2h-page .local-board{gap:9px}
+.local-h2h-page .local-player{padding:12px 13px;border-radius:12px}
+.local-h2h-page .local-player-top small{font-size:10px}
+.local-h2h-page .local-player h2{margin:5px 0 0;font-size:clamp(16px,2vw,21px);line-height:1.2}
+.local-h2h-page .local-score{font-size:clamp(48px,8.7vh,82px);line-height:1.03;letter-spacing:-.05em}
+.local-h2h-page .local-leg-label{font-size:13px}
+.local-h2h-page .local-leg-label strong{font-size:16px}
+.local-h2h-page .local-avg{font-size:11px;margin:5px 0 0}
+.local-h2h-page .local-entry-card{margin:0;padding:12px 14px;border-radius:13px}
+.local-h2h-page .local-turn{font-size:clamp(16px,2.4vh,20px);line-height:1.2;margin-bottom:8px}
+.local-h2h-page .local-score-form>label{margin-bottom:5px}
+.local-h2h-page .local-entry-controls{gap:7px}
+.local-h2h-page .local-entry-controls button{padding:9px 10px;font-size:12px}
+.local-h2h-page .local-entry-controls input{
+  background:#07191c!important;
+  color:#f2f7f7!important;
+  border:1px solid #2a555b!important;
+  border-radius:9px;
+  font-size:25px;
+  padding:6px 10px;
+  min-height:41px;
+  caret-color:var(--cyan);
+  color-scheme:dark;
+  appearance:textfield;
+}
+.local-h2h-page .local-entry-controls input::placeholder{color:#89aab0!important;opacity:1}
+.local-h2h-page .local-entry-controls input:focus{border-color:var(--cyan)!important;outline:2px solid rgba(0,234,244,.23);outline-offset:0}
+.local-h2h-page .local-entry-controls input::-webkit-inner-spin-button,
+.local-h2h-page .local-entry-controls input::-webkit-outer-spin-button{appearance:none;margin:0}
+.local-h2h-page .local-quick{gap:5px;margin:8px 0}
+.local-h2h-page .local-quick button{padding:6px 10px;font-size:12px}
+.local-h2h-page .local-message{font-size:11px;margin:3px 0;line-height:1.35}
+.local-h2h-page .local-between{margin:0;padding:12px 14px}
+.local-h2h-page .local-between h2{font-size:21px}
+.local-h2h-page .local-between p{margin:6px 0}
+.local-h2h-page .local-between button{margin-top:3px}
+.local-h2h-page .local-stats-card{min-width:0;margin:0;padding:14px;border-radius:13px}
+.local-h2h-page .local-stats-card .heading{margin-bottom:9px}
+.local-h2h-page .local-stats-card .heading small{font-size:10px}
+.local-h2h-page .local-stats-card .heading h2{font-size:19px}
+.local-h2h-page .stats-grid{
+  display:grid;
+  grid-template-columns:minmax(122px,1.35fr) minmax(0,1fr) minmax(0,1fr);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:11px;
+  overflow:hidden;
+  background:rgba(255,255,255,.018);
+  font-size:12px;
+}
+.local-h2h-page .stats-grid>*{
+  min-width:0;
+  padding:8px 7px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+.local-h2h-page .stats-grid>*:nth-last-child(-n+3){border-bottom:0}
+.local-h2h-page .stats-grid .label{color:#88a1a5;font-size:12px}
+.local-h2h-page .stats-grid .val{text-align:center;font-weight:900;font-variant-numeric:tabular-nums}
+.local-h2h-page .stats-grid .head{color:#00eaf4;font-size:12px}
+.local-h2h-page .local-history-card{margin:9px 0 0;padding:8px 13px;border-radius:11px;box-shadow:none}
+.local-h2h-page .local-history-card summary{font-size:12px;font-weight:850;cursor:pointer;color:var(--text)}
+.local-h2h-page .local-history-card summary span{float:right;font-size:11px;color:var(--muted);font-weight:600}
+.local-h2h-page .local-history-card[open] .local-history{margin-top:9px}
+.local-h2h-page #localGame .local-storage-note{display:none}
+@media(max-height:700px) and (min-width:880px){
+  .local-h2h-page .local-h2h-heading .muted{display:none}
+  .local-h2h-page .local-h2h-heading h1{font-size:21px}
+  .local-h2h-page .local-player{padding:9px 11px}
+  .local-h2h-page .local-score{font-size:clamp(42px,8.3vh,64px)}
+  .local-h2h-page .local-stats-card{padding:10px 12px}
+  .local-h2h-page .stats-grid>*{padding:6px 6px}
+  .local-h2h-page .local-quick button{padding:5px 9px}
+}
+@media(max-width:879px){
+  .local-play-layout{grid-template-columns:1fr}
+  .local-h2h-page .local-stats-card{margin:0}
+  .local-h2h-page .local-score{font-size:clamp(52px,9.5vw,78px)}
+  .local-h2h-page .local-h2h-heading .muted{display:block}
+}
+@media(max-width:650px){
+  .local-h2h-page header{height:auto;min-height:54px}
+  .local-h2h-page .local-h2h-heading{gap:8px}
+  .local-h2h-page .local-h2h-heading h1{font-size:23px}
+  .local-h2h-page .local-player{padding:9px}
+  .local-h2h-page .local-player h2{font-size:15px;min-height:0}
+  .local-h2h-page .local-score{font-size:clamp(46px,10vw,68px)}
+  .local-h2h-page .local-entry-controls input{flex:1 1 100%;max-width:none}
+  .local-h2h-page .stats-grid{grid-template-columns:minmax(110px,1.3fr) repeat(2,minmax(0,1fr))}
+  .local-h2h-page .stats-grid>*{padding:8px 5px}
+  .local-h2h-page .stats-grid .label,.local-h2h-page .stats-grid .head{font-size:11px}
+}
