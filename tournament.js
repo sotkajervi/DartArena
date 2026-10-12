@@ -136,6 +136,7 @@ async function load(){
   }
 
   renderPage();
+  window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
   if(t.status==='groups'||(t.status==='finished'&&t.tournament_type==='groups_cup'))await loadGroupLobby();
   window.dispatchEvent(new CustomEvent('dartarena:tournament-loaded',{detail:{id:t.id,status:t.status,gameVariant:t.game_variant||'x01',cupGameVariant:t.cup_game_variant||t.game_variant||'x01'}}));
 }
@@ -422,7 +423,7 @@ function drawGroups(){
 }
 
 function renderGroups(){
-  $('groupPreview').innerHTML=drawnGroups.map((group,i)=>`<div class="player-row" style="display:block"><div class="player-name" style="color:#00eaf4;margin-bottom:8px">Pulje ${i+1}</div>${group.map((p,j)=>`<div class="status" style="padding:5px 0;color:var(--text)">${j+1}. ${esc(names[p.user_id]||'Spiller')}</div>`).join('')}</div>`).join('');
+  $('groupPreview').innerHTML=drawnGroups.map((group,i)=>`<div class="player-row" style="display:block"><div class="player-name" style="color:#00eaf4;margin-bottom:8px">Pulje ${i+1}</div>${group.map((p,j)=>`<div class="status" style="padding:5px 0;color:var(--text)">${j+1}. <span class="da-role-player" data-user-id="${esc(p.user_id)}">${esc(names[p.user_id]||'Spiller')}</span></div>`).join('')}</div>`).join('');
 }
 
 function roundRobin(players){
@@ -539,8 +540,9 @@ async function loadGroupLobby(){
     const qualify=g.advance_mode==='all'?table.length:Number(g.advance_count||0);
     const rounds=[...new Set(gm.map(m=>m.round_no))];
     const roundHtml=rounds.map(r=>`<div class="round-block"><div class="round-title">Runde ${r}</div>${gm.filter(m=>m.round_no===r).map(matchHtml).join('')}</div>`).join('');
-    return `<div class="group-card"><div class="heading"><div><small>PULJE ${g.group_no}</small><h2>${gp.length} spillere</h2></div><div class="status">${tournamentIsChicago()? 'Chicago Style' : `${Number(tournament?.game)||501} • Best av ${g.best_of}`}</div></div><table class="standings"><thead><tr><th>#</th><th>Spiller</th><th>V</th><th>+/-</th><th>${tournamentIsChicago()?'Games':'Legs'}</th></tr></thead><tbody>${table.map((x,i)=>`<tr class="${i<qualify?'qualify':''}"><td>${i+1}</td><td>${esc(names[x.id]||'Spiller')}</td><td>${x.w}</td><td>${x.d>0?'+':''}${x.d}</td><td>${x.lf}</td></tr>`).join('')}</tbody></table><details class="group-matches-details" ${collapseArchivedGroups?'':'open'}><summary><span>Puljekamper</span><span class="group-match-summary-meta">${gm.length} kamper <span class="group-match-chevron" aria-hidden="true">⌄</span></span></summary><div class="group-rounds">${roundHtml}</div></details></div>`;
+    return `<div class="group-card"><div class="heading"><div><small>PULJE ${g.group_no}</small><h2>${gp.length} spillere</h2></div><div class="status">${tournamentIsChicago()? 'Chicago Style' : `${Number(tournament?.game)||501} • Best av ${g.best_of}`}</div></div><table class="standings"><thead><tr><th>#</th><th>Spiller</th><th>V</th><th>+/-</th><th>${tournamentIsChicago()?'Games':'Legs'}</th></tr></thead><tbody>${table.map((x,i)=>`<tr class="${i<qualify?'qualify':''}"><td>${i+1}</td><td><span class="da-role-player" data-user-id="${esc(x.id)}">${esc(names[x.id]||'Spiller')}</span></td><td>${x.w}</td><td>${x.d>0?'+':''}${x.d}</td><td>${x.lf}</td></tr>`).join('')}</tbody></table><details class="group-matches-details" ${collapseArchivedGroups?'':'open'}><summary><span>Puljekamper</span><span class="group-match-summary-meta">${gm.length} kamper <span class="group-match-chevron" aria-hidden="true">⌄</span></span></summary><div class="group-rounds">${roundHtml}</div></details></div>`;
   }).join('');
+  window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
   if(collapseArchivedGroups){
     const details=[...$('liveGroups').querySelectorAll('.group-matches-details')];
     details.forEach(detail=>{detail.open=false;detail.removeAttribute('open')});
@@ -552,8 +554,9 @@ async function loadGroupLobby(){
 }
 
 function matchHtml(m){
-  const p1=esc(names[m.player1_id]||'Spiller');
-  const p2=esc(names[m.player2_id]||'Spiller');
+  const playerLabel=uid=>'<span class="da-role-player" data-user-id="'+esc(uid||'')+'">'+esc(names[uid]||'Spiller')+'</span>';
+  const p1=playerLabel(m.player1_id);
+  const p2=playerLabel(m.player2_id);
   const done=['finished','wo'].includes(m.status);
   const live=m.status==='live';
   const score=live
