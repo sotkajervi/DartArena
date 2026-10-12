@@ -7,8 +7,8 @@
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
   );
   const OWNER='#00eaf4',ADMIN='#ff9f43',LEADER='#4da3ff';
-  const roleByName=new Map();
-  const NAME_SELECTOR='.player-name,.video-name,.match-name,.cricket-player-name,.half-player-name,.sixty-one-player-name,.spectate-name,.spectator-name,.history-player,.results-player,.highlight-name,.results-person-name,.jdc-online-player span,#matchPlayer1Name,#matchPlayer2Name,.da-result-stat-name,.da-result-winner-name,.da-result-legwinner';
+  const roleByName=new Map(),roleById=new Map();
+  const NAME_SELECTOR='.player-name,.video-name,.match-name,.cricket-player-name,.half-player-name,.sixty-one-player-name,.spectate-name,.spectator-name,.history-player,.results-player,.highlight-name,.results-person-name,.da-role-player,.jdc-online-player span,#matchPlayer1Name,#matchPlayer2Name,.da-result-stat-name,.da-result-winner-name,.da-result-legwinner';
 
   function revealWelcome(){
     const title=document.getElementById('welcomeName');
@@ -81,7 +81,7 @@
     const isPlayerName=el?.classList?.contains('player-name');
     const isHistoryName=el?.classList?.contains('history-player');
     const isMatchHeader=el?.id==='matchPlayer1Name'||el?.id==='matchPlayer2Name';
-    const isResultName=el?.classList?.contains('da-result-stat-name')||el?.classList?.contains('da-result-winner-name')||el?.classList?.contains('results-person-name');
+    const isResultName=el?.classList?.contains('da-result-stat-name')||el?.classList?.contains('da-result-winner-name')||el?.classList?.contains('results-person-name')||el?.classList?.contains('da-role-player');
     if(!isPlayerName&&!isHistoryName&&!isMatchHeader&&!isResultName)return;
     const host=el.parentElement;
     if(!host)return;
@@ -103,8 +103,10 @@
   function applyRole(el){
     if(!el)return;
     // Match result entries by exact player name, never a combined semifinals label.
-    const isResultsName=el.classList?.contains('results-person-name');
-    const role=isResultsName?roleByName.get(el.textContent.trim())||null:roleFor(el.textContent);
+    const isExactName=el.classList?.contains('results-person-name')||el.classList?.contains('da-role-player');
+    const id=el.dataset?.userId;
+    const role=id&&roleById.has(id)?roleById.get(id):
+      isExactName?(roleByName.get(el.textContent.trim())||null):roleFor(el.textContent);
     el.classList.toggle('da-role-owner',role==='owner');
     el.classList.toggle('da-role-admin',role==='admin');
     el.classList.toggle('da-role-leader',role==='leader');
@@ -247,6 +249,7 @@
     const {data:roles,error}=await db.rpc('get_public_user_roles');
     if(error)throw error;
     const privileged=(roles||[]).filter(r=>['owner','admin'].includes(r.role));
+    privileged.forEach(r=>roleById.set(r.user_id,r.role));
     const ids=privileged.map(r=>r.user_id);
     if(ids.length){
       const {data:profiles}=await db.from('profiles').select('id,username').in('id',ids);
@@ -260,13 +263,14 @@
       if(t?.owner_id){
         const {data:p}=await db.from('profiles').select('username').eq('id',t.owner_id).maybeSingle();
         if(p?.username&&!roleByName.has(p.username))roleByName.set(p.username,'leader');
+        if(!roleById.has(t.owner_id))roleById.set(t.owner_id,'leader');
       }
     }
     return true;
   }
 
   async function refreshRoles({waitForSession=false}={}){
-    roleByName.clear();
+    roleByName.clear();roleById.clear();
     let loaded=false;
     const attempts=waitForSession?12:1;
     for(let i=0;i<attempts&&!loaded;i++){
@@ -330,8 +334,9 @@
   window.addEventListener('dartarena:tournament-loaded',refreshAfterLogin);
   // Tournament results load asynchronously; render event re-applies role badges.
   window.addEventListener('dartarena:results-rendered',()=>scanNames());
+  window.addEventListener('dartarena:roles-content-rendered',()=>scanNames());
   window.addEventListener('dartarena:lobby-left',()=>{
-    roleByName.clear();
+    roleByName.clear();roleById.clear();
     scanNames();
     syncWelcome();
   });
