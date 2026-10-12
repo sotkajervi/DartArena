@@ -8,7 +8,7 @@
   );
   const OWNER='#00eaf4',ADMIN='#ff9f43',LEADER='#4da3ff';
   const roleByName=new Map();
-  const NAME_SELECTOR='.player-name,.video-name,.match-name,.cricket-player-name,.half-player-name,.sixty-one-player-name,.spectate-name,.spectator-name,.history-player,.results-player,.highlight-name,.jdc-online-player span,#matchPlayer1Name,#matchPlayer2Name,.da-result-stat-name,.da-result-winner-name,.da-result-legwinner';
+  const NAME_SELECTOR='.player-name,.video-name,.match-name,.cricket-player-name,.half-player-name,.sixty-one-player-name,.spectate-name,.spectator-name,.history-player,.results-player,.highlight-name,.results-person-name,.jdc-online-player span,#matchPlayer1Name,#matchPlayer2Name,.da-result-stat-name,.da-result-winner-name,.da-result-legwinner';
 
   function revealWelcome(){
     const title=document.getElementById('welcomeName');
@@ -34,6 +34,11 @@
       .player-role-badge{display:inline-flex;align-items:center;margin-left:7px;padding:2px 6px;border-radius:999px;font-size:9px;font-weight:950;letter-spacing:.08em;vertical-align:middle;line-height:1.25}
       .player-role-badge.owner{color:${OWNER};border:1px solid rgba(0,234,244,.5);background:rgba(0,234,244,.09)}
       .player-role-badge.admin{color:${ADMIN};border:1px solid rgba(255,159,67,.5);background:rgba(255,159,67,.09)}
+      .results-person-name{display:inline}
+      .results-person-name+.player-role-badge{white-space:nowrap}
+      .winner-name .player-role-badge{font-size:11px;padding:4px 8px;vertical-align:middle;letter-spacing:.04em}
+      .results-table .player-role-badge{font-size:8px;padding:2px 5px;margin-left:5px;letter-spacing:.02em}
+      .podium-box .player-role-badge,.highlight-name .player-role-badge{font-size:9px;margin-left:5px}
       #matchTitle .player-role-badge{transform:translateY(-1px)}
       .da-result-title .player-role-badge{font-size:10px;padding:3px 7px;margin-left:10px;transform:translateY(-5px)}
       .da-result-playerhead .player-role-badge{margin-left:6px}
@@ -76,7 +81,7 @@
     const isPlayerName=el?.classList?.contains('player-name');
     const isHistoryName=el?.classList?.contains('history-player');
     const isMatchHeader=el?.id==='matchPlayer1Name'||el?.id==='matchPlayer2Name';
-    const isResultName=el?.classList?.contains('da-result-stat-name')||el?.classList?.contains('da-result-winner-name');
+    const isResultName=el?.classList?.contains('da-result-stat-name')||el?.classList?.contains('da-result-winner-name')||el?.classList?.contains('results-person-name');
     if(!isPlayerName&&!isHistoryName&&!isMatchHeader&&!isResultName)return;
     const host=el.parentElement;
     if(!host)return;
@@ -97,7 +102,9 @@
 
   function applyRole(el){
     if(!el)return;
-    const role=roleFor(el.textContent);
+    // Match result entries by exact player name, never a combined semifinals label.
+    const isResultsName=el.classList?.contains('results-person-name');
+    const role=isResultsName?roleByName.get(el.textContent.trim())||null:roleFor(el.textContent);
     el.classList.toggle('da-role-owner',role==='owner');
     el.classList.toggle('da-role-admin',role==='admin');
     el.classList.toggle('da-role-leader',role==='leader');
@@ -160,7 +167,11 @@
   }
 
   function scanNames(root=document){
-    root.querySelectorAll(NAME_SELECTOR).forEach(applyRole);
+    root.querySelectorAll(NAME_SELECTOR).forEach(el=>{
+      if((el.classList.contains('results-player')||el.classList.contains('highlight-name'))&&
+         el.querySelector('.results-person-name'))return;
+      applyRole(el);
+    });
     if(root===document&&document.getElementById('tName')){
       document.querySelectorAll('#participantList .player-name').forEach(name=>{
         const status=name.parentElement?.querySelector('.status');
@@ -317,6 +328,8 @@
   window.addEventListener('dartarena:lobby-entered',refreshAfterLogin);
   window.addEventListener('dartarena:lobby-ready',refreshAfterLogin);
   window.addEventListener('dartarena:tournament-loaded',refreshAfterLogin);
+  // Tournament results load asynchronously; render event re-applies role badges.
+  window.addEventListener('dartarena:results-rendered',()=>scanNames());
   window.addEventListener('dartarena:lobby-left',()=>{
     roleByName.clear();
     scanNames();
