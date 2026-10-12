@@ -205,7 +205,7 @@ function renderPage(){
     {user_id:t.owner_id,role:'owner',playing:ownerJoined},
     ...participants.filter(x=>x.user_id!==t.owner_id).map(x=>({...x,playing:true}))
   ];
-  $('participantList').innerHTML=rows.map(x=>`<div class="player-row"><div class="player-main"><div class="avatar">${esc((names[x.user_id]||'?')[0].toUpperCase())}</div><div><div class="player-name ${x.role==='owner'?'role-admin':'role-participant'}">${esc(names[x.user_id]||'Spiller')}</div><div class="status">${x.role==='owner'?(x.playing?'Turneringsleder • Påmeldt':'Turneringsleder • Ikke påmeldt'):'Deltaker'}</div></div></div></div>`).join('');
+  $('participantList').innerHTML=rows.map(x=>`<div class="player-row"><div class="player-main"><div class="avatar">${esc((names[x.user_id]||'?')[0].toUpperCase())}</div><div><div class="player-name ${x.role==='owner'?'role-admin':'role-participant'}" data-user-id="${esc(x.user_id)}">${esc(names[x.user_id]||'Spiller')}</div><div class="status">${x.role==='owner'?(x.playing?'Turneringsleder • Påmeldt':'Turneringsleder • Ikke påmeldt'):'Deltaker'}</div></div></div></div>`).join('');
 
   const joined=members.some(x=>x.role==='participant'&&x.user_id===me);
   const owner=t.owner_id===me;
@@ -424,6 +424,7 @@ function drawGroups(){
 
 function renderGroups(){
   $('groupPreview').innerHTML=drawnGroups.map((group,i)=>`<div class="player-row" style="display:block"><div class="player-name" style="color:#00eaf4;margin-bottom:8px">Pulje ${i+1}</div>${group.map((p,j)=>`<div class="status" style="padding:5px 0;color:var(--text)">${j+1}. <span class="da-role-player" data-user-id="${esc(p.user_id)}">${esc(names[p.user_id]||'Spiller')}</span></div>`).join('')}</div>`).join('');
+  window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
 }
 
 function roundRobin(players){
