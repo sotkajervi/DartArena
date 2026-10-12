@@ -105,7 +105,7 @@
     // Match result entries by exact player name, never a combined semifinals label.
     const isExactName=el.classList?.contains('results-person-name')||el.classList?.contains('da-role-player');
     const id=el.dataset?.userId;
-    const role=id&&roleById.has(id)?roleById.get(id):
+    const role=id?(roleById.get(id)||null):
       isExactName?(roleByName.get(el.textContent.trim())||null):roleFor(el.textContent);
     el.classList.toggle('da-role-owner',role==='owner');
     el.classList.toggle('da-role-admin',role==='admin');
