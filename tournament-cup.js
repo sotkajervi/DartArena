@@ -116,7 +116,7 @@
   function cupPlayerHtml(playerId,seedById,{bye=false,avg=null}={}){
     if(!playerId)return bye?'<span class="cup-bye">BYE</span>':'<span class="cup-name muted">Venter</span>';
     const seed=seedById.get(playerId)||'',label=avgLabel(avg);
-    return `${seed?`<span class="cup-seed">${esc(seed)}</span>`:''}<span class="cup-name">${esc(names[playerId]||'Spiller')}</span>${label?`<span class="cup-avg">${esc(label)}</span>`:''}`;
+    return `${seed?`<span class="cup-seed">${esc(seed)}</span>`:''}<span class="cup-name"><span class="da-role-player" data-user-id="${esc(playerId)}">${esc(names[playerId]||'Spiller')}</span></span>${label?`<span class="cup-avg">${esc(label)}</span>`:''}`;
   }
   async function cupMatchAverages(cupMatches){
     if(isChicagoTournament())return new Map();
@@ -168,6 +168,7 @@
     const finalRound=d.cm.filter(m=>Number(m.round_no)===Number(max));
     const final=finalRound.length===1?finalRound[0]:null;
     $('cupBracket').innerHTML=Array.from({length:max},(_,i)=>i+1).map(r=>{const rm=d.cm.filter(m=>m.round_no===r),bo=rm[0]?.best_of;return `<div class="cup-round"><div class="cup-round-title">${cupRoundName(r,2**max)}${isChicagoTournament()?' • Chicago Style':bo?` • Bo${bo}`:''}</div>${rm.map(m=>{const score=m.status==='live'?`${Number(m._live_player1_legs??m.player1_legs??0)}–${Number(m._live_player2_legs??m.player2_legs??0)}`:done(m)&&!m.is_wo?`${m.player1_legs||0}–${m.player2_legs||0}`:m.is_wo?'WO':'vs',aBye=r===1&&m.is_wo&&!m.player1_id,bBye=r===1&&m.is_wo&&!m.player2_id;const avgs=matchAverages.get(m.id);return `<div class="cup-match" data-match="${m.id}"><div class="cup-player ${m.winner_id===m.player1_id&&m.player1_id?'winner':''}">${cupPlayerHtml(m.player1_id,seedById,{bye:aBye,avg:avgs?.get(m.player1_id)})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner_id===m.player2_id&&m.player2_id?'winner':''}">${cupPlayerHtml(m.player2_id,seedById,{bye:bBye,avg:avgs?.get(m.player2_id)})}</div></div>`}).join('')}</div>`}).join('');
+    window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
     if(finalRound.length!==1){$('cupProgress').textContent='Cupoppsettet må kontrolleres: ugyldig finalerunde';return}
     $('cupProgress').textContent=final?.winner_id?`Vinner: ${names[final.winner_id]||'Spiller'}`:`${d.cm.filter(done).length} / ${d.cm.length} kamper ferdig`;
     if(advancementBlocked)$('cupProgress').textContent+=' • Vinner venter på overføring til neste runde';
