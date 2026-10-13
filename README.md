@@ -109,7 +109,15 @@ npm install
 npm run check
 ```
 
-`npm run check` kjører TypeScript-kontroll, ESLint og Prettier-sjekk for den nye `src/`-koden. Legacy root-filer masseformateres ikke.
+`npm run check` kjører TypeScript-kontroll, ESLint og Prettier-sjekk for `src/`, samt Node-baserte regresjonstester for lyd, invitasjoner og lobby-snarveier. Legacy root-filer masseformateres ikke.
+
+`npm run test:audio`, `npm run test:invites` og `npm run test:lobby` kan også kjøres separat. Disse testene er isolerte kode- og struktursjekker; kamera, lyd og kampflyt må i tillegg testes med ekte nettlesere og to brukere.
+
+### Sikker opprydding og tilbakeføring
+
+Gjør opprydding i en egen branch, i små pull requests. Endre ikke scoringsmotor, WebRTC eller database samtidig med ren CSS-/struktur-opprydding. Dokumenter hvilken commit på `main` arbeidet startet fra. Dersom en squash-merget pull request skaper feil, kan den normalt reverseres med GitHubs **Revert** (eller ved å revert-e den aktuelle merge-commiten). En kode-revert endrer ikke allerede lagrede data eller databaseendringer.
+
+**Teststatus per 13. oktober 2026:** Manuell verifisering av invitasjoner, venterom, kamera, lyd og gjenoppkobling er gjennomført. Testen av scoring, Bust, Angre, fullført leg, resultatlagring og statistikk (test 11) er utsatt; det er ikke grunnlag for å rydde i scoringslogikken før den er gjennomført.
 
 ## Historikk
 
