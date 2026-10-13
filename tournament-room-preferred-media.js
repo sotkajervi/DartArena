@@ -10,6 +10,7 @@
   const micSelect=document.getElementById('micDeviceSelect');
   const micLevelFill=document.getElementById('micLevelFill');
   const micLevelText=document.getElementById('micLevelText');
+  let zoomSession=null;
   let switching=false;
   let meterContext=null,meterSource=null,meterAnalyser=null,meterFrame=0;
 
@@ -31,7 +32,9 @@
   }
 
   function currentDeviceId(kind){
-    const track=stream?.getTracks?.().find(t=>t.kind===kind&&t.readyState==='live');
+    const track=kind==='video'&&zoomSession?.sourceTrack?.readyState==='live'
+      ?zoomSession.sourceTrack
+      :stream?.getTracks?.().find(t=>t.kind===kind&&t.readyState==='live');
     return track?.getSettings?.().deviceId||'';
   }
 
@@ -158,6 +161,7 @@
 
   async function tearDownLocalPublication(){
     await stopMeter();
+    if(zoomSession){zoomSession.stop();zoomSession.sourceTrack?.stop();zoomSession=null;}
     if(stream){
       try{stream.getTracks().forEach(track=>track.stop())}catch{}
       stream=null;
@@ -189,9 +193,20 @@
       const wrongMic=!!wantedMic&&activeMic!==wantedMic;
 
       if(stream&&(wrongCamera||wrongMic))await tearDownLocalPublication();
-      if(!stream)stream=await getPreferredStream(wantedCamera,wantedMic);
+      if(!stream){
+        const raw=await getPreferredStream(wantedCamera,wantedMic);
+        stream=raw;
+        const Z=window.DartArenaZoomCam;
+        if(Z?.selected(localStorage)){
+          const config=Z.loadConfig(localStorage);
+          if(config){
+            try{zoomSession=Z.create(raw,config);stream=zoomSession.stream}
+            catch(error){console.warn('Tournament Zoomcam unavailable; regular video used',error);zoomSession=null}
+          }
+        }
+      }
 
-      const videoTrack=stream.getVideoTracks()[0];
+      const videoTrack=zoomSession?.sourceTrack||stream.getVideoTracks()[0];
       const audioTrack=stream.getAudioTracks()[0];
       const actualCamera=videoTrack?.getSettings?.().deviceId||'';
       const actualMic=audioTrack?.getSettings?.().deviceId||'';
@@ -241,6 +256,7 @@
     const value=select?.value||'';
     if(!value)return;
     localStorage.setItem(kind==='video'?CAMERA_KEY:MIC_KEY,value);
+    if(kind==='video')window.DartArenaZoomCam?.setSelected(localStorage,false);
 
     if(typeof localReady!=='undefined'&&localReady){
       localReady=false;
