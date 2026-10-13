@@ -16,7 +16,8 @@ const zoomCtx=els.zoom.getContext('2d');
 const analysis=document.createElement('canvas');
 const analysisCtx=analysis.getContext('2d',{willReadFrequently:true});
 let stream=null,board=null,calibrationStep=0,calibrationBull=null;
-let base=null,previous=null,quiet=0,streak=0,lastCandidate=null,lastAccept=0;
+let base=null,previous=null,quiet=0;
+const changeGate=G.createChangeGate({stableFrames:5,motionWindowMs:4000,cooldownMs:1800});
 let accepted=0,analysisTimer=null,animationFrame=null,current=null,target=null,lastLabel='T20';
 let autoEnabled=true,starting=false;
 async function refreshDevices(){
@@ -73,7 +74,7 @@ function aimLabel(label){
   if(p)aim(p.x,p.y,label);
 }
 function clearDetection(){
-  base=null;previous=null;quiet=0;streak=0;lastCandidate=null;lastAccept=0;
+  base=null;previous=null;quiet=0;changeGate.reset();
 }
 function cropFrame(){
   if(!stream||!els.video.videoWidth||!board)return;
@@ -99,11 +100,11 @@ function chooseReference(){
   if(!stream||!board||!analysis.width)return;
   analysisCtx.drawImage(els.video,0,0,analysis.width,analysis.height);
   base=new Uint8ClampedArray(analysisCtx.getImageData(0,0,analysis.width,analysis.height).data);
-  previous=null;quiet=0;streak=0;lastCandidate=null;lastAccept=performance.now();
+  previous=null;quiet=0;changeGate.reset();
   accepted=0;els.count.textContent='0';
   els.last.textContent='Ingen registrert';
   aimLabel('T20');
-  status('Referanse tatt. Kast én pil av gangen og vent til bildet er rolig.');
+  status('Referanse tatt. Zoom flyttes bare etter et nytt kast som er stabilt i flere bilder.');
 }
 function analyse(){
   if(!stream||!board||!base||!autoEnabled||calibrationStep||!els.video.videoWidth)return;
@@ -112,30 +113,31 @@ function analyse(){
   const frame=analysisCtx.getImageData(0,0,w,h).data;
   const boardSmall={x:board.x*w/els.video.videoWidth,
     y:board.y*h/els.video.videoHeight,radius:board.radius*w/els.video.videoWidth};
-  const motion=previous?G.motionRatio(previous,frame,w,h,boardSmall):1;
-  previous=new Uint8ClampedArray(frame);
-  if(motion>.008){quiet=0;streak=0;lastCandidate=null;return}
-  quiet++;
-  if(quiet<4||performance.now()-lastAccept<1100)return;
+  const now=performance.now();
+  const motion=previous?G.motionRatio(previous,frame,w,h,boardSmall):0;
   const presets={
     high:{stride:1,threshold:55,minSamples:5,minLocal:4},
     normal:{stride:1,threshold:75,minSamples:9,minLocal:6},
     low:{stride:2,threshold:95,minSamples:12,minLocal:7}
   };
-  const hit=G.findChange(base,frame,w,h,boardSmall,presets[els.sensitivity.value]||presets.high);
-  if(!hit){streak=0;lastCandidate=null;return}
-  if(lastCandidate&&Math.hypot(hit.x-lastCandidate.x,hit.y-lastCandidate.y)<Math.max(12,boardSmall.radius*.13)){
-    streak++;
-  }else streak=1;
-  lastCandidate=hit;
-  if(streak<2)return;
+  const preset=presets[els.sensitivity.value]||presets.normal;
+  // Only react to a newly appearing change, not to noise continuously present
+  // in the saved reference image. Movement arms a brief validation window.
+  const motionHit=previous&&motion<=.008?G.findChange(previous,frame,w,h,boardSmall,
+    {...preset,threshold:Math.max(70,preset.threshold),maxRatio:.045}):null;
+  previous=new Uint8ClampedArray(frame);
+  if(motion>.008)quiet=0;
+  else quiet++;
+  const candidate=quiet>=3?G.findChange(base,frame,w,h,boardSmall,preset):null;
+  const hit=changeGate.observe(candidate,{movement:motion>.008||!!motionHit,now,radius:boardSmall.radius});
+  if(!hit)return;
   // A new stable image region is an estimated dart location, NOT a detected tip.
   const x=hit.x*els.video.videoWidth/w,y=hit.y*els.video.videoHeight/h;
   aim(x,y,'Siste endring');
   els.last.textContent='Område ved '+Math.round(x)+', '+Math.round(y)+' (estimat)';
   accepted++;els.count.textContent=String(accepted);
   base=new Uint8ClampedArray(frame);
-  quiet=0;streak=0;lastCandidate=null;lastAccept=performance.now();
+  quiet=0;
   status('Ny stabil endring funnet. Zoom flyttet (ikke bekreftet pilspiss).');
 }
 function stopCamera(){
@@ -223,12 +225,12 @@ els.stop.addEventListener('click',stopCamera);
 els.calibrate.addEventListener('click',startCalibration);
 els.reference.addEventListener('click',chooseReference);
 els.sensitivity.addEventListener('change',()=>{
-  streak=0;quiet=0;lastCandidate=null;
-  status('Følsomhet: '+els.sensitivity.selectedOptions[0].textContent+'. Kast én pil og vent til skiva er rolig.');
+  changeGate.reset();previous=null;quiet=0;
+  status('Følsomhet: '+els.sensitivity.selectedOptions[0].textContent+'. Zoom flytter seg først etter ny bevegelse og flere rolige bilder.');
 });
 els.auto.addEventListener('click',()=>{
   autoEnabled=!autoEnabled;
-  quiet=0;streak=0;lastCandidate=null;
+  changeGate.reset();previous=null;quiet=0;
   updateButtons();
   status(autoEnabled?'AutoZoom på.':'AutoZoom av. Hovedbildet er uendret.');
 });
