@@ -222,6 +222,7 @@ function setupChannel(){
       }
       if(['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(status)){
         roomConnected=false;
+        remoteReady=false;
         setReadyUi();
         $('roomMessage').textContent='Forbindelsen til venterommet ble brutt. Prøver å koble til igjen…';
         clearTimeout(roomRetryTimer);
