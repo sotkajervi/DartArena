@@ -1,5 +1,5 @@
-/* Owner/Admin AutoZoom beta for X01 match.html. Display-only: no camera capture,
-   scoring, media-track replacement, broadcast, or privileged writes. */
+/* Owner/Admin AutoZoom beta for X01 match.html. Shares crop coordinates only;
+   no new media capture, scoring or WebRTC track replacement. */
 (()=>{
 'use strict';
 const G=window.DartArenaAutoZoom;
@@ -18,12 +18,22 @@ actions.prepend(toggle);
 let panel=null,ui=null,authorized=false,visible=false,source='remote';
 let overlay=null,inset=null,insetCtx=null,video=null;
 let board=null,bull=null,calibrationStep=0,reference=null,previous=null,quiet=0;
-let zoomTarget=null,zoomCurrent=null;
+let zoomTarget=null,zoomCurrent=null,zoomLabel='T20';
 let loop=0,watch=0,gate=null,serial=0,lastDimensions='',calibratedStream=null;
 const analysis=document.createElement('canvas');
 const analysisCtx=analysis.getContext('2d',{willReadFrequently:true});
 const SEARCH_RADIUS=1.65; // Include the board surround beyond the outer double ring.
 function status(message){if(ui)ui.status.textContent=message}
+function syncSharing(){
+  const share=window.DartArenaMatchAutoZoomShare;
+  if(!share)return;
+  const active=visible&&source==='local'&&ui?.share?.value==='on'&&ui.enabledOn
+    &&board&&reference&&zoomTarget&&ready();
+  if(!active)return share.stop();
+  share.publish({active:true,x:zoomTarget.x/video.videoWidth,
+    y:zoomTarget.y/video.videoHeight,radius:board.radius/video.videoWidth,
+    speed:ui.speed.value,label:zoomLabel});
+}
 function ready(){
   if(!video||!video.videoWidth||!video.videoHeight||video.readyState<2)return false;
   const track=video.srcObject?.getVideoTracks?.();
@@ -33,6 +43,7 @@ function resetDetection(){
   reference=null;previous=null;quiet=0;gate?.reset();
 }
 function clearBoard(){
+  window.DartArenaMatchAutoZoomShare?.stop();
   board=null;bull=null;calibrationStep=0;zoomTarget=null;zoomCurrent=null;calibratedStream=null;
   resetDetection();
   if(ui)ui.reference.disabled=true;
@@ -44,6 +55,7 @@ function unmount(){
   video=null;clearBoard();
 }
 function hide(){
+  window.DartArenaMatchAutoZoomShare?.stop();
   visible=false;
   if(watch){clearInterval(watch);watch=0}
   if(loop){cancelAnimationFrame(loop);loop=0}
@@ -52,10 +64,11 @@ function hide(){
   toggle.textContent='AutoZoom (BETA)';
 }
 function aim(x,y,label){
-  zoomTarget={x,y};
+  zoomTarget={x,y};zoomLabel=label;
   if(ui)ui.last.textContent=label;
   const el=inset?.querySelector('.da-az-zoom-target');
   if(el)el.textContent=label;
+  syncSharing();
 }
 function aimT20(){
   if(!board)return;
@@ -98,6 +111,7 @@ function setSpeed(){
 }
 function render(){
   if(!visible)return;
+  if(source==='local'&&reference&&!ready())window.DartArenaMatchAutoZoomShare?.stop();
   if(ready()&&board&&zoomTarget&&insetCtx&&inset){
     const speed=G.speedPreset(ui.speed.value);
     if(!zoomCurrent)zoomCurrent={...zoomTarget};
@@ -170,9 +184,10 @@ function calibrationClick(event){
 function buildPanel(){
   panel=document.createElement('section');
   panel.id='matchAutoZoomPanel';panel.className='card da-az-panel hidden';
-  panel.innerHTML=`<div class="da-az-head"><div><strong>AutoZoom – test i kamp</strong><small> Kun din visning • ingen endring av video eller poeng</small></div><button id="azMatchClose" type="button" class="outline">Lukk test</button></div>
+  panel.innerHTML=`<div class="da-az-head"><div><strong>AutoZoom – test i kamp</strong><small> Mitt kamera kan deles med motstander • video og poeng er uendret</small></div><button id="azMatchClose" type="button" class="outline">Lukk test</button></div>
     <div class="da-az-controls">
       <label>Kamera<select id="azMatchSource"><option value="remote">Motstanderens kamera</option><option value="local">Mitt kamera</option></select></label>
+      <label>Del zoom<select id="azMatchShare"><option value="on" selected>På – når Mitt kamera er valgt</option><option value="off">Av – bare hos meg</option></select></label>
       <label>Følsomhet<select id="azMatchSensitivity"><option value="normal" selected>Normal (stabil)</option><option value="low">Lav</option><option value="high">Høy (eksperimentell)</option></select></label>
       <label>Responshastighet<select id="azMatchSpeed"><option value="fast">Rask</option><option value="normal" selected>Normal</option><option value="smooth">Rolig</option></select></label>
       <button type="button" id="azMatchCalibrate" class="outline">Kalibrer</button>
@@ -186,6 +201,7 @@ function buildPanel(){
     source:panel.querySelector('#azMatchSource'),
     sensitivity:panel.querySelector('#azMatchSensitivity'),
     speed:panel.querySelector('#azMatchSpeed'),
+    share:panel.querySelector('#azMatchShare'),
     enabled:panel.querySelector('#azMatchEnabled'),
     calibrate:panel.querySelector('#azMatchCalibrate'),
     reference:panel.querySelector('#azMatchReference'),
@@ -202,10 +218,16 @@ function buildPanel(){
     status('Følsomhet oppdatert. Normal og Lav har samme stabile filter.');
   });
   ui.speed.addEventListener('change',()=>{
-    setSpeed();status('Hastighet endret til '+ui.speed.selectedOptions[0].textContent+'.');
+    setSpeed();syncSharing();
+    status('Hastighet endret til '+ui.speed.selectedOptions[0].textContent+'.');
+  });
+  ui.share.addEventListener('change',()=>{
+    syncSharing();
+    status(ui.share.value==='on'?'Deler zoom fra Mitt kamera med motstander når kalibrert.':'Zoom vises bare hos deg.');
   });
   ui.enabled.addEventListener('change',()=>{
     gate?.reset();previous=null;quiet=0;
+    syncSharing();
     status(ui.enabledOn?'Sporing er på.':'Sporing pauset. Fullt kamerabilde fortsetter.');
   });
   ui.calibrate.addEventListener('click',()=>{
@@ -218,7 +240,7 @@ function buildPanel(){
     const frame=capture();if(!frame)return;
     reference=frame;previous=null;quiet=0;gate?.reset();
     zoomCurrent=null;aimT20();
-    status('Referanse tatt. Kast én pil og vent på stabilisering. Du kan endre responshastighet.');
+    status('Referanse tatt. Kast én pil og vent på stabilisering. Med Mitt kamera deles zoom med motstander dersom deling er på.');
   });
 }
 async function allowed(){
