@@ -41,7 +41,21 @@ function setupChannel(){channel=db.channel('match-'+m.id)
 .subscribe(async s=>{lastSignal=`RT ${s}`;debug();if(s==='SUBSCRIBED'){await startCamera();startReadyHeartbeat()}})}
 function startReadyHeartbeat(){clearInterval(readyTimer);readyTimer=setInterval(()=>{if(!leaving&&localReady)send('ready',{generation})},2500)}
 function cameraErrorText(e){if(e?.name==='NotAllowedError')return'Kamera/mikrofon er blokkert i nettleseren.';if(e?.name==='NotFoundError')return'Fant ikke kamera eller mikrofon.';if(e?.name==='NotReadableError')return'Kameraet kan være i bruk av et annet program.';return`Kamera kunne ikke startes${e?.name?' ('+e.name+')':''}.`}
-async function startCamera(){if(stream?.active){localReady=true;await send('ready',{generation});if(isOfferer())await connectIfReady();return}try{stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});const v=$('localVideo');v.srcObject=stream;v.muted=true;await v.play().catch(()=>{});$('localPlaceholder').classList.add('hidden');$('cameraBtn').textContent='Stopp kamera';localReady=true;lastSignal='CAMERA ready';debug();await send('ready',{generation});if(isOfferer())await connectIfReady()}catch(e){localReady=false;$('localPlaceholder').classList.remove('hidden');$('localPlaceholder').textContent=cameraErrorText(e);$('matchMessage').textContent=cameraErrorText(e);lastSignal=`CAMERA ${e?.name||'error'}`;debug()}}
+let cricketZoomSession=null;
+function stopCricketZoom(){
+  if(!cricketZoomSession)return;
+  cricketZoomSession.stop();
+  cricketZoomSession.sourceTrack?.stop();
+  cricketZoomSession=null;
+}
+async function startCamera(){if(stream?.active){localReady=true;await send('ready',{generation});if(isOfferer())await connectIfReady();return}try{stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+const Z=window.DartArenaZoomCam;
+if(Z?.selected(localStorage)){
+  const config=Z.loadConfig(localStorage);
+  if(config){try{cricketZoomSession=Z.create(stream,config);stream=cricketZoomSession.stream}
+    catch(error){console.warn('Cricket Zoomcam unavailable, using regular camera',error);stopCricketZoom()}}
+}
+const v=$('localVideo');v.srcObject=stream;v.muted=true;await v.play().catch(()=>{});$('localPlaceholder').classList.add('hidden');$('cameraBtn').textContent='Stopp kamera';localReady=true;lastSignal='CAMERA ready';debug();await send('ready',{generation});if(isOfferer())await connectIfReady()}catch(e){localReady=false;$('localPlaceholder').classList.remove('hidden');$('localPlaceholder').textContent=cameraErrorText(e);$('matchMessage').textContent=cameraErrorText(e);lastSignal=`CAMERA ${e?.name||'error'}`;debug()}}
 function showRemotePlaceholder(text){const p=$('remotePlaceholder');if(p){p.textContent=text;p.classList.remove('hidden')}}
 function hideRemotePlaceholder(){$('remotePlaceholder')?.classList.add('hidden')}
 function clearPeer(){clearTimeout(reconnectTimer);reconnectTimer=null;clearInterval(statsTimer);statsTimer=null;pendingCandidates=[];lastVideoBytes=-1;videoStalls=0;if(pc){pc.ontrack=pc.onicecandidate=pc.onconnectionstatechange=pc.oniceconnectionstatechange=null;try{pc.close()}catch{}}pc=null;remoteStream=null;const v=$('remoteVideo');if(v){v.pause?.();v.srcObject=null}showRemotePlaceholder('Kobler til video…')}
@@ -55,10 +69,10 @@ function scheduleRecovery(ms,reason){if(leaving||rebuilding||reconnectTimer)retu
 async function requestRecovery(reason){if(leaving||rebuilding)return;if(isOfferer())return rebuildAsOfferer(reason);lastSignal=`RECOVERY request ${reason}`;debug();await send('reconnect-request',{reason,generation});showRemotePlaceholder('Gjenoppretter video…')}
 async function rebuildAsOfferer(reason){if(leaving||rebuilding||!isOfferer())return;rebuilding=true;generation+=1;lastSignal=`REBUILD ${reason}`;debug();clearPeer();showRemotePlaceholder('Gjenoppretter video…');await sleep(300);rebuilding=false;await send('ready',{generation});await connectIfReady()}
 async function send(event,payload={}){if(channel)await channel.send({type:'broadcast',event,payload:{...payload,from:profile.id}})}
-$('cameraBtn').onclick=async()=>{if(!stream)return startCamera();localReady=false;stream.getTracks().forEach(t=>t.stop());stream=null;clearPeer();$('localVideo').srcObject=null;$('localPlaceholder').classList.remove('hidden');showRemotePlaceholder('Venter på motstanderens kamera…');$('cameraBtn').textContent='Start kamera';lastSignal='CAMERA stopped';debug()};
+$('cameraBtn').onclick=async()=>{if(!stream)return startCamera();localReady=false;stream.getTracks().forEach(t=>t.stop());stopCricketZoom();stream=null;clearPeer();$('localVideo').srcObject=null;$('localPlaceholder').classList.remove('hidden');showRemotePlaceholder('Venter på motstanderens kamera…');$('cameraBtn').textContent='Start kamera';lastSignal='CAMERA stopped';debug()};
 async function setPlayersUnavailable(){if(m)await db.from('profiles').update({status:'unavailable'}).in('id',[m.player1_id,m.player2_id])}
 function closeMatchTab(){cleanup();window.close();setTimeout(()=>{if(!window.closed){document.body.innerHTML='<main class="shell"><section class="card" style="max-width:520px;margin:10vh auto;text-align:center"><h2>Kampen er avbrutt</h2><p class="muted">Denne kampfanen kan nå lukkes.</p><button class="primary" onclick="window.close()">Lukk fane</button></section></main>'}},150)}
 $('cancelMatchBtn').onclick=async()=>{if(!m||m.status!=='playing'||!confirm('Vil du avbryte kampen?'))return;const{error}=await db.from('matches').update({status:'cancelled',finished_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',m.id);if(error)return $('matchMessage').textContent='Kunne ikke avbryte: '+error.message;await setPlayersUnavailable();window.opener?.postMessage({type:'dartarena-match-ended',id:m.id},location.origin);closeMatchTab()};
 $('closeMatchBtn').onclick=()=>{if(m?.status==='playing'&&!confirm('Kampen pågår fortsatt. Du kan åpne den igjen fra lobbyen. Lukk kampfanen?'))return;window.close();if(!window.closed)location.href='./'};
-function cleanup(){leaving=true;localReady=false;clearInterval(readyTimer);readyTimer=null;clearInterval(statsTimer);statsTimer=null;clearTimeout(reconnectTimer);reconnectTimer=null;stream?.getTracks().forEach(t=>t.stop());stream=null;clearPeer();if(channel)db.removeChannel(channel)}
+function cleanup(){leaving=true;localReady=false;clearInterval(readyTimer);readyTimer=null;clearInterval(statsTimer);statsTimer=null;clearTimeout(reconnectTimer);reconnectTimer=null;stream?.getTracks().forEach(t=>t.stop());stopCricketZoom();stream=null;clearPeer();if(channel)db.removeChannel(channel)}
 window.addEventListener('beforeunload',cleanup);
