@@ -37,16 +37,23 @@
     const cancel=document.getElementById('cancelMatchBtn');
     if(!close||close.dataset.dartArenaCloseGuard==='1')return !!close;
     close.dataset.dartArenaCloseGuard='1';
+    if(!new URLSearchParams(location.search).has('tournamentMatch'))close.textContent='Til lobby';
     close.addEventListener('click',async event=>{
-      // Finished/cancelled matches should close immediately. A visible cancel button means the match is still active.
-      if(!cancel||cancel.classList.contains('hidden'))return;
+      const isTournament=new URLSearchParams(location.search).has('tournamentMatch');
+      // Tournament room navigation retains its existing separate-window behavior.
+      if(isTournament&&(!cancel||cancel.classList.contains('hidden')))return;
       event.preventDefault();
       event.stopImmediatePropagation();
+      const active=!!cancel&&!cancel.classList.contains('hidden');
+      if(!active){location.href='./';return}
       const dialog=await ensureDialog().catch(()=>null);
       const ok=dialog
-        ?await dialog.confirm('Kampen pågår fortsatt.\n\nVil du lukke kampfanen uten å avbryte kampen?',{title:'Lukk kampfane?',tone:'warning',confirmText:'Lukk kampfane'})
-        :confirm('Kampen pågår fortsatt. Lukk kampfanen?');
-      if(ok)window.close();
+        ?await dialog.confirm('Kampen pågår fortsatt.\n\nVil du gå tilbake til lobbyen uten å avbryte kampen?',{title:'Til lobby?',tone:'warning',confirmText:'Til lobby'})
+        :confirm('Kampen pågår fortsatt. Gå til lobbyen?');
+      if(ok){
+        if(isTournament)window.close();
+        else location.href='./';
+      }
     },true);
     return true;
   }
@@ -93,10 +100,7 @@
         const msg=document.getElementById('matchMessage');
         if(msg)msg.textContent='Kampen er avbrutt.';
         try{window.opener?.postMessage({type:'dartarena-match-ended',id:matchId},location.origin)}catch{}
-        if(data){
-          window.close();
-          setTimeout(()=>{if(!window.closed)location.href='./'},150);
-        }
+        if(data)location.href='./';
       }catch(error){
         const msg=document.getElementById('matchMessage');
         if(msg)msg.textContent='Kunne ikke avbryte: '+(error?.message||'ukjent feil');

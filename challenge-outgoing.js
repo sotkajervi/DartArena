@@ -1,5 +1,5 @@
 (()=>{
-  let startedFor=null,sentChannel=null,pendingSentIds=new Set(),acceptedRoomId=null,roomTabs=new Map();
+  let startedFor=null,sentChannel=null,pendingSentIds=new Set(),acceptedRoomId=null;
   const observedPendingChallengeIds=new Set();
   let autoOpeningRoomId=null,navigatingRoomId=null,lastRenderedAcceptedRoomId=null;
 
@@ -43,37 +43,31 @@
     if(!box.hidden&&lastRenderedAcceptedRoomId===acceptedRoomId)return;
     box.hidden=false;
     lastRenderedAcceptedRoomId=acceptedRoomId;
-    box.innerHTML=`<div class="da-room-ready"><div class="da-room-ready-copy"><small>VENTEROM KLART</small><strong>Utfordringen er godtatt!</strong><p>Venterommet åpnet ikke automatisk. Åpne det i en egen fane for å bli med.</p></div><button id="openAcceptedRoomBtn" class="primary da-room-ready-button" type="button">Åpne venterom</button></div>`;
-    box.querySelector('#openAcceptedRoomBtn').onclick=()=>openAcceptedRoom(acceptedRoomId,true);
+    box.innerHTML=`<div class="da-room-ready"><div class="da-room-ready-copy"><small>VENTEROM KLART</small><strong>Utfordringen er godtatt!</strong><p>Gå til venterommet for å bli med i kampen.</p></div><button id="openAcceptedRoomBtn" class="primary da-room-ready-button" type="button">Gå til venterom</button></div>`;
+    box.querySelector('#openAcceptedRoomBtn').onclick=()=>openAcceptedRoom(acceptedRoomId);
   }
 
-  function openAcceptedRoom(id,focus=false){
+  function openAcceptedRoom(id){
     if(!id)return false;
+    if(navigatingRoomId===id)return true;
     const url=`room.html?id=${encodeURIComponent(id)}`;
-    const existing=roomTabs.get(id);
-    if(existing&&!existing.closed){
-      acceptedRoomId=null;
-      renderAcceptedRoomPrompt();
-      if(focus)try{existing.focus()}catch{}
-      return true;
-    }
-    if(existing?.closed)roomTabs.delete(id);
-    const tab=window.open(url,`dartarena-room-${id}`);
-    if(tab){
-      roomTabs.set(id,tab);
-      acceptedRoomId=null;
-      renderAcceptedRoomPrompt();
-      if(focus)try{tab.focus()}catch{}
-      return true;
-    }
-    acceptedRoomId=id;
+    navigatingRoomId=id;
+    acceptedRoomId=null;
     renderAcceptedRoomPrompt();
-    return false;
+    try{
+      window.location.assign(url);
+      return true;
+    }catch(error){
+      navigatingRoomId=null;
+      acceptedRoomId=id;
+      renderAcceptedRoomPrompt();
+      console.warn('Could not navigate to the waiting room',error);
+      return false;
+    }
   }
 
-  // Do not open a tab when the invitation is sent: keep the lobby visible.
-  // Once accepted, try a new tab; browsers may block the asynchronous popup.
-  // In that case, show the existing click-to-open fallback in the lobby.
+  // Keep the lobby visible until a verified pending invitation becomes accepted.
+  // Then navigate to the existing waiting room in the current tab (no popups).
   async function autoEnterAcceptedRoom(id){
     if(!id||!profile||!observedPendingChallengeIds.has(id)||autoOpeningRoomId||navigatingRoomId)return;
     const userId=profile.id;
@@ -88,8 +82,7 @@
       if(error)throw error;
       if(!data||profile?.id!==userId||activeMatch)return;
       observedPendingChallengeIds.delete(id);
-      navigatingRoomId=id;
-      if(!openAcceptedRoom(id,true))navigatingRoomId=null;
+      openAcceptedRoom(id);
     }catch(error){
       navigatingRoomId=null;
       console.warn('Automatic waiting-room navigation failed',error);
@@ -138,12 +131,11 @@
     for(const c of data||[]){
       if(c.status==='pending')observedPendingChallengeIds.add(c.id);
     }
-    // A missed Realtime notification or lobby reload can leave a room ready
-    // without triggering auto-open. Keep the manual fallback prominent.
-    const readyRooms=(data||[]).filter(c=>c.status==='room');
-    const needsManualOpen=c=>!roomTabs.get(c.id)||roomTabs.get(c.id).closed;
-    if(!readyRooms.some(c=>c.id===acceptedRoomId&&needsManualOpen(c))){
-      acceptedRoomId=readyRooms.find(needsManualOpen)?.id||null;
+    // Do not auto-open historical accepted invitations on login or after F5.
+    // Keep a manual entry point if the accepted room is still active.
+    const readyRooms=(data||[]).filter(c=>c.status==='room'&&c.id!==navigatingRoomId);
+    if(!readyRooms.some(c=>c.id===acceptedRoomId)){
+      acceptedRoomId=readyRooms[0]?.id||null;
     }
     renderAcceptedRoomPrompt();
     pendingSentIds=new Set((data||[]).map(c=>c.challenged_id));
@@ -156,7 +148,7 @@
       return `<div class="challenge-row"><div><div class="player-name">${name}</div><div class="status">Venter på svar</div></div><div class="challenge-actions"><button class="small-btn decline withdraw-challenge" data-id="${c.id}">Trekk tilbake</button></div></div>`;
     }).join('');
     host.querySelectorAll('.withdraw-challenge').forEach(b=>b.onclick=()=>withdrawChallenge(b));
-    host.querySelectorAll('.open-room-challenge').forEach(b=>b.onclick=()=>openAcceptedRoom(b.dataset.id,true));
+    host.querySelectorAll('.open-room-challenge').forEach(b=>b.onclick=()=>openAcceptedRoom(b.dataset.id));
   }
 
   async function withdrawChallenge(button){
@@ -201,7 +193,7 @@
         .maybeSingle();
       if(acceptError){button.disabled=false;button.textContent=old;alert(acceptError.message);return}
       if(!accepted?.id){button.disabled=false;button.textContent=old;await Promise.all([loadChallenges(),loadPlayers()]);return}
-      openAcceptedRoom(accepted.id,true);
+      openAcceptedRoom(accepted.id);
       return;
     }
 
@@ -230,7 +222,7 @@
         if(row.status!=='room'){
           if(row.status!=='pending'){
             observedPendingChallengeIds.delete(row.id);
-            roomTabs.delete(row.id);
+
           }
           if(acceptedRoomId===row.id){
             acceptedRoomId=null;
@@ -246,12 +238,12 @@
     if(e.origin!==location.origin)return;
     if(e.data?.type==='dartarena-room-cancelled'){
       observedPendingChallengeIds.delete(e.data.id);
-      roomTabs.delete(e.data.id);
+
       if(acceptedRoomId===e.data.id)acceptedRoomId=null;
       renderAcceptedRoomPrompt();
       Promise.all([loadLobby(),loadSentChallenges(),loadPlayers()]).catch(()=>{});
     }
   });
 
-  setInterval(()=>{if(profile)startForProfile();else{startedFor=null;pendingSentIds=new Set();observedPendingChallengeIds.clear();autoOpeningRoomId=null;navigatingRoomId=null;acceptedRoomId=null;roomTabs.clear()}},600);
+  setInterval(()=>{if(profile)startForProfile();else{startedFor=null;pendingSentIds=new Set();observedPendingChallengeIds.clear();autoOpeningRoomId=null;navigatingRoomId=null;acceptedRoomId=null}},600);
 })();
