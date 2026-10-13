@@ -238,3 +238,9 @@ Kjør syntetiske tester med «node autoscoring/deepdarts-tflite.test.cjs». Test
 - Unit-test: `node --test autozoom/tracker.test.cjs`.
 
 Målet er å observere om det estimerte utsnittet følger påfølgende piler godt nok **før** vi eventuelt bygger det inn i webcam-vieweren. En trent pilspissmodell må evalueres separat hvis endringsfilteret ikke blir presist nok.
+
+### AutoZoom responshastighet og kampbeta (13. oktober 2026)
+
+Både isolert lab og OWNER/ADMIN-funksjonen i `match.html` har nå **Rask / Normal / Rolig**. Hastighet styrer både analyseintervallet, antall bekreftelsesmålinger og hvor raskt zoomutsnittet glir. **Normal** beholder fem stabile målinger, og Normal/Lav-følsomhet er fortsatt samme konservative filter. Begge kan følge synlige piler utenfor dobbelringen innenfor et søkeområde på cirka 1,65 skiveradier. Bildeendring er *ikke* pilspissdeteksjon.
+
+I kamprommet åpnes beta manuelt av Owner/Admin etter Supabase-rollevalidering. Velg lokal/motstander-videokilde, klikk Bull og D20 på hovedvideoen, og ta referanse med tom skive. Dette legger bare et eget zoomlag på den valgte *lokale visningen*; ingen ny getUserMedia, ingen endring i WebRTC/video til motstander eller tilskuere, ingen oppdatering av poeng. Videokildeskifte krever ny kalibrering.
