@@ -41,7 +41,7 @@ async function openTournamentMatch(row){
       else window.open(`tournament-match-viewer.html?id=${encodeURIComponent(id)}`,'_blank','noopener');
       return;
     }
-    if(match.status==='pending'&&isPlayer&&match.player1_id&&match.player2_id){window.open(`tournament-match-room.html?id=${encodeURIComponent(id)}`,'_blank');return}
+    if(match.status==='pending'&&isPlayer&&match.player1_id&&match.player2_id){location.href=`tournament-match-room.html?id=${encodeURIComponent(id)}`;return}
   }finally{row.style.pointerEvents=''}
 }
 
