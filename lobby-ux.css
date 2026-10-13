@@ -148,3 +148,40 @@
     white-space:normal;
   }
 }
+
+/* Prominent manual entry when a waiting room is ready but the popup was blocked. */
+#lobbyView #acceptedRoomPrompt { margin:0 0 16px; }
+#lobbyView #acceptedRoomPrompt .da-room-ready {
+  display:grid; grid-template-columns:minmax(0,1fr) auto;
+  align-items:center; gap:16px;
+  padding:18px; border:2px solid rgba(0,234,244,.82);
+  border-radius:16px; background:linear-gradient(125deg,#13373b,#091f22);
+  box-shadow:0 0 0 1px rgba(0,234,244,.12),0 12px 30px rgba(0,0,0,.18);
+}
+#lobbyView #acceptedRoomPrompt .da-room-ready-copy { min-width:0; }
+#lobbyView #acceptedRoomPrompt .da-room-ready-copy > small {
+  display:block; margin-bottom:6px; font-size:10px; font-weight:900;
+  letter-spacing:.12em; color:#00eaf4;
+}
+#lobbyView #acceptedRoomPrompt .da-room-ready-copy > strong {
+  display:block; color:#f2ffff; font-size:19px; line-height:1.2;
+}
+#lobbyView #acceptedRoomPrompt .da-room-ready-copy > p {
+  margin:7px 0 0; color:#bed4d6; font-size:13px; line-height:1.45;
+}
+#lobbyView #acceptedRoomPrompt .da-room-ready-button {
+  min-width:166px; min-height:52px; padding:12px 18px;
+  font-size:13px; font-weight:950; letter-spacing:.03em; text-transform:uppercase;
+  white-space:nowrap;
+}
+#lobbyView #acceptedRoomPrompt .da-room-ready-button:focus-visible {
+  outline:3px solid #fff; outline-offset:3px;
+}
+@media(max-width:760px){
+  #lobbyView #acceptedRoomPrompt .da-room-ready {
+    grid-template-columns:minmax(0,1fr); gap:14px; padding:15px;
+  }
+  #lobbyView #acceptedRoomPrompt .da-room-ready-button {
+    width:100%; min-width:0;
+  }
+}
