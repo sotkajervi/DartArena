@@ -101,7 +101,7 @@ test('standalone page has fixed main video, moving inset and camera controls',()
   assert.match(html,/data-az-target="D8"/);
   assert.match(html,/data-az-target="D4"/);
   assert.match(html,/id="azSensitivity"/);
-  assert.match(html,/autozoom\/test\.js\?v=20261013-autozoom1/);
+  assert.match(html,/autozoom\/test\.js\?v=20261013-autozoom3/);
 });
 
 test('zoom experiment does not send scores or video over the network',()=>{
