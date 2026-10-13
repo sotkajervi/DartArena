@@ -25,13 +25,14 @@ function participants(){
   }catch{return null}
 }
 function valid(state){
-  if(!state||state.matchId!==matchId||state.source!=='local'||typeof state.active!=='boolean')return false;
+  if(!state||state.matchId!==matchId||state.source!=='local'||typeof state.active!=='boolean'
+    ||!Number.isInteger(state.seq)||state.seq<0||typeof state.session!=='string'
+    ||!state.session||state.session.length>80)return false;
   if(!state.active)return true;
   return Number.isFinite(state.x)&&state.x>=0&&state.x<=1
     &&Number.isFinite(state.y)&&state.y>=0&&state.y<=1
     &&Number.isFinite(state.radius)&&state.radius>.005&&state.radius<.8
-    &&Number.isInteger(state.seq)&&state.seq>=0&&typeof state.session==='string'
-    &&state.session.length<=80;
+    &&(state.speed===undefined||['fast','normal','smooth'].includes(state.speed));
 }
 function removeOverlay(){
   if(frame){cancelAnimationFrame(frame);frame=0}
@@ -57,8 +58,9 @@ function draw(){
   if(zoom)zoom.style.display=otherInset?'none':'';
   if(remoteVideo.videoWidth&&remoteVideo.videoHeight&&remoteVideo.readyState>=2){
     if(!current)current={...target};
-    current.x+=(target.x-current.x)*.22;
-    current.y+=(target.y-current.y)*.22;
+    const ease=G.speedPreset(incoming.speed).ease;
+    current.x+=(target.x-current.x)*ease;
+    current.y+=(target.y-current.y)*ease;
     const vw=remoteVideo.videoWidth,vh=remoteVideo.videoHeight;
     const crop=G.zoomCrop(vw,vh,current.x*vw,current.y*vh,
       incoming.radius*vw,canvas.width/canvas.height);
@@ -103,7 +105,8 @@ function publish(state){
     const proposed={...state,source:'local',active:true,matchId,session:SESSION,seq:0};
     if(!valid(proposed))return;
     localState={active:true,x:state.x,y:state.y,radius:state.radius,
-      label:String(state.label||'Treff').slice(0,24)};
+      label:String(state.label||'Treff').slice(0,24),
+      speed:['fast','normal','smooth'].includes(state.speed)?state.speed:'normal'};
   }else{
     localState={active:false};
   }
