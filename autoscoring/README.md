@@ -229,7 +229,7 @@ Kjør syntetiske tester med «node autoscoring/deepdarts-tflite.test.cjs». Test
 
 - Hovedkameraet viser hele dartskiva uten panorering; kun et lite bilde øverst til høyre zoomer og flytter seg.
 - Et enkelt bildeendringsfilter prøver å finne den nye, stabile endringen etter hvert kast. Dette er **ikke** trent AI-pilspissdeteksjon, og kan forveksle piler med hender, skygger, lys og andre endringer. Den registrerer ikke score.
-- **Følsomhet:** Høy (standard), normal eller lav. «Høy» sjekker flere bildepiksler og en større sone rundt dobbelringen for små/lavkontrast-treff som D4. Flere falske utslag fra endret lys er mulig; prøv «Normal» hvis zoomen flytter seg feil. Vi må fortsatt kontrollere med faktiske kast før integrasjon.
+- **Følsomhet:** Normal (standard), høy eller lav. «Høy» sjekker flere bildepiksler og en større sone rundt dobbelringen for små/lavkontrast-treff som D4, men kan gi flere falske utslag. Zoomvinduet flyttes nå først når en fersk bildeendring etterfølges av fem stabile og geografisk sammenfallende målinger; konstant kamerastøy alene starter ikke zooming. Hvis det fortsatt hopper, prøv «Lav». Vi må fortsatt kontrollere med faktiske kast før integrasjon.
 - Testeren velger kamera, markerer **Bull og D20** på hovedbildet og tar en referanse med **tom skive**. Prøv deretter ett kast om gangen. Zoomvinduet følger et nytt sannsynlig område når bildet blir stabilt.
 - Demoknapper for T20, T19, D8 og Bull kontrollerer kalibrering/zoom matematisk uten et kast. Manuell klikk på skiva flytter også zoom for å teste posisjon.
 - **Kun lokalt i nettleseren:** ingen databasekobling, scoring, innspilling eller opplasting. Video og analyse stoppes når testsiden lukkes.
