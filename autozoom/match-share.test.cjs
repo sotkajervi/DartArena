@@ -27,7 +27,7 @@ function makeHub(){
       };
       return{channel(topic){channel.topic=topic;channels.push(channel);return channel},
         removeChannel(c){const i=channels.indexOf(c);if(i>=0)channels.splice(i,1)},
-        rpc:async(name)=>({data:this.isOwner&&name==='is_owner'||this.isAdmin&&name==='is_admin',error:null}),
+        rpc:async function(name){return{data:!!(this.isOwner&&name==='is_owner'||this.isAdmin&&name==='is_admin'),error:null}},
         auth:{onAuthStateChange(){}}
       };
     }
