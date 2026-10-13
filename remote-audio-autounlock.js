@@ -4,83 +4,107 @@
 
   const video=document.getElementById('remoteVideo');
   const button=document.getElementById('remoteAudioBtn');
-  if(!video)return;
+  const overlay=document.getElementById('remoteAudioOverlay');
+  if(!video||!button||!overlay)return;
 
-  let blocked=false;
   let attempting=false;
-  let failedTrustedAttempts=0;
-  let fallbackVisible=false;
-  let timer=null;
+  let blocked=false;
+  let observedStream=null;
+  let observedTrack=null;
+  let retryAfter=0;
 
-  const hasAudio=()=>{
+  function liveAudioTrack(){
     const stream=video.srcObject;
-    return stream instanceof MediaStream&&stream.getAudioTracks().some(t=>t.readyState==='live'&&t.enabled!==false);
-  };
+    if(!(stream instanceof MediaStream))return null;
+    return stream.getAudioTracks().find(track=>track.readyState==='live'&&track.enabled!==false&&!track.muted)||null;
+  }
 
   function hideFallback(){
-    fallbackVisible=false;
-    button?.classList.add('hidden');
+    overlay.classList.add('hidden');
+    button.classList.add('hidden');
   }
 
   function showFallback(){
-    if(!button)return;
-    fallbackVisible=true;
-    button.textContent='Slå på lyd';
-    button.title='Nettleseren blokkerte automatisk lyd. Klikk for å aktivere.';
+    button.textContent='🔊 SLÅ PÅ LYD';
+    button.title='Trykk for å høre motstanderen';
     button.classList.remove('hidden');
+    overlay.classList.remove('hidden');
   }
 
-  async function enableAudio({trusted=false,forceFallback=false}={}){
-    if(attempting||!hasAudio())return false;
+  async function enableAudio({trusted=false}={}){
+    if(attempting||!liveAudioTrack())return false;
+    if(blocked&&!trusted){showFallback();return false;}
+    if(!trusted&&Date.now()<retryAfter)return false;
     attempting=true;
     video.muted=false;
     try{
       await video.play();
+      // Other media handlers may replace the stream or mute the video while play() is pending.
+      if(video.muted||!liveAudioTrack()){
+        retryAfter=Date.now()+300;
+        return false;
+      }
       blocked=false;
-      failedTrustedAttempts=0;
+      retryAfter=0;
       hideFallback();
       return true;
     }catch(error){
-      video.muted=true;
-      blocked=true;
-      if(trusted)failedTrustedAttempts+=1;
-      if(forceFallback||failedTrustedAttempts>=2)showFallback();
-      else hideFallback();
+      video.muted=true; // Keep the camera visible even if audible autoplay is blocked.
+      if(error?.name==='NotAllowedError'||error?.name==='SecurityError'){
+        blocked=true;
+        showFallback();
+      }else{
+        retryAfter=Date.now()+700; // Stream attachment can interrupt play().
+      }
       return false;
     }finally{
       attempting=false;
     }
   }
 
-  function onGesture(){
-    if(!hasAudio())return;
-    if(video.muted||blocked)enableAudio({trusted:true});
-  }
-
-  if(button){
-    button.classList.add('hidden');
-    button.onclick=async event=>{
-      event.preventDefault();
-      event.stopPropagation();
-      const ok=await enableAudio({trusted:true,forceFallback:true});
-      if(!ok)showFallback();
-    };
-  }
-
-  document.addEventListener('pointerdown',onGesture,{passive:true,capture:true});
-  document.addEventListener('keydown',onGesture,{capture:true});
-
-  timer=setInterval(()=>{
-    if(!hasAudio()){
+  function poll(){
+    const track=liveAudioTrack();
+    const stream=video.srcObject;
+    if(!track){
+      observedStream=null;
+      observedTrack=null;
       blocked=false;
-      failedTrustedAttempts=0;
+      retryAfter=0;
       hideFallback();
       return;
     }
-    // First try is invisible. If autoplay policy blocks it, wait for a normal
-    // user gesture instead of showing a button immediately.
-    if(video.muted&&!blocked)enableAudio();
-  },300);
+    if(stream!==observedStream||track!==observedTrack){
+      observedStream=stream;
+      observedTrack=track;
+      blocked=false;
+      retryAfter=0;
+    }
+    if(video.muted){
+      if(blocked)showFallback();
+      else void enableAudio();
+    }else{
+      hideFallback();
+    }
+  }
+
+  function onGesture(event){
+    if(event.target?.closest?.('#remoteAudioOverlay'))return;
+    if(video.muted&&liveAudioTrack())void enableAudio({trusted:true});
+  }
+
+  hideFallback();
+  button.addEventListener('click',event=>{
+    event.preventDefault();
+    event.stopPropagation();
+    void enableAudio({trusted:true});
+  });
+  document.addEventListener('pointerdown',onGesture,{capture:true,passive:true});
+  document.addEventListener('keydown',onGesture,{capture:true});
+  video.addEventListener('loadedmetadata',poll);
+  video.addEventListener('playing',poll);
+  video.addEventListener('volumechange',poll);
+  const timer=setInterval(poll,250);
+  poll();
 
   window.addEventListener('pagehide',()=>{
     clearInterval(timer);
