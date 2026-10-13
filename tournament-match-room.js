@@ -123,15 +123,15 @@ function armCoinFlipFallback(liveId){
 
 async function boot(){
   const {data:{session}}=await db.auth.getSession();
-  if(!session||!tournamentMatchId){location.replace('./');return;}
+  if(!session||!tournamentMatchId){$('roomMessage').textContent='Du er ikke logget inn, eller kampadressen mangler. Åpne turneringen etter innlogging.';return;}
   me=session.user.id;
 
   const {data,error}=await db.from('tournament_matches').select('*').eq('id',tournamentMatchId).single();
-  if(error||!data){location.replace('./');return;}
+  if(error||!data){$('roomMessage').textContent='Kunne ikke hente turneringskampen: '+(error?.message||'Kampen ble ikke funnet')+'. Oppdater siden eller logg inn på nytt.';return;}
   tm=data;
 
   if(![tm.player1_id,tm.player2_id].includes(me)){
-    location.replace(`tournament-match-viewer.html?id=${encodeURIComponent(tournamentMatchId)}`);
+    $('roomMessage').textContent='Denne kontoen er ikke registrert som spiller i kampen. Kontroller at du er logget inn med riktig konto.';
     return;
   }
 
