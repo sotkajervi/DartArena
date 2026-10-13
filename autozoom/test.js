@@ -124,7 +124,7 @@ function analyse(){
   // Only react to a newly appearing change, not to noise continuously present
   // in the saved reference image. Movement arms a brief validation window.
   const motionHit=previous&&motion<=.008?G.findChange(previous,frame,w,h,boardSmall,
-    {...preset,threshold:Math.max(70,preset.threshold),maxRatio:.045}):null;
+    {...preset,maxRatio:.045}):null;
   previous=new Uint8ClampedArray(frame);
   if(motion>.008)quiet=0;
   else quiet++;
