@@ -53,9 +53,8 @@
     clearInterval(boot);
     openMatch=function(id,manual,variant='x01'){
       const page=window.DartArenaGames.pageForVariant(variant);
-      const w=window.open(`${page}?id=${encodeURIComponent(id)}`,`dartarena-match-${id}`);
-      if(!w&&manual)alert('Nettleseren blokkerte kampfanen.');
-      return w;
+      window.location.assign(`${page}?id=${encodeURIComponent(id)}`);
+      return true;
     };
     if(typeof loadLobby==='function'&&!window.__dartArenaJdcLobbyLabel){
       window.__dartArenaJdcLobbyLabel=true;
