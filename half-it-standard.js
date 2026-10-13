@@ -140,6 +140,10 @@ async function startCamera(){
     localReady=false;publication=null;
     try{publisherSfu?.close()}catch{}
     publisherSfu=null;
+    // Failed SFU publication must not leave the physical camera running.
+    try{stream?.getTracks?.().forEach(track=>track.stop())}catch{}
+    stopHalfItZoom();
+    stream=null;
     showLocalCameraError(e);
     console.error('Half-It Standard Cloudflare publish failed',e);
   }
