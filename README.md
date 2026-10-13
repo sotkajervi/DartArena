@@ -126,3 +126,19 @@ Gjør opprydding i en egen branch, i små pull requests. Endre ikke scoringsmoto
 ## Historikk
 
 Prosjektet startet 24. september 2026 og utvikles fortløpende. Se `changelog.html` for brukerrettede endringer.
+
+## AutoZoom beta i X01-kamp (OWNER/ADMIN)
+
+Når innlogget OWNER eller ADMIN åpner en X01-kamp (`match.html`, inkludert turneringskamper som bruker dette kamprommet), vises knappen **AutoZoom (BETA)**. Vanlige spillere får ikke knappen. Tilgang sjekkes med servervaliderte Supabase RPC-er `is_owner` / `is_admin`.
+
+1. Start en vanlig 501-kamp og vent på webkamera. Trykk **AutoZoom (BETA)**.
+2. Velg **Motstanderens kamera** (standard) eller **Mitt kamera**. Det er en lokal visningsfunksjon; motstander/tilskuere får ingen zoomoverføring.
+3. Trykk **Kalibrer** og klikk først Bull, deretter midt på D20-dobbelringen i det valgte livebildet.
+4. Fjern alle pilene og trykk **Tom skive / referanse**.
+5. Kast én pil om gangen. Et forstørret vindu vises i øvre høyre hjørne av *valgt* video, mens hovedvideoen står stille. Sporing inkluderer synlig område **utenfor dobbelringen** (opp til ca. 1,65 × skiveradius).
+6. Velg **Responshastighet: Rask / Normal / Rolig** (100/150/180 ms analyseintervall, 3/5/6 bekreftelsesmålinger og forskjellig panoreringshastighet). Normal anbefales først. Følsomhet **Normal / Lav / Høy** er et separat valg, og Normal/Lav bruker inntil videre samme stabile profil.
+7. Bytter du videokilde, eller byttes videostrømmen underveis, må du kalibrere på nytt. **Lukk test** fjerner zoomlaget uten å stoppe kampen.
+
+**Begrensning:** Enkel pikselendringsanalyse gir *anslått nytt område*, ikke bekreftet pilspiss eller poeng. Skygger, hender, kamerabevegelse eller piler som skjules kan gi feil. AutoZoom endrer aldri original WebRTC-stream, lyd, score, turnering eller Supabase-data. Aktiveres bare manuelt i OWNER/ADMIN-klienten. Test i reelle kamper før videre utrulling.
+
+Den separate `autozoom-test.html` har de samme tre hastighetsvalgene og større søkeområde for å sammenligne testing utenfor kamp.
