@@ -31,7 +31,8 @@ function mockNode(tag='div'){
         child.value=selector==='#azMatchSource'?'remote':
           selector==='#azMatchSensitivity'?'normal':
           selector==='#azMatchSpeed'?'normal':
-          selector==='#azMatchEnabled'?'on':'';
+          selector==='#azMatchEnabled'?'on':
+          selector==='#azMatchShare'?'on':'';
         child.selectedOptions=[{textContent:child.value}];
         el.named[selector]=child;
       }
@@ -61,10 +62,12 @@ async function setup(owner=false,admin=false){
     },
     rpc:async(name)=>({data:name==='is_owner'?owner:admin,error:null})
   };
-  const intervals=[],raf=[];
+  const intervals=[],raf=[],published=[];
+  let stopped=0;
   const ctx={
     window:{
       DartArenaAutoZoom:G,
+      DartArenaMatchAutoZoomShare:{publish(state){published.push(state)},stop(){stopped++}},
       supabase:{createClient:()=>mockDB},
       addEventListener(){}
     },
@@ -83,13 +86,15 @@ async function setup(owner=false,admin=false){
   };
   vm.runInNewContext(src,ctx,{filename:'autozoom/match-beta.js'});
   await new Promise(resolve=>setImmediate(resolve));
-  return {head,actions,local,remote,localCard,remoteCard,intervals,raf,toggle:actions.children[0]};
+  return {head,actions,local,remote,localCard,remoteCard,intervals,raf,published,
+    get stopped(){return stopped},toggle:actions.children[0]};
 }
 
 test('501 match includes a beta overlay script, tracker and scoped styles',()=>{
   const html=fs.readFileSync(path.join(root,'match.html'),'utf8');
-  assert.match(html,/autozoom\/match-beta\.js\?v=20261013-matchaz1/);
+  assert.match(html,/autozoom\/match-beta\.js\?v=20261013-matchaz2/);
   assert.match(html,/autozoom\/tracker\.js\?v=20261013-matchaz1/);
+  assert.match(html,/autozoom\/match-share\.js\?v=20261013-matchaz2/);
   assert.match(html,/autozoom\/match-beta\.css\?v=20261013-matchaz1/);
 });
 
@@ -168,6 +173,42 @@ test('closing the beta removes only zoom layers, keeping video and scoreboard',a
   assert.equal(view.local.srcObject,original);
   assert.equal(view.remoteCard.children[0].removed,true);
   assert.equal(view.remoteCard.children[1].removed,true);
+});
+
+test('owner broadcasts a calibrated own-camera AutoZoom view and can disable sharing',async()=>{
+  const view=await setup(true,false);
+  await view.toggle.listeners.click();
+  const panel=view.head.inserted;
+  const src=panel.querySelector('#azMatchSource');
+  src.value='local';src.listeners.change();
+  panel.querySelector('#azMatchCalibrate').listeners.click();
+  const layer=view.localCard.children[0];
+  layer.listeners.click({clientX:480,clientY:270});
+  layer.listeners.click({clientX:480,clientY:180});
+  panel.querySelector('#azMatchReference').listeners.click();
+  assert.ok(view.published.length>0,'Reference with own camera should publish');
+  const last=view.published.at(-1);
+  assert.equal(last.active,true);
+  assert.ok(last.x>0&&last.x<1);
+  assert.ok(last.y>0&&last.y<1);
+  assert.ok(last.radius>0&&last.radius<.8);
+  assert.equal(last.speed,'normal');
+  const before=view.stopped;
+  const share=panel.querySelector('#azMatchShare');
+  share.value='off';share.listeners.change();
+  assert.ok(view.stopped>before,'Turning sharing off should send an off-state');
+});
+
+test('choosing the opponent camera is local-only, even for Owner',async()=>{
+  const view=await setup(true,false);
+  await view.toggle.listeners.click();
+  const panel=view.head.inserted;
+  panel.querySelector('#azMatchCalibrate').listeners.click();
+  const layer=view.remoteCard.children[0];
+  layer.listeners.click({clientX:480,clientY:270});
+  layer.listeners.click({clientX:480,clientY:180});
+  panel.querySelector('#azMatchReference').listeners.click();
+  assert.equal(view.published.length,0);
 });
 
 test('experimental match tracking searches beyond double ring, and only reads pixels',()=>{
