@@ -22,32 +22,57 @@ function isTournamentBye(match){
 }
 
 async function getTournamentLinkUid(){
-  if(tournamentLinkUid)return tournamentLinkUid;
-  const {data:{session}}=await tournamentLinkDb.auth.getSession();
-  tournamentLinkUid=session?.user?.id||null;return tournamentLinkUid;
+  const {data,error}=await tournamentLinkDb.auth.getSession();
+  if(error)throw error;
+  tournamentLinkUid=data?.session?.user?.id||null;
+  return tournamentLinkUid;
 }
-
+function tournamentOpenMessage(message){
+  console.warn('Tournament access:',message);
+  const dialog=window.DartArenaDialog;
+  if(dialog?.alert)dialog.alert(message,{title:'Kunne ikke åpne kampen',tone:'warning'});
+  else alert(message);
+}
 async function openTournamentMatch(row){
-  const id=row?.dataset?.match;if(!id||row.classList.contains('match-locked'))return;
-  row.style.pointerEvents='none';
+  const id=row?.dataset?.match;
+  if(!id||row.dataset.opening==='1')return;
+  row.dataset.opening='1';
   try{
     const uid=await getTournamentLinkUid();
-    const {data:match,error}=await tournamentLinkDb.from('tournament_matches').select('id,player1_id,player2_id,status,live_match_id').eq('id',id).single();
-    if(error||!match||isTournamentBye(match))return;
-    const isPlayer=uid&&[match.player1_id,match.player2_id].includes(uid);
-    if(['finished','wo'].includes(match.status)){window.open(`tournament-match-stats.html?id=${encodeURIComponent(id)}`,'_blank','noopener');return}
-    if(match.status==='live'){
-      if(isPlayer&&match.live_match_id)window.open(`match.html?id=${encodeURIComponent(match.live_match_id)}&tournamentMatch=${encodeURIComponent(id)}`,'_blank');
-      else window.open(`tournament-match-viewer.html?id=${encodeURIComponent(id)}`,'_blank','noopener');
-      return;
-    }
-    if(match.status==='pending'&&isPlayer&&match.player1_id&&match.player2_id){location.href=`tournament-match-room.html?id=${encodeURIComponent(id)}`;return}
-  }finally{row.style.pointerEvents=''}
+    if(!uid){tournamentOpenMessage('Innloggingen er utløpt. Logg inn på nytt og prøv igjen.');return}
+    const {data:match,error}=await tournamentLinkDb.from('tournament_matches')
+      .select('id,player1_id,player2_id,status,live_match_id').eq('id',id).single();
+    if(error)throw error;
+    if(!match){tournamentOpenMessage('Kampen ble ikke funnet.');return}
+    if(isTournamentBye(match))return;
+    const isPlayer=[match.player1_id,match.player2_id].includes(uid);
+    let destination=null;
+    if(['finished','wo'].includes(match.status))destination=`tournament-match-stats.html?id=${encodeURIComponent(id)}`;
+    else if(match.status==='live'){
+      destination=isPlayer&&match.live_match_id
+        ?`match.html?id=${encodeURIComponent(match.live_match_id)}&tournamentMatch=${encodeURIComponent(id)}`
+        :`tournament-match-viewer.html?id=${encodeURIComponent(id)}`;
+    }else if(match.status==='pending'&&isPlayer&&match.player1_id&&match.player2_id)
+      destination=`tournament-match-room.html?id=${encodeURIComponent(id)}`;
+    else if(match.status==='pending')
+      tournamentOpenMessage(isPlayer?'Venter på at begge spillere skal være klare i cupoppsettet.':'Du er ikke spiller i denne kampen.');
+    else tournamentOpenMessage('Kampen har en status som ikke kan åpnes: '+match.status);
+    if(destination)location.assign(destination);
+  }catch(error){
+    tournamentOpenMessage('Kunne ikke hente kampen: '+(error?.message||'Ukjent feil')+'. Prøv å oppdatere siden.');
+  }finally{delete row.dataset.opening}
 }
-
 function tournamentTarget(e){return e.target.closest('.match-row[data-match]:not(.simulation-match),.cup-match[data-match]')}
-document.addEventListener('click',e=>{const row=tournamentTarget(e);if(!row||row.classList.contains('match-locked'))return;e.preventDefault();openTournamentMatch(row)});
-document.addEventListener('keydown',e=>{if(!['Enter',' '].includes(e.key))return;const row=tournamentTarget(e);if(!row||row.classList.contains('match-locked'))return;e.preventDefault();openTournamentMatch(row)});
+document.addEventListener('click',e=>{
+  if(e.target.closest('.edit-result-btn'))return;
+  const row=tournamentTarget(e);if(!row)return;
+  e.preventDefault();openTournamentMatch(row);
+});
+document.addEventListener('keydown',e=>{
+  if(!['Enter',' '].includes(e.key)||e.target.closest('button,select,input'))return;
+  const row=tournamentTarget(e);if(!row)return;
+  e.preventDefault();openTournamentMatch(row);
+});
 
 function setCupAccessLabel(row,text){
   let el=row.querySelector('.match-access-label');
@@ -70,7 +95,7 @@ function applyMatchAccess(row,match,uid){
   row.classList.toggle('match-locked',!clickable);
   row.setAttribute('aria-disabled',clickable?'false':'true');
   if(clickable){row.setAttribute('role','button');row.setAttribute('tabindex','0');row.style.cursor='pointer'}
-  else{row.removeAttribute('role');row.removeAttribute('tabindex');row.style.cursor='default'}
+  else{row.setAttribute('role','button');row.setAttribute('tabindex','0');row.style.cursor='pointer'}
   row.title=title;
   if(row.classList.contains('match-row'))setGroupAccessLabel(row,label);else setCupAccessLabel(row,label);
 }
