@@ -4,7 +4,7 @@
 const G=window.DartArenaAutoZoom;
 const $=id=>document.getElementById(id);
 const els={
-  stage:$('azStage'),video:$('azVideo'),overlay:$('azOverlay'),zoom:$('azZoom'),
+  stage:$('azStage'),video:$('azVideo'),overlay:$('azOverlay'),zoom:$('azZoom'),camera:$('azCamera'),
   start:$('azStart'),stop:$('azStop'),calibrate:$('azCalibrate'),
   reference:$('azReference'),auto:$('azAuto'),status:$('azStatus'),
   target:$('azTarget'),last:$('azLast'),count:$('azCount')
@@ -19,6 +19,23 @@ let stream=null,board=null,calibrationStep=0,calibrationBull=null;
 let base=null,previous=null,quiet=0,streak=0,lastCandidate=null,lastAccept=0;
 let accepted=0,analysisTimer=null,animationFrame=null,current=null,target=null,lastLabel='T20';
 let autoEnabled=true,starting=false;
+async function refreshDevices(){
+  if(!navigator.mediaDevices?.enumerateDevices)return;
+  const selected=els.camera.value;
+  try{
+    const list=(await navigator.mediaDevices.enumerateDevices()).filter(device=>device.kind==='videoinput');
+    els.camera.replaceChildren();
+    const option=document.createElement('option');
+    option.value='';option.textContent='Standardkamera';els.camera.appendChild(option);
+    list.forEach((device,index)=>{
+      if(!device.deviceId)return;
+      const opt=document.createElement('option');
+      opt.value=device.deviceId;opt.textContent=device.label||('Kamera '+(index+1));
+      els.camera.appendChild(opt);
+    });
+    if([...els.camera.options].some(opt=>opt.value===selected))els.camera.value=selected;
+  }catch{}
+}
 function status(message){els.status.textContent=message}
 function updateButtons(){
   const live=!!stream;
@@ -133,8 +150,10 @@ async function startCamera(){
   starting=true;updateButtons();
   status('Ber om kameratilgang…');
   try{
+    const chosen=els.camera.value;
     const media=await navigator.mediaDevices.getUserMedia({
-      video:{width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:30}},audio:false
+      video:{...(chosen?{deviceId:{exact:chosen}}:{}),
+        width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:30}},audio:false
     });
     stream=media;
     els.video.srcObject=stream;
@@ -144,15 +163,16 @@ async function startCamera(){
     els.stage.style.aspectRatio=`${w}/${h}`;
     els.overlay.width=w;els.overlay.height=h;
     analysis.width=480;analysis.height=Math.round(480*h/w);
+    await refreshDevices();
     board=null;calibrationStep=0;current=null;target=null;
     clearDetection();
     animationFrame=requestAnimationFrame(animate);
     analysisTimer=setInterval(analyse,150);
     status('Kamera klart. Trykk «Kalibrer skive» og klikk Bull, deretter D20.');
   }catch(error){
-    status('Kamera kunne ikke startes: '+(error?.message||String(error)));
+    const message='Kameratilgang feilet: '+(error?.message||String(error))+'. Kontroller tillatelse og valgt kamera (HTTPS).';
     stopCamera();
-    status('Kameratilgang feilet. Sjekk at nettleseren har tilgang (HTTPS).');
+    status(message);
   }finally{starting=false;updateButtons()}
 }
 function startCalibration(){
@@ -191,6 +211,9 @@ els.overlay.addEventListener('click',event=>{
   status('Zoom satt manuelt. AutoZoom følger neste stabile bildeendring.');
 });
 els.start.addEventListener('click',startCamera);
+els.camera.addEventListener('change',()=>{if(stream){stopCamera();void startCamera()}});
+navigator.mediaDevices?.addEventListener?.('devicechange',refreshDevices);
+void refreshDevices();
 els.stop.addEventListener('click',stopCamera);
 els.calibrate.addEventListener('click',startCalibration);
 els.reference.addEventListener('click',chooseReference);
