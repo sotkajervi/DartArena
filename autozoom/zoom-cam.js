@@ -47,10 +47,14 @@ function calibration(video,bull,d20,deviceId){
   return {deviceId,cx:bull.x/w,cy:bull.y/h,radius:dist/(.976*w),
     rotation:Math.atan2(d20.x-bull.x,bull.y-d20.y),aspect:w/h};
 }
-function create(raw,config,{fps=25,video=document.createElement('video'),
-  canvas=document.createElement('canvas'),tracker=root.DartArenaAutoZoom}={}){
+function create(raw,config,{fps=25,video=null,
+  canvas=null,tracker=root.DartArenaAutoZoom}={}){
   const sourceTrack=raw?.getVideoTracks?.()[0];
-  if(!sourceTrack||sourceTrack.readyState!=='live'||!canvas?.captureStream||!tracker)throw Error('Zoom-cam krever et aktivt kamera og canvas captureStream.');
+  if(!sourceTrack||sourceTrack.readyState!=='live'||!tracker)throw Error('Zoom-cam krever et aktivt kamera.');
+  if(!canvas&&typeof document!=='undefined')canvas=document.createElement('canvas');
+  if(!canvas?.captureStream)throw Error('Zoom-cam krever canvas captureStream.');
+  if(!video&&typeof document!=='undefined')video=document.createElement('video');
+  if(!video)throw Error('Zoom-cam mangler videospiller.');
   const dims=sourceTrack.getSettings?.()||{};
   if(dims.width&&dims.height&&!compatible(config,sourceTrack,dims.width,dims.height))throw Error('Kalibreringen passer ikke dette kameraet eller videoformatet.');
   video.autoplay=true;video.muted=true;video.playsInline=true;video.srcObject=new MediaStream([sourceTrack]);
