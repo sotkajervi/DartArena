@@ -58,6 +58,71 @@ test('small low-contrast D4 change near double ring is detectable at high sensit
     'Low sensitivity may legitimately miss a faint dart-sized mark');
 });
 
+test('zoom does not move for stable noise without a new motion event',()=>{
+  const gate=T.createChangeGate({stableFrames:5});
+  const noise={x:111,y:98,changedSamples:9,localSamples:9};
+  for(let n=0;n<20;n++)
+    assert.equal(gate.observe(noise,{now:n*150,radius:board.radius}),null);
+});
+
+test('new dart motion requires five consistent still frames, then moves once',()=>{
+  const gate=T.createChangeGate({stableFrames:5});
+  const dart={x:285,y:92,changedSamples:13,localSamples:13};
+  assert.equal(gate.observe(dart,{movement:true,now:100,radius:board.radius}),null);
+  for(let i=0;i<4;i++)
+    assert.equal(gate.observe({...dart,x:dart.x+i*.3},{now:250+i*150,radius:board.radius}),null);
+  assert.ok(gate.observe({...dart,x:dart.x+1.1},{now:850,radius:board.radius}));
+  for(let i=0;i<10;i++)
+    assert.equal(gate.observe(dart,{now:1000+i*150,radius:board.radius}),null,
+      'Do not repeat the same old dart without a new motion event');
+});
+
+test('random jitter never triggers the zoom and ongoing movement resets stability',()=>{
+  const gate=T.createChangeGate({stableFrames:5});
+  let now=100;
+  gate.observe(null,{movement:true,now,radius:board.radius});
+  for(let i=0;i<30;i++){
+    now+=150;
+    const noise={x:i%2?90:260,y:i%2?160:70,changedSamples:8,localSamples:8};
+    assert.equal(gate.observe(noise,{now,radius:board.radius}),null);
+  }
+  gate.observe(null,{movement:true,now:now+150,radius:board.radius});
+  const stable={x:210,y:130,changedSamples:18,localSamples:17};
+  assert.equal(gate.observe(stable,{now:now+300,radius:board.radius}),null);
+  assert.equal(gate.observe(stable,{movement:true,now:now+450,radius:board.radius}),null);
+  for(let i=0;i<4;i++)
+    assert.equal(gate.observe(stable,{now:now+600+i*150,radius:board.radius}),null);
+  assert.ok(gate.observe(stable,{now:now+1200,radius:board.radius}));
+});
+
+test('diffuse illumination flicker and expired motion never redirect zoom',()=>{
+  const gate=T.createChangeGate({stableFrames:5});
+  const scattered={x:190,y:100,changedSamples:100,localSamples:18};
+  gate.observe(scattered,{movement:true,now:100,radius:board.radius});
+  for(let i=0;i<8;i++)
+    assert.equal(gate.observe(scattered,{now:250+i*150,radius:board.radius}),null);
+  const quietDart={x:120,y:80,changedSamples:14,localSamples:14};
+  for(let i=0;i<8;i++)
+    assert.equal(gate.observe(quietDart,{now:5000+i*150,radius:board.radius}),null);
+});
+
+test('small D4 still moves after a real motion and sufficient stability',()=>{
+  const gate=T.createChangeGate({stableFrames:5});
+  const baseline=frame(),changed=frame();
+  const d4=T.targetPoint(board.x,board.y,board.radius,'D4');
+  paint(changed,Math.round(d4.x)-1,Math.round(d4.y)-1,3,4,46);
+  const opts={stride:1,threshold:55,minSamples:5,minLocal:4};
+  const motion=T.findChange(baseline,changed,W,H,board,opts);
+  assert.ok(motion,'A new low-contrast D4 produces a motion event');
+  assert.equal(gate.observe(null,{movement:!!motion,now:200,radius:board.radius}),null);
+  for(let n=1;n<5;n++)
+    assert.equal(gate.observe(T.findChange(baseline,changed,W,H,board,opts),
+      {now:200+n*150,radius:board.radius}),null);
+  const hit=gate.observe(T.findChange(baseline,changed,W,H,board,opts),
+    {now:950,radius:board.radius});
+  assert.ok(hit&&Math.abs(hit.x-d4.x)<5);
+});
+
 test('no new pixels means no new dart suggestion',()=>{
   assert.equal(T.findChange(frame(),frame(),W,H,board),null);
   assert.equal(T.motionRatio(frame(),frame(),W,H,board),0);
@@ -101,7 +166,8 @@ test('standalone page has fixed main video, moving inset and camera controls',()
   assert.match(html,/data-az-target="D8"/);
   assert.match(html,/data-az-target="D4"/);
   assert.match(html,/id="azSensitivity"/);
-  assert.match(html,/autozoom\/test\.js\?v=20261013-autozoom3/);
+  assert.match(html,/autozoom\/test\.js\?v=20261013-autozoom4/);
+  assert.match(html,/<option value="normal" selected>/);
 });
 
 test('zoom experiment does not send scores or video over the network',()=>{
@@ -113,6 +179,8 @@ test('zoom experiment does not send scores or video over the network',()=>{
   assert.match(src,/audio:false/);
   assert.match(src,/els\.video\.play\(\)/);
   assert.match(src,/G\.findChange\(/);
+  assert.match(src,/G\.createChangeGate\(/);
+  assert.match(src,/changeGate\.observe\(candidate/);
   assert.match(src,/presets\[els\.sensitivity\.value\]/);
   assert.match(src,/drawImage\(els\.video,crop\.x/);
 });
