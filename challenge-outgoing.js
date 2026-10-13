@@ -1,7 +1,7 @@
 (()=>{
   let startedFor=null,sentChannel=null,pendingSentIds=new Set(),acceptedRoomId=null,roomTabs=new Map();
   const observedPendingChallengeIds=new Set();
-  let autoOpeningRoomId=null,navigatingRoomId=null;
+  let autoOpeningRoomId=null,navigatingRoomId=null,lastRenderedAcceptedRoomId=null;
 
   function ensureUi(){
     let host=document.getElementById('sentChallengeList');
@@ -39,9 +39,11 @@
     ensureUi();
     const box=document.getElementById('acceptedRoomPrompt');
     if(!box)return;
-    if(!acceptedRoomId){box.hidden=true;box.innerHTML='';return}
+    if(!acceptedRoomId){box.hidden=true;box.innerHTML='';lastRenderedAcceptedRoomId=null;return}
+    if(!box.hidden&&lastRenderedAcceptedRoomId===acceptedRoomId)return;
     box.hidden=false;
-    box.innerHTML=`<div class="challenge-row"><div><div class="player-name">Utfordringen er godtatt</div><div class="status">Venterommet kunne ikke åpnes automatisk.</div></div><div class="challenge-actions"><button id="openAcceptedRoomBtn" class="small-btn accept">Åpne venterom</button></div></div>`;
+    lastRenderedAcceptedRoomId=acceptedRoomId;
+    box.innerHTML=`<div class="da-room-ready"><div class="da-room-ready-copy"><small>VENTEROM KLART</small><strong>Utfordringen er godtatt!</strong><p>Venterommet åpnet ikke automatisk. Åpne det i en egen fane for å bli med.</p></div><button id="openAcceptedRoomBtn" class="primary da-room-ready-button" type="button">Åpne venterom</button></div>`;
     box.querySelector('#openAcceptedRoomBtn').onclick=()=>openAcceptedRoom(acceptedRoomId,true);
   }
 
@@ -116,7 +118,7 @@
     renderAcceptedRoomPrompt();
     if(!host||!profile)return;
     const userId=profile.id;
-    if(activeMatch){pendingSentIds=new Set();host.innerHTML='<p class="muted">Du er i kamp.</p>';return}
+    if(activeMatch){pendingSentIds=new Set();acceptedRoomId=null;renderAcceptedRoomPrompt();host.innerHTML='<p class="muted">Du er i kamp.</p>';return}
     const{data,error}=await db.from('challenges')
       .select('id,challenged_id,status,created_at')
       .eq('challenger_id',profile.id)
@@ -136,6 +138,14 @@
     for(const c of data||[]){
       if(c.status==='pending')observedPendingChallengeIds.add(c.id);
     }
+    // A missed Realtime notification or lobby reload can leave a room ready
+    // without triggering auto-open. Keep the manual fallback prominent.
+    const readyRooms=(data||[]).filter(c=>c.status==='room');
+    const needsManualOpen=c=>!roomTabs.get(c.id)||roomTabs.get(c.id).closed;
+    if(!readyRooms.some(c=>c.id===acceptedRoomId&&needsManualOpen(c))){
+      acceptedRoomId=readyRooms.find(needsManualOpen)?.id||null;
+    }
+    renderAcceptedRoomPrompt();
     pendingSentIds=new Set((data||[]).map(c=>c.challenged_id));
     applySentButtonState();
     if(!data?.length){host.innerHTML='<p class="muted">Ingen sendte utfordringer.</p>';return}

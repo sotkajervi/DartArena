@@ -302,3 +302,63 @@ test('lobby refresh delegates accepted-room tracking to the outgoing manager', (
   assert.doesNotMatch(source, /window\.location\.assign\(/);
   assert.doesNotMatch(source, /window\.open\('about:blank'/);
 });
+
+test('large accepted-room banner appears when automatic popup is blocked', async () => {
+  const lobby = makeLobby([]);
+  await lobby.hooks.startForProfile();
+  await lobby.invite();
+  lobby.setRows([pending('new-invite-1', 'room')]);
+  await lobby.hooks.loadSentChallenges();
+  await settle();
+  assert.equal(lobby.prompt.hidden, false);
+  assert.match(lobby.prompt.innerHTML, /da-room-ready/);
+  assert.match(lobby.prompt.innerHTML, /Utfordringen er godtatt!/);
+  assert.match(lobby.prompt.innerHTML, /da-room-ready-button/);
+  assert.match(lobby.prompt.innerHTML, /Åpne venterom/);
+  assert.equal(lobby.tabs.length, 0);
+});
+
+test('large banner also appears after F5 when an accepted invitation is waiting', async () => {
+  const lobby = makeLobby([pending('previous', 'room')]);
+  await lobby.hooks.startForProfile();
+  await settle();
+  assert.equal(lobby.popupCalls.length, 0);
+  assert.equal(lobby.prompt.hidden, false);
+  assert.match(lobby.prompt.innerHTML, /Utfordringen er godtatt!/);
+  assert.equal(lobby.manualOpen('previous'), true);
+  assert.equal(lobby.prompt.hidden, true);
+});
+
+test('banner stays hidden when a room tab is already open', async () => {
+  const lobby = makeLobby([], { autoPopupAllowed: true });
+  await lobby.hooks.startForProfile();
+  await lobby.invite();
+  lobby.setRows([pending('new-invite-1', 'room')]);
+  await lobby.hooks.loadSentChallenges();
+  await settle();
+  await lobby.hooks.loadSentChallenges();
+  assert.equal(lobby.tabs.length, 1);
+  assert.equal(lobby.prompt.hidden, true);
+});
+
+test('banner reappears after an open room tab is closed', async () => {
+  const lobby = makeLobby([], { autoPopupAllowed: true });
+  await lobby.hooks.startForProfile();
+  await lobby.invite();
+  lobby.setRows([pending('new-invite-1', 'room')]);
+  await lobby.hooks.loadSentChallenges();
+  await settle();
+  lobby.tabs[0].close();
+  await lobby.hooks.loadSentChallenges();
+  assert.equal(lobby.prompt.hidden, false);
+  assert.match(lobby.prompt.innerHTML, /Åpne venterom/);
+});
+
+test('banner disappears if the accepted room is cancelled', async () => {
+  const lobby = makeLobby([pending('previous', 'room')]);
+  await lobby.hooks.startForProfile();
+  assert.equal(lobby.prompt.hidden, false);
+  lobby.setRows([]);
+  await lobby.hooks.loadSentChallenges();
+  assert.equal(lobby.prompt.hidden, true);
+});
