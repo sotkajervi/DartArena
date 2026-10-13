@@ -39,7 +39,7 @@
       <div class="az-steps">
         <strong>Slik tester du:</strong> Start kamera → kalibrer ved å klikke Bull og deretter D20 på hovedbildet → fjern alle piler → trykk «Tom skive / referanse» → kast én pil og vent litt. Zoomvinduet forsøker å følge området der bildet er endret. Kast neste pil når zoomvinduet har flyttet seg. Du kan også klikke manuelt på skiva for å teste panoreringen.
       </div>
-      <p class="az-small">Dette er en eksperimentell bildeendringstest, ikke ferdig AI-pilspissdeteksjon. Endret lys, hender eller kamerabevegelse kan gi feil utsnitt. Ingen poeng føres, og ingen video sendes til DartArena eller lagres av testen.</p>
+      <p class="az-small">Dette er en eksperimentell bildeendringstest, ikke ferdig AI-pilspissdeteksjon. Høy følsomhet øker sjansen for små piltreff ved kanten (f.eks. D4), men kan også gi flere feilutslag fra lys, hender eller kamerabevegelse. Ingen poeng føres, og ingen video sendes til DartArena eller lagres av testen.</p>
     </section>
     <section class="card az-controls">
       <div class="heading"><div><small>TESTPANEL</small><h2>Kamera og AutoZoom</h2></div></div>
@@ -53,6 +53,13 @@
         <button class="outline" id="azReference" type="button" disabled>Tom skive / referanse</button>
       </div>
       <button class="outline wide" id="azAuto" type="button" disabled aria-pressed="true">AutoZoom: PÅ</button>
+      <label class="field" for="azSensitivity">Følsomhet ved nye piltreff
+        <select id="azSensitivity">
+          <option value="high" selected>Høy – også små treff ved dobbelringen</option>
+          <option value="normal">Normal – færre feilutslag</option>
+          <option value="low">Lav – ved urolig lys eller kamera</option>
+        </select>
+      </label>
       <p class="az-status" id="azStatus" role="status" aria-live="polite">Start kamera for å teste. Kameraet brukes bare lokalt i denne fanen.</p>
       <div class="az-metrics">
         <div><small>REGISTRERTE ENDRINGER</small><strong id="azCount">0</strong></div>
@@ -64,12 +71,13 @@
         <button class="outline" type="button" data-az-target="T20">T20</button>
         <button class="outline" type="button" data-az-target="T19">T19</button>
         <button class="outline" type="button" data-az-target="D8">D8</button>
+        <button class="outline" type="button" data-az-target="D4">D4</button>
         <button class="outline" type="button" data-az-target="BULL">Bull</button>
       </div>
     </section>
   </div>
 </main>
-<script src="autozoom/tracker.js?v=20261013-autozoom2"></script>
-<script src="autozoom/test.js?v=20261013-autozoom1"></script>
+<script src="autozoom/tracker.js?v=20261013-autozoom3"></script>
+<script src="autozoom/test.js?v=20261013-autozoom3"></script>
 </body>
 </html>

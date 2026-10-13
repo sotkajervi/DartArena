@@ -29,9 +29,11 @@ function motionRatio(first,last,width,height,board,options={}){
 }
 function findChange(base,frame,width,height,board,options={}){
   if(!base||!frame||base.length!==frame.length||!board?.radius)return null;
-  const stride=options.stride||2,threshold=options.threshold||85;
-  const radius=board.radius*1.025,r2=radius*radius;
-  const cell=options.cell||18;
+  // Small, low-contrast darts on the outer double ring can cover only a few
+  // downscaled pixels. Keep the sampling and detection threshold adjustable.
+  const stride=options.stride??1,threshold=options.threshold??55;
+  const radius=board.radius*1.13,r2=radius*radius;
+  const cell=options.cell??14;
   const points=[],bins=new Map();
   let total=0;
   for(let y=Math.max(0,Math.floor(board.y-radius));y<Math.min(height,Math.ceil(board.y+radius));y+=stride){
@@ -48,7 +50,7 @@ function findChange(base,frame,width,height,board,options={}){
   }
   if(!total)return null;
   const ratio=points.length/total;
-  if(points.length<(options.minSamples||10)||ratio>(options.maxRatio||.12))return null;
+  if(points.length<(options.minSamples??5)||ratio>(options.maxRatio??.12))return null;
   let best=null,maxCount=0;
   for(const key of bins.keys()){
     const [gx,gy]=key.split(',').map(Number);
@@ -64,7 +66,7 @@ function findChange(base,frame,width,height,board,options={}){
     if(Math.abs(p.x-midX)>bound||Math.abs(p.y-midY)>bound)continue;
     sx+=p.x;sy+=p.y;local++;
   }
-  if(local<Math.max(7,points.length*.08))return null;
+  if(local<Math.max(options.minLocal??4,points.length*.08))return null;
   return{x:sx/local,y:sy/local,changedSamples:points.length,localSamples:local,ratio};
 }
 function zoomCrop(videoWidth,videoHeight,x,y,boardRadius,aspect=4/3){
