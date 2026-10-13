@@ -63,7 +63,7 @@
     overflow-wrap: anywhere;
   }
 
-  /* All six overview actions remain visible without tiny three-column labels. */
+  /* Keep the lobby shortcut grid legible in two columns on smaller screens. */
   #lobbyView .lobby-utility-row {
     padding: 11px;
     margin-bottom: 14px;
