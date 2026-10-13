@@ -3,13 +3,13 @@
 'use strict';
 const ORDER=[20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5];
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
-function targetPoint(cx,cy,radius,label){
+function targetPoint(cx,cy,radius,label,rotation=0){
   if(label==='BULL')return{x:cx,y:cy};
   const m=/^([TDS])(\d{1,2})$/.exec(String(label));
   if(!m)return null;
   const index=ORDER.indexOf(Number(m[2]));if(index<0)return null;
   const r=m[1]==='D'?.976:m[1]==='T'?.606:.42;
-  const angle=index*Math.PI/10;
+  const angle=index*Math.PI/10+rotation;
   return{x:cx+Math.sin(angle)*radius*r,y:cy-Math.cos(angle)*radius*r};
 }
 function motionRatio(first,last,width,height,board,options={}){
