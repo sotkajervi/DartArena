@@ -158,7 +158,7 @@
     renderAcceptedRoomPrompt();
     if(!host||!profile)return;
     const userId=profile.id;
-    if(activeMatch){pendingSentIds=new Set();host.innerHTML='<p class="muted">Du er i kamp.</p>';return}
+    if(activeMatch){for(const id of waitingRoomIds)closeWaitingRoom(id);pendingSentIds=new Set();host.innerHTML='<p class="muted">Du er i kamp.</p>';return}
     const{data,error}=await db.from('challenges')
       .select('id,challenged_id,status,created_at')
       .eq('challenger_id',profile.id)
