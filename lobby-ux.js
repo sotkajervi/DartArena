@@ -7,6 +7,18 @@
   const lobby=$('lobbyView');
   if(!lobby)return;
 
+  // Keep the ScoringArena action rightmost even when admin tools are added later.
+  const shortcutHost=$('lobbyStatsActions'),scoringShortcut=$('scoringArenaBtn');
+  if(shortcutHost&&scoringShortcut){
+    const keepScoringLast=()=>{
+      if(scoringShortcut.parentElement===shortcutHost&&shortcutHost.lastElementChild!==scoringShortcut){
+        shortcutHost.appendChild(scoringShortcut);
+      }
+    };
+    keepScoringLast();
+    new MutationObserver(keepScoringLast).observe(shortcutHost,{childList:true});
+  }
+
   // Native menu keeps existing Cam-test and logout button IDs and click handlers.
   const menu=$('daUtilityMenu');
   document.addEventListener('pointerdown',event=>{
