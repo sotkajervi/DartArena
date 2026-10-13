@@ -2,7 +2,8 @@
 (()=>{
   const tournamentId=new URLSearchParams(location.search).get('id');if(!tournamentId||!window.supabase)return;
   const client=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
-  let me=null,busy=false,ch=null;
+  let me=null,busy=false,ch=null,refreshTimer=null,pollTimer=null;
+  function queueRefresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>refresh().catch(error=>console.warn('Cup advance refresh failed',error)),250)}
   function ensureButton(){
     let b=document.getElementById('advanceToCupBtn');if(b)return b;
     const heading=document.querySelector('#groupLobby .heading');if(!heading)return null;
@@ -29,6 +30,21 @@
     if(error){alert('Kunne ikke gå videre til cup: '+error.message);b.disabled=false;b.textContent='Gå videre til cup';return}
     location.reload();
   }
-  async function boot(){const {data:{session}}=await client.auth.getSession();me=session?.user?.id||null;if(!me)return;await refresh();ch=client.channel(`advance-cup-${tournamentId}`).on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${tournamentId}`},()=>setTimeout(refresh,100)).on('postgres_changes',{event:'UPDATE',schema:'public',table:'tournaments',filter:`id=eq.${tournamentId}`},()=>setTimeout(refresh,100)).subscribe();setInterval(refresh,2500)}
+  async function boot(){
+    const {data:{session}}=await client.auth.getSession();
+    me=session?.user?.id||null;
+    if(!me)return;
+    await refresh();
+    ch=client.channel(`advance-cup-${tournamentId}`)
+      .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${tournamentId}`},queueRefresh)
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'tournaments',filter:`id=eq.${tournamentId}`},queueRefresh)
+      .subscribe();
+    pollTimer=setInterval(()=>{if(!document.hidden)queueRefresh()},30000);
+  }
+  window.addEventListener('pagehide',()=>{
+    clearTimeout(refreshTimer);
+    clearInterval(pollTimer);
+    if(ch)client.removeChannel(ch).catch?.(()=>{});
+  },{once:true});
   boot();
 })();
