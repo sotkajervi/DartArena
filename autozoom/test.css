@@ -1,0 +1,32 @@
+/* Isolated AutoZoom webcam experiment, never loaded in production match rooms. */
+.az-page .az-shell{max-width:1240px;margin:0 auto}
+.az-page .az-heading{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:18px}
+.az-page .az-heading h1{margin:4px 0 6px}
+.az-page .az-heading p{margin:0}
+.az-page .az-back{text-decoration:none;display:inline-flex;align-items:center;min-height:44px;padding:10px 14px;border:1px solid #34595f;border-radius:10px;color:#e5fafa;font-weight:800}
+.az-page .az-layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(280px,.75fr);gap:18px;align-items:start}
+.az-page .az-camera-card,.az-page .az-controls{min-width:0}
+.az-page .az-stage{position:relative;aspect-ratio:16/9;background:#03090a;border:1px solid rgba(0,234,244,.3);border-radius:12px;overflow:hidden}
+.az-page #azVideo{display:block;width:100%;height:100%;object-fit:fill;background:#03090a}
+.az-page #azOverlay{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair;touch-action:manipulation;z-index:1}
+.az-page .az-inset{position:absolute;right:12px;top:12px;width:clamp(155px,31%,275px);z-index:2;pointer-events:none;background:#071719;border:2px solid #00eaf4;border-radius:12px;box-shadow:0 9px 30px #000a;overflow:hidden}
+.az-page .az-inset-head{display:flex;align-items:center;justify-content:space-between;gap:6px;background:#102f34;color:#00eaf4;padding:7px 10px;font-size:10px;font-weight:950;letter-spacing:.035em}
+.az-page #azTarget{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.az-page #azZoom{display:block;width:100%;aspect-ratio:4/3;background:#102126}
+.az-page .az-steps{padding:12px 15px;margin-top:12px;border:1px solid rgba(0,234,244,.22);border-radius:10px;background:rgba(0,234,244,.035);color:#bdd4d6;font-size:13px;line-height:1.55}
+.az-page .az-steps strong{color:#e6ffff}
+.az-page .az-controls .heading{margin-bottom:14px}
+.az-page .az-controls h2{margin:2px 0}
+.az-page .az-button-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+.az-page .az-button-grid button{min-width:0;min-height:44px;padding:10px 8px;font-size:12px}
+.az-page .az-button-grid button:disabled{opacity:.45}
+.az-page .az-status{padding:12px;min-height:68px;background:#10262a;border-radius:10px;font-size:13px;line-height:1.45;color:#d2f0f1;margin:10px 0}
+.az-page .az-demo{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.az-page .az-demo button{min-width:65px}
+.az-page .az-small{font-size:12px;color:#a9c2c6;line-height:1.5}
+.az-page .az-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.az-page .az-metrics div{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025);border-radius:9px;padding:12px}
+.az-page .az-metrics small{display:block;color:#adc4c7;font-size:10px;margin-bottom:4px}
+.az-page .az-metrics strong{font-size:13px;overflow-wrap:anywhere}
+@media(max-width:850px){.az-page .az-layout{grid-template-columns:1fr}.az-page .az-inset{width:clamp(140px,35%,240px);right:8px;top:8px}}
+@media(max-width:440px){.az-page .az-button-grid{grid-template-columns:1fr 1fr}.az-page .az-inset{width:39%}.az-page .az-inset-head{font-size:9px;padding:5px 6px}}

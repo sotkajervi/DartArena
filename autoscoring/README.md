@@ -221,3 +221,19 @@ Dette er en selvstendig, eksplisitt styrt AI-test i Owner/Admin-labben. DeepDart
 - DeepDarts D1 har rapportert 94,7 % PCS på egne testbilder. Det tallet gjelder ikke DartArena før uavhengig testing.
 
 Kjør syntetiske tester med «node autoscoring/deepdarts-tflite.test.cjs». Testene kontrollerer YOLO-utgang, klassefilter, scoreformat og modellformat; de beviser ikke ytelsen til de virkelige modellvektene.
+
+
+## AutoZoom webcam-test (13.10.2026)
+
+**Separat testside:** `autozoom-test.html` (lenke fra Autoscoring Lab for Owner/Admin).
+
+- Hovedkameraet viser hele dartskiva uten panorering; kun et lite bilde øverst til høyre zoomer og flytter seg.
+- Et enkelt bildeendringsfilter prøver å finne den nye, stabile endringen etter hvert kast. Dette er **ikke** trent AI-pilspissdeteksjon, og kan forveksle piler med hender, skygger, lys og andre endringer. Den registrerer ikke score.
+- Testeren velger kamera, markerer **Bull og D20** på hovedbildet og tar en referanse med **tom skive**. Prøv deretter ett kast om gangen. Zoomvinduet følger et nytt sannsynlig område når bildet blir stabilt.
+- Demoknapper for T20, T19, D8 og Bull kontrollerer kalibrering/zoom matematisk uten et kast. Manuell klikk på skiva flytter også zoom for å teste posisjon.
+- **Kun lokalt i nettleseren:** ingen databasekobling, scoring, innspilling eller opplasting. Video og analyse stoppes når testsiden lukkes.
+- Bruk HTTPS og 1080p eller bedre for et skarpt utsnitt. Ved valg av nytt kamera må skiva kalibreres på nytt. OBS Virtual Camera kan velges om det eksponeres som kamera.
+- De eksisterende live kamprommene, tilskuervisning og Autoscoring Lab er ikke koblet til AutoZoom-testen.
+- Unit-test: `node --test autozoom/tracker.test.cjs`.
+
+Målet er å observere om det estimerte utsnittet følger påfølgende piler godt nok **før** vi eventuelt bygger det inn i webcam-vieweren. En trent pilspissmodell må evalueres separat hvis endringsfilteret ikke blir presist nok.
