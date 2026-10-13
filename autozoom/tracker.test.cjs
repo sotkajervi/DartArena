@@ -78,6 +78,7 @@ test('standalone page has fixed main video, moving inset and camera controls',()
   const html=fs.readFileSync(path.join(root,'autozoom-test.html'),'utf8');
   assert.match(html,/id="azVideo"/);
   assert.match(html,/id="azZoom" width="320" height="240"/);
+  assert.match(html,/id="azCamera"/);
   assert.match(html,/id="azCalibrate"/);
   assert.match(html,/id="azReference"/);
   assert.match(html,/data-az-target="D8"/);
@@ -88,6 +89,8 @@ test('zoom experiment does not send scores or video over the network',()=>{
   const src=fs.readFileSync(path.join(root,'autozoom/test.js'),'utf8');
   assert.doesNotMatch(src,/fetch\(|\.rpc\(|\.from\(|\.send\(|RTCPeerConnection|WebSocket|MediaRecorder/);
   assert.match(src,/getUserMedia\(/);
+  assert.match(src,/enumerateDevices/);
+  assert.match(src,/deviceId:/);
   assert.match(src,/audio:false/);
   assert.match(src,/els\.video\.play\(\)/);
   assert.match(src,/G\.findChange\(/);
