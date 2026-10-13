@@ -359,3 +359,9 @@ test('recipient stays in lobby if server approval fails', async () => {
   assert.deepEqual(app.navigations, []);
   assert.equal(app.alerts.length, 1);
 });
+
+test('returning to lobby during an active match does not auto-redirect', () => {
+  assert.doesNotMatch(appSource, /openMatch\(activeMatch\.id,false/);
+  assert.match(appSource, /reopenMatchBtn'\)\.onclick=\(\)=>activeMatch&&openMatch\(activeMatch\.id,true/);
+  assert.match(indexSource, /Kampen er fortsatt aktiv\. Bruk knappen for å gå tilbake til kamprommet\./);
+});
