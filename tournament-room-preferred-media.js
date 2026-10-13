@@ -177,7 +177,7 @@
     retry?.classList.add('hidden');
     if(cameraSelect)cameraSelect.disabled=true;
     if(micSelect)micSelect.disabled=true;
-    $('readyBtn').disabled=true;
+    setReadyUi();
     setStatus('Starter valgt kamera…');
 
     try{
@@ -215,14 +215,14 @@
       subscribedPublicationId=null;
       publication=await sfu.publish(stream);
 
-      $('readyBtn').disabled=false;
+      setReadyUi();
       setStatus('Valgt kamera klart – dette brukes i kampen');
       await sendState();
       if(remotePublication)await subscribeRemote(remotePublication);
     }catch(error){
       console.error('Tournament preferred camera error',error);
       publication=null;
-      $('readyBtn').disabled=true;
+      setReadyUi();
       $('localPlaceholder')?.classList.remove('hidden');
       if($('localPlaceholder'))$('localPlaceholder').textContent='Kamera ikke startet';
       setStatus(cameraErrorText(error));
