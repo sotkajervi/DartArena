@@ -39,7 +39,7 @@
       <div class="az-steps">
         <strong>Slik tester du:</strong> Start kamera → kalibrer ved å klikke Bull og deretter D20 på hovedbildet → fjern alle piler → trykk «Tom skive / referanse» → kast én pil og vent litt. Zoomvinduet forsøker å følge området der bildet er endret. Kast neste pil når zoomvinduet har flyttet seg. Du kan også klikke manuelt på skiva for å teste panoreringen.
       </div>
-      <p class="az-small">Dette er en eksperimentell bildeendringstest, ikke ferdig AI-pilspissdeteksjon. Zoomvinduet krever nå ny bevegelse og fem stabile målinger før det flyttes. Normal er standard; høy følsomhet kan oppdage små piltreff ved kanten (f.eks. D4), men er mer følsom for lys, hender og kamerabevegelse. Ingen poeng føres, og ingen video sendes til DartArena eller lagres av testen.</p>
+      <p class="az-small">Dette er en eksperimentell bildeendringstest, ikke ferdig AI-pilspissdeteksjon. Zoomvinduet krever nå ny bevegelse og fem stabile målinger før det flyttes. Normal og Lav bruker midlertidig samme stabile deteksjonsfilter. Høy kan oppdage små piltreff ved kanten (f.eks. D4), men er mer følsom for lys, hender og kamerabevegelse. Ingen poeng føres, og ingen video sendes til DartArena eller lagres av testen.</p>
     </section>
     <section class="card az-controls">
       <div class="heading"><div><small>TESTPANEL</small><h2>Kamera og AutoZoom</h2></div></div>
@@ -56,7 +56,7 @@
       <label class="field" for="azSensitivity">Følsomhet ved nye piltreff
         <select id="azSensitivity">
           <option value="high">Høy – også små treff ved dobbelringen</option>
-          <option value="normal" selected>Normal – anbefalt, roligere zoom</option>
+          <option value="normal" selected>Normal – stabilt filter (samme som Lav foreløpig)</option>
           <option value="low">Lav – ved urolig lys eller kamera</option>
         </select>
       </label>
@@ -77,7 +77,7 @@
     </section>
   </div>
 </main>
-<script src="autozoom/tracker.js?v=20261013-autozoom4"></script>
-<script src="autozoom/test.js?v=20261013-autozoom4"></script>
+<script src="autozoom/tracker.js?v=20261013-autozoom5"></script>
+<script src="autozoom/test.js?v=20261013-autozoom5"></script>
 </body>
 </html>

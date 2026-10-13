@@ -58,6 +58,31 @@ test('small low-contrast D4 change near double ring is detectable at high sensit
     'Low sensitivity may legitimately miss a faint dart-sized mark');
 });
 
+test('Normal temporarily uses the same proven-stable detector profile as Low',()=>{
+  assert.deepEqual(T.sensitivityPreset('normal'),T.sensitivityPreset('low'));
+  assert.equal(T.sensitivityPreset('normal').stride,2);
+  assert.equal(T.sensitivityPreset('normal').threshold,95);
+  assert.equal(T.sensitivityPreset('high').threshold,55);
+});
+
+test('Normal ignores weak camera flicker that used to trigger repeated motion events',()=>{
+  const base=frame(),flicker=frame();
+  // 30 grey levels in each colour channel = 90 summed RGB; old Normal
+  // threshold 75 considered it a fresh hit, while Low threshold 95 ignored it.
+  paint(flicker,120,160,14,15,55);
+  const previousNormal={stride:1,threshold:75,minSamples:9,minLocal:6};
+  assert.ok(T.findChange(base,flicker,W,H,board,previousNormal));
+  assert.equal(T.findChange(base,flicker,W,H,board,T.sensitivityPreset('normal')),null);
+  assert.equal(T.findChange(base,flicker,W,H,board,T.sensitivityPreset('low')),null);
+});
+
+test('Normal still tracks an obvious real dart-like change',()=>{
+  const base=frame(),withDart=frame();
+  paint(withDart,118,165,16,12,230);
+  const normal=T.findChange(base,withDart,W,H,board,T.sensitivityPreset('normal'));
+  assert.ok(normal&&normal.x>110&&normal.x<145);
+});
+
 test('zoom does not move for stable noise without a new motion event',()=>{
   const gate=T.createChangeGate({stableFrames:5});
   const noise={x:111,y:98,changedSamples:9,localSamples:9};
@@ -166,7 +191,7 @@ test('standalone page has fixed main video, moving inset and camera controls',()
   assert.match(html,/data-az-target="D8"/);
   assert.match(html,/data-az-target="D4"/);
   assert.match(html,/id="azSensitivity"/);
-  assert.match(html,/autozoom\/test\.js\?v=20261013-autozoom4/);
+  assert.match(html,/autozoom\/test\.js\?v=20261013-autozoom5/);
   assert.match(html,/<option value="normal" selected>/);
 });
 
@@ -181,7 +206,7 @@ test('zoom experiment does not send scores or video over the network',()=>{
   assert.match(src,/G\.findChange\(/);
   assert.match(src,/G\.createChangeGate\(/);
   assert.match(src,/changeGate\.observe\(candidate/);
-  assert.match(src,/presets\[els\.sensitivity\.value\]/);
+  assert.match(src,/G\.sensitivityPreset\(els\.sensitivity\.value\)/);
   assert.match(src,/drawImage\(els\.video,crop\.x/);
 });
 

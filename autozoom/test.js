@@ -115,12 +115,9 @@ function analyse(){
     y:board.y*h/els.video.videoHeight,radius:board.radius*w/els.video.videoWidth};
   const now=performance.now();
   const motion=previous?G.motionRatio(previous,frame,w,h,boardSmall):0;
-  const presets={
-    high:{stride:1,threshold:55,minSamples:5,minLocal:4},
-    normal:{stride:1,threshold:75,minSamples:9,minLocal:6},
-    low:{stride:2,threshold:95,minSamples:12,minLocal:7}
-  };
-  const preset=presets[els.sensitivity.value]||presets.normal;
+  // Same stable detector settings for Normal and Low until live-camera
+  // testing establishes a safe distinction between these two modes.
+  const preset=G.sensitivityPreset(els.sensitivity.value);
   // Only react to a newly appearing change, not to noise continuously present
   // in the saved reference image. Movement arms a brief validation window.
   const motionHit=previous&&motion<=.008?G.findChange(previous,frame,w,h,boardSmall,
