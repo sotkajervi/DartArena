@@ -93,11 +93,12 @@
   }
 
   hideFallback();
+  // Capture the click before legacy room onclick handlers can toggle audio back off.
   button.addEventListener('click',event=>{
     event.preventDefault();
-    event.stopPropagation();
+    event.stopImmediatePropagation();
     void enableAudio({trusted:true});
-  });
+  },true);
   document.addEventListener('pointerdown',onGesture,{capture:true,passive:true});
   document.addEventListener('keydown',onGesture,{capture:true});
   video.addEventListener('loadedmetadata',poll);
