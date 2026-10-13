@@ -39,6 +39,7 @@
   function resetSession(){
     startedUser=null;startingUser=null;me=null;profile=null;loading=false;
     if(channel){const old=channel;channel=null;try{db?.removeChannel(old)}catch{}}
+    window.dispatchEvent(new CustomEvent('dartarena:tournament-lobby-snapshot',{detail:{userId:null,tournaments:[]}}));
   }
 
   async function boot(){
@@ -151,6 +152,14 @@
       const rows=t||[],ids=rows.map(x=>x.id);let members=[];
       if(ids.length){const r=await db.from('tournament_members').select('tournament_id,user_id,role').in('tournament_id',ids);if(r.error)throw r.error;members=r.data||[]}
       const counts={};members.forEach(m=>(counts[m.tournament_id]??=[]).push(m));
+      // Announce only committed group-stage transitions. The unconfirmed draw
+      // exists solely in tournament.js and never appears as status='groups'.
+      const joinedIds=new Set(members.filter(m=>m.user_id===me&&m.role==='participant').map(m=>m.tournament_id));
+      window.dispatchEvent(new CustomEvent('dartarena:tournament-lobby-snapshot',{detail:{
+        userId:me,
+        tournaments:rows.map(t=>({id:t.id,name:t.name,status:t.status,
+          eligible:t.owner_id===me||joinedIds.has(t.id)}))
+      }}));
       const active=rows.filter(x=>x.status!=='finished');
       const past=rows.filter(x=>x.status==='finished').sort((a,b)=>new Date(b.finished_at||b.updated_at||b.starts_at)-new Date(a.finished_at||a.updated_at||a.starts_at));
       const winners=await archiveWinners(past);
@@ -174,5 +183,10 @@
   async function join(id){const {error}=await db.from('tournament_members').insert({tournament_id:id,user_id:me,role:'participant'});if(error)alert(error.message);else load()}
   async function leave(id){const {error}=await db.from('tournament_members').delete().eq('tournament_id',id).eq('user_id',me);if(error)alert(error.message);else load()}
 
+  // Realtime is primary. Low-frequency foreground refresh catches missed
+  // transitions if the socket reconnects while players wait in the lobby.
+  setInterval(()=>{
+    if(startedUser&&profile&&!document.hidden&&$('lobbyView')&&!$('lobbyView').classList.contains('hidden'))load();
+  },15000);
   const wait=setInterval(()=>{if(window.supabase&&$('tournamentList')){clearInterval(wait);boot()}},100);
 })();
