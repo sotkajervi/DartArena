@@ -1,5 +1,7 @@
 (()=>{
   let startedFor=null,sentChannel=null,pendingSentIds=new Set(),acceptedRoomId=null,roomTabs=new Map();
+  const observedPendingChallengeIds=new Set();
+  let autoOpeningRoomId=null;
 
   function ensureUi(){
     let host=document.getElementById('sentChallengeList');
@@ -67,13 +69,40 @@
     return false;
   }
 
-  // Når motstanderen godtar skal lobbyen vise en stabil "Åpne"-knapp.
-  // Ikke forsøk popup automatisk; nettlesere blokkerer ofte slike vinduer.
+  // Navigate the inviter in the current tab after an observed pending challenge is accepted.
+  // Browser-initiated popup windows are often blocked after asynchronous Realtime events.
+  async function autoEnterAcceptedRoom(id){
+    if(!id||!profile||!observedPendingChallengeIds.has(id)||autoOpeningRoomId)return;
+    const userId=profile.id;
+    autoOpeningRoomId=id;
+    try{
+      const{data,error}=await db.from('challenges')
+        .select('id')
+        .eq('id',id)
+        .eq('challenger_id',userId)
+        .eq('status','room')
+        .maybeSingle();
+      if(error)throw error;
+      if(!data||profile?.id!==userId||activeMatch)return;
+      observedPendingChallengeIds.delete(id);
+      const url=`room.html?id=${encodeURIComponent(id)}`;
+      const existing=roomTabs.get(id);
+      if(existing&&!existing.closed){
+        try{existing.location.href=url;existing.focus()}catch{}
+        return;
+      }
+      window.location.assign(url);
+    }catch(error){
+      console.warn('Automatic waiting-room navigation failed',error);
+      acceptedRoomId=id;
+      renderAcceptedRoomPrompt();
+    }finally{
+      autoOpeningRoomId=null;
+    }
+  }
+
   enterAcceptedRoom=function(id){
-    if(!id)return;
-    acceptedRoomId=null;
-    renderAcceptedRoomPrompt();
-    Promise.resolve().then(()=>loadSentChallenges()).catch(()=>{});
+    if(id&&observedPendingChallengeIds.has(id))void autoEnterAcceptedRoom(id);
   };
 
   function applySentButtonState(){
@@ -89,6 +118,7 @@
     const host=ensureUi();
     renderAcceptedRoomPrompt();
     if(!host||!profile)return;
+    const userId=profile.id;
     if(activeMatch){pendingSentIds=new Set();host.innerHTML='<p class="muted">Du er i kamp.</p>';return}
     const{data,error}=await db.from('challenges')
       .select('id,challenged_id,status,created_at')
@@ -96,6 +126,19 @@
       .in('status',['pending','room'])
       .order('created_at',{ascending:false});
     if(error){host.innerHTML=`<p class="muted">${esc(error.message)}</p>`;return}
+    if(profile?.id!==userId)return;
+    const currentIds=new Set((data||[]).map(c=>c.id));
+    for(const id of observedPendingChallengeIds){
+      if(!currentIds.has(id))observedPendingChallengeIds.delete(id);
+    }
+    // Compare with previously seen pending challenges before recording new ones.
+    // This also recovers missed Realtime events through the lobby refresh.
+    for(const c of data||[]){
+      if(c.status==='room'&&observedPendingChallengeIds.has(c.id))enterAcceptedRoom(c.id);
+    }
+    for(const c of data||[]){
+      if(c.status==='pending')observedPendingChallengeIds.add(c.id);
+    }
     pendingSentIds=new Set((data||[]).map(c=>c.challenged_id));
     applySentButtonState();
     if(!data?.length){host.innerHTML='<p class="muted">Ingen sendte utfordringer.</p>';return}
@@ -159,6 +202,7 @@
     const{data,error}=await db.from('challenges').insert({challenger_id:profile.id,challenged_id:id,game:501,legs:5,allow_draw:false,starter:'me',status:'pending'}).select('id').single();
     if(error){button.disabled=false;button.textContent=old;alert(error.message);return}
     pendingSentIds.add(id);
+    observedPendingChallengeIds.add(data.id);
     button.textContent='Sendt';
     await loadSentChallenges();
   };
@@ -167,12 +211,16 @@
     if(!profile||startedFor===profile.id)return;
     if(sentChannel)try{await db.removeChannel(sentChannel)}catch{}
     startedFor=profile.id;
+    observedPendingChallengeIds.clear();
+    autoOpeningRoomId=null;
     ensureUi();
     await loadSentChallenges();
     sentChannel=db.channel('lobby-sent-challenges-'+profile.id)
       .on('postgres_changes',{event:'UPDATE',schema:'public',table:'challenges',filter:`challenger_id=eq.${profile.id}`},payload=>{
         const row=payload.new;
+        if(row.status==='room')enterAcceptedRoom(row.id);
         if(row.status!=='room'){
+          if(row.status!=='pending')observedPendingChallengeIds.delete(row.id);
           roomTabs.delete(row.id);
           if(acceptedRoomId===row.id){
             acceptedRoomId=null;
@@ -187,6 +235,7 @@
   window.addEventListener('message',e=>{
     if(e.origin!==location.origin)return;
     if(e.data?.type==='dartarena-room-cancelled'){
+      observedPendingChallengeIds.delete(e.data.id);
       roomTabs.delete(e.data.id);
       if(acceptedRoomId===e.data.id)acceptedRoomId=null;
       renderAcceptedRoomPrompt();
@@ -194,5 +243,5 @@
     }
   });
 
-  setInterval(()=>{if(profile)startForProfile();else{startedFor=null;pendingSentIds=new Set();acceptedRoomId=null;roomTabs.clear()}},600);
+  setInterval(()=>{if(profile)startForProfile();else{startedFor=null;pendingSentIds=new Set();observedPendingChallengeIds.clear();autoOpeningRoomId=null;acceptedRoomId=null;roomTabs.clear()}},600);
 })();
