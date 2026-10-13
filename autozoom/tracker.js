@@ -69,6 +69,38 @@ function findChange(base,frame,width,height,board,options={}){
   if(local<Math.max(options.minLocal??4,points.length*.08))return null;
   return{x:sx/local,y:sy/local,changedSamples:points.length,localSamples:local,ratio};
 }
+// A zoom move needs an actual new image-change event followed by several
+// consistent, still frames. Camera noise in a single static frame is not enough.
+function createChangeGate({stableFrames=5,motionWindowMs=4000,cooldownMs=1800}={}){
+  let armedUntil=-1,lastHit=null,stable=0,lastAccepted=-Infinity;
+  function reset(){armedUntil=-1;lastHit=null;stable=0;lastAccepted=-Infinity}
+  function observe(hit,{movement=false,now=0,radius=90}={}){
+    if(movement){
+      armedUntil=now+motionWindowMs;
+      lastHit=null;stable=0;
+      return null;
+    }
+    if(!hit||now>armedUntil||now-lastAccepted<cooldownMs){
+      lastHit=null;stable=0;return null;
+    }
+    // Reject scattered noise and highlights, even if one bin is locally dense.
+    if(hit.changedSamples>0&&hit.localSamples/hit.changedSamples<.35){
+      lastHit=null;stable=0;return null;
+    }
+    const tolerance=Math.max(4,radius*.06);
+    if(lastHit&&Math.hypot(hit.x-lastHit.x,hit.y-lastHit.y)<=tolerance){
+      stable++;
+    }else{
+      stable=1;
+    }
+    lastHit=hit;
+    if(stable<stableFrames)return null;
+    lastAccepted=now;
+    armedUntil=-1;lastHit=null;stable=0;
+    return hit;
+  }
+  return{observe,reset};
+}
 function zoomCrop(videoWidth,videoHeight,x,y,boardRadius,aspect=4/3){
   // Tighter inset only: 0.65 vs 0.9 of the board radius (~38% more zoom).
   const width=Math.max(40,Math.min(videoWidth,boardRadius*.65));
@@ -79,7 +111,7 @@ function zoomCrop(videoWidth,videoHeight,x,y,boardRadius,aspect=4/3){
     y:clamp(y-boundedHeight/2,0,videoHeight-boundedHeight),
     width:boundedWidth,height:boundedHeight};
 }
-const api={ORDER,targetPoint,motionRatio,findChange,zoomCrop};
+const api={ORDER,targetPoint,motionRatio,findChange,createChangeGate,zoomCrop};
 if(typeof module==='object'&&module.exports)module.exports=api;
 root.DartArenaAutoZoom=api;
 })(typeof window!=='undefined'?window:globalThis);
