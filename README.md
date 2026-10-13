@@ -41,6 +41,8 @@ Ny og gradvis migrert kode legges under `src/` og skrives i TypeScript. Eksister
 
 `game-router.js` er felles register for spillnavn, variant og kamprom. Nye online spill bør registreres der i stedet for å hardkode URL-er flere steder.
 
+For utfordringer håndterer `app.js` innkommende invitasjoner og ordinær lobbyoppdatering. `challenge-outgoing.js` holder oversikt over sendte utfordringer og avgjør når en nylig godtatt invitasjon skal åpne venterommet. Den gamle ekstra `room`-statusspørringen ved hver lobbyoppdatering er fjernet; behold én slik beslutningsflyt for å unngå dobbeltåpning. Realtime- og fallback-mekanismene for sent-listen er beholdt.
+
 ### Kodestruktur
 
 - `src/components/` – små gjenbrukbare UI-komponenter og render-hjelpere
