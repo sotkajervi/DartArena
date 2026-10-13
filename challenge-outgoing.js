@@ -256,9 +256,11 @@
   async function startForProfile(){
     if(!profile||startedFor===profile.id)return;
     if(sentChannel)try{await db.removeChannel(sentChannel)}catch{}
-    for(const id of waitingRoomIds)closeWaitingRoom(id);
+    if(startedFor&&startedFor!==profile.id){
+      for(const id of waitingRoomIds)closeWaitingRoom(id);
+      observedPendingChallengeIds.clear();
+    }
     startedFor=profile.id;
-    observedPendingChallengeIds.clear();
     autoOpeningRoomId=null;
     navigatingRoomId=null;
     ensureUi();
