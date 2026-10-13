@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="dartboard-background.css?v=20260928-ui2">
   <link rel="stylesheet" href="button-theme.css?v=20261009-brandcyan1">
   <link rel="stylesheet" href="room-device-selector.css?v=20260929-device1">
-  <link rel="stylesheet" href="waiting-room-audio-cue.css?v=20261004-below1">
+  <link rel="stylesheet" href="waiting-room-audio-cue.css?v=20261013-camoverlay1">
   <style>
     .ready-panel{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
     .ready-state{border:1px solid var(--border);border-radius:14px;padding:14px;background:rgba(255,255,255,.025)}
@@ -50,7 +50,7 @@
       <div class="video-card">
         <video id="remoteVideo" autoplay playsinline muted></video>
         <div id="remotePlaceholder" class="video-placeholder">Venter på motstanderens kamera…</div>
-        <span id="remoteVideoName" class="video-name">Motstander</span>
+        <span id="remoteVideoName" class="video-name">Motstander</span><div id="remoteAudioOverlay" class="waiting-audio-overlay hidden"><button id="remoteAudioBtn" type="button" class="waiting-audio-button hidden">🔊 SLÅ PÅ LYD</button></div>
       </div>
     </div>
 
@@ -69,7 +69,7 @@
       </div>
       <div class="room-media-actions">
         <button id="retryCameraBtn" class="outline hidden">Prøv kamera på nytt</button>
-        <button id="remoteAudioBtn" class="outline hidden">Slå på lyd</button>
+        
       </div>
     </div>
 
@@ -107,8 +107,8 @@
   <script src="tournament-room-preferred-media.js?v=20261006-device2"></script>
   <script src="tournament-match-game-meta.js?v=20261006-splitformat1"></script>
   <script src="role-visuals.js?v=20260928-ui2"></script>
-  <script src="waiting-room-audio-cue.js?v=20261004-ping2"></script>
-  <script src="remote-audio-autounlock.js?v=20261006-auto1"></script>
+  <script src="waiting-room-audio-cue.js?v=20261013-camoverlay1"></script>
+  <script src="remote-audio-autounlock.js?v=20261013-camoverlay1"></script>
 <script src="brand-home.js?v=20261006-authsmooth3"></script>
 </body>
 </html>
