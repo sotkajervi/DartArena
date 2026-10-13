@@ -21,14 +21,9 @@ async function startCamera(){
   if(stream?.active)return;
   try{
     const Z=window.DartArenaZoomCam,config=Z?.loadConfig(localStorage);
-    let permitted=false;
-    if(config&&Z.selected(localStorage)){
-      try{
-        const [owner,admin]=await Promise.all([db.rpc('is_owner'),db.rpc('is_admin')]);
-        permitted=!owner.error&&!admin.error&&(owner.data===true||admin.data===true);
-      }catch{}
-    }
-    const useZoom=permitted&&!!config;
+    // This is a player-selected video source, not a privileged admin feature.
+    // Match access is already validated when the authenticated player joins.
+    const useZoom=!!(Z&&config&&Z.selected(localStorage));
     const constraints={
       video:{...(useZoom?{deviceId:{exact:config.deviceId}}:{}),width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},
       audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}
