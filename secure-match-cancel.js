@@ -37,23 +37,27 @@
     const cancel=document.getElementById('cancelMatchBtn');
     if(!close||close.dataset.dartArenaCloseGuard==='1')return !!close;
     close.dataset.dartArenaCloseGuard='1';
-    if(!new URLSearchParams(location.search).has('tournamentMatch'))close.textContent='Til lobby';
+    if(!new URLSearchParams(location.search).has('tournamentMatch'))close.textContent='Åpne lobby i ny fane';
     close.addEventListener('click',async event=>{
       const isTournament=new URLSearchParams(location.search).has('tournamentMatch');
-      // Tournament room navigation retains its existing separate-window behavior.
+      // Preserve the tournament room's existing close behavior.
       if(isTournament&&(!cancel||cancel.classList.contains('hidden')))return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      const active=!!cancel&&!cancel.classList.contains('hidden');
-      if(!active){location.href='./';return}
+      if(!isTournament){
+        // This runs directly on the player's click: no async popup blocking.
+        // Reuse an existing lobby tab if this button is clicked again.
+        const lobbyTab=window.open('./','dartarena-lobby');
+        if(lobbyTab){
+          try{lobbyTab.opener=null;lobbyTab.focus()}catch{}
+        }else alert('Nettleseren blokkerte lobbyfanen. Tillat popup-vinduer for DartArena.');
+        return;
+      }
       const dialog=await ensureDialog().catch(()=>null);
       const ok=dialog
-        ?await dialog.confirm('Kampen pågår fortsatt.\n\nVil du gå tilbake til lobbyen uten å avbryte kampen?',{title:'Til lobby?',tone:'warning',confirmText:'Til lobby'})
-        :confirm('Kampen pågår fortsatt. Gå til lobbyen?');
-      if(ok){
-        if(isTournament)window.close();
-        else location.href='./';
-      }
+        ?await dialog.confirm('Kampen pågår fortsatt.\n\nVil du lukke kampfanen uten å avbryte kampen?',{title:'Lukk kampfane?',tone:'warning',confirmText:'Lukk kampfane'})
+        :confirm('Kampen pågår fortsatt. Lukk kampfanen?');
+      if(ok)window.close();
     },true);
     return true;
   }
