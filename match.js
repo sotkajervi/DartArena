@@ -1,6 +1,7 @@
 const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK',db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY),$=id=>document.getElementById(id);
 const matchId=new URLSearchParams(location.search).get('id');
 let profile,m,other,names={},channel,stream=null,pc=null,remoteStream=null;
+let zoomCamSession=null;
 let localReady=false,remoteReady=false,leaving=false,generation=1,lastSignal='START',candidatePath='?';
 let readyTimer=null,answerWatchTimer=null,handshakeTimer=null,disconnectTimer=null,statsTimer=null,trackMuteTimer=null;
 let pendingCandidates=[],recoveryState='idle',recoveryStartedAt=0,lastRecoveryRequestAt=0,lastVideoBytes=-1,lastVideoFrames=-1,rtpStalls=0;
@@ -16,7 +17,54 @@ $('matchScoreBtn').onclick=()=>score($('matchScoreInput').value);$('matchScoreIn
 function setupChannel(){channel=db.channel('match-'+m.id,{config:{broadcast:{ack:true}}}).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${m.id}`},async p=>{m=p.new;render();if(m.status!=='playing')await setPlayersUnavailable()}).on('broadcast',{event:'ready'},async({payload})=>{if(payload.from!==other)return;remoteReady=true;lastSignal=`READY g${payload.generation||1}`;debug();if(isOfferer()&&recoveryState==='idle')await ensureOffer();else if(!isOfferer()&&!pc)armAnswerWatch()}).on('broadcast',{event:'signal'},async({payload})=>{if(payload.from!==other)return;remoteReady=true;await handleSignal(payload)}).on('broadcast',{event:'reset-request'},async({payload})=>{if(payload.from!==other||!isOfferer()||leaving)return;lastSignal=`RESET request ${payload.reason||''}`;debug();if(recoveryState!=='idle')return;await startOffererRecovery(payload.reason||'remote')}).subscribe(async s=>{lastSignal=`RT ${s}`;debug();if(s==='SUBSCRIBED'){await startCamera();startHeartbeat()}})}
 function startHeartbeat(){clearInterval(readyTimer);readyTimer=setInterval(()=>{if(!leaving&&localReady)send('ready',{generation});if(!isOfferer()&&localReady&&remoteReady&&!pc&&recoveryState==='idle')armAnswerWatch()},5000)}
 function armAnswerWatch(){if(isOfferer()||leaving||!localReady||!remoteReady||pc||answerWatchTimer||recoveryState!=='idle')return;answerWatchTimer=setTimeout(async()=>{answerWatchTimer=null;if(!pc&&recoveryState==='idle')await requestReset('answer-no-peer')},5000)}
-async function startCamera(){if(stream?.active)return;try{stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});const v=$('localVideo');v.srcObject=stream;v.muted=true;await v.play().catch(()=>{});$('localPlaceholder').classList.add('hidden');$('cameraBtn').textContent='Stopp kamera';localReady=true;lastSignal='CAMERA ready';debug();await send('ready',{generation});if(isOfferer())await ensureOffer();else armAnswerWatch()}catch(e){localReady=false;$('localPlaceholder').classList.remove('hidden');$('localPlaceholder').textContent='Kamera kunne ikke startes.';lastSignal=`CAMERA ${e?.name||'error'}`;debug()}}
+async function startCamera(){
+  if(stream?.active)return;
+  try{
+    const Z=window.DartArenaZoomCam,config=Z?.loadConfig(localStorage);
+    let permitted=false;
+    if(config&&Z.selected(localStorage)){
+      try{
+        const [owner,admin]=await Promise.all([db.rpc('is_owner'),db.rpc('is_admin')]);
+        permitted=!owner.error&&!admin.error&&(owner.data===true||admin.data===true);
+      }catch{}
+    }
+    const useZoom=permitted&&!!config;
+    const constraints={
+      video:{...(useZoom?{deviceId:{exact:config.deviceId}}:{}),width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},
+      audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}
+    };
+    let raw;
+    try{raw=await navigator.mediaDevices.getUserMedia(constraints)}
+    catch(error){
+      if(!useZoom||!['NotFoundError','OverconstrainedError'].includes(error?.name))throw error;
+      raw=await navigator.mediaDevices.getUserMedia({
+        ...constraints,video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}}
+      });
+    }
+    stream=raw;
+    if(useZoom){
+      try{
+        zoomCamSession=Z.create(raw,config);
+        stream=zoomCamSession.stream;
+        window.DartArenaX01ZoomSession=zoomCamSession;
+      }catch(error){
+        console.warn('Zoom-cam kunne ikke starte, bruker vanlig kamera',error);
+        Z.setSelected(localStorage,false);
+      }
+    }
+    const v=$('localVideo');v.srcObject=stream;v.muted=true;await v.play().catch(()=>{});
+    $('localPlaceholder').classList.add('hidden');
+    $('cameraBtn').textContent='Stopp kamera';
+    localReady=true;lastSignal=zoomCamSession?'ZOOM-CAM ready':'CAMERA ready';debug();
+    await send('ready',{generation});
+    if(isOfferer())await ensureOffer();else armAnswerWatch();
+  }catch(e){
+    localReady=false;
+    $('localPlaceholder').classList.remove('hidden');
+    $('localPlaceholder').textContent='Kamera kunne ikke startes.';
+    lastSignal=`CAMERA ${e?.name||'error'}`;debug();
+  }
+}
 function destroyPeer(placeholder=true){clearTimeout(answerWatchTimer);answerWatchTimer=null;clearTimeout(handshakeTimer);handshakeTimer=null;clearTimeout(disconnectTimer);disconnectTimer=null;clearTimeout(trackMuteTimer);trackMuteTimer=null;clearInterval(statsTimer);statsTimer=null;pendingCandidates=[];lastVideoBytes=-1;lastVideoFrames=-1;rtpStalls=0;candidatePath='?';if(pc){pc.ontrack=pc.onicecandidate=pc.onconnectionstatechange=pc.oniceconnectionstatechange=null;try{pc.close()}catch{}}pc=null;remoteStream=null;const v=$('remoteVideo');if(v){v.onloadedmetadata=null;v.oncanplay=null;v.pause?.();v.srcObject=null}if(placeholder)showRemote('Kobler til video…')}
 function attachRemoteTrack(e,p,myGen){if(p!==pc||myGen!==generation)return;if(!remoteStream)remoteStream=new MediaStream();if(!remoteStream.getTracks().some(x=>x.id===e.track.id))remoteStream.addTrack(e.track);const v=$('remoteVideo');v.srcObject=remoteStream;if(e.track.kind==='video'){const play=async()=>{if(p!==pc)return;try{v.muted=true;await v.play();hideRemote()}catch(err){lastSignal=`PLAY blocked ${err?.name||''}`;debug();showRemote('Klikk i siden for å starte video')}};e.track.onmute=()=>{if(p!==pc)return;lastSignal='VIDEO track muted';debug();clearTimeout(trackMuteTimer);trackMuteTimer=setTimeout(()=>{trackMuteTimer=null;if(p!==pc||e.track.muted===false)return;lastSignal='VIDEO mute timeout';debug();if(isOfferer())startOffererRecovery('track-muted');else requestReset('track-muted')},4000)};e.track.onunmute=()=>{clearTimeout(trackMuteTimer);trackMuteTimer=null;lastSignal='VIDEO track unmuted';debug();play()};e.track.onended=()=>{lastSignal='VIDEO track ended';debug();if(p===pc&&p.connectionState!=='connected')requestReset('track-ended')};v.onloadedmetadata=play;v.oncanplay=play;play()}lastSignal=`TRACK ${e.track.kind}`;debug()}
 function createPeer(){if(pc||!stream?.active)return pc;clearTimeout(answerWatchTimer);answerWatchTimer=null;const myGen=generation,p=new RTCPeerConnection(ICE);pc=p;remoteStream=new MediaStream();$('remoteVideo').srcObject=remoteStream;stream.getTracks().forEach(t=>p.addTrack(t,stream));p.ontrack=e=>attachRemoteTrack(e,p,myGen);p.onicecandidate=e=>{if(p!==pc||myGen!==generation||!e.candidate)return;send('signal',{candidate:e.candidate.toJSON?e.candidate.toJSON():e.candidate,generation:myGen})};p.oniceconnectionstatechange=()=>{if(p!==pc)return;lastSignal=`ICE ${p.iceConnectionState}`;debug();if(p.iceConnectionState==='connected'||p.iceConnectionState==='completed')markConnected(p,myGen);else if(p.iceConnectionState==='disconnected')armDisconnectGrace(p,'ice-disconnected');else if(p.iceConnectionState==='failed')hardFailure(p,'ice-failed')};p.onconnectionstatechange=()=>{if(p!==pc)return;lastSignal=`PEER ${p.connectionState}`;debug();if(p.connectionState==='connected')markConnected(p,myGen);else if(p.connectionState==='disconnected')armDisconnectGrace(p,'peer-disconnected');else if(p.connectionState==='failed')hardFailure(p,'peer-failed')};return p}
@@ -35,7 +83,8 @@ async function send(event,payload={}){if(!channel)return;try{return await channe
 channelResetHandler=()=>{};
 $('cameraBtn').onclick=async()=>{if(!stream)return startCamera();localReady=false;stream.getTracks().forEach(t=>t.stop());stream=null;destroyPeer();$('localVideo').srcObject=null;$('localPlaceholder').classList.remove('hidden');showRemote('Venter på motstanderens kamera…');$('cameraBtn').textContent='Start kamera';lastSignal='CAMERA stopped';debug()};
 async function setPlayersUnavailable(){if(m)await db.from('profiles').update({status:'unavailable'}).in('id',[m.player1_id,m.player2_id])}
-function cleanup(){leaving=true;localReady=false;clearInterval(readyTimer);clearTimeout(answerWatchTimer);clearTimeout(handshakeTimer);clearTimeout(disconnectTimer);clearTimeout(trackMuteTimer);clearInterval(statsTimer);stream?.getTracks().forEach(t=>t.stop());stream=null;destroyPeer(false);if(channel)db.removeChannel(channel)}
+function cleanup(){leaving=true;localReady=false;clearInterval(readyTimer);clearTimeout(answerWatchTimer);clearTimeout(handshakeTimer);clearTimeout(disconnectTimer);clearTimeout(trackMuteTimer);clearInterval(statsTimer);stream?.getTracks().forEach(t=>t.stop());stream=null;
+if(zoomCamSession){zoomCamSession.stop();zoomCamSession.sourceTrack?.stop();zoomCamSession=null;window.DartArenaX01ZoomSession=null}destroyPeer(false);if(channel)db.removeChannel(channel)}
 $('cancelMatchBtn').onclick=async()=>{if(!m||m.status!=='playing'||!confirm('Vil du avbryte kampen?'))return;const{error}=await db.from('matches').update({status:'cancelled',finished_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',m.id);if(error)return $('matchMessage').textContent='Kunne ikke avbryte: '+error.message;await setPlayersUnavailable();window.opener?.postMessage({type:'dartarena-match-ended',id:m.id},location.origin);window.close()};
 $('closeMatchBtn').onclick=()=>{if(m?.status==='playing'&&!confirm('Kampen pågår fortsatt. Lukk kampfanen?'))return;window.close()};
 window.addEventListener('beforeunload',cleanup);
