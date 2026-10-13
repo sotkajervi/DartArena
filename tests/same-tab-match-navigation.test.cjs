@@ -9,9 +9,10 @@ const vm = require('node:vm');
 const root = path.join(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'secure-match-cancel.js'), 'utf8');
 
-function prepare({ tournament = false, playing = false } = {}) {
+function prepare({ tournament = false, playing = false, blockPopup = false } = {}) {
   const handlers = {};
   const navigations = [];
+  const openedTabs = [], alerts = [];
   let popupCloses = 0;
   let rpcCalls = 0;
   const cancel = {
@@ -51,6 +52,12 @@ function prepare({ tournament = false, playing = false } = {}) {
         }
       },
       close() { popupCloses++; },
+      open(url, name) {
+        if (blockPopup) return null;
+        const tab = { opener: context.window, focusCount: 0, focus() { this.focusCount++; } };
+        openedTabs.push({ url, name, tab });
+        return tab;
+      },
       opener: null
     },
     document: {
@@ -61,11 +68,12 @@ function prepare({ tournament = false, playing = false } = {}) {
     },
     setInterval() { throw new Error('The close guard must initialize immediately'); },
     setTimeout() { throw new Error('No delayed navigation should be necessary'); },
-    confirm() { return true; }
+    confirm() { return true; },
+    alert(message) { alerts.push(message); }
   };
   vm.runInNewContext(source, context);
   return {
-    close, cancel, message, navigations,
+    close, cancel, message, navigations, openedTabs, alerts,
     get popupCloses() { return popupCloses; },
     get rpcCalls() { return rpcCalls; },
     async click(name) {
@@ -79,24 +87,50 @@ function prepare({ tournament = false, playing = false } = {}) {
   };
 }
 
-test('ordinary finished match labels its close button Til lobby', () => {
-  const screen = prepare();
-  assert.equal(screen.close.textContent, 'Til lobby');
+test('ordinary match labels the lobby button Åpne lobby i ny fane', () => {
+  const screen = prepare({ playing: true });
+  assert.equal(screen.close.textContent, 'Åpne lobby i ny fane');
 });
 
-test('ordinary finished match returns to lobby without calling window.close', async () => {
+test('finished match lobby button also opens a separate tab', async () => {
   const screen = prepare();
   await screen.click('close');
-  assert.deepEqual(screen.navigations, ['./']);
+  assert.equal(screen.openedTabs.length, 1);
+  assert.equal(screen.openedTabs[0].url, './');
+  assert.equal(screen.openedTabs[0].name, 'dartarena-lobby');
+  assert.equal(screen.openedTabs[0].tab.opener, null);
+  assert.equal(screen.openedTabs[0].tab.focusCount, 1);
+  assert.deepEqual(screen.navigations, []);
   assert.equal(screen.popupCloses, 0);
 });
 
-test('ordinary active match can return to lobby without cancelling the match', async () => {
+test('ordinary active match keeps video/scoring page and match alive', async () => {
   const screen = prepare({ playing: true });
   await screen.click('close');
-  assert.deepEqual(screen.navigations, ['./']);
+  assert.equal(screen.openedTabs.length, 1);
+  assert.deepEqual(screen.navigations, []);
   assert.equal(screen.rpcCalls, 0);
   assert.equal(screen.popupCloses, 0);
+});
+
+test('blocked lobby popup leaves the match intact and warns the player', async () => {
+  const screen = prepare({ playing: true, blockPopup: true });
+  await screen.click('close');
+  assert.equal(screen.openedTabs.length, 0);
+  assert.equal(screen.alerts.length, 1);
+  assert.match(screen.alerts[0], /blokkerte lobbyfanen/);
+  assert.deepEqual(screen.navigations, []);
+  assert.equal(screen.rpcCalls, 0);
+});
+
+test('repeated lobby clicks use a reusable named tab instead of new random names', async () => {
+  const screen = prepare({ playing: true });
+  await screen.click('close');
+  await screen.click('close');
+  assert.equal(screen.openedTabs.length, 2);
+  assert.equal(screen.openedTabs[0].name, 'dartarena-lobby');
+  assert.equal(screen.openedTabs[1].name, 'dartarena-lobby');
+  assert.deepEqual(screen.navigations, []);
 });
 
 test('cancelled ordinary match returns to lobby after server RPC', async () => {
@@ -118,7 +152,7 @@ test('tournament close guard still uses the existing window-close behavior', asy
 test('all normal online match variants load the refreshed lobby-return handler', () => {
   for (const file of ['match.html', 'cricket.html', 'half-it.html', '61-match.html']) {
     const html = fs.readFileSync(path.join(root, file), 'utf8');
-    assert.match(html, /secure-match-cancel\.js\?v=20261013-sametab1/);
+    assert.match(html, /secure-match-cancel\.js\?v=20261013-lobbytab1/);
   }
 });
 
@@ -128,4 +162,9 @@ test('room-to-match navigation stays in the current tab', () => {
   assert.match(room, /location\.href=`\$\{pageForVariant\(payload\.gameVariant\)\}/);
   assert.match(secureCreate, /location\.href=`\$\{page\}\?id=/);
   assert.doesNotMatch(room, /window\.open\(/);
+});
+
+test('completed-match result screen retains a same-tab Til lobby action', () => {
+  const screen = fs.readFileSync(path.join(root, 'shared-results.js'), 'utf8');
+  assert.match(screen, /daResultLobby'\)\.onclick=\(\)=>location\.href='\.\/'/);
 });
