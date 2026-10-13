@@ -37,6 +37,7 @@
     const cancel=document.getElementById('cancelMatchBtn');
     if(!close||close.dataset.dartArenaCloseGuard==='1')return !!close;
     close.dataset.dartArenaCloseGuard='1';
+    if(!new URLSearchParams(location.search).has('tournamentMatch'))close.textContent='Til lobby';
     close.addEventListener('click',async event=>{
       const isTournament=new URLSearchParams(location.search).has('tournamentMatch');
       // Tournament room navigation retains its existing separate-window behavior.
