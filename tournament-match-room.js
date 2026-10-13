@@ -18,6 +18,7 @@ let heartbeat=null;
 let localReady=false;
 let remoteReady=false;
 let starting=false;
+let cameraStartupPromise=null;
 let starterChoice='random';
 let coinFlipRunning=false;
 let coinFlipFinished=false;
@@ -165,6 +166,16 @@ async function boot(){
   $('starterChoice').onchange=changeStarterChoice;
 
   setupChannel();
+  // Show local preview even while Supabase Realtime is reconnecting.
+  // The video publisher will broadcast its publication after subscribe succeeds.
+  void ensureCameraStarted();
+}
+
+async function ensureCameraStarted(){
+  if(publication)return;
+  if(cameraStartupPromise)return cameraStartupPromise;
+  cameraStartupPromise=Promise.resolve().then(()=>startCamera()).finally(()=>{cameraStartupPromise=null});
+  return cameraStartupPromise;
 }
 
 function setupChannel(){
@@ -207,7 +218,7 @@ function setupChannel(){
     })
     .subscribe(async status=>{
       if(status!=='SUBSCRIBED')return;
-      await startCamera();
+      await ensureCameraStarted();
       clearInterval(heartbeat);
       heartbeat=setInterval(sendState,1800);
       await sendState();
@@ -243,9 +254,10 @@ async function startCamera(){
     console.error('Tournament room camera error',e);
     publication=null;
     $('readyBtn').disabled=true;
-    $('localPlaceholder').classList.remove('hidden');
+    const previewAvailable=!!stream?.getVideoTracks?.().some(t=>t.readyState==='live');
+    $('localPlaceholder').classList.toggle('hidden',previewAvailable);
     $('localPlaceholder').textContent='Kamera ikke startet';
-    setStatus(cameraErrorText(e));
+    setStatus(previewAvailable?'Kamera lokalt OK, men videooverføring feilet: '+cameraErrorText(e):cameraErrorText(e));
     $('retryCameraBtn').classList.remove('hidden');
   }
 }
