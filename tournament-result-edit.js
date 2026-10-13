@@ -49,7 +49,7 @@
     try{
       const {data:match,error}=await client
         .from('tournament_matches')
-        .select('id,tournament_id,stage,round_no,match_no,status,best_of,player1_id,player2_id,player1_legs,player2_legs,winner_id')
+        .select('id,tournament_id,stage,round_no,match_no,status,best_of,player1_id,player2_id,player1_legs,player2_legs,winner_id,live_match_id')
         .eq('id',matchId)
         .single();
 
@@ -90,7 +90,7 @@
         if(!ok)return;
       }
 
-      const {error:rpcError}=await client.rpc('record_tournament_result',{
+      const {error:rpcError}=await client.rpc(match.live_match_id?'correct_finished_tournament_result':'record_tournament_result',{
         p_tournament_match_id:matchId,
         p_player1_legs:p1,
         p_player2_legs:p2
@@ -139,7 +139,7 @@
       const ids=[...new Set(undecorated.map(r=>r.dataset.match).filter(Boolean))];
       const {data,error}=await client.from('tournament_matches').select('id,status,stage,player1_id,player2_id,live_match_id').in('id',ids);
       if(error)return console.error('Could not inspect finished matches for admin edit',error);
-      const editable=new Set((data||[]).filter(m=>['pending','finished','wo'].includes(m.status)&&!m.live_match_id&&m.player1_id&&m.player2_id).map(m=>m.id));
+      const editable=new Set((data||[]).filter(m=>['pending','finished','wo'].includes(m.status)&&(m.status!=='pending'||!m.live_match_id)&&m.player1_id&&m.player2_id).map(m=>m.id));
       undecorated.forEach(row=>{if(editable.has(row.dataset.match)){row.dataset.editPending=(data||[]).find(m=>m.id===row.dataset.match)?.status==='pending'?'1':'0';attachButton(row)}});
     }finally{decorating=false}
   }
