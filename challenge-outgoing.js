@@ -1,35 +1,6 @@
 (()=>{
   let startedFor=null,sentChannel=null,pendingSentIds=new Set(),acceptedRoomId=null,roomTabs=new Map();
   const observedPendingChallengeIds=new Set();
-  const waitingRoomIds=new Set();
-
-  // Reserve a browser tab inside the user's click, before any async database work.
-  // Realtime callbacks cannot reliably create new tabs because of popup blocking.
-  function reserveWaitingRoomTab(){
-    const tab=window.open('about:blank','_blank');
-    if(!tab)return null;
-    try{
-      tab.document.title='DartArena – venter på svar';
-      tab.document.body.innerHTML='<div style="min-height:100vh;display:grid;place-items:center;background:#071012;color:#e8f6f6;font:16px system-ui,sans-serif;text-align:center;padding:24px;box-sizing:border-box"><div><h1 style="color:#00eaf4">DartArena</h1><p>Venter på at motstanderen godtar utfordringen…</p><small>Venterommet åpnes her automatisk. Lobbyen er fortsatt åpen i forrige fane.</small></div></div>';
-      // Browsers decide whether a newly opened tab may remain in the background.
-      tab.blur?.();
-      window.focus?.();
-    }catch(error){console.warn('Could not prepare waiting tab',error)}
-    return tab;
-  }
-
-  function trackWaitingRoom(id,tab){
-    if(!id||!tab||tab.closed)return;
-    roomTabs.set(id,tab);
-    waitingRoomIds.add(id);
-  }
-
-  function closeWaitingRoom(id){
-    if(!waitingRoomIds.delete(id))return;
-    const tab=roomTabs.get(id);
-    roomTabs.delete(id);
-    if(tab&&!tab.closed)try{tab.close()}catch{}
-  }
   let autoOpeningRoomId=null,navigatingRoomId=null;
 
   function ensureUi(){
@@ -79,26 +50,12 @@
     const url=`room.html?id=${encodeURIComponent(id)}`;
     const existing=roomTabs.get(id);
     if(existing&&!existing.closed){
-      if(waitingRoomIds.has(id)){
-        try{
-          existing.location.href=url;
-          waitingRoomIds.delete(id);
-        }catch(error){
-          console.warn('Could not open waiting room in reserved tab',error);
-          acceptedRoomId=id;
-          renderAcceptedRoomPrompt();
-          return false;
-        }
-      }
       acceptedRoomId=null;
       renderAcceptedRoomPrompt();
       if(focus)try{existing.focus()}catch{}
       return true;
     }
-    if(existing?.closed){
-      waitingRoomIds.delete(id);
-      roomTabs.delete(id);
-    }
+    if(existing?.closed)roomTabs.delete(id);
     const tab=window.open(url,`dartarena-room-${id}`);
     if(tab){
       roomTabs.set(id,tab);
@@ -112,8 +69,9 @@
     return false;
   }
 
-  // Keep the lobby open: navigate the tab reserved when the invitation was sent.
-  // If that tab was blocked or closed, show a click-to-open fallback in the lobby.
+  // Do not open a tab when the invitation is sent: keep the lobby visible.
+  // Once accepted, try a new tab; browsers may block the asynchronous popup.
+  // In that case, show the existing click-to-open fallback in the lobby.
   async function autoEnterAcceptedRoom(id){
     if(!id||!profile||!observedPendingChallengeIds.has(id)||autoOpeningRoomId||navigatingRoomId)return;
     const userId=profile.id;
@@ -158,7 +116,7 @@
     renderAcceptedRoomPrompt();
     if(!host||!profile)return;
     const userId=profile.id;
-    if(activeMatch){for(const id of waitingRoomIds)closeWaitingRoom(id);pendingSentIds=new Set();host.innerHTML='<p class="muted">Du er i kamp.</p>';return}
+    if(activeMatch){pendingSentIds=new Set();host.innerHTML='<p class="muted">Du er i kamp.</p>';return}
     const{data,error}=await db.from('challenges')
       .select('id,challenged_id,status,created_at')
       .eq('challenger_id',profile.id)
@@ -167,9 +125,6 @@
     if(error){host.innerHTML=`<p class="muted">${esc(error.message)}</p>`;return}
     if(profile?.id!==userId)return;
     const currentIds=new Set((data||[]).map(c=>c.id));
-    for(const id of waitingRoomIds){
-      if(!currentIds.has(id))closeWaitingRoom(id);
-    }
     for(const id of observedPendingChallengeIds){
       if(!currentIds.has(id))observedPendingChallengeIds.delete(id);
     }
@@ -200,7 +155,6 @@
     button.disabled=true;button.textContent='Trekker tilbake…';
     const{error}=await db.from('challenges').update({status:'cancelled'}).eq('id',id).eq('challenger_id',profile.id).eq('status','pending');
     if(error){button.disabled=false;button.textContent=old;alert(error.message);return}
-    closeWaitingRoom(id);
     await Promise.all([loadSentChallenges(),loadPlayers()]);
   }
 
@@ -213,7 +167,6 @@
   sendInvite=async function(button){
     if(activeMatch||!button||button.disabled)return;
     const id=button.dataset.id,old=button.textContent;
-    const waitingTab=reserveWaitingRoomTab();
     button.disabled=true;button.textContent='Sjekker…';
 
     const{data:incoming,error:incomingError}=await db.from('challenges')
@@ -225,7 +178,7 @@
       .limit(1)
       .maybeSingle();
 
-    if(incomingError){waitingTab?.close();button.disabled=false;button.textContent=old;alert(incomingError.message);return}
+    if(incomingError){button.disabled=false;button.textContent=old;alert(incomingError.message);return}
 
     if(incoming?.id){
       button.textContent='Kobler til…';
@@ -236,17 +189,15 @@
         .eq('status','pending')
         .select('id')
         .maybeSingle();
-      if(acceptError){waitingTab?.close();button.disabled=false;button.textContent=old;alert(acceptError.message);return}
-      if(!accepted?.id){waitingTab?.close();button.disabled=false;button.textContent=old;await Promise.all([loadChallenges(),loadPlayers()]);return}
-      trackWaitingRoom(accepted.id,waitingTab);
+      if(acceptError){button.disabled=false;button.textContent=old;alert(acceptError.message);return}
+      if(!accepted?.id){button.disabled=false;button.textContent=old;await Promise.all([loadChallenges(),loadPlayers()]);return}
       openAcceptedRoom(accepted.id,true);
       return;
     }
 
     button.textContent='Sender…';
     const{data,error}=await db.from('challenges').insert({challenger_id:profile.id,challenged_id:id,game:501,legs:5,allow_draw:false,starter:'me',status:'pending'}).select('id').single();
-    if(error){waitingTab?.close();button.disabled=false;button.textContent=old;alert(error.message);return}
-    trackWaitingRoom(data.id,waitingTab);
+    if(error){button.disabled=false;button.textContent=old;alert(error.message);return}
     pendingSentIds.add(id);
     observedPendingChallengeIds.add(data.id);
     button.textContent='Sendt';
@@ -256,10 +207,7 @@
   async function startForProfile(){
     if(!profile||startedFor===profile.id)return;
     if(sentChannel)try{await db.removeChannel(sentChannel)}catch{}
-    if(startedFor&&startedFor!==profile.id){
-      for(const id of waitingRoomIds)closeWaitingRoom(id);
-      observedPendingChallengeIds.clear();
-    }
+    if(startedFor&&startedFor!==profile.id)observedPendingChallengeIds.clear();
     startedFor=profile.id;
     autoOpeningRoomId=null;
     navigatingRoomId=null;
@@ -272,7 +220,6 @@
         if(row.status!=='room'){
           if(row.status!=='pending'){
             observedPendingChallengeIds.delete(row.id);
-            closeWaitingRoom(row.id);
             roomTabs.delete(row.id);
           }
           if(acceptedRoomId===row.id){
@@ -289,7 +236,6 @@
     if(e.origin!==location.origin)return;
     if(e.data?.type==='dartarena-room-cancelled'){
       observedPendingChallengeIds.delete(e.data.id);
-      closeWaitingRoom(e.data.id);
       roomTabs.delete(e.data.id);
       if(acceptedRoomId===e.data.id)acceptedRoomId=null;
       renderAcceptedRoomPrompt();
@@ -297,5 +243,5 @@
     }
   });
 
-  setInterval(()=>{if(profile)startForProfile();else{for(const id of waitingRoomIds)closeWaitingRoom(id);startedFor=null;pendingSentIds=new Set();observedPendingChallengeIds.clear();autoOpeningRoomId=null;navigatingRoomId=null;acceptedRoomId=null;roomTabs.clear()}},600);
+  setInterval(()=>{if(profile)startForProfile();else{startedFor=null;pendingSentIds=new Set();observedPendingChallengeIds.clear();autoOpeningRoomId=null;navigatingRoomId=null;acceptedRoomId=null;roomTabs.clear()}},600);
 })();
