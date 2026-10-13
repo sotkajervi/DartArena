@@ -443,6 +443,11 @@
 
   async function stop(){
     if(stopped)return;stopped=true;
+    if(zoomSession){
+      zoomSession.stop();
+      zoomSession.sourceTrack?.stop();
+      zoomSession=null;
+    }
     clearInterval(heartbeat);clearInterval(monitor);clearInterval(fallbackHeartbeat);clearInterval(legacyGuard);clearTimeout(disconnectTimer);
     closePeer(false);
     try{fallbackSfu?.close()}catch{};fallbackSfu=null;
