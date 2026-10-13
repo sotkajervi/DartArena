@@ -65,6 +65,8 @@ test('frame-to-frame movement ratio reports a fresh change',()=>{
 });
 
 test('zoom cropping preserves the inset aspect ratio and stays within webcam bounds',()=>{
+  const centre=T.zoomCrop(W,H,board.x,board.y,board.radius,4/3);
+  assert.ok(Math.abs(centre.width-board.radius*.65)<.001,'Inset should be ~38% closer than v1');
   for(const position of [[0,0],[399,239],[200,120]]){
     const r=T.zoomCrop(W,H,...position,board.radius,4/3);
     assert.ok(r.x>=0&&r.y>=0);
