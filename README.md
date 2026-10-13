@@ -134,11 +134,11 @@ Dette erstatter den tidligere AutoZoom-delingsbetaen med en **faktisk, sammensat
 
 1. Åpne **Cam-test** i hovedlobbyen. Velg fysisk kamera, og trykk **Kalibrer Zoom-cam**. Klikk Bull og deretter D20 på dobbelringen. Kalibreringen lagres lokalt for akkurat dette kameraet og videoformatet.
 2. Sørg for tom skive, og bruk **Forhåndsvis Zoom-cam** for å kontrollere hele bildet + zoomvinduet. Dette er den ferdige videosammensetningen som senere sendes, ikke et overlagt vindu bare hos deg.
-3. Start et **vanlig venterom** (OWNER/ADMIN). Velg **Zoom-cam (kalibrert)** under Kamera. Venterommet bytter senderens videotrack og bevarer mikrofonen. Du kan bytte tilbake til det vanlige fysiske kameraet.
+3. Start et **vanlig venterom** (alle innloggede spillere). Velg **Zoom-cam (kalibrert)** under Kamera. Venterommet bytter senderens videotrack og bevarer mikrofonen. Du kan bytte tilbake til det vanlige fysiske kameraet.
 4. Start en **X01-kamp (170, 301, 501 eller 1001)**. Kameraet åpnes på nytt og Zoom-cam bygges fra den lagrede kalibreringen. Både motstander og eventuelle tilskuere som får kameravideoen, mottar dermed samme sammensatte videobilde. Fungerer dette ikke i nettleseren, brukes vanlig kamera som reserve.
 
 Zoom følger nye stabile bildeendringer og søker også i det synlige området **utenfor dobbelringen**. Dette er ikke trent pilspissdeteksjon og registrerer ikke score. Hovedbildet står stille, mens et digitalt utsnitt tegnes øverst til høyre. Normal/Lav-terskelen brukes foreløpig for å unngå falske hopp. Oppløsning og hastighet på kildesiden er avgjørende.
 
-**Avgrensning:** Bare vanlig venterom → `match.html` (X01) i første OWNER/ADMIN-test. Turneringsventerom, Cricket, Half-It og JDC bruker foreløpig vanlig kamera. En ny side får ikke med seg en levende mediatrack; kun innstillingene beholdes. Velg Zoom-cam på nytt i venterommet ved behov. Ingen eksisterende scoring-, database- eller lydflyt endres. Kamera stoppes på navigasjon, og Zoom-cam kan slåes av ved å velge fysisk kamera.
+**Avgrensning:** Zoom-cam er tilgjengelig for alle innloggede spillere i vanlige venterom → `match.html` (X01). Turneringsventerom, Cricket, Half-It og JDC bruker foreløpig vanlig kamera. En ny side får ikke med seg en levende mediatrack; kun innstillingene beholdes. Velg Zoom-cam på nytt i venterommet ved behov. Ingen eksisterende scoring-, database- eller lydflyt endres. Kamera stoppes på navigasjon, og Zoom-cam kan slåes av ved å velge fysisk kamera.
 
 Testsuite: `node --test autozoom/zoom-cam.test.cjs`. **Kamerapublisering og faktisk WebRTC-visning mellom to spillere må fortsatt testes manuelt**, siden simuleringene ikke erstatter en live nettlesertest.

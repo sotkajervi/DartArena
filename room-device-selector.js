@@ -12,7 +12,6 @@
   const MIC_KEY = 'dartarena-preferred-microphone';
   const Z = window.DartArenaZoomCam;
   let zoomSession = null;
-  let zoomAllowed = false;
   let switching = false;
   let meterContext = null;
   let meterSource = null;
@@ -106,7 +105,7 @@
       option.textContent = device.label || `${fallbackLabel} ${index + 1}`;
       select.appendChild(option);
     });
-    if (select===cameraSelect&&zoomAllowed&&Z){
+    if (select===cameraSelect&&Z){
       const config=Z.loadConfig(localStorage);
       if(config&&devices.some(d=>d.deviceId===config.deviceId)){
         const option=document.createElement('option');
@@ -178,7 +177,7 @@
   async function replaceDevice(kind, deviceId, save = true) {
     if (!deviceId || switching || !navigator.mediaDevices?.getUserMedia || !roomStreamReady()) return;
     if(kind==='video'&&deviceId===Z?.ZOOM_VALUE){
-      if(!zoomAllowed||zoomSession)return;
+      if(!Z||zoomSession)return;
       const config=Z.loadConfig(localStorage),sourceTrack=currentTrack('video');
       if(!config||!sourceTrack||!Z.compatible(config,sourceTrack,
         sourceTrack.getSettings?.().width||1280,sourceTrack.getSettings?.().height||720)){
@@ -283,7 +282,7 @@
 
     if (savedCamera && cameraExists && savedCamera !== currentDeviceId('video')) await replaceDevice('video', savedCamera, false);
     if (savedMic && micExists && savedMic !== currentDeviceId('audio')) await replaceDevice('audio', savedMic, false);
-    if(Z&&zoomAllowed&&Z.selected(localStorage)){
+    if(Z&&Z.selected(localStorage)){
       const config=Z.loadConfig(localStorage);
       if(config&&config.deviceId===currentDeviceId('video')){
         await replaceDevice('video',Z.ZOOM_VALUE,false);
@@ -297,12 +296,6 @@
   document.addEventListener('pointerdown', () => meterContext?.resume?.().catch(() => {}), { passive: true });
 
   async function waitForRoomStream() {
-    if(Z){
-      try{
-        const [owner,admin]=await Promise.all([db.rpc('is_owner'),db.rpc('is_admin')]);
-        zoomAllowed=!owner.error&&!admin.error&&(owner.data===true||admin.data===true);
-      }catch{zoomAllowed=false}
-    }
     await refreshDevices();
     const timer = setInterval(async () => {
       if (!stream || initializedStream === stream || !stream.getTracks().length) return;

@@ -107,8 +107,8 @@ test('waiting room includes calibrated Zoom-cam selection and real sender.replac
   assert.match(js,/ZOOM_VALUE/);
   assert.match(js,/option\.textContent='Zoom-cam \(kalibrert\)'/);
   assert.match(js,/sender\.replaceTrack\(next\.track\)/);
-  assert.match(js,/db\.rpc\('is_owner'\)/);
-  assert.match(js,/db\.rpc\('is_admin'\)/);
+  assert.doesNotMatch(js,/db\.rpc\('is_owner'\)/);
+  assert.doesNotMatch(js,/db\.rpc\('is_admin'\)/);
 });
 test('X01 match reloads physical input and composes actual outbound video',()=>{
   const html=fs.readFileSync(path.join(root,'match.html'),'utf8');
@@ -117,11 +117,34 @@ test('X01 match reloads physical input and composes actual outbound video',()=>{
   assert.match(js,/Z\.create\(raw,config\)/);
   assert.match(js,/stream=zoomCamSession\.stream/);
   assert.match(js,/deviceId:\{exact:config\.deviceId\}/);
-  assert.match(js,/db\.rpc\('is_owner'\)/);
-  assert.match(js,/db\.rpc\('is_admin'\)/);
+  assert.doesNotMatch(js,/db\.rpc\('is_owner'\)/);
+  assert.doesNotMatch(js,/db\.rpc\('is_admin'\)/);
   assert.doesNotMatch(html,/autozoom\/match-share\.js/);
   assert.doesNotMatch(html,/autozoom\/match-beta\.js/);
 });
+test('every player can see and activate Zoom-cam without administrative RPC checks',()=>{
+  const room=fs.readFileSync(path.join(root,'room-device-selector.js'),'utf8');
+  const match=fs.readFileSync(path.join(root,'match.js'),'utf8');
+  assert.match(room,/select===cameraSelect&&Z/);
+  assert.match(room,/if\(!Z\|\|zoomSession\)return/);
+  assert.match(room,/Z\.selected\(localStorage\)/);
+  assert.doesNotMatch(room,/zoomAllowed|is_owner|is_admin/);
+  assert.match(match,/const useZoom=!!\(Z&&config&&Z\.selected\(localStorage\)\)/);
+  assert.doesNotMatch(match,/permitted|is_owner|is_admin/);
+});
+
+test('Zoom-cam remains opt-in with calibration required; regular camera stays available',()=>{
+  const room=fs.readFileSync(path.join(root,'room-device-selector.js'),'utf8');
+  const match=fs.readFileSync(path.join(root,'match.js'),'utf8');
+  assert.match(room,/if\(config&&devices\.some\(d=>d\.deviceId===config\.deviceId\)\)/);
+  assert.match(room,/Z\.compatible\(config,sourceTrack/);
+  assert.match(room,/Z\.setSelected\(localStorage,false\)/);
+  assert.match(room,/return await|replaceDevice\('video', savedCamera, false\)/);
+  assert.match(match,/const useZoom=!!\(Z&&config&&Z\.selected\(localStorage\)\)/);
+  assert.match(match,/stream=raw/);
+  assert.match(match,/Zoom-cam kunne ikke starte, bruker vanlig kamera/);
+});
+
 test('ordinary stream is used if Zoom-cam fails; camera and mic controls still work',()=>{
   const match=fs.readFileSync(path.join(root,'match.js'),'utf8');
   const controls=fs.readFileSync(path.join(root,'match-controls.js'),'utf8');
