@@ -1,7 +1,7 @@
 (()=>{
   let startedFor=null,sentChannel=null,pendingSentIds=new Set(),acceptedRoomId=null,roomTabs=new Map();
   const observedPendingChallengeIds=new Set();
-  let autoOpeningRoomId=null;
+  let autoOpeningRoomId=null,navigatingRoomId=null;
 
   function ensureUi(){
     let host=document.getElementById('sentChallengeList');
@@ -72,7 +72,7 @@
   // Navigate the inviter in the current tab after an observed pending challenge is accepted.
   // Browser-initiated popup windows are often blocked after asynchronous Realtime events.
   async function autoEnterAcceptedRoom(id){
-    if(!id||!profile||!observedPendingChallengeIds.has(id)||autoOpeningRoomId)return;
+    if(!id||!profile||!observedPendingChallengeIds.has(id)||autoOpeningRoomId||navigatingRoomId)return;
     const userId=profile.id;
     autoOpeningRoomId=id;
     try{
@@ -86,6 +86,7 @@
       if(!data||profile?.id!==userId||activeMatch)return;
       observedPendingChallengeIds.delete(id);
       const url=`room.html?id=${encodeURIComponent(id)}`;
+      navigatingRoomId=id;
       const existing=roomTabs.get(id);
       if(existing&&!existing.closed){
         try{existing.location.href=url;existing.focus()}catch{}
@@ -93,6 +94,7 @@
       }
       window.location.assign(url);
     }catch(error){
+      navigatingRoomId=null;
       console.warn('Automatic waiting-room navigation failed',error);
       acceptedRoomId=id;
       renderAcceptedRoomPrompt();
@@ -213,6 +215,7 @@
     startedFor=profile.id;
     observedPendingChallengeIds.clear();
     autoOpeningRoomId=null;
+    navigatingRoomId=null;
     ensureUi();
     await loadSentChallenges();
     sentChannel=db.channel('lobby-sent-challenges-'+profile.id)
@@ -243,5 +246,5 @@
     }
   });
 
-  setInterval(()=>{if(profile)startForProfile();else{startedFor=null;pendingSentIds=new Set();observedPendingChallengeIds.clear();autoOpeningRoomId=null;acceptedRoomId=null;roomTabs.clear()}},600);
+  setInterval(()=>{if(profile)startForProfile();else{startedFor=null;pendingSentIds=new Set();observedPendingChallengeIds.clear();autoOpeningRoomId=null;navigatingRoomId=null;acceptedRoomId=null;roomTabs.clear()}},600);
 })();
