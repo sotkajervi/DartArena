@@ -54,19 +54,19 @@
         .single();
 
       if(error||!match)throw error||new Error('Kampen ble ikke funnet.');
-      if(!['finished','wo'].includes(match.status))throw new Error('Kun ferdige kamper kan endres.');
+      if(!['pending','finished','wo'].includes(match.status))throw new Error('Kampen kan ikke registreres manuelt mens den spilles.');
       if(!match.player1_id||!match.player2_id)throw new Error('WO/BYE uten to spillere kan ikke endres til et vanlig kampresultat.');
 
       const [n1,n2]=await namesFor([match.player1_id,match.player2_id]);
       const isChicago=(match.stage==='cup'?cupVariant:groupVariant)==='chicago';
       const needed=targetWins(match.best_of);
-      const current=`${Number(match.player1_legs||0)}-${Number(match.player2_legs||0)}`;
+      const current=match.status==='pending'?'':`${Number(match.player1_legs||0)}-${Number(match.player2_legs||0)}`;
       const dialog=await getDialog();
       const unit=isChicago?'games':'legs';
       const promptMessage=`${n1} vs ${n2}\n${isChicago?'Chicago Style':'Best av '+match.best_of} • vinner må ha ${needed} ${unit}\n\nSkriv nytt resultat (${n1}-${n2}):`;
       const input=dialog
-        ?await dialog.prompt(promptMessage,{title:'Korriger ferdig kamp',value:current,inputLabel:'NYTT RESULTAT',confirmText:'Lagre resultat'})
-        :prompt(`Korriger ferdig kamp\n${promptMessage}`,current);
+        ?await dialog.prompt(promptMessage,{title:match.status==='pending'?'Registrer resultat':'Korriger resultat',value:current,inputLabel:'NYTT RESULTAT',confirmText:'Lagre resultat'})
+        :prompt(`Registrer kampresultat\n${promptMessage}`,current);
       if(input===null)return;
 
       const parsed=input.trim().match(/^(\d+)\s*[-–:]\s*(\d+)$/);
@@ -82,7 +82,7 @@
       }
 
       const newWinner=p1>p2?match.player1_id:match.player2_id;
-      if(newWinner!==match.winner_id){
+      if(match.winner_id&&newWinner!==match.winner_id){
         const winnerName=newWinner===match.player1_id?n1:n2;
         const oldWinnerName=match.winner_id===match.player1_id?n1:n2;
         const text=`Dette endrer vinner fra ${oldWinnerName} til ${winnerName}.\n\nHvis dette er en cupkamp, oppdateres neste runde automatisk dersom den ikke har startet. Fortsette?`;
@@ -90,7 +90,7 @@
         if(!ok)return;
       }
 
-      const {error:rpcError}=await client.rpc('correct_finished_tournament_result',{
+      const {error:rpcError}=await client.rpc('record_tournament_result',{
         p_tournament_match_id:matchId,
         p_player1_legs:p1,
         p_player2_legs:p2
@@ -117,8 +117,8 @@
     const button=document.createElement('button');
     button.type='button';
     button.className='small-btn edit-result-btn';
-    button.textContent='Rediger resultat';
-    button.title=isAdmin?'Admin: korriger ferdig kamp':'Turneringsleder: korriger ferdig kamp';
+    button.textContent=row.dataset.editPending==='1'?'Legg inn resultat':'Rediger resultat';
+    button.title='Registrer eller korriger kampresultat';
     button.addEventListener('click',event=>{
       event.preventDefault();
       event.stopPropagation();
@@ -137,10 +137,10 @@
       const undecorated=rows.filter(r=>!r.querySelector(':scope > .edit-result-btn'));
       if(!undecorated.length)return;
       const ids=[...new Set(undecorated.map(r=>r.dataset.match).filter(Boolean))];
-      const {data,error}=await client.from('tournament_matches').select('id,status,player1_id,player2_id').in('id',ids);
+      const {data,error}=await client.from('tournament_matches').select('id,status,stage,player1_id,player2_id,live_match_id').in('id',ids);
       if(error)return console.error('Could not inspect finished matches for admin edit',error);
-      const editable=new Set((data||[]).filter(m=>['finished','wo'].includes(m.status)&&m.player1_id&&m.player2_id).map(m=>m.id));
-      undecorated.forEach(row=>{if(editable.has(row.dataset.match))attachButton(row)});
+      const editable=new Set((data||[]).filter(m=>['pending','finished','wo'].includes(m.status)&&!m.live_match_id&&m.player1_id&&m.player2_id).map(m=>m.id));
+      undecorated.forEach(row=>{if(editable.has(row.dataset.match)){row.dataset.editPending=(data||[]).find(m=>m.id===row.dataset.match)?.status==='pending'?'1':'0';attachButton(row)}});
     }finally{decorating=false}
   }
 
