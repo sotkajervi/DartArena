@@ -4,6 +4,10 @@
   const liveMatchId=params.get('id');
   if(!tournamentMatchId||!liveMatchId)return;
 
+  // Tournament matches have their own close/cancel controls. Lobby access must
+  // not end the live match or replace this tab.
+  document.getElementById('openLobbyTabBtn')?.classList.remove('hidden');
+
   const client=window.supabase.createClient(
     'https://jqpxlbhwvskhjbqrbidk.supabase.co',
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'

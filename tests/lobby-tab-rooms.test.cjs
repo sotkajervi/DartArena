@@ -99,14 +99,35 @@ test('the JDC online match has a visible lobby button alongside its cancel actio
   assert.doesNotMatch(script, /cancelMatchBtn|closeMatchBtn|submit_jdc_match_turn/);
 });
 
-test('tournament waiting room remains unchanged', () => {
+test('tournament waiting room can open lobby without losing Til turnering', () => {
   const html = fs.readFileSync(path.join(root, 'tournament-match-room.html'), 'utf8');
-  assert.doesNotMatch(html, /open-lobby-tab\.js|openLobbyTabBtn/);
+  assert.match(html, /id="openLobbyTabBtn"[^>]*>Åpne lobby i ny fane/);
   assert.match(html, /id="backBtn"[^>]*>Til turnering/);
+  assert.match(html, /open-lobby-tab\.js\?v=20261013-roomjdc1/);
+  const room = fs.readFileSync(path.join(root, 'tournament-match-room.js'), 'utf8');
+  assert.match(room, /\$\('backBtn'\)\.onclick=/);
+  assert.match(room, /location\.href=matchUrl\(liveId\)/);
 });
 
 test('normal active matches keep their own working lobby button', () => {
   const script = fs.readFileSync(path.join(root, 'secure-match-cancel.js'), 'utf8');
   assert.match(script, /window\.open\('\.\/','dartarena-lobby'\)/);
   assert.match(script, /close\.textContent='Åpne lobby i ny fane'/);
+});
+
+test('tournament match exposes a lobby action without replacing existing controls', () => {
+  const html = fs.readFileSync(path.join(root, 'match.html'), 'utf8');
+  assert.match(html, /id="openLobbyTabBtn" class="outline hidden"[^>]*>Åpne lobby i ny fane/);
+  assert.match(html, /id="cancelMatchBtn" class="danger">Avbryt kamp/);
+  assert.match(html, /id="closeMatchBtn" class="outline">Lukk kampfane/);
+  assert.match(html, /open-lobby-tab\.js\?v=20261013-roomjdc1/);
+  assert.match(html, /tournament-match-sync\.js\?v=20261013-tournlobby1/);
+});
+
+test('tournament sync reveals lobby action without changing match state', () => {
+  const src = fs.readFileSync(path.join(root, 'tournament-match-sync.js'), 'utf8');
+  assert.match(src, /if\(!tournamentMatchId\|\|!liveMatchId\)return;[\s\S]*?getElementById\('openLobbyTabBtn'\)\?\.classList\.remove\('hidden'\)/);
+  assert.match(src, /cancel_tournament_match/);
+  assert.match(src, /finish_tournament_match/);
+  assert.doesNotMatch(script, /cancel_tournament_match|finish_tournament_match|readyBtn|match-start/);
 });
