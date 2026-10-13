@@ -105,7 +105,7 @@ test('existing accepted invitations do not unexpectedly redirect on login', asyn
 test('accepted pending invitation automatically opens the correct waiting room', async () => {
   const lobby = makeLobby([pending('invite-one')]);
   await lobby.hooks.startForProfile();
-  assert.deepEqual(lobby.hooks.observed(), ['invite-one']);
+  assert.deepEqual(Array.from(lobby.hooks.observed()), ['invite-one']);
   lobby.setRows([pending('invite-one', 'room')]);
   await lobby.hooks.loadSentChallenges();
   await settle();
