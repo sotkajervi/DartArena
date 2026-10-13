@@ -134,3 +134,17 @@
 @media(prefers-reduced-motion:reduce) {
   #lobbyView #dartArenaChat .dart-chat-messages { transition:none; }
 }
+
+/* Shortcut hierarchy: related player pages together, ScoringArena as the final action. */
+#lobbyView #lobbyStatsActions > #scoringArenaBtn {
+  margin-left:14px;
+  white-space:nowrap;
+}
+@media(max-width:760px){
+  #lobbyView #lobbyStatsActions > #scoringArenaBtn {
+    grid-column:1 / -1;
+    width:100%;
+    margin-left:0;
+    white-space:normal;
+  }
+}
