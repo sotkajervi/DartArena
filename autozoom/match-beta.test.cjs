@@ -17,6 +17,7 @@ function mockNode(tag='div'){
       add(n){set.add(n)},remove(n){set.delete(n)},contains(n){return set.has(n)}
     },
     addEventListener(n,fn){listeners[n]=fn},
+    setAttribute(name,value){el[name]=value},
     append(...items){items.forEach(item=>{children.push(item);item.parentElement=el})},
     prepend(...items){children.unshift(...items)},
     remove(){el.removed=true},
