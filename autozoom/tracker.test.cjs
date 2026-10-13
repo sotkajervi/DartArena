@@ -169,6 +169,26 @@ test('frame-to-frame movement ratio reports a fresh change',()=>{
   assert.ok(T.motionRatio(a,b,W,H,board)>.001);
 });
 
+test('speed presets adjust both stable-frame confirmation and zoom motion',()=>{
+  const fast=T.speedPreset('fast'),normal=T.speedPreset('normal'),smooth=T.speedPreset('smooth');
+  assert.ok(fast.intervalMs<normal.intervalMs&&normal.intervalMs<smooth.intervalMs);
+  assert.ok(fast.stableFrames<normal.stableFrames&&normal.stableFrames<smooth.stableFrames);
+  assert.ok(fast.ease>normal.ease&&normal.ease>smooth.ease);
+  assert.equal(T.speedPreset('invalid'),normal);
+});
+
+test('outer double-ring misses remain visible to the extended match tracker',()=>{
+  const base=frame(),frameWithMiss=frame();
+  paint(frameWithMiss,326,113,12,12);
+  assert.equal(T.findChange(base,frameWithMiss,W,H,board,T.sensitivityPreset('normal')),null);
+  const extended={...T.sensitivityPreset('normal'),searchRadius:1.65};
+  const hit=T.findChange(base,frameWithMiss,W,H,board,extended);
+  assert.ok(hit,'Visible dart outside board should be followed');
+  assert.ok(hit.x>board.x+board.radius,'Hit is beyond double ring');
+  assert.equal(T.motionRatio(base,frameWithMiss,W,H,board),0);
+  assert.ok(T.motionRatio(base,frameWithMiss,W,H,board,{searchRadius:1.65})>0);
+});
+
 test('zoom cropping preserves the inset aspect ratio and stays within webcam bounds',()=>{
   const centre=T.zoomCrop(W,H,board.x,board.y,board.radius,4/3);
   assert.ok(Math.abs(centre.width-board.radius*.65)<.001,'Inset should be ~38% closer than v1');
@@ -191,7 +211,8 @@ test('standalone page has fixed main video, moving inset and camera controls',()
   assert.match(html,/data-az-target="D8"/);
   assert.match(html,/data-az-target="D4"/);
   assert.match(html,/id="azSensitivity"/);
-  assert.match(html,/autozoom\/test\.js\?v=20261013-autozoom5/);
+  assert.match(html,/id="azSpeed"/);
+  assert.match(html,/autozoom\/test\.js\?v=20261013-autozoom6/);
   assert.match(html,/<option value="normal" selected>/);
 });
 
@@ -207,6 +228,7 @@ test('zoom experiment does not send scores or video over the network',()=>{
   assert.match(src,/G\.createChangeGate\(/);
   assert.match(src,/changeGate\.observe\(candidate/);
   assert.match(src,/G\.sensitivityPreset\(els\.sensitivity\.value\)/);
+  assert.match(src,/G\.speedPreset\(els\.speed\.value\)/);
   assert.match(src,/drawImage\(els\.video,crop\.x/);
 });
 
