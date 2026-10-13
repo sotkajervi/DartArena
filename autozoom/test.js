@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const els={
   stage:$('azStage'),video:$('azVideo'),overlay:$('azOverlay'),zoom:$('azZoom'),camera:$('azCamera'),
   start:$('azStart'),stop:$('azStop'),calibrate:$('azCalibrate'),
-  reference:$('azReference'),auto:$('azAuto'),status:$('azStatus'),
+  reference:$('azReference'),auto:$('azAuto'),sensitivity:$('azSensitivity'),status:$('azStatus'),
   target:$('azTarget'),last:$('azLast'),count:$('azCount')
 };
 if(!G||Object.values(els).some(el=>!el))return;
@@ -117,7 +117,12 @@ function analyse(){
   if(motion>.008){quiet=0;streak=0;lastCandidate=null;return}
   quiet++;
   if(quiet<4||performance.now()-lastAccept<1100)return;
-  const hit=G.findChange(base,frame,w,h,boardSmall);
+  const presets={
+    high:{stride:1,threshold:55,minSamples:5,minLocal:4},
+    normal:{stride:1,threshold:75,minSamples:9,minLocal:6},
+    low:{stride:2,threshold:95,minSamples:12,minLocal:7}
+  };
+  const hit=G.findChange(base,frame,w,h,boardSmall,presets[els.sensitivity.value]||presets.high);
   if(!hit){streak=0;lastCandidate=null;return}
   if(lastCandidate&&Math.hypot(hit.x-lastCandidate.x,hit.y-lastCandidate.y)<Math.max(12,boardSmall.radius*.13)){
     streak++;
@@ -217,6 +222,10 @@ void refreshDevices();
 els.stop.addEventListener('click',stopCamera);
 els.calibrate.addEventListener('click',startCalibration);
 els.reference.addEventListener('click',chooseReference);
+els.sensitivity.addEventListener('change',()=>{
+  streak=0;quiet=0;lastCandidate=null;
+  status('Følsomhet: '+els.sensitivity.selectedOptions[0].textContent+'. Kast én pil og vent til skiva er rolig.');
+});
 els.auto.addEventListener('click',()=>{
   autoEnabled=!autoEnabled;
   quiet=0;streak=0;lastCandidate=null;
