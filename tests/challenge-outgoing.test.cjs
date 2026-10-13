@@ -12,7 +12,7 @@ assert.match(source, marker);
 const instrumented = source.replace(marker,
   "globalThis.__challengeTest = { startForProfile, loadSentChallenges, sendInvite, withdrawChallenge, openAcceptedRoom, observed: () => [...observedPendingChallengeIds] };\n})();");
 
-function makeLobby(initialRows, { reserveBlocked = false } = {}) {
+function makeLobby(initialRows, { autoPopupAllowed = false } = {}) {
   let rows = initialRows.map(row => ({ ...row }));
   let sentUpdate = null;
   let manualGesture = false;
@@ -51,7 +51,7 @@ function makeLobby(initialRows, { reserveBlocked = false } = {}) {
       location: { assign(url) { navigations.push(url); } },
       open(url, name) {
         popupCalls.push({ url, name });
-        if (url === 'about:blank' ? reserveBlocked : !manualGesture) return null;
+        if (!autoPopupAllowed && !manualGesture) return null;
         const tab = {
           closed: false,
           location: { href: url },
@@ -153,28 +153,24 @@ test('old accepted invitations do not open a new room on login', async () => {
   assert.deepEqual(lobby.navigations, []);
 });
 
-test('sending an invitation reserves a tab before waiting for acceptance', async () => {
+test('sending an invitation leaves the lobby visible and opens no tabs', async () => {
   const lobby = makeLobby([]);
   await lobby.hooks.startForProfile();
   await lobby.invite();
-  assert.equal(lobby.tabs.length, 1);
-  assert.equal(lobby.popupCalls[0].url, 'about:blank');
-  assert.equal(lobby.tabs[0].location.href, 'about:blank');
+  assert.equal(lobby.tabs.length, 0);
+  assert.equal(lobby.popupCalls.length, 0);
+  assert.deepEqual(Array.from(lobby.hooks.observed()), ['new-invite-1']);
   assert.deepEqual(lobby.navigations, []);
 });
-
-test('sending before the initial lobby watcher starts does not discard the reserved tab', async () => {
+test('sending before the initial lobby watcher starts opens no tabs', async () => {
   const lobby = makeLobby([]);
   await lobby.invite();
   await lobby.hooks.startForProfile();
-  assert.equal(lobby.tabs[0].closed, false);
-  lobby.setRows([pending('new-invite-1', 'room')]);
-  await lobby.hooks.loadSentChallenges();
-  await settle();
-  assert.equal(lobby.tabs[0].location.href, 'room.html?id=new-invite-1');
+  assert.equal(lobby.tabs.length, 0);
+  assert.equal(lobby.popupCalls.length, 0);
+  assert.deepEqual(lobby.navigations, []);
 });
-
-test('clicking Trekk tilbake closes the reserved tab', async () => {
+test('clicking Trekk tilbake cancels the invitation without opening a tab', async () => {
   const lobby = makeLobby([]);
   await lobby.hooks.startForProfile();
   await lobby.invite();
@@ -183,26 +179,25 @@ test('clicking Trekk tilbake closes the reserved tab', async () => {
     dataset: { id: 'new-invite-1' },
     textContent: 'Trekk tilbake'
   });
-  assert.equal(lobby.tabs[0].closed, true);
+  assert.equal(lobby.popupCalls.length, 0);
   assert.deepEqual(lobby.navigations, []);
 });
-
-test('acceptance turns the reserved tab into the waiting room without leaving lobby', async () => {
-  const lobby = makeLobby([]);
+test('acceptance attempts a new tab only after approval when popups are allowed', async () => {
+  const lobby = makeLobby([], { autoPopupAllowed: true });
   await lobby.hooks.startForProfile();
   await lobby.invite();
-  assert.deepEqual(Array.from(lobby.hooks.observed()), ['new-invite-1']);
+  assert.equal(lobby.popupCalls.length, 0);
   lobby.setRows([pending('new-invite-1', 'room')]);
   await lobby.hooks.loadSentChallenges();
   await settle();
+  assert.equal(lobby.popupCalls.length, 1);
   assert.equal(lobby.tabs.length, 1);
   assert.equal(lobby.tabs[0].location.href, 'room.html?id=new-invite-1');
   assert.equal(lobby.prompt.hidden, true);
   assert.deepEqual(lobby.navigations, []);
 });
-
 test('repeat updates do not open or redirect a second room tab', async () => {
-  const lobby = makeLobby([]);
+  const lobby = makeLobby([], { autoPopupAllowed: true });
   await lobby.hooks.startForProfile();
   await lobby.invite();
   lobby.setRows([pending('new-invite-1', 'room')]);
@@ -216,25 +211,24 @@ test('repeat updates do not open or redirect a second room tab', async () => {
   assert.deepEqual(lobby.navigations, []);
 });
 
-test('withdrawal or rejection closes an unused reserved tab', async () => {
+test('withdrawal or rejection never opens a tab', async () => {
   const lobby = makeLobby([]);
   await lobby.hooks.startForProfile();
   await lobby.invite();
   lobby.setRows([]);
   await lobby.hooks.loadSentChallenges();
-  assert.equal(lobby.tabs[0].closed, true);
+  assert.equal(lobby.popupCalls.length, 0);
   assert.deepEqual(lobby.navigations, []);
 });
-
-test('declined realtime update closes the unused reserved tab', async () => {
+test('declined realtime update does not open a tab', async () => {
   const lobby = makeLobby([]);
   await lobby.hooks.startForProfile();
   await lobby.invite();
   lobby.emit(pending('new-invite-1', 'declined'));
   await settle();
-  assert.equal(lobby.tabs[0].closed, true);
+  assert.equal(lobby.popupCalls.length, 0);
+  assert.equal(lobby.tabs.length, 0);
 });
-
 test('stale acceptance event is checked against the server status', async () => {
   const lobby = makeLobby([pending('stale')]);
   await lobby.hooks.startForProfile();
@@ -245,8 +239,8 @@ test('stale acceptance event is checked against the server status', async () => 
   assert.deepEqual(lobby.navigations, []);
 });
 
-test('active match prevents automatic room opening and closes provisional tabs', async () => {
-  const lobby = makeLobby([]);
+test('active match prevents automatic room opening', async () => {
+  const lobby = makeLobby([], { autoPopupAllowed: true });
   await lobby.hooks.startForProfile();
   await lobby.invite();
   lobby.setActiveMatch({ id: 'match-in-progress' });
@@ -254,12 +248,11 @@ test('active match prevents automatic room opening and closes provisional tabs',
   lobby.emit(pending('new-invite-1', 'room'));
   await settle();
   await lobby.hooks.loadSentChallenges();
-  assert.equal(lobby.tabs[0].closed, true);
+  assert.equal(lobby.popupCalls.length, 0);
   assert.deepEqual(lobby.navigations, []);
 });
-
 test('blocked popup shows an explicit open-room fallback, not same-tab navigation', async () => {
-  const lobby = makeLobby([], { reserveBlocked: true });
+  const lobby = makeLobby([]);
   await lobby.hooks.startForProfile();
   await lobby.invite();
   lobby.setRows([pending('new-invite-1', 'room')]);
@@ -274,30 +267,29 @@ test('blocked popup shows an explicit open-room fallback, not same-tab navigatio
   assert.equal(lobby.prompt.hidden, true);
 });
 
-test('closing the reserved tab triggers the manual fallback on acceptance', async () => {
-  const lobby = makeLobby([]);
+test('the user can manually reopen a previously accepted room after login', async () => {
+  const lobby = makeLobby([pending('previous', 'room')]);
   await lobby.hooks.startForProfile();
-  await lobby.invite();
-  lobby.tabs[0].close();
-  lobby.setRows([pending('new-invite-1', 'room')]);
   await lobby.hooks.loadSentChallenges();
-  await settle();
-  assert.equal(lobby.prompt.hidden, false);
-  assert.equal(lobby.tabs.length, 1);
+  assert.equal(lobby.popupCalls.length, 0);
+  assert.match(lobby.tabs.length === 0 ? 'Åpne' : '', /Åpne/);
+  assert.equal(lobby.manualOpen('previous'), true);
+  assert.equal(lobby.tabs[0].location.href, 'room.html?id=previous');
   assert.deepEqual(lobby.navigations, []);
 });
-
-test('reverse incoming challenge accepted via Utfordre reuses the reserved tab', async () => {
+test('reverse incoming challenge accepted via Utfordre opens no early tab', async () => {
   const lobby = makeLobby([{
     id: 'reverse', challenger_id: 'user-b', challenged_id: 'user-a', status: 'pending'
   }]);
   await lobby.hooks.startForProfile();
   await lobby.invite();
-  assert.equal(lobby.tabs.length, 1);
+  assert.equal(lobby.popupCalls.length, 1);
+  assert.equal(lobby.tabs.length, 0);
+  assert.equal(lobby.prompt.hidden, false);
+  assert.equal(lobby.manualOpen('reverse'), true);
   assert.equal(lobby.tabs[0].location.href, 'room.html?id=reverse');
   assert.deepEqual(lobby.navigations, []);
 });
-
 test('lobby refresh delegates accepted-room tracking to the outgoing manager', () => {
   const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
   const index = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
@@ -307,4 +299,5 @@ test('lobby refresh delegates accepted-room tracking to the outgoing manager', (
   assert.match(source, /loadChallenges=async function\(\)\{const result=await baseLoadChallenges\(\);await loadSentChallenges\(\);return result\}/);
   assert.match(source, /if\(c\.status==='room'&&observedPendingChallengeIds\.has\(c\.id\)\)enterAcceptedRoom\(c\.id\)/);
   assert.doesNotMatch(source, /window\.location\.assign\(/);
+  assert.doesNotMatch(source, /window\.open\('about:blank'/);
 });
