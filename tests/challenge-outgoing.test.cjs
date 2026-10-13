@@ -10,7 +10,7 @@ const source = fs.readFileSync(path.join(__dirname, '..', 'challenge-outgoing.js
 const marker = /\}\)\(\);\s*$/;
 assert.match(source, marker);
 const instrumented = source.replace(marker,
-  "globalThis.__challengeTest = { startForProfile, loadSentChallenges, sendInvite, openAcceptedRoom, observed: () => [...observedPendingChallengeIds] };\n})();");
+  "globalThis.__challengeTest = { startForProfile, loadSentChallenges, sendInvite, withdrawChallenge, openAcceptedRoom, observed: () => [...observedPendingChallengeIds] };\n})();");
 
 function makeLobby(initialRows, { reserveBlocked = false } = {}) {
   let rows = initialRows.map(row => ({ ...row }));
@@ -160,6 +160,30 @@ test('sending an invitation reserves a tab before waiting for acceptance', async
   assert.equal(lobby.tabs.length, 1);
   assert.equal(lobby.popupCalls[0].url, 'about:blank');
   assert.equal(lobby.tabs[0].location.href, 'about:blank');
+  assert.deepEqual(lobby.navigations, []);
+});
+
+test('sending before the initial lobby watcher starts does not discard the reserved tab', async () => {
+  const lobby = makeLobby([]);
+  await lobby.invite();
+  await lobby.hooks.startForProfile();
+  assert.equal(lobby.tabs[0].closed, false);
+  lobby.setRows([pending('new-invite-1', 'room')]);
+  await lobby.hooks.loadSentChallenges();
+  await settle();
+  assert.equal(lobby.tabs[0].location.href, 'room.html?id=new-invite-1');
+});
+
+test('clicking Trekk tilbake closes the reserved tab', async () => {
+  const lobby = makeLobby([]);
+  await lobby.hooks.startForProfile();
+  await lobby.invite();
+  await lobby.hooks.withdrawChallenge({
+    disabled: false,
+    dataset: { id: 'new-invite-1' },
+    textContent: 'Trekk tilbake'
+  });
+  assert.equal(lobby.tabs[0].closed, true);
   assert.deepEqual(lobby.navigations, []);
 });
 
