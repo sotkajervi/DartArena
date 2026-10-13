@@ -16,9 +16,6 @@
   let pendingChime=false;
   let connected=false;
   let disconnectedSince=0;
-  let audioWanted=false;
-  window.__DARTARENA_REMOTE_AUDIO_WANTED=false;
-
   function ensureAudioContext(){
     if(ctx)return ctx;
     const Ctx=window.AudioContext||window.webkitAudioContext;
@@ -79,29 +76,6 @@
     return video||audio;
   }
 
-  function buttonAvailable(){
-    return !audioBtn.classList.contains('hidden')&&hasRemoteMedia();
-  }
-
-  function syncButton(){
-    if(audioBtn.classList.contains('hidden'))return;
-    const on=audioWanted&&!remoteVideo.muted;
-    audioBtn.classList.toggle('audio-on',on);
-    audioBtn.textContent=on?'🔊 LYD PÅ':'🔊 SLÅ PÅ LYD';
-  }
-
-  async function enforceWantedAudio(){
-    if(!audioWanted||!buttonAvailable()||!remoteVideo.muted)return;
-    remoteVideo.muted=false;
-    try{
-      await remoteVideo.play();
-    }catch{
-      remoteVideo.muted=true;
-      audioWanted=false;
-      window.__DARTARENA_REMOTE_AUDIO_WANTED=false;
-    }
-  }
-
   function markConnected(){
     if(connected)return;
     connected=true;
@@ -112,12 +86,9 @@
     remoteCard?.classList.add('waiting-connect-flash');
   }
 
-  async function poll(){
-    const ready=buttonAvailable();
-    if(ready){
+  function poll(){
+    if(hasRemoteMedia()){
       markConnected();
-      await enforceWantedAudio();
-      syncButton();
       return;
     }
     if(connected){
@@ -130,22 +101,11 @@
   }
 
   ['pointerdown','keydown','touchstart'].forEach(type=>window.addEventListener(type,unlockAudio,{once:true,capture:true}));
-  audioBtn.addEventListener('click',()=>{
-    setTimeout(async()=>{
-      audioWanted=!remoteVideo.muted;
-      window.__DARTARENA_REMOTE_AUDIO_WANTED=audioWanted;
-      await enforceWantedAudio();
-      syncButton();
-    },0);
-  });
   remoteVideo.addEventListener('loadeddata',poll);
   remoteVideo.addEventListener('playing',poll);
-  const obs=new MutationObserver(poll);
-  obs.observe(audioBtn,{attributes:true,attributeFilter:['class']});
   const timer=setInterval(poll,250);
   window.addEventListener('pagehide',()=>{
     clearInterval(timer);
-    obs.disconnect();
     try{ctx?.close()}catch{}
     try{window.speechSynthesis?.cancel()}catch{}
   },{once:true});
