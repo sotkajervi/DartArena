@@ -22,6 +22,8 @@ let starterChoice='random';
 let coinFlipRunning=false;
 let coinFlipFinished=false;
 let coinFlipFallback=null;
+let roomConnected=false;
+let roomRetryTimer=null;
 
 function setStatus(text){$('cameraStatus').textContent=text;}
 function starterValueForLocal(){
@@ -42,6 +44,7 @@ function setReadyUi(){
   $('localReadyText').textContent=localReady?'Klar':'Ikke klar';
   $('remoteReadyText').textContent=remoteReady?'Klar':'Ikke klar';
   $('readyBtn').textContent=localReady?'Ikke klar':'Jeg er klar';
+  $('readyBtn').disabled=!roomConnected||starting;
 }
 function resetReadyForStarterChange(message=''){
   localReady=false;
@@ -206,12 +209,30 @@ function setupChannel(){
       }
     })
     .subscribe(async status=>{
-      if(status!=='SUBSCRIBED')return;
-      await startCamera();
-      clearInterval(heartbeat);
-      heartbeat=setInterval(sendState,1800);
-      await sendState();
-      if(me===tm.player1_id)await broadcastStarterChoice();
+      if(status==='SUBSCRIBED'){
+        roomConnected=true;
+        clearTimeout(roomRetryTimer);
+        setReadyUi();
+        clearInterval(heartbeat);
+        heartbeat=setInterval(()=>sendState().catch(error=>console.warn('Room heartbeat failed',error)),1800);
+        await sendState();
+        if(me===tm.player1_id)await broadcastStarterChoice();
+        startCamera().catch(error=>console.warn('Camera startup failed',error));
+        return;
+      }
+      if(['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(status)){
+        roomConnected=false;
+        setReadyUi();
+        $('roomMessage').textContent='Forbindelsen til venterommet ble brutt. Prøver å koble til igjen…';
+        clearTimeout(roomRetryTimer);
+        roomRetryTimer=setTimeout(()=>{
+          if(!channel||roomConnected)return;
+          const old=channel;
+          channel=null;
+          try{db.removeChannel(old)}catch{}
+          setupChannel();
+        },2500);
+      }
     });
 }
 
@@ -235,14 +256,14 @@ async function startCamera(){
     sfu?.close();
     sfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
     publication=await sfu.publish(stream);
-    $('readyBtn').disabled=false;
+    setReadyUi();
     setStatus('Kamera klart – venter på motstander');
     await sendState();
     if(remotePublication)await subscribeRemote(remotePublication);
   }catch(e){
     console.error('Tournament room camera error',e);
     publication=null;
-    $('readyBtn').disabled=true;
+    setReadyUi();
     $('localPlaceholder').classList.remove('hidden');
     $('localPlaceholder').textContent='Kamera ikke startet';
     setStatus(cameraErrorText(e));
@@ -332,7 +353,7 @@ async function applyStarterChoice(choice,broadcast=false){
 }
 
 async function toggleReady(){
-  if(!publication)return;
+  if(!roomConnected)return;
   localReady=!localReady;
   setReadyUi();
   $('roomMessage').textContent=localReady?`Du er klar. Starter: ${starterText()}. Venter på motstanderen.`:'';
@@ -355,7 +376,7 @@ async function maybeStart(){
   if(error){
     console.error(error);
     starting=false;
-    $('readyBtn').disabled=false;
+    setReadyUi();
     $('starterChoice').disabled=false;
     $('roomMessage').textContent=`Kunne ikke starte kampen: ${error.message}`;
     return;
@@ -400,6 +421,9 @@ async function toggleRemoteAudio(){
 function cleanup(){
   clearInterval(heartbeat);
   heartbeat=null;
+  clearTimeout(roomRetryTimer);
+  roomRetryTimer=null;
+  roomConnected=false;
   clearTimeout(coinFlipFallback);
   coinFlipFallback=null;
   try{sfu?.close();}catch{}
