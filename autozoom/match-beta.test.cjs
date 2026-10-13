@@ -141,6 +141,35 @@ test('source switch mounts a new overlay without touching camera streams',async(
   assert.equal(view.localCard.children.length,2);
 });
 
+test('owner can calibrate Bull and D20 and capture an existing webcam frame',async()=>{
+  const view=await setup(true,false);
+  await view.toggle.listeners.click();
+  const panel=view.head.inserted;
+  const calibrate=panel.querySelector('#azMatchCalibrate');
+  const reference=panel.querySelector('#azMatchReference');
+  calibrate.listeners.click();
+  const layer=view.remoteCard.children[0];
+  layer.listeners.click({clientX:480,clientY:270}); // Bull
+  layer.listeners.click({clientX:480,clientY:180}); // D20
+  assert.equal(reference.disabled,false);
+  const original=view.remote.srcObject;
+  reference.listeners.click();
+  assert.equal(view.remote.srcObject,original,'reference must never replace video stream');
+  assert.match(panel.querySelector('#azMatchStatus').textContent,/Referanse tatt/);
+});
+
+test('closing the beta removes only zoom layers, keeping video and scoreboard',async()=>{
+  const view=await setup(true,false);
+  await view.toggle.listeners.click();
+  const original=view.remote.srcObject;
+  view.head.inserted.querySelector('#azMatchClose').listeners.click();
+  assert.equal(view.head.inserted.classList.contains('hidden'),true);
+  assert.equal(view.remote.srcObject,original);
+  assert.equal(view.local.srcObject,original);
+  assert.equal(view.remoteCard.children[0].removed,true);
+  assert.equal(view.remoteCard.children[1].removed,true);
+});
+
 test('experimental match tracking searches beyond double ring, and only reads pixels',()=>{
   assert.match(src,/SEARCH_RADIUS=1\.65/);
   assert.match(src,/searchRadius:SEARCH_RADIUS/);
