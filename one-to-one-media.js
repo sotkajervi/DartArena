@@ -21,6 +21,7 @@
   };
 
   let me=null,match=null,other=null;
+  let zoomSession=null;
   let mediaStream=null,channel=null,pc=null,remoteStream=null;
   let remoteReady=false,localReady=false,generation=1,pendingCandidates=[];
   let heartbeat=null,monitor=null,disconnectTimer=null,legacyGuard=null;
@@ -73,7 +74,22 @@
   async function ensureCamera(){
     let s=existingStream();
     if(!s){
-      s=await navigator.mediaDevices.getUserMedia(constraints());
+      const raw=await navigator.mediaDevices.getUserMedia(constraints());
+      s=raw;
+      const Z=window.DartArenaZoomCam;
+      if(Z?.selected(localStorage)){
+        const config=Z.loadConfig(localStorage);
+        if(config){
+          try{
+            zoomSession=Z.create(raw,config);
+            s=zoomSession.stream;
+          }catch(error){
+            console.warn('Zoomcam kunne ikke startes; bruker vanlig kamera',error);
+            zoomSession?.stop();
+            zoomSession=null;
+          }
+        }
+      }
       exposeStream(s);
     }else exposeStream(s);
     localReady=!!s.getTracks().some(t=>t.readyState==='live');
@@ -430,6 +446,6 @@
     getMode:()=>mode,
     getStream:()=>mediaStream
   };
-  window.addEventListener('pagehide',()=>{stop().catch(()=>{})},{once:true});
+  window.addEventListener('pagehide',()=>{zoomSession?.stop();zoomSession?.sourceTrack?.stop();stop().catch(()=>{})},{once:true});
   boot().catch(error=>{console.warn('[1V1 MEDIA] startup failed',error);setStatus('Video kunne ikke startes')});
 })();
