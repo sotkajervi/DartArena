@@ -29,6 +29,8 @@ test('D8 is in the lower left, T20 is at the top and T19 is lower left',()=>{
   assert.ok(d8.x<120&&d8.y>120);
   assert.equal(T.targetPoint(200,120,90,'BULL').x,200);
   assert.equal(T.targetPoint(200,120,90,'D99'),null);
+  const rotated=T.targetPoint(200,120,90,'D20',Math.PI/2);
+  assert.ok(rotated.x>285&&Math.abs(rotated.y-120)<.001);
 });
 
 test('changes isolated to a dart-sized new region produce an approximate hit location',()=>{
