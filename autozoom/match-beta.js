@@ -19,7 +19,7 @@ let panel=null,ui=null,authorized=false,visible=false,source='remote';
 let overlay=null,inset=null,insetCtx=null,video=null;
 let board=null,bull=null,calibrationStep=0,reference=null,previous=null,quiet=0;
 let zoomTarget=null,zoomCurrent=null;
-let loop=0,watch=0,gate=null,serial=0,lastDimensions='';
+let loop=0,watch=0,gate=null,serial=0,lastDimensions='',calibratedStream=null;
 const analysis=document.createElement('canvas');
 const analysisCtx=analysis.getContext('2d',{willReadFrequently:true});
 const SEARCH_RADIUS=1.65; // Include the board surround beyond the outer double ring.
@@ -33,7 +33,7 @@ function resetDetection(){
   reference=null;previous=null;quiet=0;gate?.reset();
 }
 function clearBoard(){
-  board=null;bull=null;calibrationStep=0;zoomTarget=null;zoomCurrent=null;
+  board=null;bull=null;calibrationStep=0;zoomTarget=null;zoomCurrent=null;calibratedStream=null;
   resetDetection();
   if(ui)ui.reference.disabled=true;
   if(overlay)overlay.classList.add('hidden');
@@ -113,9 +113,11 @@ function render(){
   loop=requestAnimationFrame(render);
 }
 function analyse(){
-  if(!visible||!board||!reference||!ready()||!ui.enabled.checked||calibrationStep)return;
+  if(!visible||!board||!reference||!ready()||!ui.enabledOn||calibrationStep)return;
   const dimensions=video.videoWidth+'x'+video.videoHeight;
-  if(dimensions!==lastDimensions){clearBoard();status('Videoformat endret. Kalibrer skiva på nytt.');return}
+  if(dimensions!==lastDimensions||video.srcObject!==calibratedStream){
+    clearBoard();status('Kamera eller videoformat endret. Kalibrer skiva på nytt.');return
+  }
   const frame=capture();if(!frame)return;
   const w=analysis.width,h=analysis.height;
   const small={x:board.x*w/video.videoWidth,y:board.y*h/video.videoHeight,
@@ -157,6 +159,7 @@ function calibrationClick(event){
   }
   board={x:bull.x,y:bull.y,radius:dist/.976,rotation:Math.atan2(x-bull.x,bull.y-y)};
   lastDimensions=vw+'x'+vh;
+  calibratedStream=video.srcObject;
   analysis.width=480;analysis.height=Math.max(80,Math.round(480*vh/vw));
   calibrationStep=0;
   overlay.classList.add('hidden');
