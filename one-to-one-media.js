@@ -91,7 +91,17 @@
         }
       }
       exposeStream(s);
-    }else exposeStream(s);
+    }else{
+      const Z=window.DartArenaZoomCam;
+      if(!zoomSession&&Z?.selected(localStorage)){
+        const config=Z.loadConfig(localStorage);
+        if(config){
+          try{zoomSession=Z.create(s,config);s=zoomSession.stream}
+          catch(error){console.warn('Zoomcam from existing stream unavailable; retaining camera',error);zoomSession=null}
+        }
+      }
+      exposeStream(s);
+    }
     localReady=!!s.getTracks().some(t=>t.readyState==='live');
     if(channel&&localReady)await send('peer-ready',{generation});
     return s;
