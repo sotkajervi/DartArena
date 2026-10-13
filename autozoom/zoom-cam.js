@@ -10,7 +10,10 @@ function saveConfig(storage,data){
   if(!data||typeof data.deviceId!=='string'||!data.deviceId)return false;
   if(![data.cx,data.cy,data.radius,data.rotation,data.aspect].every(Number.isFinite))return false;
   if(data.cx<0||data.cx>1||data.cy<0||data.cy>1||data.radius<.03||data.radius>.65||data.aspect<.5||data.aspect>3)return false;
-  storage.setItem(CONFIG_KEY,JSON.stringify({...data,version:1}));
+  storage.setItem(CONFIG_KEY,JSON.stringify({...data,
+    speed:['fast','normal','smooth'].includes(data.speed)?data.speed:'normal',
+    sensitivity:['low','normal','high'].includes(data.sensitivity)?data.sensitivity:'normal',
+    version:1}));
   return true;
 }
 function loadConfig(storage){
@@ -61,7 +64,8 @@ function create(raw,config,{fps=25,video=null,
   const ctx=canvas.getContext('2d',{alpha:false});
   if(!ctx)throw Error('Kan ikke tegne Zoom-cam.');
   let out=null,loop=0,clock=0,stopped=false,prev=null,ref=null,still=0,target=null,current=null;
-  const gate=tracker.createChangeGate({stableFrames:5,motionWindowMs:4000,cooldownMs:1800});
+  const speed=tracker.speedPreset(config.speed);
+  const gate=tracker.createChangeGate({stableFrames:speed.stableFrames,motionWindowMs:4000,cooldownMs:speed.cooldownMs});
   const sampled=document.createElement('canvas'),sampleCtx=sampled.getContext('2d',{willReadFrequently:true});
   let lastAnalysis=0;
   function tick(now){
@@ -76,26 +80,26 @@ function create(raw,config,{fps=25,video=null,
       ctx.drawImage(video,dx,dy,sw*fit,sh*fit);
       const board={x:config.cx*sw,y:config.cy*sh,radius:config.radius*sw};
       if(!target){const p=tracker.targetPoint(board.x,board.y,board.radius,'T20',config.rotation);target=p;current={...p}}
-      if(now-lastAnalysis>=150){
+      if(now-lastAnalysis>=speed.intervalMs){
         lastAnalysis=now;
         sampled.width=480;sampled.height=Math.max(1,Math.round(480*sh/sw));
         sampleCtx.drawImage(video,0,0,sampled.width,sampled.height);
         const frame=new Uint8ClampedArray(sampleCtx.getImageData(0,0,sampled.width,sampled.height).data);
         const small={x:config.cx*sampled.width,y:config.cy*sampled.height,radius:config.radius*sampled.width};
-        const opts={...tracker.sensitivityPreset('normal'),searchRadius:1.65};
+        const opts={...tracker.sensitivityPreset(config.sensitivity),searchRadius:1.65};
         const motion=prev?tracker.motionRatio(prev,frame,sampled.width,sampled.height,small,{searchRadius:1.65}):0;
         const moved=prev&&motion<=.008?tracker.findChange(prev,frame,sampled.width,sampled.height,small,{...opts,maxRatio:.045}):null;
         prev=frame;
         if(motion>.008)still=0;else still++;
         if(!ref)ref=new Uint8ClampedArray(frame);
-        const hit=gate.observe(still>=3?tracker.findChange(ref,frame,sampled.width,sampled.height,small,opts):null,
+        const hit=gate.observe(still>=speed.quietFrames?tracker.findChange(ref,frame,sampled.width,sampled.height,small,opts):null,
           {movement:motion>.008||!!moved,now,radius:small.radius});
         if(hit){
           target={x:hit.x*sw/sampled.width,y:hit.y*sh/sampled.height};
           ref=new Uint8ClampedArray(frame);still=0;
         }
       }
-      current.x+=(target.x-current.x)*.2;current.y+=(target.y-current.y)*.2;
+      current.x+=(target.x-current.x)*speed.ease;current.y+=(target.y-current.y)*speed.ease;
       const insetW=Math.round(w*.33),insetH=Math.round(insetW*3/4),pad=Math.round(w*.016);
       const crop=tracker.zoomCrop(sw,sh,current.x,current.y,board.radius,4/3);
       const ix=w-insetW-pad,iy=pad;
