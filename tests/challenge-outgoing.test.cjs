@@ -150,3 +150,13 @@ test('an active match prevents a new waiting-room redirect', async () => {
   await settle();
   assert.deepEqual(lobby.navigations, []);
 });
+
+test('lobby refresh delegates accepted-room tracking to the outgoing challenge manager', () => {
+  const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const index = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.doesNotMatch(app, /checkMyAcceptedChallenge/);
+  assert.match(app, /await Promise\.all\(\[loadPlayers\(profileId\),loadChallenges\(profileId\)\]\)/);
+  assert.match(index, /<script src="app\.js[^"]*"><\/script>[\s\S]*<script src="challenge-outgoing\.js/);
+  assert.match(source, /loadChallenges=async function\(\)\{const result=await baseLoadChallenges\(\);await loadSentChallenges\(\);return result\}/);
+  assert.match(source, /if\(c\.status==='room'&&observedPendingChallengeIds\.has\(c\.id\)\)enterAcceptedRoom\(c\.id\)/);
+});
