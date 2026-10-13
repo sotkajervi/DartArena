@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const els={
   stage:$('azStage'),video:$('azVideo'),overlay:$('azOverlay'),zoom:$('azZoom'),camera:$('azCamera'),
   start:$('azStart'),stop:$('azStop'),calibrate:$('azCalibrate'),
-  reference:$('azReference'),auto:$('azAuto'),sensitivity:$('azSensitivity'),status:$('azStatus'),
+  reference:$('azReference'),auto:$('azAuto'),sensitivity:$('azSensitivity'),speed:$('azSpeed'),status:$('azStatus'),
   target:$('azTarget'),last:$('azLast'),count:$('azCount')
 };
 if(!G||Object.values(els).some(el=>!el))return;
@@ -17,7 +17,7 @@ const analysis=document.createElement('canvas');
 const analysisCtx=analysis.getContext('2d',{willReadFrequently:true});
 let stream=null,board=null,calibrationStep=0,calibrationBull=null;
 let base=null,previous=null,quiet=0;
-const changeGate=G.createChangeGate({stableFrames:5,motionWindowMs:4000,cooldownMs:1800});
+let changeGate=G.createChangeGate({stableFrames:5,motionWindowMs:4000,cooldownMs:1800});
 let accepted=0,analysisTimer=null,animationFrame=null,current=null,target=null,lastLabel='T20';
 let autoEnabled=true,starting=false;
 async function refreshDevices(){
@@ -81,7 +81,7 @@ function cropFrame(){
   if(!target)aimLabel('T20');
   if(!target)return;
   if(!current)current={...target};
-  const ease=.14;
+  const ease=G.speedPreset(els.speed.value).ease;
   current.x+=(target.x-current.x)*ease;
   current.y+=(target.y-current.y)*ease;
   const z=els.zoom;
@@ -106,6 +106,13 @@ function chooseReference(){
   aimLabel('T20');
   status('Referanse tatt. Zoom flyttes bare etter et nytt kast som er stabilt i flere bilder.');
 }
+function applySpeed(){
+  const speed=G.speedPreset(els.speed.value);
+  if(analysisTimer){clearInterval(analysisTimer);analysisTimer=null}
+  changeGate=G.createChangeGate({stableFrames:speed.stableFrames,motionWindowMs:4000,cooldownMs:speed.cooldownMs});
+  previous=null;quiet=0;
+  if(stream)analysisTimer=setInterval(analyse,speed.intervalMs);
+}
 function analyse(){
   if(!stream||!board||!base||!autoEnabled||calibrationStep||!els.video.videoWidth)return;
   const w=analysis.width,h=analysis.height;
@@ -114,18 +121,20 @@ function analyse(){
   const boardSmall={x:board.x*w/els.video.videoWidth,
     y:board.y*h/els.video.videoHeight,radius:board.radius*w/els.video.videoWidth};
   const now=performance.now();
-  const motion=previous?G.motionRatio(previous,frame,w,h,boardSmall):0;
+  const searchRadius=1.55; // Include visible surround beyond the outer double ring.
+  const motion=previous?G.motionRatio(previous,frame,w,h,boardSmall,{searchRadius}):0;
   // Same stable detector settings for Normal and Low until live-camera
   // testing establishes a safe distinction between these two modes.
   const preset=G.sensitivityPreset(els.sensitivity.value);
   // Only react to a newly appearing change, not to noise continuously present
   // in the saved reference image. Movement arms a brief validation window.
   const motionHit=previous&&motion<=.008?G.findChange(previous,frame,w,h,boardSmall,
-    {...preset,maxRatio:.045}):null;
+    {...preset,searchRadius,maxRatio:.045}):null;
   previous=new Uint8ClampedArray(frame);
   if(motion>.008)quiet=0;
   else quiet++;
-  const candidate=quiet>=3?G.findChange(base,frame,w,h,boardSmall,preset):null;
+  const candidate=quiet>=G.speedPreset(els.speed.value).quietFrames?
+    G.findChange(base,frame,w,h,boardSmall,{...preset,searchRadius}):null;
   const hit=changeGate.observe(candidate,{movement:motion>.008||!!motionHit,now,radius:boardSmall.radius});
   if(!hit)return;
   // A new stable image region is an estimated dart location, NOT a detected tip.
@@ -171,7 +180,7 @@ async function startCamera(){
     board=null;calibrationStep=0;current=null;target=null;
     clearDetection();
     animationFrame=requestAnimationFrame(animate);
-    analysisTimer=setInterval(analyse,150);
+    applySpeed();
     status('Kamera klart. Trykk «Kalibrer skive» og klikk Bull, deretter D20.');
   }catch(error){
     const message='Kameratilgang feilet: '+(error?.message||String(error))+'. Kontroller tillatelse og valgt kamera (HTTPS).';
@@ -221,6 +230,10 @@ void refreshDevices();
 els.stop.addEventListener('click',stopCamera);
 els.calibrate.addEventListener('click',startCalibration);
 els.reference.addEventListener('click',chooseReference);
+els.speed.addEventListener('change',()=>{
+  applySpeed();
+  status('Hastighet: '+els.speed.selectedOptions[0].textContent+'. Nye treff bekreftes med valgt respons.');
+});
 els.sensitivity.addEventListener('change',()=>{
   changeGate.reset();previous=null;quiet=0;
   status('Følsomhet: '+els.sensitivity.selectedOptions[0].textContent+'. Zoom flytter seg først etter ny bevegelse og flere rolige bilder.');

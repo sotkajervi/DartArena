@@ -22,13 +22,22 @@ const PRESETS=Object.freeze({
 function sensitivityPreset(mode){
   return PRESETS[mode]||PRESETS.normal;
 }
+// Speed changes both recognition latency and the motion of the zoom pane.
+// Normal keeps the established five-frame stability guard.
+const SPEEDS=Object.freeze({
+  fast:Object.freeze({intervalMs:100,stableFrames:3,quietFrames:2,ease:.34,cooldownMs:1600}),
+  normal:Object.freeze({intervalMs:150,stableFrames:5,quietFrames:3,ease:.20,cooldownMs:1800}),
+  smooth:Object.freeze({intervalMs:180,stableFrames:6,quietFrames:3,ease:.10,cooldownMs:2100})
+});
+function speedPreset(mode){return SPEEDS[mode]||SPEEDS.normal}
 function motionRatio(first,last,width,height,board,options={}){
   if(!first||!last||first.length!==last.length||!board)return 0;
   const stride=options.stride||3,threshold=options.threshold||88;
-  const r2=board.radius*board.radius;
+  const searchRadius=Math.min(2.5,Math.max(1,Number(options.searchRadius)||1));
+  const radius=board.radius*searchRadius,r2=radius*radius;
   let changed=0,total=0;
-  for(let y=Math.max(0,Math.floor(board.y-board.radius));y<Math.min(height,Math.ceil(board.y+board.radius));y+=stride){
-    for(let x=Math.max(0,Math.floor(board.x-board.radius));x<Math.min(width,Math.ceil(board.x+board.radius));x+=stride){
+  for(let y=Math.max(0,Math.floor(board.y-radius));y<Math.min(height,Math.ceil(board.y+radius));y+=stride){
+    for(let x=Math.max(0,Math.floor(board.x-radius));x<Math.min(width,Math.ceil(board.x+radius));x+=stride){
       if((x-board.x)**2+(y-board.y)**2>r2)continue;
       const i=(y*width+x)*4;
       if(Math.abs(first[i]-last[i])+Math.abs(first[i+1]-last[i+1])+Math.abs(first[i+2]-last[i+2])>threshold)changed++;
@@ -42,7 +51,9 @@ function findChange(base,frame,width,height,board,options={}){
   // Small, low-contrast darts on the outer double ring can cover only a few
   // downscaled pixels. Keep the sampling and detection threshold adjustable.
   const stride=options.stride??1,threshold=options.threshold??55;
-  const radius=board.radius*1.13,r2=radius*radius;
+  // Match beta may include the surround beyond the double ring. Lab keeps 1.13.
+  const searchRadius=Math.min(2.5,Math.max(1,Number(options.searchRadius)||1.13));
+  const radius=board.radius*searchRadius,r2=radius*radius;
   const cell=options.cell??14;
   const points=[],bins=new Map();
   let total=0;
@@ -121,7 +132,7 @@ function zoomCrop(videoWidth,videoHeight,x,y,boardRadius,aspect=4/3){
     y:clamp(y-boundedHeight/2,0,videoHeight-boundedHeight),
     width:boundedWidth,height:boundedHeight};
 }
-const api={ORDER,targetPoint,sensitivityPreset,motionRatio,findChange,createChangeGate,zoomCrop};
+const api={ORDER,targetPoint,sensitivityPreset,speedPreset,motionRatio,findChange,createChangeGate,zoomCrop};
 if(typeof module==='object'&&module.exports)module.exports=api;
 root.DartArenaAutoZoom=api;
 })(typeof window!=='undefined'?window:globalThis);

@@ -1,0 +1,16 @@
+/* AutoZoom match beta: local viewer-only overlay, no changes to media tracks. */
+.da-az-panel{margin:-11px 0 15px!important;padding:13px 15px!important;border-color:rgba(0,234,244,.38)!important}
+.da-az-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:9px}
+.da-az-head strong{color:#00eaf4;font-size:14px}
+.da-az-head small{font-size:10px;font-weight:850;color:#a4c9ce;letter-spacing:.03em}
+.da-az-controls{display:flex;flex-wrap:wrap;gap:9px;align-items:end}
+.da-az-controls label{display:grid;gap:4px;min-width:120px;flex:1 1 150px;color:#b5c9cc;font-size:11px;font-weight:800}
+.da-az-controls select{width:100%;min-height:37px;padding:7px 9px;color:#e9f6f6;background:#09191d;border:1px solid #38595e;border-radius:8px;font-size:12px}
+.da-az-controls button{min-height:37px;font-size:12px;padding:8px 11px}
+.da-az-status{margin:8px 0 0;color:#b8d2d5;font-size:12px;line-height:1.4}
+.da-az-panel button:focus-visible,.da-az-panel select:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.da-az-calibration-layer{position:absolute;inset:0;z-index:9;cursor:crosshair;background:rgba(0,234,244,.025)}
+.da-az-inset{position:absolute;right:9px;top:9px;z-index:7;width:min(39%,230px);min-width:85px;border:2px solid #00eaf4;border-radius:9px;overflow:hidden;background:#06191c;pointer-events:none;box-shadow:0 9px 26px #000a}
+.da-az-inset-header{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:5px 7px;background:#0c2e33;color:#00eaf4;font-size:10px;font-weight:900;white-space:nowrap}
+.da-az-inset canvas{display:block;width:100%;aspect-ratio:4/3;background:#051114}
+@media(max-width:750px){.da-az-inset{width:35%;min-width:80px}.da-az-controls label{min-width:130px}}
