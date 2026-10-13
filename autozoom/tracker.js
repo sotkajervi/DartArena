@@ -22,6 +22,14 @@ const PRESETS=Object.freeze({
 function sensitivityPreset(mode){
   return PRESETS[mode]||PRESETS.normal;
 }
+// Speed changes both recognition latency and the motion of the zoom pane.
+// Normal keeps the established five-frame stability guard.
+const SPEEDS=Object.freeze({
+  fast:Object.freeze({intervalMs:100,stableFrames:3,quietFrames:2,ease:.34,cooldownMs:1600}),
+  normal:Object.freeze({intervalMs:150,stableFrames:5,quietFrames:3,ease:.20,cooldownMs:1800}),
+  smooth:Object.freeze({intervalMs:180,stableFrames:6,quietFrames:3,ease:.10,cooldownMs:2100})
+});
+function speedPreset(mode){return SPEEDS[mode]||SPEEDS.normal}
 function motionRatio(first,last,width,height,board,options={}){
   if(!first||!last||first.length!==last.length||!board)return 0;
   const stride=options.stride||3,threshold=options.threshold||88;
@@ -124,7 +132,7 @@ function zoomCrop(videoWidth,videoHeight,x,y,boardRadius,aspect=4/3){
     y:clamp(y-boundedHeight/2,0,videoHeight-boundedHeight),
     width:boundedWidth,height:boundedHeight};
 }
-const api={ORDER,targetPoint,sensitivityPreset,motionRatio,findChange,createChangeGate,zoomCrop};
+const api={ORDER,targetPoint,sensitivityPreset,speedPreset,motionRatio,findChange,createChangeGate,zoomCrop};
 if(typeof module==='object'&&module.exports)module.exports=api;
 root.DartArenaAutoZoom=api;
 })(typeof window!=='undefined'?window:globalThis);
