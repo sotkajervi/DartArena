@@ -4,7 +4,7 @@
   const IDLE_MS=2*60*60*1000;
   const ONLINE_WINDOW_MS=5*60*1000;
   const idleStamp=()=>new Date(Date.now()-ONLINE_WINDOW_MS-1000).toISOString();
-  const CHANGELOG_VERSION='2026-10-06-3';
+  const CHANGELOG_VERSION='2026-10-13-1';
   const lobbyVisible=()=>{const v=document.getElementById('lobbyView');return v&&!v.classList.contains('hidden')};
   const ready=()=>typeof db!=='undefined'&&typeof profile!=='undefined'&&profile?.id&&lobbyVisible();
   // Use the existing dropdown entries instead of injecting duplicate top-level buttons.
@@ -32,7 +32,7 @@
     const menuLink=document.querySelector('#daUtilityMenu .da-utility-panel a[href^="changelog.html"]');
     if(menuLink){
       menuLink.textContent=label;
-      menuLink.href='changelog.html?v=20261006-3';
+      menuLink.href='changelog.html?v=20261013-1';
       if(menuLink.dataset.daChangelogBound!=='1'){
         menuLink.dataset.daChangelogBound='1';
         menuLink.addEventListener('click',()=>{
@@ -50,7 +50,7 @@
     btn.textContent=label;
     btn.onclick=()=>{
       try{localStorage.setItem('dartarena_changelog_seen',CHANGELOG_VERSION)}catch{}
-      location.href='changelog.html?v=20261006-3';
+      location.href='changelog.html?v=20261013-1';
     };
     actions.insertBefore(btn,actions.firstChild);
   }
