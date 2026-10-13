@@ -68,7 +68,8 @@ function findChange(base,frame,width,height,board,options={}){
   return{x:sx/local,y:sy/local,changedSamples:points.length,localSamples:local,ratio};
 }
 function zoomCrop(videoWidth,videoHeight,x,y,boardRadius,aspect=4/3){
-  const width=Math.max(40,Math.min(videoWidth,boardRadius*.9));
+  // Tighter inset only: 0.65 vs 0.9 of the board radius (~38% more zoom).
+  const width=Math.max(40,Math.min(videoWidth,boardRadius*.65));
   const height=width/aspect;
   const boundedWidth=Math.min(videoWidth,width,videoHeight*aspect);
   const boundedHeight=boundedWidth/aspect;
