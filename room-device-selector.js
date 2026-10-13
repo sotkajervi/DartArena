@@ -278,17 +278,17 @@
   async function applySavedDevices() {
     const savedCamera = localStorage.getItem(CAMERA_KEY) || '';
     const savedMic = localStorage.getItem(MIC_KEY) || '';
+    const cameraExists = Array.from(cameraSelect.options).some(option => option.value === savedCamera);
+    const micExists = Array.from(micSelect.options).some(option => option.value === savedMic);
+
+    if (savedCamera && cameraExists && savedCamera !== currentDeviceId('video')) await replaceDevice('video', savedCamera, false);
+    if (savedMic && micExists && savedMic !== currentDeviceId('audio')) await replaceDevice('audio', savedMic, false);
     if(Z&&zoomAllowed&&Z.selected(localStorage)){
       const config=Z.loadConfig(localStorage);
       if(config&&config.deviceId===currentDeviceId('video')){
         await replaceDevice('video',Z.ZOOM_VALUE,false);
       }
     }
-    const cameraExists = Array.from(cameraSelect.options).some(option => option.value === savedCamera);
-    const micExists = Array.from(micSelect.options).some(option => option.value === savedMic);
-
-    if (savedCamera && cameraExists && savedCamera !== currentDeviceId('video')) await replaceDevice('video', savedCamera, false);
-    if (savedMic && micExists && savedMic !== currentDeviceId('audio')) await replaceDevice('audio', savedMic, false);
   }
 
   cameraSelect.addEventListener('change', () => replaceDevice('video', cameraSelect.value));
