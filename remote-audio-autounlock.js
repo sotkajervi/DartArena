@@ -5,7 +5,7 @@
   const video=document.getElementById('remoteVideo');
   const button=document.getElementById('remoteAudioBtn');
   const overlay=document.getElementById('remoteAudioOverlay');
-  if(!video||!button||!overlay)return;
+  if(!video||!button)return; // The match room has no fullscreen audio overlay.
 
   let attempting=false;
   let blocked=false;
@@ -20,7 +20,7 @@
   }
 
   function hideFallback(){
-    overlay.classList.add('hidden');
+    overlay?.classList.add('hidden');
     button.classList.add('hidden');
   }
 
@@ -28,7 +28,7 @@
     button.textContent='🔊 SLÅ PÅ LYD';
     button.title='Trykk for å høre motstanderen';
     button.classList.remove('hidden');
-    overlay.classList.remove('hidden');
+    overlay?.classList.remove('hidden');
   }
 
   async function enableAudio({trusted=false}={}){
