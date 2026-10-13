@@ -223,9 +223,12 @@
       console.error('Tournament preferred camera error',error);
       publication=null;
       $('readyBtn').disabled=true;
-      $('localPlaceholder')?.classList.remove('hidden');
+      const videoReady=!!stream?.getVideoTracks?.().some(track=>track.readyState==='live');
+      $('localPlaceholder')?.classList.toggle('hidden',videoReady);
       if($('localPlaceholder'))$('localPlaceholder').textContent='Kamera ikke startet';
-      setStatus(cameraErrorText(error));
+      setStatus(videoReady
+        ?'Ditt kamera virker lokalt, men sendingen feilet: '+cameraErrorText(error)
+        :cameraErrorText(error));
       retry?.classList.remove('hidden');
       await refreshDevices();
     }finally{
