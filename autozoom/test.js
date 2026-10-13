@@ -52,7 +52,7 @@ function aim(x,y,label){
 }
 function aimLabel(label){
   if(!board)return;
-  const p=G.targetPoint(board.x,board.y,board.radius,label);
+  const p=G.targetPoint(board.x,board.y,board.radius,label,board.rotation);
   if(p)aim(p.x,p.y,label);
 }
 function clearDetection(){
@@ -178,7 +178,8 @@ els.overlay.addEventListener('click',event=>{
     if(radius<Math.min(els.video.videoWidth,els.video.videoHeight)*.08){
       status('For kort avstand. Klikk D20 på dobbelringen, ikke nær Bull.');return;
     }
-    board={x:calibrationBull.x,y:calibrationBull.y,radius};
+    board={x:calibrationBull.x,y:calibrationBull.y,radius,
+      rotation:Math.atan2(x-calibrationBull.x,calibrationBull.y-y)};
     calibrationStep=0;current=null;
     clearDetection();overlay();aimLabel('T20');
     status('Skive kalibrert. Fjern pilene og trykk «Tom skive / referanse».');
