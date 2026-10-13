@@ -127,18 +127,18 @@ Gjør opprydding i en egen branch, i små pull requests. Endre ikke scoringsmoto
 
 Prosjektet startet 24. september 2026 og utvikles fortløpende. Se `changelog.html` for brukerrettede endringer.
 
-## AutoZoom beta i X01-kamp (OWNER/ADMIN)
 
-Når innlogget OWNER eller ADMIN åpner en X01-kamp (`match.html`, inkludert turneringskamper som bruker dette kamprommet), vises knappen **AutoZoom (BETA)**. Vanlige spillere får ikke knappen. Tilgang sjekkes med servervaliderte Supabase RPC-er `is_owner` / `is_admin`.
+## Zoom-cam (BETA) – kalibrering i Cam-test, valg i venterom
 
-1. Start en vanlig 501-kamp og vent på webkamera. Trykk **AutoZoom (BETA)**.
-2. Velg **Motstanderens kamera** (standard) for zoom bare hos deg, eller **Mitt kamera** for din egen skive. Når **Del zoom → På** er valgt (standard), vil motstanderen også se det forstørrede utsnittet på sitt bilde av deg. Tilskuere får foreløpig ikke dette zoomlaget.
-3. Trykk **Kalibrer** og klikk først Bull, deretter midt på D20-dobbelringen i det valgte livebildet.
-4. Fjern alle pilene og trykk **Tom skive / referanse**. Med **Mitt kamera** og deling på sendes zoomposisjonene via Supabase Realtime til den andre spilleren.
-5. Kast én pil om gangen. Et forstørret vindu vises i øvre høyre hjørne av *valgt* video, mens hovedvideoen står stille. Sporing inkluderer synlig område **utenfor dobbelringen** (opp til ca. 1,65 × skiveradius).
-6. Velg **Responshastighet: Rask / Normal / Rolig** (100/150/180 ms analyseintervall, 3/5/6 bekreftelsesmålinger og forskjellig panoreringshastighet). Normal anbefales først. Følsomhet **Normal / Lav / Høy** er et separat valg, og Normal/Lav bruker inntil videre samme stabile profil.
-7. Bytter du videokilde, eller byttes videostrømmen underveis, må du kalibrere på nytt. **Del zoom → Av** eller **Lukk test** fjerner det delte zoomlaget fra motstanderen uten å stoppe kampen.
+Dette erstatter den tidligere AutoZoom-delingsbetaen med en **faktisk, sammensatt videostrøm**. Den sendes med vanlig WebRTC slik at motstanderens mottakervideo viser hele dartskiva og et bevegelig zoomvindu oppe til høyre. Det kreves ikke en ekstra Realtime-overlay hos motstanderen.
 
-**Begrensning:** Enkel pikselendringsanalyse gir *anslått nytt område*, ikke bekreftet pilspiss eller poeng. Skygger, hender, kamerabevegelse eller piler som skjules kan gi feil. AutoZoom endrer aldri original WebRTC-stream, lyd, score eller turnering. Kun koordinater, zoomradius og enkle kontrollmeldinger sendes over Supabase Realtime (ingen ekstra video, opptak eller databaseoppdatering). Aktiveres bare manuelt i OWNER/ADMIN-klienten. Test i reelle kamper før videre utrulling.
+1. Åpne **Cam-test** i hovedlobbyen. Velg fysisk kamera, og trykk **Kalibrer Zoom-cam**. Klikk Bull og deretter D20 på dobbelringen. Kalibreringen lagres lokalt for akkurat dette kameraet og videoformatet.
+2. Sørg for tom skive, og bruk **Forhåndsvis Zoom-cam** for å kontrollere hele bildet + zoomvinduet. Dette er den ferdige videosammensetningen som senere sendes, ikke et overlagt vindu bare hos deg.
+3. Start et **vanlig venterom** (OWNER/ADMIN). Velg **Zoom-cam (kalibrert)** under Kamera. Venterommet bytter senderens videotrack og bevarer mikrofonen. Du kan bytte tilbake til det vanlige fysiske kameraet.
+4. Start en **X01-kamp (170, 301, 501 eller 1001)**. Kameraet åpnes på nytt og Zoom-cam bygges fra den lagrede kalibreringen. Både motstander og eventuelle tilskuere som får kameravideoen, mottar dermed samme sammensatte videobilde. Fungerer dette ikke i nettleseren, brukes vanlig kamera som reserve.
 
-Den separate `autozoom-test.html` har de samme tre hastighetsvalgene og større søkeområde for å sammenligne testing utenfor kamp.
+Zoom følger nye stabile bildeendringer og søker også i det synlige området **utenfor dobbelringen**. Dette er ikke trent pilspissdeteksjon og registrerer ikke score. Hovedbildet står stille, mens et digitalt utsnitt tegnes øverst til høyre. Normal/Lav-terskelen brukes foreløpig for å unngå falske hopp. Oppløsning og hastighet på kildesiden er avgjørende.
+
+**Avgrensning:** Bare vanlig venterom → `match.html` (X01) i første OWNER/ADMIN-test. Turneringsventerom, Cricket, Half-It og JDC bruker foreløpig vanlig kamera. En ny side får ikke med seg en levende mediatrack; kun innstillingene beholdes. Velg Zoom-cam på nytt i venterommet ved behov. Ingen eksisterende scoring-, database- eller lydflyt endres. Kamera stoppes på navigasjon, og Zoom-cam kan slåes av ved å velge fysisk kamera.
+
+Testsuite: `node --test autozoom/zoom-cam.test.cjs`. **Kamerapublisering og faktisk WebRTC-visning mellom to spillere må fortsatt testes manuelt**, siden simuleringene ikke erstatter en live nettlesertest.

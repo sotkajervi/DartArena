@@ -10,6 +10,9 @@
 
   const CAMERA_KEY = 'dartarena-preferred-camera';
   const MIC_KEY = 'dartarena-preferred-microphone';
+  const Z = window.DartArenaZoomCam;
+  let zoomSession = null;
+  let zoomAllowed = false;
   let switching = false;
   let meterContext = null;
   let meterSource = null;
@@ -18,7 +21,7 @@
   let initializedStream = null;
 
   const currentTrack = kind => stream?.getTracks?.().find(track => track.kind === kind && track.readyState === 'live') || null;
-  const currentDeviceId = kind => currentTrack(kind)?.getSettings?.().deviceId || '';
+  const currentDeviceId = kind => (kind==='video'&&zoomSession?zoomSession.sourceTrack:currentTrack(kind))?.getSettings?.().deviceId || '';
   const roomStreamReady = () => !!stream?.getTracks?.().length;
 
   function setMicLevel(value) {
@@ -103,8 +106,17 @@
       option.textContent = device.label || `${fallbackLabel} ${index + 1}`;
       select.appendChild(option);
     });
+    if (select===cameraSelect&&zoomAllowed&&Z){
+      const config=Z.loadConfig(localStorage);
+      if(config&&devices.some(d=>d.deviceId===config.deviceId)){
+        const option=document.createElement('option');
+        option.value=Z.ZOOM_VALUE;option.textContent='Zoom-cam (kalibrert)';
+        select.appendChild(option);
+      }
+    }
     select.disabled = switching || !roomStreamReady();
-    if (wanted) select.value = wanted;
+    if (select===cameraSelect&&zoomSession)select.value=Z.ZOOM_VALUE;
+    else if(wanted)select.value=wanted;
   }
 
   async function refreshDevices() {
@@ -165,8 +177,39 @@
 
   async function replaceDevice(kind, deviceId, save = true) {
     if (!deviceId || switching || !navigator.mediaDevices?.getUserMedia || !roomStreamReady()) return;
+    if(kind==='video'&&deviceId===Z?.ZOOM_VALUE){
+      if(!zoomAllowed||zoomSession)return;
+      const config=Z.loadConfig(localStorage),sourceTrack=currentTrack('video');
+      if(!config||!sourceTrack||!Z.compatible(config,sourceTrack,
+        sourceTrack.getSettings?.().width||1280,sourceTrack.getSettings?.().height||720)){
+        setStatus('Zoom-cam må kalibreres i Cam-test med samme kamera og bildeformat.');
+        await refreshDevices();return;
+      }
+      switching=true;cameraSelect.disabled=true;micSelect.disabled=true;
+      let next=null;
+      try{
+        next=Z.create(new MediaStream([sourceTrack]),config);
+        const sender=pc?.getSenders?.().find(x=>x.track?.kind==='video');
+        if(sender)await sender.replaceTrack(next.track);
+        stream.removeTrack(sourceTrack);stream.addTrack(next.track);
+        zoomSession=next;
+        Z.setSelected(localStorage,true);
+        const v=document.getElementById('localVideo');
+        if(v){v.srcObject=stream;await v.play().catch(()=>{})}
+        setStatus('Zoom-cam aktiv – motstander ser skive med zoomvindu.');
+        await send('ready').catch(()=>{});
+      }catch(error){
+        next?.stop();
+        console.warn('Zoom-cam kunne ikke aktiveres',error);
+        Z.setSelected(localStorage,false);
+        setStatus('Zoom-cam kunne ikke startes. Vanlig kamera beholdes.');
+      }finally{
+        switching=false;await refreshDevices();
+      }
+      return;
+    }
     const oldTrack = currentTrack(kind);
-    if (oldTrack?.getSettings?.().deviceId === deviceId) {
+    if (!zoomSession&&oldTrack?.getSettings?.().deviceId === deviceId) {
       if (save) localStorage.setItem(kind === 'video' ? CAMERA_KEY : MIC_KEY, deviceId);
       if (kind === 'audio') await startMeter(oldTrack);
       return;
@@ -179,8 +222,10 @@
     setStatus(kind === 'video' ? 'Bytter kamera…' : 'Bytter mikrofon…');
 
     try {
-      const replacementStream = await navigator.mediaDevices.getUserMedia(mediaConstraint(kind, deviceId));
-      const newTrack = kind === 'video' ? replacementStream.getVideoTracks()[0] : replacementStream.getAudioTracks()[0];
+      const source=kind==='video'&&zoomSession?.sourceTrack?.getSettings?.().deviceId===deviceId
+        ?zoomSession.sourceTrack:null;
+      const replacementStream=source?null:await navigator.mediaDevices.getUserMedia(mediaConstraint(kind,deviceId));
+      const newTrack=source||(kind==='video'?replacementStream.getVideoTracks()[0]:replacementStream.getAudioTracks()[0]);
       if (!newTrack) throw new Error(`Mangler ${kind}-track`);
 
       const sender = pc?.getSenders?.().find(item => item.track?.kind === kind);
@@ -189,7 +234,12 @@
       if (!stream) stream = new MediaStream();
       if (oldTrack) {
         try { stream.removeTrack(oldTrack); } catch {}
-        try { oldTrack.stop(); } catch {}
+        if(zoomSession&&kind==='video'){
+          const raw=zoomSession.sourceTrack;
+          zoomSession.stop();zoomSession=null;
+          if(raw!==newTrack)raw.stop();
+          Z.setSelected(localStorage,false);
+        }else try{oldTrack.stop()}catch{}
       }
       stream.addTrack(newTrack);
 
@@ -233,6 +283,12 @@
 
     if (savedCamera && cameraExists && savedCamera !== currentDeviceId('video')) await replaceDevice('video', savedCamera, false);
     if (savedMic && micExists && savedMic !== currentDeviceId('audio')) await replaceDevice('audio', savedMic, false);
+    if(Z&&zoomAllowed&&Z.selected(localStorage)){
+      const config=Z.loadConfig(localStorage);
+      if(config&&config.deviceId===currentDeviceId('video')){
+        await replaceDevice('video',Z.ZOOM_VALUE,false);
+      }
+    }
   }
 
   cameraSelect.addEventListener('change', () => replaceDevice('video', cameraSelect.value));
@@ -241,6 +297,12 @@
   document.addEventListener('pointerdown', () => meterContext?.resume?.().catch(() => {}), { passive: true });
 
   async function waitForRoomStream() {
+    if(Z){
+      try{
+        const [owner,admin]=await Promise.all([db.rpc('is_owner'),db.rpc('is_admin')]);
+        zoomAllowed=!owner.error&&!admin.error&&(owner.data===true||admin.data===true);
+      }catch{zoomAllowed=false}
+    }
     await refreshDevices();
     const timer = setInterval(async () => {
       if (!stream || initializedStream === stream || !stream.getTracks().length) return;
@@ -254,5 +316,10 @@
   }
 
   waitForRoomStream();
-  window.addEventListener('beforeunload', stopMeter);
+  window.addEventListener('beforeunload',()=>{
+    const raw=zoomSession?.sourceTrack;
+    zoomSession?.stop();
+    raw?.stop();
+    stopMeter();
+  });
 })();

@@ -67,6 +67,7 @@
     const live=liveVideoTracks();
     if(live.length){
       live.forEach(t=>t.enabled=true);
+      if(window.DartArenaX01ZoomSession?.sourceTrack)window.DartArenaX01ZoomSession.sourceTrack.enabled=true;
       if(localVideo){localVideo.srcObject=s;localVideo.muted=true;await localVideo.play().catch(()=>{})}
       showLocalCameraOn();
       await broadcastCamera(true);
@@ -78,6 +79,8 @@
     // actually requests a fresh camera instead of returning early.
     if(s){
       try{s.getTracks().forEach(t=>t.stop())}catch{}
+      const zoom=window.DartArenaX01ZoomSession;
+      if(zoom){zoom.stop();zoom.sourceTrack?.stop();window.DartArenaX01ZoomSession=null}
       try{stream=null}catch{}
       try{if(typeof publicationTimer!=='undefined'){clearInterval(publicationTimer);publicationTimer=null}}catch{}
       try{if(typeof publication!=='undefined')publication=null}catch{}
@@ -95,6 +98,7 @@
     // Disable only video. Audio and the WebRTC/SFU session stay alive, so starting
     // the camera again is instant and does not tear down the opponent video.
     tracks.forEach(t=>t.enabled=false);
+    if(window.DartArenaX01ZoomSession?.sourceTrack)window.DartArenaX01ZoomSession.sourceTrack.enabled=false;
     showLocalCameraOff();
     await broadcastCamera(false);
   }
