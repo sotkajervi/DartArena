@@ -40,8 +40,15 @@ async function openTournamentMatch(row){
   try{
     const uid=await getTournamentLinkUid();
     if(!uid){tournamentOpenMessage('Innloggingen er utløpt. Logg inn på nytt og prøv igjen.');return}
-    const {data:match,error}=await tournamentLinkDb.from('tournament_matches')
+    const fetchMatch=()=>tournamentLinkDb.from('tournament_matches')
       .select('id,player1_id,player2_id,status,live_match_id').eq('id',id).single();
+    let {data:match,error}=await fetchMatch();
+    if(error&&(['401','42501','PGRST301'].includes(String(error.code))||/jwt|permission denied|unauthori/i.test(error.message||''))){
+      const refreshed=await tournamentLinkDb.auth.refreshSession();
+      if(!refreshed.error&&refreshed.data?.session){
+        ({data:match,error}=await fetchMatch());
+      }
+    }
     if(error)throw error;
     if(!match){tournamentOpenMessage('Kampen ble ikke funnet.');return}
     if(isTournamentBye(match))return;
