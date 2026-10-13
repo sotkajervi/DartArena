@@ -15,12 +15,31 @@
   let nextSyncKnownChange=false;
   let reconcileTimer=null;
   let liveChannel=null;
+  let authRecovery=null;
+
+  async function ensureAuthenticated(){
+    const {data,error}=await client.auth.getSession();
+    if(error)throw error;
+    if(data?.session?.access_token)return true;
+    return false;
+  }
+
+  async function recoverAuthentication(){
+    if(authRecovery)return authRecovery;
+    authRecovery=(async()=>{
+      const {data,error}=await client.auth.refreshSession();
+      if(error)throw error;
+      return !!data?.session?.access_token;
+    })().finally(()=>{authRecovery=null});
+    return authRecovery;
+  }
 
   const stableRows=(rows,fields)=>(rows||[])
     .map(row=>fields.map(field=>row?.[field]??null))
     .sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
 
   async function readSnapshot(){
+    if(!await ensureAuthenticated())return null;
     const [tournamentResult,membersResult,matchesResult]=await Promise.all([
       client.from('tournaments')
         .select('id,status,registration_open,updated_at,game,game_variant,cup_game,cup_game_variant')
@@ -34,7 +53,12 @@
         .eq('tournament_id',tournamentId)
     ]);
 
-    if(tournamentResult.error)throw tournamentResult.error;
+    if(tournamentResult.error){
+      if(['401','42501'].includes(String(tournamentResult.error.code))){
+        await recoverAuthentication().catch(error=>console.warn('Tournament session refresh failed',error));
+      }
+      throw tournamentResult.error;
+    }
     if(membersResult.error)throw membersResult.error;
     if(matchesResult.error)throw matchesResult.error;
 
@@ -109,6 +133,7 @@
       let current;
       try{
         current=await readSnapshot();
+        if(!current)return;
       }catch(err){
         console.warn('Tournament reconciliation check failed',err);
         if(knownChange){
@@ -202,7 +227,7 @@
 
   // Safety net for missed Realtime events. It only reloads the UI when the
   // database snapshot actually changed, so idle tournament pages stay quiet.
-  reconcileTimer=setInterval(()=>scheduleSync(false),2500);
+  reconcileTimer=setInterval(()=>scheduleSync(false),15000);
 
   setTimeout(async()=>{
     try{
