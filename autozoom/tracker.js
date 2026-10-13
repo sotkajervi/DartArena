@@ -12,6 +12,16 @@ function targetPoint(cx,cy,radius,label,rotation=0){
   const angle=index*Math.PI/10+rotation;
   return{x:cx+Math.sin(angle)*radius*r,y:cy-Math.cos(angle)*radius*r};
 }
+// Normal temporarily reuses the proven Low filter. The former Normal preset
+// (stride 1 / threshold 75) repeatedly treated camera noise as fresh motion.
+const PRESETS=Object.freeze({
+  high:Object.freeze({stride:1,threshold:55,minSamples:5,minLocal:4}),
+  normal:Object.freeze({stride:2,threshold:95,minSamples:12,minLocal:7}),
+  low:Object.freeze({stride:2,threshold:95,minSamples:12,minLocal:7})
+});
+function sensitivityPreset(mode){
+  return PRESETS[mode]||PRESETS.normal;
+}
 function motionRatio(first,last,width,height,board,options={}){
   if(!first||!last||first.length!==last.length||!board)return 0;
   const stride=options.stride||3,threshold=options.threshold||88;
@@ -111,7 +121,7 @@ function zoomCrop(videoWidth,videoHeight,x,y,boardRadius,aspect=4/3){
     y:clamp(y-boundedHeight/2,0,videoHeight-boundedHeight),
     width:boundedWidth,height:boundedHeight};
 }
-const api={ORDER,targetPoint,motionRatio,findChange,createChangeGate,zoomCrop};
+const api={ORDER,targetPoint,sensitivityPreset,motionRatio,findChange,createChangeGate,zoomCrop};
 if(typeof module==='object'&&module.exports)module.exports=api;
 root.DartArenaAutoZoom=api;
 })(typeof window!=='undefined'?window:globalThis);
