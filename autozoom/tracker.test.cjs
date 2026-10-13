@@ -43,6 +43,21 @@ test('changes isolated to a dart-sized new region produce an approximate hit loc
   assert.ok(hit.changedSamples>10);
 });
 
+test('small low-contrast D4 change near double ring is detectable at high sensitivity',()=>{
+  const d4=T.targetPoint(board.x,board.y,board.radius,'D4');
+  assert.ok(d4.x>board.x&&d4.y<board.y,'D4 should be upper right');
+  const baseline=frame(),current=frame();
+  const x=Math.round(d4.x),y=Math.round(d4.y);
+  paint(current,x-1,y-1,3,4,46);
+  const hit=T.findChange(baseline,current,W,H,board,
+    {stride:1,threshold:55,minSamples:5,minLocal:4});
+  assert.ok(hit,'A narrow dart-sized D4 mark should be retained');
+  assert.ok(Math.abs(hit.x-x)<5&&Math.abs(hit.y-y)<5);
+  assert.equal(T.findChange(baseline,current,W,H,board,
+    {stride:2,threshold:95,minSamples:12,minLocal:7}),null,
+    'Low sensitivity may legitimately miss a faint dart-sized mark');
+});
+
 test('no new pixels means no new dart suggestion',()=>{
   assert.equal(T.findChange(frame(),frame(),W,H,board),null);
   assert.equal(T.motionRatio(frame(),frame(),W,H,board),0);
@@ -84,6 +99,8 @@ test('standalone page has fixed main video, moving inset and camera controls',()
   assert.match(html,/id="azCalibrate"/);
   assert.match(html,/id="azReference"/);
   assert.match(html,/data-az-target="D8"/);
+  assert.match(html,/data-az-target="D4"/);
+  assert.match(html,/id="azSensitivity"/);
   assert.match(html,/autozoom\/test\.js\?v=20261013-autozoom1/);
 });
 
@@ -96,6 +113,7 @@ test('zoom experiment does not send scores or video over the network',()=>{
   assert.match(src,/audio:false/);
   assert.match(src,/els\.video\.play\(\)/);
   assert.match(src,/G\.findChange\(/);
+  assert.match(src,/presets\[els\.sensitivity\.value\]/);
   assert.match(src,/drawImage\(els\.video,crop\.x/);
 });
 
