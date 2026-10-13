@@ -119,6 +119,7 @@ function makeLobby(initialRows, { autoPopupAllowed = false } = {}) {
   vm.runInNewContext(instrumented, context);
   return {
     hooks: context.__challengeTest,
+    sentHost,
     prompt,
     tabs,
     popupCalls,
@@ -272,7 +273,7 @@ test('the user can manually reopen a previously accepted room after login', asyn
   await lobby.hooks.startForProfile();
   await lobby.hooks.loadSentChallenges();
   assert.equal(lobby.popupCalls.length, 0);
-  assert.match(lobby.tabs.length === 0 ? 'Åpne' : '', /Åpne/);
+  assert.match(lobby.sentHost.innerHTML, /open-room-challenge/);
   assert.equal(lobby.manualOpen('previous'), true);
   assert.equal(lobby.tabs[0].location.href, 'room.html?id=previous');
   assert.deepEqual(lobby.navigations, []);
