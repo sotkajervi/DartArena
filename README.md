@@ -43,6 +43,8 @@ Ny og gradvis migrert kode legges under `src/` og skrives i TypeScript. Eksister
 
 For utfordringer håndterer `app.js` innkommende invitasjoner og ordinær lobbyoppdatering. `challenge-outgoing.js` holder oversikt over sendte utfordringer og avgjør når en nylig godtatt invitasjon skal åpne venterommet. Den gamle ekstra `room`-statusspørringen ved hver lobbyoppdatering er fjernet; behold én slik beslutningsflyt for å unngå dobbeltåpning. Realtime- og fallback-mekanismene for sent-listen er beholdt.
 
+**Separate venteromfaner:** Når spilleren trykker «Utfordre», forsøker `challenge-outgoing.js` å reservere en tom fane umiddelbart mens nettleseren tillater popup fra klikket. Når utfordringen godtas, byttes den reserverte fanen til `room.html`; lobbyen blir stående åpen. Den som godtar, åpner også venterommet i en egen fane. Hvis den reserverte fanen er blokkert eller lukket, forsøkes vanlig faneåpning, og ved popup-blokkering vises «Åpne venterom» i lobbyen. Avslåtte og tilbaketrukne invitasjoner lukker ubrukte ventefaner. Nettleseren kan bestemme hvilken fane som får fokus, så fokus tilbake til lobbyen er ikke garantert.
+
 ### Kodestruktur
 
 - `src/components/` – små gjenbrukbare UI-komponenter og render-hjelpere
