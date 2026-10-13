@@ -11,8 +11,9 @@
     "lint": "eslint \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.{ts,md}\" \"*.md\" \"*.json\" \"*.mjs\"",
     "format:check": "prettier --check \"src/**/*.{ts,md}\" \"*.md\" \"*.json\" \"*.mjs\"",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test:audio",
-    "test:audio": "node --test tests/remote-audio-autounlock.test.cjs"
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test:audio && npm run test:invites",
+    "test:audio": "node --test tests/remote-audio-autounlock.test.cjs",
+    "test:invites": "node --test tests/challenge-outgoing.test.cjs"
   },
   "devDependencies": {
     "eslint": "10.10.0",
