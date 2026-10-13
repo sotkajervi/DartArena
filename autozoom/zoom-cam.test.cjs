@@ -15,10 +15,13 @@ test('Cam-test calibration stores only device geometry across navigation',()=>{
   const store=storage();
   assert.ok(Z.saveConfig(store,sample));
   const saved=Z.loadConfig(store);
-  assert.deepEqual({...saved},{...sample,version:1});
+  assert.deepEqual({...saved},{...sample,speed:'normal',sensitivity:'normal',version:1});
   assert.equal(Object.keys(saved).includes('track'),false);
   assert.equal(Z.loadConfig(storage()),null);
   assert.equal(Z.saveConfig(store,{...sample,cx:4}),false);
+  assert.ok(Z.saveConfig(store,{...sample,speed:'fast',sensitivity:'low'}));
+  assert.equal(Z.loadConfig(store).speed,'fast');
+  assert.equal(Z.loadConfig(store).sensitivity,'low');
 });
 test('device and aspect ratio are checked before using calibration',()=>{
   const track={getSettings:()=>({deviceId:'webcam-1'})};
