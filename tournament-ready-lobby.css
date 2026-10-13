@@ -1,0 +1,21 @@
+/* Tournament group start: compact, nonintrusive DartArena modal. */
+#tournamentReadyModal{z-index:60}
+#tournamentReadyModal .tournament-ready-card{
+  width:min(470px,100%);position:relative;z-index:1;
+  padding:27px;border:1px solid rgba(0,234,244,.65);
+  border-radius:19px;background:linear-gradient(145deg,#123136,#09191d 72%);
+  box-shadow:0 28px 100px #000b,0 0 0 1px rgba(0,234,244,.13);
+}
+.tournament-ready-card>small{display:block;margin-bottom:12px;color:var(--cyan);font-weight:950;letter-spacing:.12em}
+.tournament-ready-card h2{font-size:27px;line-height:1.18;margin:0 0 9px}
+.tournament-ready-card .tournament-ready-name{font-size:17px;font-weight:900;color:#f3ffff;margin:0 0 10px;overflow-wrap:anywhere}
+.tournament-ready-card .tournament-ready-desc{color:#bdd3d6;font-size:14px;line-height:1.5;margin:0 0 18px}
+.tournament-ready-card .tournament-ready-timer{
+  padding:12px 14px;border:1px solid rgba(0,234,244,.25);border-radius:12px;
+  color:#c5dadd;background:rgba(0,234,244,.055);font-size:13px;margin:0 0 19px
+}
+.tournament-ready-card .tournament-ready-timer strong{font-size:19px;color:var(--cyan);font-variant-numeric:tabular-nums}
+.tournament-ready-card .tournament-ready-actions{display:flex;gap:10px;flex-wrap:wrap}
+.tournament-ready-card .tournament-ready-actions button{flex:1 1 170px;min-height:48px}
+#tournamentReadyModal button:focus-visible{outline:3px solid white;outline-offset:3px}
+@media(max-width:530px){#tournamentReadyModal .tournament-ready-card{padding:20px}.tournament-ready-card h2{font-size:24px}}
