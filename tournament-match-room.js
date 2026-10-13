@@ -19,6 +19,7 @@ let localReady=false;
 let remoteReady=false;
 let starting=false;
 let cameraStartupPromise=null;
+let roomRealtimeConnected=false;
 let starterChoice='random';
 let coinFlipRunning=false;
 let coinFlipFinished=false;
