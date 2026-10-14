@@ -221,8 +221,9 @@
     .on('postgres_changes',{
       event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${tournamentId}`
     },realtimeChange)
-    .subscribe(status=>{
+    .subscribe((status,error)=>{
       if(status==='SUBSCRIBED')scheduleSync(true);
+      if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('[TOURNAMENT REALTIME] tournament-live-refresh.js',status,{tournamentId,message:error?.message||null});
     });
 
   // Safety net for missed Realtime events. It only reloads the UI when the
