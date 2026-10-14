@@ -30,6 +30,7 @@ let remoteSubscribeBusy=false;
 let remoteSubscribeGeneration=0;
 let remoteVideoWatchdog=null;
 let remoteLastFrames=0;
+let remoteLastTime=0;
 let remoteLastProgress=Date.now();
 let remoteRetryAfter=0;
 
@@ -192,9 +193,11 @@ function monitorRemoteVideo(){
   const video=$('remoteVideo');
   if(!video||!remotePublication||!sfu||!roomConnected||remoteSubscribeBusy)return;
   const frames=video.getVideoPlaybackQuality?.().totalVideoFrames||0;
+  const playbackTime=video.currentTime||0;
   const valid=video.videoWidth>0&&video.videoHeight>0&&video.readyState>=2;
-  if(valid&&(frames>remoteLastFrames||(!frames&&!video.paused&&video.currentTime>0))){
+  if(valid&&(frames>remoteLastFrames||(!frames&&playbackTime>remoteLastTime+0.1))){
     remoteLastFrames=frames;
+    remoteLastTime=playbackTime;
     remoteLastProgress=Date.now();
     return;
   }
@@ -329,16 +332,15 @@ async function startCamera(){
 
 async function subscribeRemote(pub){
   if(!pub?.sessionId||!Array.isArray(pub.tracks)||!sfu||remoteSubscribeBusy)return;
-  const video=$('remoteVideo');
-  const frames=video?.getVideoPlaybackQuality?.().totalVideoFrames||0;
-  const healthy=video?.videoWidth>0&&video?.readyState>=2&&!video.paused&&
-    (frames>remoteLastFrames||Date.now()-remoteLastProgress<6000);
-  if(subscribedPublicationId===pub.sessionId&&healthy)return;
+  // Broadcast heartbeats must not replace an active (or still starting)
+  // subscription. Only a new publication ID or the watchdog may reset it.
+  if(subscribedPublicationId===pub.sessionId)return;
   resetRemoteVideo('Kobler til motstanderens kamerabilde…');
   const generation=remoteSubscribeGeneration;
   remoteSubscribeBusy=true;
   subscribedPublicationId=pub.sessionId;
   remoteLastFrames=0;
+  remoteLastTime=0;
   remoteLastProgress=Date.now();
   setStatus(`Kobler til ${names[other]||'motstander'}…`);
   try{
