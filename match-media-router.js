@@ -93,6 +93,14 @@
     loadSfu('sfu-fallback');
   }
 
+  // Tournament players have already established Cloudflare media in their
+  // waiting room. Avoid a second, usually unsuccessful direct Peer negotiation
+  // before the SFU fallback. Normal challenges retain Peer-first behavior.
+  if(new URLSearchParams(location.search).has('tournamentMatch')){
+    loadSfu('sfu');
+    return;
+  }
+
   // All online X01 matches use the direct WebRTC path first.
   // Cloudflare SFU is the synchronized safety fallback if peer setup fails,
   // the peer cannot recover, or audio connects without usable video.
