@@ -290,6 +290,26 @@
     refresh:()=>refresh()
   });
 
+  const resultTournamentMatchId=new URLSearchParams(location.search).get('tournamentMatch');
+  async function resultReturnUrl(){
+    if(!resultTournamentMatchId)return './';
+    const known=window.DartArenaTournamentReturnUrl;
+    if(known)return known;
+    const {data,error}=await resultDb.from('tournament_matches')
+      .select('tournament_id').eq('id',resultTournamentMatchId).single();
+    if(error||!data?.tournament_id)throw error||new Error('Fant ikke turneringen.');
+    return `tournament.html?id=${encodeURIComponent(data.tournament_id)}`;
+  }
+  async function returnFromResult(){
+    try{location.href=await resultReturnUrl()}
+    catch(error){
+      console.error('Could not open tournament lobby after match',error);
+      const message=document.getElementById('matchMessage');
+      if(message)message.textContent='Kunne ikke åpne turneringslobbyen. Prøv igjen.';
+      else alert('Kunne ikke finne turneringslobbyen. Prøv igjen.');
+    }
+  }
+
   async function showResult(m){
     if(!m||m.status!=='finished'||shownFor===m.id)return;
     shownFor=m.id;
@@ -299,8 +319,13 @@
     const score=scoreInfo(m),ordered=orderedScore(m,score),label=payload?.label||gameLabel(m),format=payload?.format||formatLabel(m);
     const[leftId,rightId]=displayOrder(m),leftName=names[leftId]||'Spiller 1',rightName=names[rightId]||'Spiller 2';
     const overlay=mountOverlay(`<section class="da-result-card" role="dialog" aria-modal="true" aria-label="Kampresultat"><div class="da-result-kicker">KAMP FERDIG</div><h1 class="da-result-title"><span class="da-result-winner-name">${esc(winnerName)}</span>${m.winner_id?' vant!':' er ferdig'}</h1><div class="da-result-sub">${esc(label)} • ${esc(format)}</div><div class="da-result-scorebox">${ordered.left}<span>–</span>${ordered.right}</div><div class="da-result-stats">${playerCardHtml(leftId,leftName,m,stats[leftId])}${playerCardHtml(rightId,rightName,m,stats[rightId])}</div>${summaryHtml(summary,names,m)}<div class="da-result-actions"><button id="daResultLobby" class="primary" type="button">Til lobby</button><button id="daResultClose" class="outline" type="button">Lukk kampfane</button></div><p class="da-result-note">DartArena • resultatet er lagret i kamphistorikken</p></section>`);
-    overlay.querySelector('#daResultLobby').onclick=()=>location.href='./';
-    overlay.querySelector('#daResultClose').onclick=()=>{window.close();setTimeout(()=>{if(!window.closed)location.href='./'},120)};
+    const tournamentResult=!!resultTournamentMatchId;
+    if(tournamentResult)overlay.querySelector('#daResultLobby').textContent='Til turneringen';
+    overlay.querySelector('#daResultLobby').onclick=returnFromResult;
+    overlay.querySelector('#daResultClose').onclick=()=>{
+      if(tournamentResult){returnFromResult();return;}
+      window.close();setTimeout(()=>{if(!window.closed)location.href='./'},120);
+    };
   }
 
   async function refresh(){if(!matchId||!resultDb)return;const{data,error}=await resultDb.from('matches').select('*').eq('id',matchId).single();if(!error&&data?.status==='finished')await showResult(data)}
