@@ -24,6 +24,8 @@ let coinFlipFinished=false;
 let coinFlipFallback=null;
 let roomConnected=false;
 let roomRetryTimer=null;
+const roomInstanceId=crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`;
+let remoteInstanceId=null;
 
 function setStatus(text){$('cameraStatus').textContent=text;}
 function starterValueForLocal(){
@@ -174,6 +176,12 @@ function setupChannel(){
   channel=db.channel(`tournament-room-${tournamentMatchId}`)
     .on('broadcast',{event:'state'},async({payload})=>{
       if(payload.from!==other)return;
+      if(payload.instanceId&&remoteInstanceId&&payload.instanceId!==remoteInstanceId){
+        remoteReady=false;
+        remotePublication=null;
+        subscribedPublicationId=null;
+      }
+      remoteInstanceId=payload.instanceId||remoteInstanceId;
       remoteReady=!!payload.ready;
       setReadyUi();
       if(payload.publication?.sessionId){
@@ -181,6 +189,15 @@ function setupChannel(){
         await subscribeRemote(remotePublication);
       }
       await maybeStart();
+    })
+    .on('broadcast',{event:'room-leave'},({payload})=>{
+      if(payload?.from!==other)return;
+      if(payload.instanceId&&remoteInstanceId&&payload.instanceId!==remoteInstanceId)return;
+      remoteReady=false;
+      remotePublication=null;
+      subscribedPublicationId=null;
+      setReadyUi();
+      $('roomMessage').textContent='Motstanderen forlot venterommet. Venter på at spilleren kommer tilbake…';
     })
     .on('broadcast',{event:'starter-request'},async({payload})=>{
       if(me!==tm.player1_id||payload.from!==other||!isValidStarterChoice(payload.choice))return;
@@ -223,6 +240,7 @@ function setupChannel(){
       if(['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(status)){
         roomConnected=false;
         remoteReady=false;
+        remoteInstanceId=null;
         setReadyUi();
         $('roomMessage').textContent='Forbindelsen til venterommet ble brutt. Prøver å koble til igjen…';
         clearTimeout(roomRetryTimer);
@@ -307,7 +325,7 @@ async function sendState(){
   await channel.send({
     type:'broadcast',
     event:'state',
-    payload:{from:me,ready:localReady,publication}
+    payload:{from:me,ready:localReady,publication,instanceId:roomInstanceId}
   });
 }
 
@@ -420,6 +438,11 @@ async function toggleRemoteAudio(){
 }
 
 function cleanup(){
+  if(channel&&me&&!starting){
+    try{channel.send({type:'broadcast',event:'room-leave',payload:{from:me,instanceId:roomInstanceId}}).catch?.(()=>{})}catch{}
+  }
+  localReady=false;
+  remoteReady=false;
   clearInterval(heartbeat);
   heartbeat=null;
   clearTimeout(roomRetryTimer);
