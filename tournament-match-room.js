@@ -33,6 +33,7 @@ let remoteLastFrames=0;
 let remoteLastTime=0;
 let remoteLastProgress=Date.now();
 let remoteRetryAfter=0;
+let queuedRemotePublication=null;
 
 function setStatus(text){$('cameraStatus').textContent=text;}
 function starterValueForLocal(){
@@ -331,7 +332,11 @@ async function startCamera(){
 }
 
 async function subscribeRemote(pub){
-  if(!pub?.sessionId||!Array.isArray(pub.tracks)||!sfu||remoteSubscribeBusy)return;
+  if(!pub?.sessionId||!Array.isArray(pub.tracks)||!sfu)return;
+  if(remoteSubscribeBusy){
+    if(pub.sessionId!==subscribedPublicationId)queuedRemotePublication=pub;
+    return;
+  }
   // Broadcast heartbeats must not replace an active (or still starting)
   // subscription. Only a new publication ID or the watchdog may reset it.
   if(subscribedPublicationId===pub.sessionId)return;
@@ -355,7 +360,18 @@ async function subscribeRemote(pub){
       }
       v.muted=true;
       v.playsInline=true;
+      const reveal=()=>{
+        if(generation!==remoteSubscribeGeneration)return;
+        if(v.videoWidth>0&&v.readyState>=2){
+          $('remotePlaceholder').classList.add('hidden');
+          remoteLastProgress=Date.now();
+          setStatus(`Tilkoblet ${names[other]||'motstander'} via Cloudflare`);
+        }
+      };
+      v.addEventListener('loadeddata',reveal,{once:true});
+      v.addEventListener('playing',reveal,{once:true});
       await v.play().catch(()=>{});
+      reveal();
       // A live track alone does not prove that actual video frames arrive.
       if(v.videoWidth&&v.readyState>=2){
         $('remotePlaceholder').classList.add('hidden');
@@ -371,6 +387,12 @@ async function subscribeRemote(pub){
     }
   }finally{
     if(generation===remoteSubscribeGeneration)remoteSubscribeBusy=false;
+    else remoteSubscribeBusy=false;
+    const next=queuedRemotePublication;
+    queuedRemotePublication=null;
+    if(next&&roomConnected&&next.sessionId===remotePublication?.sessionId){
+      subscribeRemote(next).catch(error=>console.warn('Queued remote video failed',error));
+    }
   }
 }
 
