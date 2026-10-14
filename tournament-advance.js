@@ -38,7 +38,7 @@
     ch=client.channel(`advance-cup-${tournamentId}`)
       .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${tournamentId}`},queueRefresh)
       .on('postgres_changes',{event:'UPDATE',schema:'public',table:'tournaments',filter:`id=eq.${tournamentId}`},queueRefresh)
-      .subscribe();
+      .subscribe((status,error)=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('[TOURNAMENT REALTIME] tournament-advance.js',status,{tournamentId,message:error?.message||null});});
     pollTimer=setInterval(()=>{if(!document.hidden)queueRefresh()},30000);
   }
   window.addEventListener('pagehide',()=>{
