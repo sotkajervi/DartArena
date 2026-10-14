@@ -328,6 +328,15 @@
     };
   }
 
+  if(resultTournamentMatchId){
+    const closeMatchButton=document.getElementById('closeMatchBtn');
+    if(closeMatchButton)closeMatchButton.onclick=()=>{
+      const matchStatus=typeof m!=='undefined'?m?.status:null;
+      if(matchStatus==='playing'&&!confirm('Kampen pågår fortsatt. Gå tilbake til turneringen?'))return;
+      returnFromResult();
+    };
+  }
+
   async function refresh(){if(!matchId||!resultDb)return;const{data,error}=await resultDb.from('matches').select('*').eq('id',matchId).single();if(!error&&data?.status==='finished')await showResult(data)}
   async function boot(){
     if(!matchId||!resultDb)return;
