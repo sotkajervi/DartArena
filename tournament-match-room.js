@@ -172,6 +172,14 @@ async function boot(){
   setupChannel();
 }
 
+function resetRemoteVideo(message='Venter på motstanderens kamera…'){
+  subscribedPublicationId=null;
+  try{sfu?.closeSubscriber?.()}catch{}
+  const v=$('remoteVideo');
+  if(v){try{v.pause()}catch{};v.srcObject=null;}
+  const placeholder=$('remotePlaceholder');
+  if(placeholder){placeholder.textContent=message;placeholder.classList.remove('hidden');}
+}
 function setupChannel(){
   channel=db.channel(`tournament-room-${tournamentMatchId}`)
     .on('broadcast',{event:'state'},async({payload})=>{
@@ -179,7 +187,7 @@ function setupChannel(){
       if(payload.instanceId&&remoteInstanceId&&payload.instanceId!==remoteInstanceId){
         remoteReady=false;
         remotePublication=null;
-        subscribedPublicationId=null;
+        resetRemoteVideo('Motstanderen kobler til kamera på nytt…');
       }
       remoteInstanceId=payload.instanceId||remoteInstanceId;
       remoteReady=!!payload.ready;
@@ -195,7 +203,7 @@ function setupChannel(){
       if(payload.instanceId&&remoteInstanceId&&payload.instanceId!==remoteInstanceId)return;
       remoteReady=false;
       remotePublication=null;
-      subscribedPublicationId=null;
+      resetRemoteVideo('Motstanderen forlot venterommet.');
       setReadyUi();
       $('roomMessage').textContent='Motstanderen forlot venterommet. Venter på at spilleren kommer tilbake…';
     })
@@ -292,7 +300,10 @@ async function startCamera(){
 
 async function subscribeRemote(pub){
   if(!pub?.sessionId||!Array.isArray(pub.tracks)||!sfu)return;
-  if(subscribedPublicationId===pub.sessionId)return;
+  const remoteVideo=$('remoteVideo');
+  const healthy=remoteVideo?.srcObject?.getVideoTracks?.().some(track=>track.readyState==='live'&&!track.muted);
+  if(subscribedPublicationId===pub.sessionId&&healthy)return;
+  resetRemoteVideo('Kobler til motstanderens nye kamerabilde…');
   subscribedPublicationId=pub.sessionId;
   setStatus(`Kobler til ${names[other]||'motstander'}…`);
   try{
@@ -315,7 +326,7 @@ async function subscribeRemote(pub){
     });
   }catch(e){
     console.error('Tournament room subscribe error',e);
-    subscribedPublicationId=null;
+    resetRemoteVideo('Kunne ikke koble til motstanderens video. Prøver igjen…');
     setStatus('Kunne ikke koble til motstanderens video. Prøver igjen…');
   }
 }
