@@ -107,6 +107,17 @@
       select.appendChild(option);
     });
     if(wanted)select.value=wanted;
+    if(select===cameraSelect&&window.DartArenaZoomCam){
+      const Z=window.DartArenaZoomCam;
+      const config=Z.loadConfig(localStorage);
+      if(config&&ids.has(config.deviceId)){
+        const option=document.createElement('option');
+        option.value=Z.ZOOM_VALUE;
+        option.textContent='Zoom-cam (kalibrert)';
+        select.appendChild(option);
+        if(zoomSession||Z.selected(localStorage))select.value=Z.ZOOM_VALUE;
+      }
+    }
     select.disabled=switching;
   }
 
@@ -185,7 +196,12 @@
     setStatus('Starter valgt kamera…');
 
     try{
-      const wantedCamera=cameraSelect?.value||localStorage.getItem(CAMERA_KEY)||'';
+      const Z=window.DartArenaZoomCam;
+      const zoomWanted=!!(Z&&Z.selected(localStorage));
+      const selectedCamera=cameraSelect?.value||'';
+      const wantedCamera=selectedCamera===Z?.ZOOM_VALUE
+        ?Z.loadConfig(localStorage)?.deviceId||localStorage.getItem(CAMERA_KEY)||''
+        :selectedCamera||localStorage.getItem(CAMERA_KEY)||'';
       const wantedMic=micSelect?.value||localStorage.getItem(MIC_KEY)||'';
       const activeCamera=currentDeviceId('video');
       const activeMic=currentDeviceId('audio');
@@ -255,8 +271,16 @@
     const select=kind==='video'?cameraSelect:micSelect;
     const value=select?.value||'';
     if(!value)return;
-    localStorage.setItem(kind==='video'?CAMERA_KEY:MIC_KEY,value);
-    if(kind==='video')window.DartArenaZoomCam?.setSelected(localStorage,false);
+    const Z=window.DartArenaZoomCam;
+    if(kind==='video'&&Z&&value===Z.ZOOM_VALUE){
+      const config=Z.loadConfig(localStorage);
+      if(!config)return;
+      localStorage.setItem(CAMERA_KEY,config.deviceId);
+      Z.setSelected(localStorage,true);
+    }else{
+      localStorage.setItem(kind==='video'?CAMERA_KEY:MIC_KEY,value);
+      if(kind==='video')Z?.setSelected(localStorage,false);
+    }
 
     if(typeof localReady!=='undefined'&&localReady){
       localReady=false;
