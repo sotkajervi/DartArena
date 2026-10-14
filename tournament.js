@@ -99,7 +99,7 @@ async function boot(){
     .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${id}`},()=>{
       if(tournament?.status==='groups'||(tournament?.status==='finished'&&tournament?.tournament_type==='groups_cup'))loadGroupLobby();
     })
-    .subscribe();
+    .subscribe((status,error)=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('[TOURNAMENT REALTIME] tournament.js',status,{tournamentId:id,message:error?.message||null});});
 
   await load();
 }
