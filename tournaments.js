@@ -180,7 +180,7 @@
     }finally{loading=false}
   }
 
-  async function join(id){const {error}=await db.from('tournament_members').insert({tournament_id:id,user_id:me,role:'participant'});if(error)alert(error.message);else load()}
+  async function join(id){const {error}=await db.from('tournament_members').insert({tournament_id:id,user_id:me,role:'participant'});if(error){alert(error.message);return;}location.href=`tournament.html?id=${encodeURIComponent(id)}`;}
   async function leave(id){const {error}=await db.from('tournament_members').delete().eq('tournament_id',id).eq('user_id',me);if(error)alert(error.message);else load()}
 
   // Realtime is primary. Low-frequency foreground refresh catches missed
