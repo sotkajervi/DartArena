@@ -281,10 +281,14 @@
 
   disableDirectP2P();
 
-  const boot=setInterval(async()=>{
+  // Bootstrap only until the media channel exists. The channel callback and
+  // one-second watcher handle publication and later camera changes; keeping this
+  // 150 ms timer running forever duplicated that work.
+  const boot=setInterval(()=>{
+    if(stopped){clearInterval(boot);return;}
     disableDirectP2P();
     if(!setupChannel())return;
-    if(hasPublishableTracks())await publish();
+    clearInterval(boot);
   },150);
 
   watcher=setInterval(async()=>{
