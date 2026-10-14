@@ -240,7 +240,7 @@
   db.channel(`tournament-stats-${tournamentId}`)
     .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${tournamentId}`},scheduleLoad)
     .on('postgres_changes',{event:'*',schema:'public',table:'match_throws'},scheduleLoad)
-    .subscribe();
+    .subscribe((status,error)=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('[TOURNAMENT REALTIME] tournament-stats.js',status,{tournamentId,message:error?.message||null});});
 
   window.addEventListener('focus',scheduleLoad);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleLoad()});
