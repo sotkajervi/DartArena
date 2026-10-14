@@ -26,6 +26,12 @@ let roomConnected=false;
 let roomRetryTimer=null;
 const roomInstanceId=crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`;
 let remoteInstanceId=null;
+let remoteSubscribeBusy=false;
+let remoteSubscribeGeneration=0;
+let remoteVideoWatchdog=null;
+let remoteLastFrames=0;
+let remoteLastProgress=Date.now();
+let remoteRetryAfter=0;
 
 function setStatus(text){$('cameraStatus').textContent=text;}
 function starterValueForLocal(){
@@ -173,12 +179,30 @@ async function boot(){
 }
 
 function resetRemoteVideo(message='Venter på motstanderens kamera…'){
+  remoteSubscribeGeneration++;
+  remoteSubscribeBusy=false;
   subscribedPublicationId=null;
   try{sfu?.closeSubscriber?.()}catch{}
   const v=$('remoteVideo');
   if(v){try{v.pause()}catch{};v.srcObject=null;}
   const placeholder=$('remotePlaceholder');
   if(placeholder){placeholder.textContent=message;placeholder.classList.remove('hidden');}
+}
+function monitorRemoteVideo(){
+  const video=$('remoteVideo');
+  if(!video||!remotePublication||!sfu||!roomConnected||remoteSubscribeBusy)return;
+  const frames=video.getVideoPlaybackQuality?.().totalVideoFrames||0;
+  const valid=video.videoWidth>0&&video.videoHeight>0&&video.readyState>=2;
+  if(valid&&(frames>remoteLastFrames||(!frames&&!video.paused&&video.currentTime>0))){
+    remoteLastFrames=frames;
+    remoteLastProgress=Date.now();
+    return;
+  }
+  if(Date.now()-remoteLastProgress<7000||Date.now()<remoteRetryAfter)return;
+  remoteRetryAfter=Date.now()+6500;
+  remoteLastProgress=Date.now();
+  subscribedPublicationId=null;
+  subscribeRemote(remotePublication).catch(error=>console.warn('Remote video watchdog retry failed',error));
 }
 function setupChannel(){
   channel=db.channel(`tournament-room-${tournamentMatchId}`)
@@ -238,6 +262,9 @@ function setupChannel(){
         roomConnected=true;
         clearTimeout(roomRetryTimer);
         setReadyUi();
+        clearInterval(remoteVideoWatchdog);
+        remoteLastProgress=Date.now();
+        remoteVideoWatchdog=setInterval(monitorRemoteVideo,2000);
         clearInterval(heartbeat);
         heartbeat=setInterval(()=>sendState().catch(error=>console.warn('Room heartbeat failed',error)),1800);
         await sendState();
@@ -247,6 +274,8 @@ function setupChannel(){
       }
       if(['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(status)){
         roomConnected=false;
+        clearInterval(remoteVideoWatchdog);
+        remoteVideoWatchdog=null;
         remoteReady=false;
         remoteInstanceId=null;
         setReadyUi();
@@ -299,35 +328,47 @@ async function startCamera(){
 }
 
 async function subscribeRemote(pub){
-  if(!pub?.sessionId||!Array.isArray(pub.tracks)||!sfu)return;
-  const remoteVideo=$('remoteVideo');
-  const healthy=remoteVideo?.srcObject?.getVideoTracks?.().some(track=>track.readyState==='live'&&!track.muted);
+  if(!pub?.sessionId||!Array.isArray(pub.tracks)||!sfu||remoteSubscribeBusy)return;
+  const video=$('remoteVideo');
+  const frames=video?.getVideoPlaybackQuality?.().totalVideoFrames||0;
+  const healthy=video?.videoWidth>0&&video?.readyState>=2&&!video.paused&&
+    (frames>remoteLastFrames||Date.now()-remoteLastProgress<6000);
   if(subscribedPublicationId===pub.sessionId&&healthy)return;
-  resetRemoteVideo('Kobler til motstanderens nye kamerabilde…');
+  resetRemoteVideo('Kobler til motstanderens kamerabilde…');
+  const generation=remoteSubscribeGeneration;
+  remoteSubscribeBusy=true;
   subscribedPublicationId=pub.sessionId;
+  remoteLastFrames=0;
+  remoteLastProgress=Date.now();
   setStatus(`Kobler til ${names[other]||'motstander'}…`);
   try{
-    await sfu.subscribe(pub,async e=>{
+    await sfu.subscribe(pub,async event=>{
+      if(generation!==remoteSubscribeGeneration)return;
       const v=$('remoteVideo');
       let rs=v.srcObject;
       if(!(rs instanceof MediaStream)){rs=new MediaStream();v.srcObject=rs;}
-      const tracks=e.streams?.[0]?.getTracks()||[e.track];
+      const tracks=event.streams?.[0]?.getTracks()||[event.track];
       for(const track of tracks){
-        if(!rs.getTracks().some(t=>t.id===track.id))rs.addTrack(track);
+        if(track&&!rs.getTracks().some(t=>t.id===track.id))rs.addTrack(track);
       }
       v.muted=true;
       v.playsInline=true;
       await v.play().catch(()=>{});
-      if(rs.getVideoTracks().some(t=>t.readyState==='live')){
+      // A live track alone does not prove that actual video frames arrive.
+      if(v.videoWidth&&v.readyState>=2){
         $('remotePlaceholder').classList.add('hidden');
-        // Shared audio auto-unlock keeps the fallback button hidden unless needed.
+        remoteLastProgress=Date.now();
         setStatus(`Tilkoblet ${names[other]||'motstander'} via Cloudflare`);
       }
     });
-  }catch(e){
-    console.error('Tournament room subscribe error',e);
-    resetRemoteVideo('Kunne ikke koble til motstanderens video. Prøver igjen…');
-    setStatus('Kunne ikke koble til motstanderens video. Prøver igjen…');
+  }catch(error){
+    if(generation===remoteSubscribeGeneration){
+      console.error('Tournament room subscribe error',error);
+      resetRemoteVideo('Video ikke tilgjengelig. Prøver å koble til igjen…');
+      setStatus('Kunne ikke koble til motstanderens video. Prøver igjen…');
+    }
+  }finally{
+    if(generation===remoteSubscribeGeneration)remoteSubscribeBusy=false;
   }
 }
 
@@ -456,6 +497,8 @@ function cleanup(){
   remoteReady=false;
   clearInterval(heartbeat);
   heartbeat=null;
+  clearInterval(remoteVideoWatchdog);
+  remoteVideoWatchdog=null;
   clearTimeout(roomRetryTimer);
   roomRetryTimer=null;
   roomConnected=false;
