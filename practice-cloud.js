@@ -14,14 +14,20 @@ parent?.after(status);
 let uid=null,working=false,queued=false,lastSynced='';
 const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch{return null}};
 function uuid(v){return typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)}
-function sanitize(s){return s&&uuid(s.id)&&['playing','between','finished'].includes(s.status)&&Array.isArray(s.visits)&&Array.isArray(s.players)?s:null}
+function sanitize(s){return s&&validId(s.id)&&['playing','between','finished'].includes(s.status)&&Array.isArray(s.visits)&&Array.isArray(s.players)?s:null}
 async function saveOne(s,kind){
  if(!sanitize(s))return;
- const {data:existing,error:e}=await db.from('practice_matches').select('id,deleted_at').eq('id',s.id).maybeSingle();
+ const id=cloudId(s.id);
+ const {data:existing,error:e}=await db.from('practice_matches').select('id,deleted_at,status,state').eq('id',id).maybeSingle();
  if(e)throw e;
  if(existing?.deleted_at)return;
- const payload={id:s.id,user_id:uid,category:kind,state:s,status:s.status,updated_at:new Date().toISOString()};
- if(existing){const {error}=await db.from('practice_matches').update({state:s,status:s.status,updated_at:payload.updated_at}).eq('id',s.id);if(error)throw error}
+ if(existing?.state){
+  const serverCount=Array.isArray(existing.state.visits)?existing.state.visits.length:0;
+  const localCount=s.visits.length;
+  if(serverCount>localCount||(existing.status==='finished'&&s.status!=='finished'))return;
+ }
+ const payload={id,user_id:uid,category:kind,state:s,status:s.status,updated_at:new Date().toISOString()};
+ if(existing){const {error}=await db.from('practice_matches').update({state:s,status:s.status,updated_at:payload.updated_at}).eq('id',id);if(error)throw error}
  else {const {error}=await db.from('practice_matches').insert(payload);if(error)throw error}
 }
 async function sync(){
@@ -38,7 +44,7 @@ async function sync(){
    const archived=read(historyKey),deleted=new Set(read(deletedKey)||[]);
    if(Array.isArray(archived)){
     for(const entry of archived){
-     if(!uuid(entry?.id)||deleted.has(entry.id))continue;
+     if(!validId(entry?.id)||deleted.has(entry.id))continue;
      if(!sanitize({...entry,status:'finished'}))continue;
      const state={...entry,status:'finished'};
      await saveOne(state,'head_to_head');
@@ -63,9 +69,9 @@ async function showCloudHistory(){
   document.querySelector('main')?.append(host);
  }
  const rows=document.getElementById('practiceCloudRows');
- const {data,error}=await db.from('practice_matches').select('id,user_id,category,status,state,updated_at,deleted_at').eq('category',category).is('deleted_at',null).order('updated_at',{ascending:false}).limit(75);
+ const {data,error}=await db.from('practice_matches').select('id,user_id,category,status,state,updated_at,deleted_at').eq('category',category).eq('user_id',uid).is('deleted_at',null).order('updated_at',{ascending:false}).limit(75);
  if(error){rows.textContent='Kunne ikke hente kamper: '+error.message;return}
- const mine=(data||[]).filter(item=>item.user_id===uid);
+ const mine=data||[];
  rows.replaceChildren();
  if(!mine.length){rows.textContent='Ingen lagrede kamper ennå.';return}
  for(const item of mine){
@@ -79,9 +85,9 @@ async function showCloudHistory(){
    button.disabled=true;
    const {data:removed,error:err}=await db.rpc('practice_soft_delete',{p_id:item.id});
    if(err||!removed){alert('Kunne ikke slette kampen: '+(err?.message||'ikke tillatt'));button.disabled=false;return}
-   if(read(key)?.id===item.id)localStorage.removeItem(key);
+   if(cloudId(read(key)?.id)===item.id)localStorage.removeItem(key);
    if(category==='head_to_head'){
-    window.DartArenaH2HHistory?.remove(item.id);
+    window.DartArenaH2HHistory?.remove(String(item.state?.id||''));
    }
    await showCloudHistory();
   };
