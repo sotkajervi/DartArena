@@ -20,6 +20,7 @@ let base=null,previous=null,quiet=0;
 let changeGate=G.createChangeGate({stableFrames:5,motionWindowMs:4000,cooldownMs:1800});
 let accepted=0,analysisTimer=null,animationFrame=null,current=null,target=null,lastLabel='T20';
 let autoEnabled=true,starting=false;
+let pendingMotion=null, rejected=0;
 async function refreshDevices(){
   if(!navigator.mediaDevices?.enumerateDevices)return;
   const selected=els.camera.value;
@@ -74,7 +75,7 @@ function aimLabel(label){
   if(p)aim(p.x,p.y,label);
 }
 function clearDetection(){
-  base=null;previous=null;quiet=0;changeGate.reset();
+  base=null;previous=null;quiet=0;pendingMotion=null;rejected=0;changeGate.reset();
 }
 function cropFrame(){
   if(!stream||!els.video.videoWidth||!board)return;
@@ -100,7 +101,7 @@ function chooseReference(){
   if(!stream||!board||!analysis.width)return;
   analysisCtx.drawImage(els.video,0,0,analysis.width,analysis.height);
   base=new Uint8ClampedArray(analysisCtx.getImageData(0,0,analysis.width,analysis.height).data);
-  previous=null;quiet=0;changeGate.reset();
+  previous=null;quiet=0;pendingMotion=null;rejected=0;changeGate.reset();
   accepted=0;els.count.textContent='0';
   window.dispatchEvent(new Event('dartarena:autozoom-test-reset'));
   els.last.textContent='Ingen registrert';
@@ -111,7 +112,7 @@ function applySpeed(){
   const speed=G.speedPreset(els.speed.value);
   if(analysisTimer){clearInterval(analysisTimer);analysisTimer=null}
   changeGate=G.createChangeGate({stableFrames:speed.stableFrames,motionWindowMs:4000,cooldownMs:speed.cooldownMs});
-  previous=null;quiet=0;
+  previous=null;quiet=0;pendingMotion=null;
   if(stream)analysisTimer=setInterval(analyse,speed.intervalMs);
 }
 function analyse(){
@@ -131,6 +132,13 @@ function analyse(){
   // in the saved reference image. Movement arms a brief validation window.
   const motionHit=previous&&motion<=.008?G.findChange(previous,frame,w,h,boardSmall,
     {...preset,searchRadius,maxRatio:.045}):null;
+  // Only admit an entirely new, localized change associated with recent
+  // motion. Repeated lighting noise elsewhere must not create a dart.
+  if(motionHit&&motionHit.changedSamples>=preset.minSamples&&
+     motionHit.localSamples/Math.max(1,motionHit.changedSamples)>=.50){
+    pendingMotion={x:motionHit.x,y:motionHit.y,at:now};
+  }
+  if(pendingMotion&&now-pendingMotion.at>3000)pendingMotion=null;
   previous=new Uint8ClampedArray(frame);
   if(motion>.008)quiet=0;
   else quiet++;
@@ -138,6 +146,19 @@ function analyse(){
     G.findChange(base,frame,w,h,boardSmall,{...preset,searchRadius}):null;
   const hit=changeGate.observe(candidate,{movement:motion>.008||!!motionHit,now,radius:boardSmall.radius});
   if(!hit)return;
+  // Gate acceptance on spatial agreement with motion evidence. A stable
+  // difference alone (e.g. glare at D1) is not a confirmed new object.
+  const maxGap=Math.max(9,boardSmall.radius*.22);
+  const confirmed=!!pendingMotion&&now-pendingMotion.at<=3000&&
+    Math.hypot(hit.x-pendingMotion.x,hit.y-pendingMotion.y)<=maxGap&&
+    hit.changedSamples>=Math.max(12,preset.minSamples)&&
+    hit.localSamples/hit.changedSamples>=.50;
+  if(!confirmed){
+    rejected++;
+    status('Usikkert treff avvist ('+rejected+'). Krever lokal bevegelse og stabil endring samme sted.');
+    return;
+  }
+  pendingMotion=null;
   // A new stable image region is an estimated dart location, NOT a detected tip.
   const x=hit.x*els.video.videoWidth/w,y=hit.y*els.video.videoHeight/h;
   window.dispatchEvent(new CustomEvent('dartarena:autozoom-test-hit',{detail:{
