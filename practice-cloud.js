@@ -140,29 +140,34 @@ function openPracticeMatchStats(item){
  const state=item.state||{},visits=Array.isArray(state.visits)?state.visits:[];
  const names=state.players||['Spiller 1','Spiller 2'];
  const num=value=>Number(value)||0;
+ const final= item.status==='finished';
+ const winnerIndex=Number.isInteger(state.winner)?state.winner:(Array.isArray(state.legs)&&state.legs[0]!==state.legs[1]?(state.legs[0]>state.legs[1]?0:1):null);
+ const winnerName=winnerIndex===null?'':names[winnerIndex]||'Spiller';
  const box=document.createElement('div');
  box.className='da-practice-stats-overlay';
  box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');box.setAttribute('aria-label','Kampstatistikk');
  box.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,8,10,.88);display:flex;align-items:center;justify-content:center;padding:16px';
  const content=document.createElement('div');
- content.style.cssText='width:min(980px,100%);max-height:92vh;overflow-y:auto;position:relative;background:#071012;border:1px solid #27565b;border-radius:16px;padding:18px';
+ content.style.cssText='width:min(1080px,100%);max-height:94vh;overflow-y:auto;position:relative;background:#091719;border:1px solid #00bdc8;border-radius:20px;padding:clamp(16px,3vw,32px);box-shadow:0 30px 100px #000b';
  const header=document.createElement('div');header.className='premium-stats-head';
  const label=document.createElement('div');
  const kicker=document.createElement('small');kicker.textContent='KAMPSTATISTIKK · AI RIVAL';
- const heading=document.createElement('h1');heading.textContent=names.join(' vs ');
+ const heading=document.createElement('h1');heading.textContent=names.join(' vs ');heading.style.cssText='font-size:clamp(21px,3vw,34px);line-height:1.2;margin:9px 0 4px';
  label.append(kicker,heading);
  const close=document.createElement('button');close.type='button';close.className='outline';close.textContent='Lukk';
- header.append(label,close);content.append(header);
- const section=document.createElement('section');section.className='premium-result-card';
+ header.append(label,close);header.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:22px';content.append(header);
+ const section=document.createElement('section');section.className='premium-result-card';section.style.cssText='border:1px solid #00bac5;border-radius:20px;padding:clamp(16px,2.5vw,26px);background:#07191c;text-align:center';
  const title=document.createElement('div');title.className='premium-result-kicker';title.textContent=item.status==='finished'?'KAMP FERDIG':'PÅGÅENDE KAMP';
  const format=document.createElement('div');format.className='premium-result-sub';format.textContent=(state.format||'501')+' · '+new Date(item.updated_at).toLocaleString('no-NO');
- section.append(title,format);
+ section.append(title);
+ if(final&&winnerName){const champion=document.createElement('h2');champion.textContent=winnerName+' vant!';champion.style.cssText='font-weight:900;font-size:clamp(28px,4vw,43px);margin:7px 0;color:#f2c064';section.append(champion)}
+ section.append(format);
  if(Array.isArray(state.legs)){
   const score=document.createElement('div');score.className='premium-result-score';
-  score.textContent=state.legs.join(' – ');
+  score.textContent=state.legs.join(' – ');score.style.cssText='font-size:clamp(42px,6vw,62px);font-weight:900;line-height:1.2;display:inline-block;padding:4px 24px;margin:14px auto 20px;background:#0a272b;border:1px solid #00b9c4;border-radius:13px;color:#f2fbfc';
   section.append(score);
  }
- const grid=document.createElement('div');grid.className='premium-player-grid';
+ const grid=document.createElement('div');grid.className='premium-player-grid';grid.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;text-align:left;margin:0 0 16px';
  for(let i=0;i<2;i++){
   const rows=visits.filter(v=>num(v.player)===i);
   const darts=rows.reduce((sum,v)=>sum+(v.checkout?Math.max(1,Math.min(3,num(v.darts)||3)):3),0);
@@ -180,12 +185,15 @@ function openPracticeMatchStats(item){
    ['170+',rows.filter(v=>num(v.score)>=170).length],
    ['180',rows.filter(v=>num(v.score)===180).length]
   ];
-  const card=document.createElement('article');card.className='premium-player-card';
+  const card=document.createElement('article');card.className='premium-player-card';card.style.cssText='min-width:0;border:1px solid '+(final&&winnerIndex===i?'#edbd55':'#006c78')+';border-radius:15px;padding:17px;background:#071619;'+(final&&winnerIndex===i?'box-shadow:inset 3px 0 #edbd55;':'');
   const head=document.createElement('div');head.className='premium-player-head';
   const name=document.createElement('div');name.className='premium-player-name da-role-player';name.textContent=names[i]||'Spiller '+(i+1);
-  const profileId=i===0?item.user_id:(category==='ai_rival'?item.settings?.rivalId:null);
+  const profileId=i===0?item.user_id:null;
   if(profileId)name.dataset.userId=profileId;
-  head.append(name);card.append(head);
+  if(final&&winnerIndex===i){const crown=document.createElement('span');crown.textContent='♛';crown.style.cssText='font-size:25px;color:#f2c064;margin-right:9px';head.append(crown)}
+ head.append(name);
+ if(final&&winnerIndex===i){const badge=document.createElement('small');badge.textContent='VINNER';badge.style.cssText='color:#f2c064;border:1px solid #bd913f;border-radius:20px;padding:2px 7px;font-size:10px';head.append(badge)}
+ head.style.cssText='display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:15px';card.append(head);
   const metrics=document.createElement('div');metrics.className='premium-stat-grid';
   for(const [key,value] of values){
    const cell=document.createElement('div');cell.className='premium-stat';
@@ -197,7 +205,7 @@ function openPracticeMatchStats(item){
  }
  section.append(grid);
  window.DartArenaRoleVisuals?.scan(grid);
- const legs=document.createElement('section');legs.className='premium-leg-section';
+ const legs=document.createElement('section');legs.className='premium-leg-section';legs.style.cssText='margin-top:15px;padding:13px;border:1px solid #213f45;border-radius:13px;text-align:left;background:#081417';
  const legHead=document.createElement('div');legHead.className='premium-leg-title';legHead.textContent='LEG-OVERSIKT';
  const list=document.createElement('div');list.className='premium-leg-list';
  const keys=[...new Set(visits.map(v=>String(v.set||1)+':'+String(v.leg||1)))];
