@@ -14,7 +14,8 @@ const parent=document.querySelector('.local-h2h-heading')||document.querySelecto
 parent?.after(status);
 let uid=null,working=false,queued=false,lastSynced='',staff=false,showAll=false;
 const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch{return null}};
-function uuid(v){return typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)}
+function validId(v){return typeof v==='string'&&v.length>0&&v.length<=128&&/^[a-z0-9-]+$/i.test(v)}
+const cloudId=id=>uid+':'+id;
 function sanitize(s){return s&&validId(s.id)&&['playing','between','finished'].includes(s.status)&&Array.isArray(s.visits)&&Array.isArray(s.players)?s:null}
 async function saveOne(s,kind,isCurrent=false){
  if(!sanitize(s))return;
