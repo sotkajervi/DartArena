@@ -108,6 +108,63 @@ function renderPracticeTrends(finished){
  const details=document.createElement('p');details.className='muted compact';details.textContent='Siste '+cards.length+' kamper · Høyeste checkout: '+Math.max(...cards.map(c=>c.high))+' · Raskeste leg: '+(Math.min(...cards.map(c=>c.fast||Infinity))===Infinity?'–':Math.min(...cards.map(c=>c.fast||Infinity))+' piler');
  chart.append(details);
 }
+function practiceDialog(title,description,confirmText,action){
+ const overlay=document.createElement('div');
+ overlay.className='local-modal';
+ overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
+ overlay.style.zIndex='9999';
+ const backdrop=document.createElement('div');backdrop.className='local-modal-backdrop';
+ const panel=document.createElement('div');panel.className='card local-modal-card';
+ panel.style.maxWidth='520px';
+ const tag=document.createElement('small');tag.textContent=category==='ai_rival'?'AI RIVAL':'HEAD-TO-HEAD';tag.style.color='#24d6d0';
+ const heading=document.createElement('h2');heading.textContent=title;
+ const body=document.createElement('p');body.className='muted';body.textContent=description;
+ const actions=document.createElement('div');actions.className='local-checkout-actions';
+ const cancel=document.createElement('button');cancel.type='button';cancel.className='outline';cancel.textContent='Avbryt';
+ const confirmButton=document.createElement('button');confirmButton.type='button';confirmButton.className='primary';confirmButton.textContent=confirmText;
+ const feedback=document.createElement('p');feedback.className='local-message is-error';feedback.hidden=true;
+ actions.append(cancel,confirmButton);panel.append(tag,heading,body,feedback,actions);overlay.append(backdrop,panel);document.body.append(overlay);
+ const previous=document.activeElement;
+ const close=()=>{document.removeEventListener('keydown',escape);overlay.remove();previous?.focus?.()};
+ const escape=e=>{if(e.key==='Escape'){e.preventDefault();close()}};
+ document.addEventListener('keydown',escape);
+ cancel.onclick=close;backdrop.onclick=close;
+ confirmButton.onclick=async()=>{
+  confirmButton.disabled=true;cancel.disabled=true;
+  try{await action();close()}
+  catch(e){feedback.textContent=e.message||'Handlingen mislyktes';feedback.hidden=false;confirmButton.disabled=false;cancel.disabled=false}
+ };
+ cancel.focus();
+}
+function practiceMatchStats(item){
+ const s=item.state||{},visits=Array.isArray(s.visits)?s.visits:[];
+ const panel=document.createElement('div');panel.style.cssText='margin-top:10px;padding:14px;border:1px solid #285158;border-radius:12px;background:#102126';
+ const heading=document.createElement('h3');heading.textContent='Kampstatistikk – '+(s.players||[]).join(' mot ');panel.append(heading);
+ const wrap=document.createElement('div');wrap.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px';
+ for(let i=0;i<2;i++){
+  const name=s.players?.[i]||'Spiller '+(i+1);
+  const v=visits.filter(x=>Number(x.player)===i);
+  const darts=v.reduce((n,x)=>n+(x.checkout?Math.max(1,Math.min(3,Number(x.darts)||3)):3),0);
+  const points=v.reduce((n,x)=>n+(Number(x.score)||0),0);
+  const checkouts=v.filter(x=>x.checkout);
+  const legs=checkouts.map(x=>{
+   const legVisits=v.filter(y=>y.leg===x.leg&&(y.set||1)===(x.set||1));
+   return legVisits.reduce((n,y)=>n+(y.checkout?(Number(y.darts)||3):3),0);
+  }).filter(n=>n>0);
+  const fields=[
+   ['3-dart-snitt',darts?(points/darts*3).toFixed(2):'–'],
+   ['100+ / 140+ / 180',v.filter(x=>Number(x.score)>=100).length+' / '+v.filter(x=>Number(x.score)>=140).length+' / '+v.filter(x=>Number(x.score)===180).length],
+   ['Høyeste checkout',checkouts.length?Math.max(...checkouts.map(x=>Number(x.score)||0)):'–'],
+   ['Raskeste leg',legs.length?Math.min(...legs)+' piler':'–'],
+   ['Registrerte runder',v.length]
+  ];
+  const card=document.createElement('div');card.style.cssText='padding:12px;background:#071719;border-radius:9px';
+  const title=document.createElement('h4');title.textContent=name;title.style.margin='0 0 10px';card.append(title);
+  for(const [label,value] of fields){const line=document.createElement('p');line.style.cssText='margin:6px 0;font-size:13px';const strong=document.createElement('strong');strong.textContent=label+': ';line.append(strong,document.createTextNode(String(value)));card.append(line)}
+  wrap.append(card);
+ }
+ panel.append(wrap);return panel;
+}
 async function showCloudHistory(){
  if(!uid)return;
  let host=document.getElementById('practiceCloudHistory');
@@ -141,17 +198,15 @@ async function showCloudHistory(){
   const s=item.state||{};
   label.textContent=[new Date(item.updated_at).toLocaleString('no-NO'),s.players?.join(' mot ')||'',item.status==='finished'?'Ferdig':'Pågående',Array.isArray(s.legs)?'Legs '+s.legs.join('–'):'',showAll&&staff?'Konto: '+item.user_id.slice(0,8):''].filter(Boolean).join(' · ');
   const button=document.createElement('button');button.type='button';button.textContent='Slett';button.className='outline';
-  button.onclick=async()=>{
-   if(!confirm('Slette denne '+(category==='ai_rival'?'AI Rival':'Head-to-Head')+'-kampen fra Supabase?'))return;
-   button.disabled=true;
+  button.onclick=()=>practiceDialog('Slette kamp?','Denne kampen fjernes fra Supabase-historikken. Handlingen kan ikke angres.','Slett kamp',async()=>{
    const {data:removed,error:err}=await db.rpc('practice_soft_delete',{p_id:item.id});
-   if(err||!removed){alert('Kunne ikke slette kampen: '+(err?.message||'ikke tillatt'));button.disabled=false;return}
-   if(cloudId(read(key)?.id)===item.id)localStorage.removeItem(key);
+   if(err||!removed)throw Error(err?.message||'Sletting er ikke tillatt.');
+   if(cloudId(read(key)?.id)===item.id){localStorage.removeItem(key);localStorage.removeItem(sessionKey)}
    if(category==='head_to_head'&&item.user_id===uid){
     window.DartArenaH2HHistory?.remove(String(item.state?.id||''));
    }
    await showCloudHistory();
-  };
+  });
   div.append(label);
   if(item.status!=='finished'&&item.user_id===uid){
    const resume=document.createElement('button');resume.type='button';resume.className='outline';resume.textContent='Fortsett';
@@ -171,7 +226,14 @@ async function showCloudHistory(){
    };
    div.append(resume);
   }
-  div.append(button);rows.append(div);
+  const actions=document.createElement('div');actions.style.cssText='display:flex;gap:6px;flex-wrap:wrap;align-items:center';
+  const details=document.createElement('button');details.type='button';details.className='outline';details.textContent='Kampstatistikk';details.setAttribute('aria-expanded','false');
+  details.onclick=()=>{
+   const opened=div.querySelector('.practice-match-stats');
+   if(opened){opened.remove();details.textContent='Kampstatistikk';details.setAttribute('aria-expanded','false');return}
+   const stats=practiceMatchStats(item);stats.classList.add('practice-match-stats');div.after(stats);details.textContent='Skjul statistikk';details.setAttribute('aria-expanded','true');
+  };
+  actions.append(details,button);div.append(actions);rows.append(div);
  }
 }
 window.addEventListener('dartarena:practice-save',()=>{sync().then(()=>{if(read(key)?.status==='finished')showCloudHistory()})});
