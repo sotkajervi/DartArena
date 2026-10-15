@@ -3,26 +3,63 @@
 <title>AI Rival · DartArena</title>
 <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./brand-header.css">
 <style>
-body{background:#071012;color:#edf8f8;font-family:system-ui,sans-serif}main{max-width:1050px;margin:32px auto;padding:0 16px}.rival-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.rival-panel{background:#102126;border:1px solid #275055;border-radius:16px;padding:20px}.rival-panel h2{margin:0 0 10px}.rival-score{font-size:clamp(48px,8vw,104px);font-weight:800;font-variant-numeric:tabular-nums}.rival-score.active{color:#12d3d3}select,input,button{font:inherit;padding:10px;border-radius:9px}select,input{background:#0a181b;border:1px solid #407075;color:white}button{cursor:pointer;background:#12bdbd;border:0;color:#031315;font-weight:700}button:disabled{opacity:.4;cursor:default}button.secondary{background:#243d41;color:white}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.muted{color:#a9bfc3}.rival-status{min-height:30px}.rival-input{width:110px}.rival-setup{display:flex;gap:12px;flex-wrap:wrap;align-items:end}.rival-setup label{display:grid;gap:6px}.visit-log{max-height:200px;overflow:auto}.visit-log div{padding:5px 0;border-bottom:1px solid #254044}.rival-hidden{display:none!important}@media(max-width:620px){.rival-grid{grid-template-columns:1fr}}
+:root{color-scheme:dark;--rival-cyan:#00eaf4;--rival-muted:#9cb2b8}
+*{box-sizing:border-box}
+body{margin:0;background:#071012;color:#eef8f9;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.rival-shell{width:min(1080px,calc(100% - 32px));margin:32px auto 65px}
+.rival-hero{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:24px}
+.rival-hero small,.rival-panel small{color:var(--rival-cyan);font-weight:900;letter-spacing:.14em;font-size:11px}
+.rival-hero h1{font-size:clamp(28px,4vw,42px);line-height:1.12;margin:6px 0 10px;letter-spacing:-.04em}
+.rival-hero p{color:var(--rival-muted);font-size:13px;line-height:1.65;max-width:680px;margin:0}
+.rival-back{color:#e6f8f9;text-decoration:none;white-space:nowrap;border:1px solid #24454a;border-radius:10px;padding:11px 15px;font-size:12px;font-weight:800}
+.rival-back:hover{border-color:var(--rival-cyan)}
+.rival-panel{background:linear-gradient(145deg,#102125,#091719 85%);border:1px solid #224047;border-radius:18px;padding:24px;box-shadow:0 10px 35px #0003}
+.rival-panel h2{margin:5px 0 18px;font-size:20px;letter-spacing:-.025em}
+.rival-setup{display:grid;grid-template-columns:minmax(0,2fr) minmax(110px,.55fr) minmax(175px,.8fr);gap:14px;align-items:end}
+.rival-setup label,.rival-entry label{display:grid;gap:8px;color:var(--rival-muted);font-weight:750;font-size:12px}
+.rival-setup select,.rival-entry select,.rival-entry input{width:100%;min-height:46px;border:1px solid #2a4a50;background:#071316;color:#fff;border-radius:10px;padding:11px 13px;font:inherit;font-size:14px}
+.rival-setup select:focus,.rival-entry select:focus,.rival-entry input:focus{outline:2px solid var(--rival-cyan);outline-offset:1px}
+.rival-primary,.rival-secondary{min-height:46px;padding:11px 18px;border-radius:10px;font:inherit;font-weight:850;font-size:13px;cursor:pointer;transition:filter .15s}
+.rival-primary{border:1px solid #00d1da;background:#00dce7;color:#041819}
+.rival-secondary{border:1px solid #31565d;background:#142b30;color:#e8fafb}
+.rival-primary:hover,.rival-secondary:hover{filter:brightness(1.12)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.rival-info{margin-top:19px;border:1px solid #24464a;border-radius:12px;padding:14px 16px;background:#071518}
+.rival-info p{margin:0;color:#b4c9ce;font-size:12px;line-height:1.7}
+.rival-info p+p{margin-top:8px}
+.rival-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
+.rival-player-card{text-align:center;min-width:0}
+.rival-player-card h2{font-size:16px;color:#d2e5e9;overflow-wrap:anywhere}
+.rival-score{font-size:clamp(52px,8vw,96px);font-weight:900;line-height:1.05;letter-spacing:-.07em;font-variant-numeric:tabular-nums}
+.rival-score.active{color:var(--rival-cyan);text-shadow:0 0 24px #00eaf42a}
+.rival-leg-count{font-weight:800;color:#a9c0c5;font-size:13px;margin-top:10px}
+.rival-entry{display:flex;gap:12px;align-items:end;flex-wrap:wrap}
+.rival-entry label{flex:1;min-width:120px}
+.rival-entry .rival-primary,.rival-entry .rival-secondary{flex:0 0 auto}
+.rival-status{min-height:25px;color:var(--rival-cyan);font-weight:800}
+.rival-help,.muted{color:var(--rival-muted);font-size:12px;line-height:1.65}
+.visit-log{max-height:230px;overflow:auto}
+.visit-log div{padding:10px 0;border-bottom:1px solid #244046;font-size:13px}
+.rival-hidden{display:none!important}
+@media(max-width:700px){.rival-shell{width:min(100% - 24px,1080px);margin:20px auto 40px}.rival-hero{align-items:flex-start;flex-direction:column}.rival-panel{padding:18px}.rival-setup{grid-template-columns:minmax(0,1fr) minmax(110px,.45fr)}.rival-setup .rival-primary{grid-column:1/-1;width:100%}.rival-entry .rival-primary,.rival-entry .rival-secondary{flex:1 1 130px}}
+@media(max-width:440px){.rival-grid{gap:10px}.rival-player-card{padding:13px 8px}.rival-player-card h2{font-size:13px}.rival-score{font-size:49px}}
 </style></head><body>
 <header><div class="brand"><a href="scoringarena.html"><img class="brand-logo" src="./assets/dartarena-logo.jpg" alt="DartArena" width="210"></a></div><div class="live">AI RIVAL · TESTVERSJON</div></header>
-<main><h1>AI <span style="color:#12d3d3">Rival</span></h1>
-<p class="muted">Spill 501 mot en statistisk simulering av deg selv eller en annen DartArena-spiller. Prototypen endrer ikke online-kamper, ranking eller turneringsresultater.</p>
-<section class="rival-panel"><div class="rival-setup">
-<label>Motstander <select id="rivalPlayer"><option value="">Laster profiler…</option></select></label>
-<label>Best av <select id="rivalLegs"><option>1</option><option selected>3</option><option>5</option><option>7</option><option>9</option></select></label>
-<button id="rivalStart" disabled>Spill standard 501</button></div>
-<p id="rivalModel" class="muted">Laster…</p>
-<p id="rivalNotice" class="muted" role="status"></p>
+<main class="rival-shell">
+<div class="rival-hero"><div><small style="color:#00eaf4;font-size:11px;letter-spacing:.14em;font-weight:900">SCORINGARENA / TRENING</small><h1>AI <span style="color:#00eaf4">Rival</span></h1><p>Spill 501 mot en simulering basert på dine egne eller en annen DartArena-spillers registrerte runder. Treningsresultatene påvirker ikke onlinekampene, ranking eller turneringer.</p></div><a class="rival-back" href="./scoringarena.html">← Til ScoringArena</a></div>
+<section class="rival-panel" aria-label="Kampinnstillinger"><small>KAMPINNSTILLINGER</small><h2>Velg din AI-motstander</h2>
+<div class="rival-setup"><label>DartArena-spiller<select id="rivalPlayer"><option value="">Laster profiler…</option></select></label>
+<label>Best av<select id="rivalLegs"><option>1</option><option selected>3</option><option>5</option><option>7</option><option>9</option></select></label>
+<button class="rival-primary" id="rivalStart" disabled>Start 501-kamp →</button></div>
+<div class="rival-info"><p id="rivalModel">Laster spillerstatistikk…</p><p id="rivalNotice" role="status"></p></div>
 </section>
-<section id="rivalGame" class="rival-hidden"><div class="rival-grid" style="margin-top:16px">
-<div class="rival-panel"><h2 id="rivalHumanName">Du</h2><div id="rivalHumanScore" class="rival-score active">501</div><div id="rivalHumanLegs">0 legs</div></div>
-<div class="rival-panel"><h2 id="rivalBotName">AI Rival</h2><div id="rivalBotScore" class="rival-score">501</div><div id="rivalBotLegs">0 legs</div></div></div>
-<div class="rival-panel" style="margin-top:16px">
-<h2>Registrer din runde</h2><p id="rivalStatus" class="rival-status" role="status"></p>
-<div class="row"><label>Score <input id="rivalInput" class="rival-input" type="number" min="0" max="180" step="1" inputmode="numeric" placeholder="0–180"></label><label>Piler ved checkout <select id="rivalDarts"><option value="3">3</option><option value="2">2</option><option value="1">1</option></select></label><button id="rivalThrow">Registrer</button><button id="rivalUndo" class="secondary">Angre runde</button></div>
-<p class="muted">Registrer summen for opptil tre piler. Ved checkout velger du 1–3 piler. Bust registreres som 0. Utsjekk krever gyldig dobbel-ut.</p></div>
-<div class="rival-panel" style="margin-top:16px"><h2>Kamplogg</h2><div id="rivalLog" class="visit-log"></div></div>
+<section id="rivalGame" class="rival-hidden">
+<div class="rival-grid"><div class="rival-panel rival-player-card"><small>SPILLER</small><h2 id="rivalHumanName">Du</h2><div id="rivalHumanScore" class="rival-score active">501</div><div id="rivalHumanLegs" class="rival-leg-count">0 legs</div></div>
+<div class="rival-panel rival-player-card"><small>AI-MOTSTANDER</small><h2 id="rivalBotName">AI Rival</h2><div id="rivalBotScore" class="rival-score">501</div><div id="rivalBotLegs" class="rival-leg-count">0 legs</div></div></div>
+<div class="rival-panel" style="margin-top:16px"><small>SCORING</small><h2>Registrer kast</h2><p id="rivalStatus" class="rival-status" role="status"></p>
+<div class="rival-entry"><label>Score<input id="rivalInput" type="number" min="0" max="180" step="1" inputmode="numeric" placeholder="0–180"></label><label>Piler ved utsjekk<select id="rivalDarts"><option value="3">3</option><option value="2">2</option><option value="1">1</option></select></label><button class="rival-primary" id="rivalThrow">Registrer</button><button id="rivalUndo" class="rival-secondary">Angre</button></div>
+<p class="rival-help">Registrer summen for opptil tre piler. Bust registreres som 0. Utsjekk krever gyldig dobbel-ut.</p></div>
+<div class="rival-panel" style="margin-top:16px"><small>KAMPHISTORIKK</small><h2>Kamplogg</h2><div id="rivalLog" class="visit-log"></div></div>
 </section></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
 <script src="./ai-rival.js?v=standard501-1"></script>
