@@ -28,6 +28,8 @@ async function init(){
  const {data,error}=await db.from('tournament_ai_group_matches').select('id,tournament_id,human_id,status,best_of').eq('id',fixtureId).eq('tournament_id',tournamentId).single();
  if(error||!data)throw Error('AI-kampen ble ikke funnet.');
  if(data.human_id!==me)throw Error('Bare spilleren som er satt opp mot AI kan spille denne kampen.');
+ const {data:config,error:configError}=await db.from('tournament_ai_rivals').select('model_player_id').eq('tournament_id',tournamentId).single();
+ if(configError||!config||params.get('player')!==config.model_player_id)throw Error('Feil AI Rival er valgt for denne turneringen.');
  fixture=data;
  if(data.status==='finished'){
   committed=true;
