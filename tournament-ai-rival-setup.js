@@ -62,5 +62,13 @@
  select.addEventListener('change',refresh);
  add.addEventListener('click',()=>mutate('add'));
  remove.addEventListener('click',()=>mutate('remove'));
+ document.addEventListener('click',event=>{
+  const row=event.target.closest('.match-row[data-ai-match]');
+  if(!row||row.dataset.aiHuman!==me)return;
+  const match=row.dataset.aiMatch,model=row.dataset.aiModel,legs=row.dataset.aiBestOf;
+  if(!match||!model||!legs)return;
+  event.preventDefault();
+  location.href='ai-rival-501.html?player='+encodeURIComponent(model)+'&legs='+encodeURIComponent(legs)+'&tournament='+encodeURIComponent(id)+'&tournamentAiMatch='+encodeURIComponent(match);
+ });
  window.addEventListener('dartarena:tournament-loaded',loadSelection);
 })();
