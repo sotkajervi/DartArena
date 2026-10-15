@@ -549,16 +549,34 @@ $('localCheckoutBust').addEventListener('click',()=>{
   const score=pendingCheckout.score,name=player(state.turn);
   commit(()=>E.submit(state,score,{bust:true}),'BUST for '+name+'.');
 });
-function newMatch(){
-  if(state&&state.status!=='finished'&&!window.confirm('Avslutte denne AI Rival-kampen og velge en ny motstander?'))return;
+function navigateToRival(){
   clearTimeout(betweenTimer);betweenTimer=null;
   cancelBot();
   closeStats();
-  // Keep finished games in Supabase, but do not restore a discarded match
-  // when the player returns from the Rival selector.
+  // Finished games remain in Supabase. Do not restore the previous active game.
   try{localStorage.removeItem(KEY);localStorage.removeItem(BOT_SESSION_KEY)}catch{}
   location.assign('./ai-rival.html');
 }
+function newMatch(){
+  if(!state||state.status==='finished'){navigateToRival();return}
+  const dialog=$('aiRivalNewMatchDialog');
+  if(!dialog){showMessage('Kunne ikke åpne bekreftelse for ny kamp. Oppdater siden.',true);return}
+  dialog.hidden=false;
+  $('aiRivalNewMatchCancel')?.focus();
+}
+function closeNewMatchDialog(){
+  const dialog=$('aiRivalNewMatchDialog');
+  if(dialog)dialog.hidden=true;
+}
+$('aiRivalNewMatchCancel')?.addEventListener('click',closeNewMatchDialog);
+$('aiRivalNewMatchConfirm')?.addEventListener('click',navigateToRival);
+$('aiRivalNewMatchDialog')?.querySelector('.local-modal-backdrop')?.addEventListener('click',closeNewMatchDialog);
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&!$('aiRivalNewMatchDialog')?.hidden){
+    event.preventDefault();
+    closeNewMatchDialog();
+  }
+});
 $('localNewMatch').addEventListener('click',newMatch);
 $('localPlayAgain').addEventListener('click',newMatch);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'){
