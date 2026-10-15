@@ -100,6 +100,9 @@ async function boot(){
     .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${id}`},()=>{
       if(tournament?.status==='groups'||(tournament?.status==='finished'&&tournament?.tournament_type==='groups_cup'))loadGroupLobby();
     })
+    .on('postgres_changes',{event:'*',schema:'public',table:'tournament_ai_group_matches',filter:`tournament_id=eq.${id}`},()=>{
+      if(tournament?.status==='groups')loadGroupLobby();
+    })
     .subscribe();
 
   await load();
