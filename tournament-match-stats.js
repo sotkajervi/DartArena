@@ -26,9 +26,7 @@ function correctionNote(tm){
 }
 
 function returnToTournament(){
-  try{window.opener?.focus()}catch{}
-  window.close();
-  setTimeout(()=>{if(!window.closed&&tournamentId)location.href=`tournament.html?id=${encodeURIComponent(tournamentId)}`},120);
+  location.href=tournamentId?`tournament.html?id=${encodeURIComponent(tournamentId)}`:'tournament.html';
 }
 
 async function boot(){
