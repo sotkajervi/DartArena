@@ -30,10 +30,13 @@ rene HTML-flyten. Supabase SDK er beholdt på repoets eksisterende versjon 2.117
 
 Kontrollert i Supabase Dashboard 15. oktober 2026: Site URL er riktig, eksisterende
 redirect-regel dekker DartArena, og recovery-malen bruker `{{ .ConfirmationURL }}`.
-Custom SMTP er ikke aktivert. Supabases standardutsending tillater bare
-teamadresser; utsending til vanlige spillere krever at en e-postleverandør kobles
-til under Authentication → Emails → SMTP Settings. Se
-[Supabases SMTP-dokumentasjon](https://supabase.com/docs/guides/auth/auth-smtp).
+Custom SMTP er nå aktivert med Gmail (`smtp.gmail.com`, port 587) og avsendernavn
+DartArena. Brukeren la selv inn app-passordet; lagret konfigurasjon er bekreftet
+etter ny lasting av SMTP-innstillingene. Ingen hemmeligheter er lagret i repoet.
+Faktisk levering og full passordtilbakestilling må fortsatt bekreftes med en
+eksisterende konto. Gmail er et midlertidig oppsett for betatesting; Supabase
+varsler om mulig påvirkning på leveringskvaliteten for personlige e-posttjenester.
+Se [Supabases SMTP-dokumentasjon](https://supabase.com/docs/guides/auth/auth-smtp).
 
 ## Bygg og kontroll
 
