@@ -102,6 +102,7 @@ function chooseReference(){
   base=new Uint8ClampedArray(analysisCtx.getImageData(0,0,analysis.width,analysis.height).data);
   previous=null;quiet=0;changeGate.reset();
   accepted=0;els.count.textContent='0';
+  window.dispatchEvent(new Event('dartarena:autozoom-test-reset'));
   els.last.textContent='Ingen registrert';
   aimLabel('T20');
   status('Referanse tatt. Zoom flyttes bare etter et nytt kast som er stabilt i flere bilder.');
@@ -139,6 +140,10 @@ function analyse(){
   if(!hit)return;
   // A new stable image region is an estimated dart location, NOT a detected tip.
   const x=hit.x*els.video.videoWidth/w,y=hit.y*els.video.videoHeight/h;
+  window.dispatchEvent(new CustomEvent('dartarena:autozoom-test-hit',{detail:{
+    base,frame:new Uint8ClampedArray(frame),width:w,height:h,hit,
+    board:boardSmall
+  }}));
   aim(x,y,'Siste endring');
   els.last.textContent='Område ved '+Math.round(x)+', '+Math.round(y)+' (estimat)';
   accepted++;els.count.textContent=String(accepted);
