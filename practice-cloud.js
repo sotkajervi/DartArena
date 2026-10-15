@@ -9,6 +9,7 @@ const key=category==='ai_rival'?'dartarena-ai-rival-501-state-v1':'dartarena-loc
 const historyKey='dartarena-local-h2h-history-v1';
 const sessionKey=category==='ai_rival'?'dartarena-ai-rival-501-bot-session-v1':'dartarena-local-h2h-bot-session-v1';
 const deletedKey=historyKey+'-deleted-ids';
+const ownershipKey='dartarena-practice-owner-'+category;
 const status=document.createElement('div');status.id='practiceCloudStatus';status.className='muted compact';status.style.margin='12px 0';
 const parent=document.querySelector('.local-h2h-heading')||document.querySelector('main');
 parent?.after(status);
@@ -41,10 +42,12 @@ async function sync(){
  if(working){queued=true;return}
  working=true;
  try{
+  const cacheOwner=localStorage.getItem(ownershipKey);
+  if(cacheOwner&&cacheOwner!==uid){status.textContent='Lokal kamp tilhører en annen DartArena-konto. Den blir ikke lastet opp. Logg inn på riktig konto for å hente den.';return}
   const current=sanitize(read(key));
   if(current){
    const stamp=JSON.stringify(current);
-   if(stamp!==lastSynced){await saveOne(current,category,true);lastSynced=stamp}
+   if(stamp!==lastSynced){await saveOne(current,category,true);lastSynced=stamp;localStorage.setItem(ownershipKey,uid)}
   }
   if(category==='head_to_head'){
    const archived=read(historyKey),deleted=new Set(read(deletedKey)||[]);
@@ -156,6 +159,7 @@ async function showCloudHistory(){
     const local=read(key);
     if(local?.id!==item.state?.id&&local?.status!=='finished'&&local&&!confirm('Erstatte pågående lokal kamp med kampen fra Supabase?'))return;
     localStorage.setItem(key,JSON.stringify(item.state));
+    localStorage.setItem(ownershipKey,uid);
     if(item.settings?.botSession)localStorage.setItem(sessionKey,JSON.stringify(item.settings.botSession));
     else localStorage.removeItem(sessionKey);
     if(category==='ai_rival'){
