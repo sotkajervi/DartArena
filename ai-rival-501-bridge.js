@@ -32,41 +32,60 @@ function makeVisit(remaining,model){
  }
  return {score:0,bust:false,checkout:false,darts:3,throws:[]};
 }
-async function init(){
- if(!playerId||!(/^[0-9a-f-]{36}$/i.test(playerId)))throw Error('Velg en spiller fra AI Rival-siden.');
- const {data:{session}}=await db.auth.getSession();
- if(!session)throw Error('Du må være innlogget i DartArena.');
- const [{data:player,error:pe},{data:me,error:meError},{data:visits,error:ve}]=await Promise.all([
-   db.from('profiles').select('id,username').eq('id',playerId).single(),
+const selector=$('rivalHistoryPlayer');
+let loading=false;
+async function loadRival(id,{autoStart=false}={}){
+ if(loading)return;
+ loading=true;
+ if(start)start.disabled=true;
+ notice.textContent='Laster spillerhistorikk…';
+ try{
+  if(!id)throw Error('Velg en DartArena-spiller som AI Rival.');
+  const {data:{session},error:authError}=await db.auth.getSession();
+  if(authError||!session)throw Error('Logg inn i DartArena for å velge AI Rival.');
+  const [{data:player,error:pe},{data:me,error:meError},{data:visits,error:ve}]=await Promise.all([
+   db.from('profiles').select('id,username').eq('id',id).single(),
    db.from('profiles').select('username').eq('id',session.user.id).single(),
-   db.from('match_throws').select('score,is_checkout').eq('player_id',playerId).order('id',{ascending:false}).limit(2500)
- ]);
- if(pe||!player?.username)throw Error('Fant ikke spilleren.');
- if(meError)throw Error('Kunne ikke hente din profil.');
- if(ve)throw Error('Kunne ikke lese spillerens registrerte runder.');
- const model=makeModel(visits||[]);
- if(model.normal.length<30)throw Error('Spilleren har for få registrerte kasterunder til AI Rival.');
- window.DartArenaRivalProfile={id:playerId,name:player.username};
- B.visit=(remaining)=>makeVisit(remaining,model);
- try{localStorage.setItem('dartarena-ai-rival-501-selected-player',playerId)}catch{}
- window.dispatchEvent(new Event('dartarena:rival-ready'));
- $('localName1').value=me?.username||'Spiller';
- $('localOpponentType').value='bot';
- $('localOpponentType').dispatchEvent(new Event('change',{bubbles:true}));
- $('localBotMode').value='standard';
- $('localBotAverage').value='55';
- $('localBotProfile').value='steady';
- $('localFormat').value='501';
- $('localMode').value='legs';
- $('localMode').dispatchEvent(new Event('change',{bubbles:true}));
- const best=$('localBestOf');
- if([...best.options].some(o=>Number(o.value)===requestedLegs))best.value=String(requestedLegs);
- $('localStarter').value='0';
- notice.textContent='AI: '+player.username+' · '+model.total+' historiske kasterunder. Standard 501-regler, dobbel-ut, statistikk og korrigering. Resultatene er lokale.';
- // Existing standard setup form remains the source of truth for rules and scoring.
- if(start)start.disabled=false;
- // Auto-start when the user came from AI Rival player selection and no match is already open.
- if($('localGame')?.hidden)form.requestSubmit();
+   db.from('match_throws').select('score,is_checkout').eq('player_id',id).order('id',{ascending:false}).limit(2500)
+  ]);
+  if(pe||!player?.username)throw Error('Fant ikke spilleren.');
+  if(meError)throw Error('Kunne ikke hente din profil.');
+  if(ve)throw Error('Kunne ikke lese spillerens registrerte runder.');
+  const model=makeModel(visits||[]);
+  if(model.normal.length<30)throw Error(player.username+' har for få registrerte kasterunder (minst 30 kreves).');
+  window.DartArenaRivalProfile={id,name:player.username};
+  B.visit=remaining=>makeVisit(remaining,model);
+  try{localStorage.setItem('dartarena-ai-rival-501-selected-player',id)}catch{}
+  window.dispatchEvent(new Event('dartarena:rival-ready'));
+  $('localName1').value=me?.username||'Spiller';
+  $('localOpponentType').value='bot';
+  $('localOpponentType').dispatchEvent(new Event('change',{bubbles:true}));
+  $('localBotMode').value='standard';
+  $('localFormat').value='501';
+  $('localMode').value='legs';
+  $('localMode').dispatchEvent(new Event('change',{bubbles:true}));
+  const best=$('localBestOf');
+  if(autoStart&&[...best.options].some(o=>Number(o.value)===requestedLegs))best.value=String(requestedLegs);
+  notice.textContent='AI Rival: '+player.username+' · '+model.total+' historiske kasterunder. Resultatet lagres lokalt.';
+  if(start)start.disabled=false;
+  if(autoStart&&$('localGame')?.hidden)form.requestSubmit();
+ }catch(error){
+  window.DartArenaRivalProfile=null;
+  notice.textContent=error.message||'Kunne ikke laste AI Rival.';
+ }finally{loading=false}
 }
-init().catch(error=>{notice.textContent=error.message||'Kunne ikke laste AI Rival.';if(start)start.disabled=true});
+async function init(){
+ const {data:{session}}=await db.auth.getSession();
+ if(!session){notice.textContent='Logg inn for å velge AI Rival.';selector.innerHTML='<option value="">Innlogging kreves</option>';return}
+ const {data,error}=await db.from('profiles').select('id,username').order('username');
+ if(error)throw error;
+ const profiles=(data||[]).filter(p=>p.id&&p.username);
+ selector.replaceChildren(new Option('Velg AI Rival…',''),...profiles.map(p=>new Option(p.username+(p.id===session.user.id?' (deg selv)':''),p.id)));
+ let saved='';try{saved=localStorage.getItem('dartarena-ai-rival-501-selected-player')||''}catch{}
+ const initial=[playerId,saved].find(id=>profiles.some(p=>p.id===id))||'';
+ if(initial){selector.value=initial;await loadRival(initial,{autoStart:!!playerId})}
+ else notice.textContent='Velg en DartArena-spiller over for å bruke den registrerte kasthistorikken som AI Rival.';
+}
+selector.addEventListener('change',()=>loadRival(selector.value));
+init().catch(error=>{notice.textContent=error.message||'Kunne ikke laste spillere.';if(start)start.disabled=true});
 })();
