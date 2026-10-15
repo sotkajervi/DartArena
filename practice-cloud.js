@@ -104,7 +104,7 @@ async function showCloudHistory(){
    const {data:removed,error:err}=await db.rpc('practice_soft_delete',{p_id:item.id});
    if(err||!removed){alert('Kunne ikke slette kampen: '+(err?.message||'ikke tillatt'));button.disabled=false;return}
    if(cloudId(read(key)?.id)===item.id)localStorage.removeItem(key);
-   if(category==='head_to_head'){
+   if(category==='head_to_head'&&item.user_id===uid){
     window.DartArenaH2HHistory?.remove(String(item.state?.id||''));
    }
    await showCloudHistory();
