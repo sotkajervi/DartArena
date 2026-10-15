@@ -46,6 +46,7 @@ function safeSave(){
     // Persist a finished game before rendering the result screen.
     if(state?.status==='finished')window.DartArenaH2HHistory?.save(state,botConfig);
   }catch{showMessage('Kampen kjører, men kunne ikke lagres i denne nettleseren.',true)}
+  window.dispatchEvent(new Event('dartarena:practice-save'));
 }
 function readAdaptive(){
   try{
