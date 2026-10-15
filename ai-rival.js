@@ -42,8 +42,9 @@ function winLeg(winner,darts){
  if(winner==='human')game.hlegs++;else game.blegs++;
  log((winner==='human'?'Du':'AI Rival')+' vant leg'+(darts?' ('+darts+' piler på siste runde)':''));
  if(game.hlegs>=game.needed||game.blegs>=game.needed){game.finished=true;game.active='none';render();return}
- game.human=game.bot=501;game.active=game.hlegs+game.blegs%2===0?'human':'human';
- // Human throws first throughout this initial training prototype.
+ game.human=game.bot=501;
+ // Human throws first in every leg in this initial training prototype.
+ game.active='human';
 }
 function botTurn(){
  if(game.finished)return;
