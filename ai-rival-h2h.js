@@ -550,17 +550,14 @@ $('localCheckoutBust').addEventListener('click',()=>{
   commit(()=>E.submit(state,score,{bust:true}),'BUST for '+name+'.');
 });
 function newMatch(){
-  if(state?.status==='finished'){location.assign('./ai-rival.html');return;}
-  if(state&&state.status!=='finished'&&!window.confirm('Avslutte denne lokale kampen? Resultatet kan ikke gjenopprettes etterpå.'))return;
+  if(state&&state.status!=='finished'&&!window.confirm('Avslutte denne AI Rival-kampen og velge en ny motstander?'))return;
   clearTimeout(betweenTimer);betweenTimer=null;
   cancelBot();
-  const oldPlayers=state?.players||[],wasBot=!!botConfig;
   closeStats();
-  state=null;botConfig=null;botRecorded=false;pendingCheckout=null;editingIndex=null;
-  ui.checkout.hidden=true;ui.correction.hidden=true;
-  ui.name1.value=oldPlayers[0]||'';ui.name2.value=wasBot?'':oldPlayers[1]||'';
-  ui.opponentType.value=wasBot?'bot':'human';updateBotFields();
-  safeSave();render();ui.name1.focus();
+  // Keep finished games in Supabase, but do not restore a discarded match
+  // when the player returns from the Rival selector.
+  try{localStorage.removeItem(KEY);localStorage.removeItem(BOT_SESSION_KEY)}catch{}
+  location.assign('./ai-rival.html');
 }
 $('localNewMatch').addEventListener('click',newMatch);
 $('localPlayAgain').addEventListener('click',newMatch);
