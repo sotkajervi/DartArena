@@ -88,12 +88,11 @@ async function init(){
 }
 $('rivalPlayer').addEventListener('change',e=>loadModel(e.target.value));
 $('rivalStart').addEventListener('click',()=>{
- if(!model||model.count<30)return;
+ if(!model||model.count<30||!modelPlayer)return;
  const best=Number($('rivalLegs').value);
- game={human:501,bot:501,hlegs:0,blegs:0,needed:Math.floor(best/2)+1,active:'human',finished:false,log:[],history:[]};
- $('rivalHumanName').textContent='Du';$('rivalBotName').textContent='AI: '+modelPlayer.username;
- $('rivalGame').classList.remove('rival-hidden');notice('Treningskamp startet – påvirker ikke online-statistikk.');render();$('rivalInput').focus();
+ location.href='ai-rival-501.html?player='+encodeURIComponent(modelPlayer.id)+'&legs='+encodeURIComponent(best);
 });
+
 function throwScore(){
  if(!game||game.finished)return;
  const raw=$('rivalInput').value.trim(),n=Number(raw);
