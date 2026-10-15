@@ -11,13 +11,18 @@
  let selected=null;
  let busy=false;
  let lastError='';
+ function syncDraw(){
+   const name=select.selectedOptions[0]?.textContent||'Spiller';
+   window.DartArenaSelectedAIRival=selected?{model_player_id:selected,name}:null;
+   try{drawnGroups=null;renderSetup()}catch{}
+ }
  function refresh(){
    const active=!!tournament&&tournament.owner_id===me&&tournament.status==='groups_setup'&&tournament.tournament_type==='groups_cup';
    panel.classList.toggle('hidden',!active);
    add.disabled=busy||!active||!select.value||!!selected;
    remove.disabled=busy||!active||!selected;
    select.disabled=busy||!!selected;
-   status.textContent=lastError?lastError:selected?'Valgt AI Rival: '+(select.selectedOptions[0]?.textContent||'Spiller')+'. AI-kampintegrasjonen er ikke aktivert ennå.':'Velg en spiller AI Rival skal etterligne. Dette reserverer valget, men legger ikke AI til puljetrekningen ennå.';
+   status.textContent=lastError?lastError:selected?'Valgt AI Rival: '+(select.selectedOptions[0]?.textContent||'Spiller')+'. Puljetrekkingen inkluderer AI Rival.':'Velg en spiller AI Rival skal etterligne. AI Rival deltar i puljespillet og gir WO i cup.';
  }
  async function loadSelection(){
   if(!tournament||tournament.status!=='groups_setup'){panel.classList.add('hidden');return;}
@@ -30,7 +35,7 @@
   select.replaceChildren(new Option('Velg spiller…',''),...options.map(p=>new Option(p.username,p.id)));
   selected=choice.data?.model_player_id||null;
   if(selected)select.value=selected;
-  refresh();
+  syncDraw();refresh();
  }
  async function mutate(op){
   if(busy||tournament?.owner_id!==me||tournament?.status!=='groups_setup')return;
@@ -44,10 +49,12 @@
     const {error}=await db.from('tournament_ai_rivals').insert({tournament_id:id,model_player_id:select.value,created_by:me});
     if(error)throw error;
     selected=select.value;
+    syncDraw();
    }else{
     const {error}=await db.from('tournament_ai_rivals').delete().eq('tournament_id',id);
     if(error)throw error;
     selected=null;
+    syncDraw();
    }
   }catch(e){lastError='Kunne ikke lagre: '+(e.message||e);return;}
   finally{busy=false;refresh();}
