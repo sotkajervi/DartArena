@@ -504,6 +504,22 @@ async function loadGroupLobby(){
     db.from('tournament_matches').select('*').eq('tournament_id',id).eq('stage','group').order('round_no').order('match_no')
   ]);
   if(ge||pe||me2){console.error(ge||pe||me2);return;}
+  const {data:aiFixtures,error:aiError}=await db.from('tournament_ai_group_matches').select('*').eq('tournament_id',id).order('round_no').order('match_no');
+  if(aiError){console.warn('AI Rival fixtures unavailable',aiError);return;}
+  if(aiFixtures?.length){
+    const {data:aiConfig,error:aiConfigError}=await db.from('tournament_ai_rivals').select('model_player_id,group_id').eq('tournament_id',id).maybeSingle();
+    if(aiConfigError||!aiConfig)return;
+    const {data:profile}=await db.from('profiles').select('username').eq('id',aiConfig.model_player_id).maybeSingle();
+    names[AI_RIVAL_ID]='AI Rival – '+(profile?.username||'Spiller');
+    players.push({id:AI_RIVAL_ID,user_id:AI_RIVAL_ID,group_id:aiConfig.group_id||aiFixtures[0].group_id,seed_no:99,is_ai_rival:true});
+    for(const f of aiFixtures){
+      matches.push({id:f.id,tournament_id:id,stage:'group',group_id:f.group_id,round_no:f.round_no,match_no:f.match_no,
+        player1_id:f.ai_as_player1?AI_RIVAL_ID:f.human_id,player2_id:f.ai_as_player1?f.human_id:AI_RIVAL_ID,
+        player1_legs:f.ai_as_player1?f.ai_legs:f.human_legs,player2_legs:f.ai_as_player1?f.human_legs:f.ai_legs,
+        winner_id:f.status==='finished'?(f.winner_is_ai?AI_RIVAL_ID:f.human_id):null,
+        status:f.status,is_ai_rival:true,model_player_id:aiConfig.model_player_id,best_of:f.best_of});
+    }
+  }
   const liveIds=[...new Set(matches.filter(m=>m.status==='live'&&m.live_match_id).map(m=>m.live_match_id))];
   if(liveIds.length){
     const {data:liveRows,error:liveError}=await db.from('matches')
@@ -561,8 +577,8 @@ async function loadGroupLobby(){
 
 function matchHtml(m){
   const playerLabel=uid=>'<span class="da-role-player" data-user-id="'+esc(uid||'')+'">'+esc(names[uid]||'Spiller')+'</span>';
-  const p1=playerLabel(m.player1_id);
-  const p2=playerLabel(m.player2_id);
+  const p1=m.player1_id===AI_RIVAL_ID?'<span style="color:#00eaf4">'+esc(names[AI_RIVAL_ID]||'AI Rival')+'</span>':playerLabel(m.player1_id);
+  const p2=m.player2_id===AI_RIVAL_ID?'<span style="color:#00eaf4">'+esc(names[AI_RIVAL_ID]||'AI Rival')+'</span>':playerLabel(m.player2_id);
   const done=['finished','wo'].includes(m.status);
   const live=m.status==='live';
   const score=live
@@ -570,13 +586,13 @@ function matchHtml(m){
     :done
       ?`${Number(m.player1_legs||0)}–${Number(m.player2_legs||0)}`
       :'VS';
-  const state=live?'LIVE':m.status==='finished'?'Ferdig':m.status==='wo'?'WO':'Klar';
+  const state=m.is_ai_rival?(m.status==='finished'?'AI • Ferdig':([m.player1_id,m.player2_id].includes(me)?'Spill mot AI':'AI Rival')):live?'LIVE':m.status==='finished'?'Ferdig':m.status==='wo'?'WO':'Klar';
   const avg=v=>Number.isFinite(Number(v))&&Number(v)>0?`<span class="group-match-avg">${Number(v).toFixed(1).replace('.',',')} AVG</span>`:'';
   const p1Winner=done&&m.winner_id===m.player1_id;
   const p2Winner=done&&m.winner_id===m.player2_id;
   const archiveResult=tournament?.status==='finished'&&done;
   const middle=archiveResult?`<span class="group-match-result">${score}</span>`:'<span class="muted">vs</span>';
-  return `<div class="match-row ${live?'live-match':''}" data-match="${m.id}">
+  return `<div class="match-row ${live?'live-match':''}" ${m.is_ai_rival?'data-ai-match="'+esc(m.id)+'" data-ai-model="'+esc(m.model_player_id)+'" data-ai-best-of="'+Number(m.best_of)+'"':'data-match="'+esc(m.id)+'"'}>
     <div class="match-players"><span class="group-match-player ${p1Winner?'winner':''}"><strong>${p1}</strong>${avg(m._player1_avg)}</span>${middle}<span class="group-match-player ${p2Winner?'winner':''}"><strong>${p2}</strong>${avg(m._player2_avg)}</span></div>
     <div class="match-meta"><div class="match-score">${score}</div><div class="match-state">${state}</div></div>
   </div>`;
