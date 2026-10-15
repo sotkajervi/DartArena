@@ -70,7 +70,10 @@ function infer(base,frame,w,h,hit,board){
 window.addEventListener('dartarena:autozoom-test-hit',e=>{
  const {base,frame,width,height,hit,board}=e.detail;
  const tip=infer(base,frame,width,height,hit,board);
- const u=(tip.x-board.x)/board.radius,v=(tip.y-board.y)/board.radius;
+ // Empirical calibration from nine manually corrected throws (board-radius units).
+ // Isolated heatmap display only; does not move AutoZoom or alter hit detection.
+ const CALIBRATION={u:-0.06,v:0.13};
+ const u=(tip.x-board.x)/board.radius+CALIBRATION.u,v=(tip.y-board.y)/board.radius+CALIBRATION.v;
  marks.push({u,v,estimatedU:u,estimatedV:v,timestamp:new Date().toISOString(),corrected:false,quality:tip.quality});selected=marks.length-1;paint();
  summary.textContent+=' · '+tip.quality+' (ikke bekreftet pilspiss)';
 });
