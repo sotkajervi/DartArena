@@ -15,7 +15,10 @@
       const {data:t}=await client.from('tournaments').select('owner_id,status,tournament_type').eq('id',tournamentId).single();
       if(!t||t.status!=='groups'||t.owner_id!==me||t.tournament_type!=='groups_cup'){b.classList.add('hidden');return}
       const {data:m,error}=await client.from('tournament_matches').select('status').eq('tournament_id',tournamentId).eq('stage','group');if(error){b.classList.add('hidden');return}
-      const allDone=!!m?.length&&m.every(x=>['finished','wo'].includes(x.status));b.classList.toggle('hidden',!allDone);
+      const {data:ai,error:aiError}=await client.from('tournament_ai_group_matches').select('status').eq('tournament_id',tournamentId);
+      if(aiError){b.classList.add('hidden');return}
+      const allDone=!!((m?.length||0)+(ai?.length||0))&&m.every(x=>['finished','wo'].includes(x.status))&&(ai||[]).every(x=>x.status==='finished');
+      b.classList.toggle('hidden',!allDone);
     }finally{busy=false}
   }
   async function advance(){
