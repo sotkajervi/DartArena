@@ -8,7 +8,7 @@ const tournamentId=params.get('tournament');
 if(!fixtureId||!tournamentId)return;
 const db=window.supabase?.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
 if(!db)return;
-const stateKey='dartarena-ai-rival-501-state-v1';
+const stateKey='dartarena-ai-rival-tournament-state-'+fixtureId;
 let fixture=null,me=null,saving=false,committed=false;
 const note=document.createElement('p');
 note.className='muted compact';
