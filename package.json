@@ -7,11 +7,13 @@
     "node": ">=20.19.0"
   },
   "scripts": {
+    "build:password-reset": "node scripts/build-password-reset.cjs",
+    "test:password-reset": "node --test tests/password-reset.test.cjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.{ts,md}\" \"*.md\" \"*.json\" \"*.mjs\"",
     "format:check": "prettier --check \"src/**/*.{ts,md}\" \"*.md\" \"*.json\" \"*.mjs\"",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test:audio && npm run test:invites && npm run test:lobby && npm run test:navigation && npm run test:rooms && npm run test:tournament-lobby && npm run test:group-redirect && npm run test:autozoom && npm run test:zoom-cam",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test:audio && npm run test:invites && npm run test:lobby && npm run test:navigation && npm run test:rooms && npm run test:tournament-lobby && npm run test:group-redirect && npm run test:autozoom && npm run test:zoom-cam && npm run test:password-reset",
     "test:audio": "node --test tests/remote-audio-autounlock.test.cjs",
     "test:invites": "node --test tests/challenge-outgoing.test.cjs",
     "test:lobby": "node --test tests/lobby-shortcuts.test.cjs",
