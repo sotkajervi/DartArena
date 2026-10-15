@@ -574,6 +574,12 @@ if(requestedRival&&localStorage.getItem('dartarena-ai-rival-501-selected-player'
  try{localStorage.removeItem(KEY);localStorage.removeItem(BOT_SESSION_KEY)}catch{}
 }
 try{state=E.restore(JSON.parse(localStorage.getItem(KEY)||'null'))}catch{state=null}
+// A completed game belongs in Supabase history, not in the next game's active view.
+// Clear only the finished local snapshot; never discard an unfinished match.
+if(state?.status==='finished'){
+ state=null;
+ try{localStorage.removeItem(KEY);localStorage.removeItem(BOT_SESSION_KEY)}catch{}
+}
 if(state){
   try{
     const saved=JSON.parse(localStorage.getItem(BOT_SESSION_KEY)||'null');
