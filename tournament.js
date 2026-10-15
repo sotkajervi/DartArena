@@ -593,7 +593,7 @@ function matchHtml(m){
   const p2Winner=done&&m.winner_id===m.player2_id;
   const archiveResult=tournament?.status==='finished'&&done;
   const middle=archiveResult?`<span class="group-match-result">${score}</span>`:'<span class="muted">vs</span>';
-  return `<div class="match-row ${live?'live-match':''}" ${m.is_ai_rival?'data-ai-match="'+esc(m.id)+'" data-ai-model="'+esc(m.model_player_id)+'" data-ai-best-of="'+Number(m.best_of)+'"':'data-match="'+esc(m.id)+'"'}>
+  return `<div class="match-row ${live?'live-match':''}" ${m.is_ai_rival?'data-ai-match="'+esc(m.id)+'" data-ai-model="'+esc(m.model_player_id)+'" data-ai-best-of="'+Number(m.best_of)+'" data-ai-human="'+esc(m.player1_id===AI_RIVAL_ID?m.player2_id:m.player1_id)+'"':'data-match="'+esc(m.id)+'"'}>
     <div class="match-players"><span class="group-match-player ${p1Winner?'winner':''}"><strong>${p1}</strong>${avg(m._player1_avg)}</span>${middle}<span class="group-match-player ${p2Winner?'winner':''}"><strong>${p2}</strong>${avg(m._player2_avg)}</span></div>
     <div class="match-meta"><div class="match-score">${score}</div><div class="match-state">${state}</div></div>
   </div>`;
