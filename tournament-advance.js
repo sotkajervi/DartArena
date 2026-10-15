@@ -40,6 +40,7 @@
     await refresh();
     ch=client.channel(`advance-cup-${tournamentId}`)
       .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${tournamentId}`},queueRefresh)
+      .on('postgres_changes',{event:'*',schema:'public',table:'tournament_ai_group_matches',filter:`tournament_id=eq.${tournamentId}`},queueRefresh)
       .on('postgres_changes',{event:'UPDATE',schema:'public',table:'tournaments',filter:`id=eq.${tournamentId}`},queueRefresh)
       .subscribe();
     pollTimer=setInterval(()=>{if(!document.hidden)queueRefresh()},30000);
