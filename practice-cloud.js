@@ -46,12 +46,18 @@ async function sync(){
   if(category==='head_to_head'){
    const archived=read(historyKey),deleted=new Set(read(deletedKey)||[]);
    if(Array.isArray(archived)){
+    const migratedKey='dartarena-cloud-migrated-h2h-v1-'+uid;
+    const uploaded=new Set(read(migratedKey)||[]);
+    let count=0;
     for(const entry of archived){
-     if(!validId(entry?.id)||deleted.has(entry.id))continue;
+     if(count>=20)break;
+     if(!validId(entry?.id)||deleted.has(entry.id)||uploaded.has(entry.id))continue;
      if(!sanitize({...entry,status:'finished'}))continue;
      const state={...entry,status:'finished'};
      await saveOne(state,'head_to_head');
+     uploaded.add(entry.id);count++;
     }
+    localStorage.setItem(migratedKey,JSON.stringify([...uploaded].slice(-500)));
    }
   }
   status.textContent='Skyhistorikk synkronisert med Supabase.';
