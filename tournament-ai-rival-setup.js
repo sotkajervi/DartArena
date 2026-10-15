@@ -10,13 +10,14 @@
  const status=document.getElementById('aiRivalStatus');
  let selected=null;
  let busy=false;
+ let lastError='';
  function refresh(){
    const active=!!tournament&&tournament.owner_id===me&&tournament.status==='groups_setup'&&tournament.tournament_type==='groups_cup';
    panel.classList.toggle('hidden',!active);
    add.disabled=busy||!active||!select.value||!!selected;
    remove.disabled=busy||!active||!selected;
    select.disabled=busy||!!selected;
-   status.textContent=selected?'Valgt AI Rival: '+(select.selectedOptions[0]?.textContent||'Spiller')+'. AI-kampintegrasjonen er ikke aktivert ennå.':'Velg en spiller AI Rival skal etterligne. Dette reserverer valget, men legger ikke AI til puljetrekningen ennå.';
+   status.textContent=lastError?lastError:selected?'Valgt AI Rival: '+(select.selectedOptions[0]?.textContent||'Spiller')+'. AI-kampintegrasjonen er ikke aktivert ennå.':'Velg en spiller AI Rival skal etterligne. Dette reserverer valget, men legger ikke AI til puljetrekningen ennå.';
  }
  async function loadSelection(){
   if(!tournament||tournament.status!=='groups_setup'){panel.classList.add('hidden');return;}
@@ -33,7 +34,7 @@
  }
  async function mutate(op){
   if(busy||tournament?.owner_id!==me||tournament?.status!=='groups_setup')return;
-  busy=true;refresh();
+  busy=true;lastError='';refresh();
   try{
    if(op==='add'){
     if(!select.value)throw Error('Velg en spiller først.');
@@ -48,7 +49,7 @@
     if(error)throw error;
     selected=null;
    }
-  }catch(e){status.textContent='Kunne ikke lagre: '+(e.message||e);return;}
+  }catch(e){lastError='Kunne ikke lagre: '+(e.message||e);return;}
   finally{busy=false;refresh();}
  }
  select.addEventListener('change',refresh);
