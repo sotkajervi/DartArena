@@ -136,34 +136,87 @@ function practiceDialog(title,description,confirmText,action){
  };
  cancel.focus();
 }
-function practiceMatchStats(item){
- const s=item.state||{},visits=Array.isArray(s.visits)?s.visits:[];
- const panel=document.createElement('div');panel.style.cssText='margin-top:10px;padding:14px;border:1px solid #285158;border-radius:12px;background:#102126';
- const heading=document.createElement('h3');heading.textContent='Kampstatistikk – '+(s.players||[]).join(' mot ');panel.append(heading);
- const wrap=document.createElement('div');wrap.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px';
- for(let i=0;i<2;i++){
-  const name=s.players?.[i]||'Spiller '+(i+1);
-  const v=visits.filter(x=>Number(x.player)===i);
-  const darts=v.reduce((n,x)=>n+(x.checkout?Math.max(1,Math.min(3,Number(x.darts)||3)):3),0);
-  const points=v.reduce((n,x)=>n+(Number(x.score)||0),0);
-  const checkouts=v.filter(x=>x.checkout);
-  const legs=checkouts.map(x=>{
-   const legVisits=v.filter(y=>y.leg===x.leg&&(y.set||1)===(x.set||1));
-   return legVisits.reduce((n,y)=>n+(y.checkout?(Number(y.darts)||3):3),0);
-  }).filter(n=>n>0);
-  const fields=[
-   ['3-dart-snitt',darts?(points/darts*3).toFixed(2):'–'],
-   ['100+ / 140+ / 180',v.filter(x=>Number(x.score)>=100).length+' / '+v.filter(x=>Number(x.score)>=140).length+' / '+v.filter(x=>Number(x.score)===180).length],
-   ['Høyeste checkout',checkouts.length?Math.max(...checkouts.map(x=>Number(x.score)||0)):'–'],
-   ['Raskeste leg',legs.length?Math.min(...legs)+' piler':'–'],
-   ['Registrerte runder',v.length]
-  ];
-  const card=document.createElement('div');card.style.cssText='padding:12px;background:#071719;border-radius:9px';
-  const title=document.createElement('h4');title.textContent=name;title.style.margin='0 0 10px';card.append(title);
-  for(const [label,value] of fields){const line=document.createElement('p');line.style.cssText='margin:6px 0;font-size:13px';const strong=document.createElement('strong');strong.textContent=label+': ';line.append(strong,document.createTextNode(String(value)));card.append(line)}
-  wrap.append(card);
+function openPracticeMatchStats(item){
+ const state=item.state||{},visits=Array.isArray(state.visits)?state.visits:[];
+ const names=state.players||['Spiller 1','Spiller 2'];
+ const num=value=>Number(value)||0;
+ const box=document.createElement('div');
+ box.className='da-practice-stats-overlay';
+ box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');box.setAttribute('aria-label','Kampstatistikk');
+ box.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,8,10,.88);display:flex;align-items:center;justify-content:center;padding:16px';
+ const content=document.createElement('div');
+ content.style.cssText='width:min(980px,100%);max-height:92vh;overflow-y:auto;position:relative;background:#071012;border:1px solid #27565b;border-radius:16px;padding:18px';
+ const header=document.createElement('div');header.className='premium-stats-head';
+ const label=document.createElement('div');
+ const kicker=document.createElement('small');kicker.textContent='KAMPSTATISTIKK · AI RIVAL';
+ const heading=document.createElement('h1');heading.textContent=names.join(' vs ');
+ label.append(kicker,heading);
+ const close=document.createElement('button');close.type='button';close.className='outline';close.textContent='Lukk';
+ header.append(label,close);content.append(header);
+ const section=document.createElement('section');section.className='premium-result-card';
+ const title=document.createElement('div');title.className='premium-result-kicker';title.textContent=item.status==='finished'?'KAMP FERDIG':'PÅGÅENDE KAMP';
+ const format=document.createElement('div');format.className='premium-result-sub';format.textContent=(state.format||'501')+' · '+new Date(item.updated_at).toLocaleString('no-NO');
+ section.append(title,format);
+ if(Array.isArray(state.legs)){
+  const score=document.createElement('div');score.className='premium-result-score';
+  score.textContent=state.legs.join(' – ');
+  section.append(score);
  }
- panel.append(wrap);return panel;
+ const grid=document.createElement('div');grid.className='premium-player-grid';
+ for(let i=0;i<2;i++){
+  const rows=visits.filter(v=>num(v.player)===i);
+  const darts=rows.reduce((sum,v)=>sum+(v.checkout?Math.max(1,Math.min(3,num(v.darts)||3)):3),0);
+  const total=rows.reduce((sum,v)=>sum+num(v.score),0);
+  const first9=rows.filter(v=>Number(v.leg||1)===1).slice(0,3);
+  const checkouts=rows.filter(v=>v.checkout);
+  const completed=checkouts.map(c=>rows.filter(v=>Number(v.leg||1)===Number(c.leg||1)&&Number(v.set||1)===Number(c.set||1)).reduce((sum,v)=>sum+(v.checkout?(num(v.darts)||3):3),0)).filter(Boolean);
+  const values=[
+   ['AVG',darts?(total/darts*3).toFixed(2):'–'],
+   ['FIRST 9',first9.length===3?(first9.reduce((n,v)=>n+num(v.score),0)/9*3).toFixed(2):'–'],
+   ['HØYESTE UT',checkouts.length?Math.max(...checkouts.map(v=>num(v.score))):'–'],
+   ['RASKESTE LEG',completed.length?Math.min(...completed)+' piler':'–'],
+   ['100+',rows.filter(v=>num(v.score)>=100).length],
+   ['140+',rows.filter(v=>num(v.score)>=140).length],
+   ['170+',rows.filter(v=>num(v.score)>=170).length],
+   ['180',rows.filter(v=>num(v.score)===180).length]
+  ];
+  const card=document.createElement('article');card.className='premium-player-card';
+  const head=document.createElement('div');head.className='premium-player-head';
+  const name=document.createElement('div');name.className='premium-player-name';name.textContent=names[i]||'Spiller '+(i+1);
+  head.append(name);card.append(head);
+  const metrics=document.createElement('div');metrics.className='premium-stat-grid';
+  for(const [key,value] of values){
+   const cell=document.createElement('div');cell.className='premium-stat';
+   const label=document.createElement('span');label.textContent=key;
+   const val=document.createElement('b');val.textContent=String(value);
+   cell.append(label,val);metrics.append(cell);
+  }
+  card.append(metrics);grid.append(card);
+ }
+ section.append(grid);
+ const legs=document.createElement('section');legs.className='premium-leg-section';
+ const legHead=document.createElement('div');legHead.className='premium-leg-title';legHead.textContent='LEG-OVERSIKT';
+ const list=document.createElement('div');list.className='premium-leg-list';
+ const keys=[...new Set(visits.map(v=>String(v.set||1)+':'+String(v.leg||1)))];
+ for(const key of keys){
+  const [set,leg]=key.split(':').map(Number);
+  const all=visits.filter(v=>num(v.set||1)===set&&num(v.leg||1)===leg);
+  const finished=all.find(v=>v.checkout);
+  const line=document.createElement('div');line.className='premium-leg-row';
+  const label=document.createElement('span');label.className='premium-leg-label';label.textContent='Leg '+leg;
+  const winner=document.createElement('span');winner.className='premium-leg-winner';winner.textContent=finished?(names[num(finished.player)]||'Spiller'):'Ikke avgjort';
+  const meta=document.createElement('span');meta.className='premium-leg-meta';
+  const winnerRows=finished?all.filter(v=>num(v.player)===num(finished.player)):[];
+  meta.textContent=finished?winnerRows.reduce((n,v)=>n+(v.checkout?(num(v.darts)||3):3),0)+' piler · checkout '+num(finished.score):'–';
+  line.append(label,winner,meta);list.append(line);
+ }
+ if(!keys.length){const no=document.createElement('p');no.className='premium-empty';no.textContent='Ingen kast registrert.';list.append(no)}
+ legs.append(legHead,list);section.append(legs);content.append(section);box.append(content);document.body.append(box);
+ const before=document.activeElement,scroll=document.body.style.overflow;document.body.style.overflow='hidden';
+ const dismiss=()=>{document.removeEventListener('keydown',onKey);box.remove();document.body.style.overflow=scroll;before?.focus?.()};
+ const onKey=e=>{if(e.key==='Escape'){e.preventDefault();dismiss()}};
+ document.addEventListener('keydown',onKey);
+ close.onclick=dismiss;box.addEventListener('click',e=>{if(e.target===box)dismiss()});close.focus();
 }
 async function showCloudHistory(){
  if(!uid)return;
@@ -227,12 +280,8 @@ async function showCloudHistory(){
    div.append(resume);
   }
   const actions=document.createElement('div');actions.style.cssText='display:flex;gap:6px;flex-wrap:wrap;align-items:center';
-  const details=document.createElement('button');details.type='button';details.className='outline';details.textContent='Kampstatistikk';details.setAttribute('aria-expanded','false');
-  details.onclick=()=>{
-   const opened=div.nextElementSibling?.classList.contains('practice-match-stats')?div.nextElementSibling:null;
-   if(opened){opened.remove();details.textContent='Kampstatistikk';details.setAttribute('aria-expanded','false');return}
-   const stats=practiceMatchStats(item);stats.classList.add('practice-match-stats');div.after(stats);details.textContent='Skjul statistikk';details.setAttribute('aria-expanded','true');
-  };
+  const details=document.createElement('button');details.type='button';details.className='outline';details.textContent='Kampstatistikk';
+  details.onclick=()=>openPracticeMatchStats(item);
   actions.append(details,button);div.append(actions);rows.append(div);
  }
 }
