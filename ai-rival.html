@@ -43,6 +43,32 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .rival-hidden{display:none!important}
 @media(max-width:700px){.rival-shell{width:min(100% - 24px,1080px);margin:20px auto 40px}.rival-hero{align-items:flex-start;flex-direction:column}.rival-panel{padding:18px}.rival-setup{grid-template-columns:minmax(0,1fr) minmax(110px,.45fr)}.rival-setup .rival-primary{grid-column:1/-1;width:100%}.rival-entry .rival-primary,.rival-entry .rival-secondary{flex:1 1 130px}}
 @media(max-width:440px){.rival-grid{gap:10px}.rival-player-card{padding:13px 8px}.rival-player-card h2{font-size:13px}.rival-score{font-size:49px}}
+
+/* AI Rival visual refresh: dedicated opaque application surface */
+body{background:#071115!important;background-image:none!important;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse 80% 55% at 55% -5%,rgba(0,225,235,.10),transparent 75%),linear-gradient(180deg,#0a181b,#071115 75%);z-index:-1;pointer-events:none}
+body::after{display:none!important}
+.rival-shell{width:min(940px,calc(100% - 40px));margin:54px auto 85px;position:relative}
+.rival-hero{padding:0 4px 28px;margin:0;align-items:center}
+.rival-hero h1{font-size:clamp(42px,5vw,62px);font-weight:900;letter-spacing:-.055em;margin:9px 0 15px}
+.rival-hero p{font-size:15px;line-height:1.75;max-width:630px;color:#b6cbd0}
+.rival-hero small{font-size:12px;letter-spacing:.18em}
+.rival-back{padding:13px 16px;font-size:13px;border-color:#30565c;background:#10262b}
+.rival-panel{background:#102126!important;border:1px solid #2d4e54!important;border-radius:19px;padding:32px!important;box-shadow:0 24px 70px rgba(0,0,0,.32)!important}
+.rival-panel h2{font-size:27px;font-weight:850;letter-spacing:-.035em;margin:8px 0 28px}
+.rival-panel small{font-size:12px}
+.rival-setup{grid-template-columns:minmax(0,1.7fr) 132px;gap:18px}
+.rival-setup label,.rival-entry label{font-size:14px;color:#c2d6d9;gap:10px}
+.rival-setup select,.rival-entry select,.rival-entry input{height:56px!important;min-height:56px!important;font-size:16px!important;font-weight:700!important;background:#061316!important;border:1px solid #34585f!important;border-radius:12px!important;color:#f1ffff!important;padding:14px 17px!important}
+.rival-setup .rival-primary{grid-column:1/-1;height:58px!important;font-size:16px!important;letter-spacing:.01em!important;border-radius:12px!important;background:linear-gradient(110deg,#02e6ef,#00b9c6)!important;color:#052327!important;border:0!important;box-shadow:0 8px 26px rgba(0,220,231,.13)}
+.rival-info{margin-top:24px;padding:20px 22px;background:#071619!important;border:1px solid #294950;border-radius:13px}
+.rival-info p{font-size:14px;line-height:1.75;color:#c0d5d9}
+.rival-info p:first-child{font-weight:600}
+.rival-entry .rival-primary{background:#00dbe5;color:#041b20}
+.rival-player-card h2{margin:5px 0 16px}
+@media(min-width:701px){.rival-hero{min-height:180px}.rival-setup .rival-primary{width:100%}}
+@media(max-width:700px){.rival-shell{width:calc(100% - 28px);margin:26px auto 55px}.rival-hero{gap:20px;padding:0 0 24px}.rival-hero h1{font-size:43px}.rival-hero p{font-size:14px}.rival-panel{padding:23px!important}.rival-panel h2{font-size:23px;margin-bottom:23px}.rival-setup{grid-template-columns:minmax(0,1fr) 110px;gap:12px}.rival-setup select{height:52px!important;min-height:52px!important;font-size:14px!important}.rival-setup .rival-primary{height:54px!important;font-size:15px!important}.rival-info{padding:16px}}
+@media(max-width:390px){.rival-setup{grid-template-columns:1fr}.rival-setup .rival-primary{grid-column:auto}}
 </style></head><body>
 <header><div class="brand"><a href="scoringarena.html"><img class="brand-logo" src="./assets/dartarena-logo.jpg" alt="DartArena" width="210"></a></div><div class="live">AI RIVAL · TESTVERSJON</div></header>
 <main class="rival-shell">
