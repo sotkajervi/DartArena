@@ -101,8 +101,10 @@ function throwScore(){
  const before=game.human,rest=before-n;
  if(rest<0||rest===1){game.history.push(snapshot());log('Du: bust ('+n+')');}
  else if(rest===0){
-  if(!scoreIsPossibleCheckout(before)){$('rivalStatus').textContent='Ugyldig dobbel-ut fra '+before+'.';return}
-  game.history.push(snapshot());game.human=0;log('Du: checkout '+n);winLeg('human',Number($('rivalDarts').value));
+  const darts=Number($('rivalDarts').value);
+  if(!scoreIsPossibleCheckout(before)||(darts===1&&!(before===50||(before<=40&&before%2===0)))||(darts===2&&before>110)){$('rivalStatus').textContent='Ugyldig dobbel-ut med '+darts+' piler fra '+before+'.';return}
+  game.history.push(snapshot());game.human=0;log('Du: checkout '+n);winLeg('human',darts);
+  $('rivalInput').value='';render();return;
  }else{game.history.push(snapshot());game.human=rest;log('Du: '+n+' ('+before+' → '+rest+')')}
  $('rivalInput').value='';
  if(!game.finished){game.active='bot';botTurn()}else render();
