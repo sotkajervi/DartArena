@@ -81,7 +81,7 @@ async function init(){
  me=session.user.id;
  const {data,error}=await db.from('profiles').select('id,username').order('username');
  if(error){notice('Kunne ikke hente spillere: '+error.message);return}
- profiles=(data||[]).filter(p=>p.username);
+ profiles=(data||[]).filter(p=>p.username&&!["d32a4234-68fa-4c94-a0b0-2aff4831344a","049fdb78-ee46-41cb-a25f-a48d90a028e5"].includes(p.id));
  const sel=$('rivalPlayer');sel.replaceChildren(...profiles.map(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.username+(p.id===me?' (deg selv)':'');return o}));
  sel.value=profiles.some(p=>p.id===me)?me:profiles[0]?.id||'';
  if(sel.value)await loadModel(sel.value);
