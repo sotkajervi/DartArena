@@ -79,7 +79,7 @@ async function init(){
  if(!session){notice.textContent='Logg inn for å velge AI Rival.';selector.innerHTML='<option value="">Innlogging kreves</option>';return}
  const {data,error}=await db.from('profiles').select('id,username').order('username');
  if(error)throw error;
- const profiles=(data||[]).filter(p=>p.id&&p.username);
+ const profiles=(data||[]).filter(p=>p.id&&p.username&&!["d32a4234-68fa-4c94-a0b0-2aff4831344a","049fdb78-ee46-41cb-a25f-a48d90a028e5"].includes(p.id));
  selector.replaceChildren(new Option('Velg AI Rival…',''),...profiles.map(p=>new Option(p.username+(p.id===session.user.id?' (deg selv)':''),p.id)));
  let saved='';try{saved=localStorage.getItem('dartarena-ai-rival-501-selected-player')||''}catch{}
  const initial=[playerId,saved].find(id=>profiles.some(p=>p.id===id))||'';
