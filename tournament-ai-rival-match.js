@@ -39,7 +39,9 @@ async function init(){
 async function save(){
  if(!fixture||committed||saving)return;
  let state;try{state=JSON.parse(localStorage.getItem(stateKey)||'null')}catch{return}
- if(!state||state.status!=='finished'||!Array.isArray(state.legs)||state.format!==501)return;
+ if(!state||state.status!=='finished'||!Array.isArray(state.legs)||Number(state.format)!==501)return;
+ let linked;try{linked=JSON.parse(localStorage.getItem('dartarena-ai-rival-tournament-session')||'null')}catch{}
+ if(linked?.fixtureId!==fixtureId||linked?.stateId!==state.id)return;
  if(state.mode!=='legs'||Number(state.bestOf)!==Number(fixture.best_of))return;
  if(!Array.isArray(state.visits)||!state.visits.some(v=>v.player===0)||!state.visits.some(v=>v.player===1))return;
  saving=true;note.textContent='Kampen er ferdig. Lagrer resultatet i turneringen…';
