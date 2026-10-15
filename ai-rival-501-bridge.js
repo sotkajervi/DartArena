@@ -48,6 +48,8 @@ async function init(){
  if(model.normal.length<30)throw Error('Spilleren har for få registrerte kasterunder til AI Rival.');
  window.DartArenaRivalProfile={id:playerId,name:player.username};
  B.visit=(remaining)=>makeVisit(remaining,model);
+ try{localStorage.setItem('dartarena-ai-rival-501-selected-player',playerId)}catch{}
+ window.dispatchEvent(new Event('dartarena:rival-ready'));
  $('localName1').value=me?.username||'Spiller';
  $('localOpponentType').value='bot';
  $('localOpponentType').dispatchEvent(new Event('change',{bubbles:true}));
