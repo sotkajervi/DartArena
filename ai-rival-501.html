@@ -141,6 +141,18 @@
     <div class="local-checkout-actions"><button id="localCheckoutCancel" class="outline" type="button">Avbryt</button><button id="localCheckoutBust" class="outline" type="button">Ikke dobbel / BUST</button><button id="localCheckoutConfirm" class="primary" type="submit">Bekreft utsjekk</button></div>
   </form>
 </div>
+<div id="aiRivalNewMatchDialog" class="local-modal" hidden role="dialog" aria-modal="true" aria-labelledby="aiRivalNewMatchTitle">
+  <div class="local-modal-backdrop"></div>
+  <div class="card local-modal-card">
+    <small style="color:#24d6d0">AI RIVAL</small>
+    <h2 id="aiRivalNewMatchTitle">Starte ny kamp?</h2>
+    <p>Den pågående kampen avsluttes. Vil du gå tilbake og velge en ny AI Rival?</p>
+    <div class="local-checkout-actions">
+      <button id="aiRivalNewMatchCancel" class="outline" type="button">Fortsett kampen</button>
+      <button id="aiRivalNewMatchConfirm" class="primary" type="button">Velg ny Rival</button>
+    </div>
+  </div>
+</div>
 <script src="./x01-stats.js?v=20261011-localonline1"></script>
 <script src="./local-h2h-engine.js?v=20261011-online-parity1"></script>
 <script src="./local-result-screen.js?v=20261011-fullstats1"></script>
@@ -149,7 +161,7 @@
 <script src="./room-coin-flip.js?v=20261012-local1"></script>
 <script src="./local-coin-start.js?v=20261012-all1"></script>
 <script src="./local-h2h-history.js?v=20261012-recover3"></script>
-<script src="./ai-rival-h2h.js?v=20261015-finishedrestore1"></script>
+<script src="./ai-rival-h2h.js?v=20261015-newmatchmodal1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
 <script src="./ai-rival-501-bridge.js?v=20261015-hidetests1"></script>
 <script src="./practice-cloud.js?v=20261015-accountguard1"></script>
