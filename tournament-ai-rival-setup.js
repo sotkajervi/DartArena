@@ -37,6 +37,9 @@
   try{
    if(op==='add'){
     if(!select.value)throw Error('Velg en spiller først.');
+    const {count,error:historyError}=await db.from('match_throws').select('id',{count:'exact',head:true}).eq('player_id',select.value).eq('is_checkout',false);
+    if(historyError)throw Error('Kunne ikke kontrollere spillerhistorikken: '+historyError.message);
+    if(Number(count||0)<30)throw Error('Spilleren må ha minst 30 registrerte kasterunder for AI Rival.');
     const {error}=await db.from('tournament_ai_rivals').insert({tournament_id:id,model_player_id:select.value,created_by:me});
     if(error)throw error;
     selected=select.value;
