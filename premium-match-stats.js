@@ -80,9 +80,7 @@
     if(source==='tournament'){
       button.textContent='Tilbake til turnering';
       button.onclick=()=>{
-        try{window.opener?.focus()}catch{}
-        window.close();
-        setTimeout(()=>{if(!window.closed&&tournamentId)location.href=`tournament.html?id=${encodeURIComponent(tournamentId)}`},120);
+        location.href=tournamentId?`tournament.html?id=${encodeURIComponent(tournamentId)}`:'tournament.html';
       };
     }else{
       button.textContent='Til kamphistorikk';
