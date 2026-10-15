@@ -153,7 +153,7 @@ ui.keypad.addEventListener('click',event=>{
 function player(i){return state.players[i]}
 function cancelBot(){if(botTimer!==null){clearTimeout(botTimer);botTimer=null}}
 function scheduleBot(){
-  if(botTimer!==null||!botConfig||!B||state?.status!=='playing'||state.turn!==1||
+  if(!window.DartArenaRivalProfile||botTimer!==null||!botConfig||!B||state?.status!=='playing'||state.turn!==1||
     pendingCheckout||editingIndex!==null)return;
   const id=state.id,set=state.currentSet,leg=state.leg,remaining=state.scores[1];
   botTimer=setTimeout(()=>{
@@ -567,6 +567,10 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){
   else if(!ui.correction.hidden){event.preventDefault();closeCorrection()}
   else if(!ui.checkout.hidden){event.preventDefault();closeCheckout()}
 }});
+const requestedRival=new URLSearchParams(location.search).get('player');
+if(requestedRival&&localStorage.getItem('dartarena-ai-rival-501-selected-player')!==requestedRival){
+ try{localStorage.removeItem(KEY);localStorage.removeItem(BOT_SESSION_KEY)}catch{}
+}
 try{state=E.restore(JSON.parse(localStorage.getItem(KEY)||'null'))}catch{state=null}
 if(state){
   try{
@@ -584,4 +588,5 @@ if(state){
 if(!state&&/(?:[?&])opponent=bot(?:&|$)/.test(window.location?.search||''))ui.opponentType.value='bot';
 updateBotFields();
 render();
+window.addEventListener('dartarena:rival-ready',()=>{if(state)render()});
 })();
