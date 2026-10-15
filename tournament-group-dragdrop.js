@@ -18,7 +18,7 @@
   }
 
   function playerRow(player, groupIndex, playerIndex) {
-    const username = esc(names[player.user_id] || 'Spiller');
+    const username = esc(player.ai_rival?('AI Rival – '+(window.DartArenaSelectedAIRival?.name||'Spiller')):(names[player.user_id] || 'Spiller'));
     return `<div class="group-drag-player" draggable="true" data-group="${groupIndex}" data-index="${playerIndex}" title="Dra spilleren til ønsket pulje eller plassering">
       <span class="group-drag-handle" aria-hidden="true">☰</span>
       <span class="group-drag-number">${playerIndex + 1}.</span>
