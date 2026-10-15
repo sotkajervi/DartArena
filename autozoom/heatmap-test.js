@@ -5,6 +5,18 @@ const canvas=document.getElementById('azHeatBoard'),summary=document.getElementB
 if(!canvas||!summary)return;
 const ctx=canvas.getContext('2d'),size=canvas.width,c=size/2,r=size*.43;
 let marks=[],selected=-1;
+const exportBtn=document.getElementById('azHeatExport');
+const fmt=n=>Math.round(n*10000)/10000;
+function exportTest(){
+ const rows=marks.map((m,i)=>({number:i+1,timestamp:m.timestamp,quality:m.quality,
+   estimate:{u:fmt(m.estimatedU),v:fmt(m.estimatedV)},
+   corrected:m.corrected?{u:fmt(m.u),v:fmt(m.v)}:null,
+   errorPercentOfBoardRadius:m.corrected?fmt(Math.hypot(m.u-m.estimatedU,m.v-m.estimatedV)*100):null}));
+ const data={schema:'dartarena-autozoom-corrections-v1',createdAt:new Date().toISOString(),coordinateSystem:'normalized board radius from bull; u right, v down',rows};
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='autozoom-korrigeringer-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+exportBtn?.addEventListener('click',exportTest);
 const order=window.DartArenaAutoZoom?.ORDER||[20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5];
 function paint(){
  ctx.clearRect(0,0,size,size);ctx.fillStyle='#071012';ctx.fillRect(0,0,size,size);
@@ -29,7 +41,7 @@ function paint(){
   ctx.beginPath();ctx.arc(x,y,i===selected?7:5,0,Math.PI*2);ctx.fillStyle=m.corrected?'#fff':'#24d6d0';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#071012';ctx.stroke();
  });
  summary.textContent=marks.length?'Forslag: '+marks.length+' · Siste treff: '+(marks.at(-1).corrected?'manuelt korrigert':'estimert fra bildeendring'):'Ingen treff ennå. Kast en pil etter at referanse er tatt.';
- undo.disabled=marks.length===0;clear.disabled=marks.length===0;
+ undo.disabled=marks.length===0;clear.disabled=marks.length===0;if(exportBtn)exportBtn.disabled=marks.length===0;
 }
 function infer(base,frame,w,h,hit,board){
  // Locate changed pixels near the AutoZoom cluster; principal axis is a
@@ -59,7 +71,7 @@ window.addEventListener('dartarena:autozoom-test-hit',e=>{
  const {base,frame,width,height,hit,board}=e.detail;
  const tip=infer(base,frame,width,height,hit,board);
  const u=(tip.x-board.x)/board.radius,v=(tip.y-board.y)/board.radius;
- marks.push({u,v,corrected:false,quality:tip.quality});selected=marks.length-1;paint();
+ marks.push({u,v,estimatedU:u,estimatedV:v,timestamp:new Date().toISOString(),corrected:false,quality:tip.quality});selected=marks.length-1;paint();
  summary.textContent+=' · '+tip.quality+' (ikke bekreftet pilspiss)';
 });
 canvas.addEventListener('click',e=>{
