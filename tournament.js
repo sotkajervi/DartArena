@@ -11,6 +11,7 @@ let tournament=null;
 let members=[];
 let names={};
 let drawnGroups=null;
+const AI_RIVAL_ID='00000000-0000-4000-8000-0000000000a1';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function getDialog(){for(let i=0;i<40&&!window.DartArenaDialog;i++)await sleep(50);return window.DartArenaDialog||null}
 
@@ -377,9 +378,13 @@ async function saveTournamentGame(select){
 }
 
 function renderSetup(){
-  const n=getParticipants().length;
+  const n=getParticipants().length+(window.DartArenaSelectedAIRival?1:0);
   const g=$('groupCount');
   ensureTournamentGameSelector(tournament?.owner_id===me);
+  if(Number(g.dataset.playerCount||0)!==n){
+    g.dataset.playerCount=String(n);
+    g.replaceChildren();
+  }
   if(!g.options.length){
     const opts=[];
     for(let x=1;x<=Math.min(n,16);x++)opts.push(`<option value="${x}">${x} ${x===1?'pulje':'puljer'}</option>`);
@@ -415,7 +420,7 @@ function shuffled3(arr){
 }
 
 function drawGroups(){
-  const players=shuffled3(getParticipants());
+  const players=shuffled3([...getParticipants(),...(window.DartArenaSelectedAIRival?[{user_id:AI_RIVAL_ID,ai_rival:true}]:[])]);
   const count=Number($('groupCount').value);
   drawnGroups=Array.from({length:count},()=>[]);
   players.forEach((p,i)=>drawnGroups[i%count].push(p));
@@ -423,7 +428,7 @@ function drawGroups(){
 }
 
 function renderGroups(){
-  $('groupPreview').innerHTML=drawnGroups.map((group,i)=>`<div class="player-row" style="display:block"><div class="player-name" style="color:#00eaf4;margin-bottom:8px">Pulje ${i+1}</div>${group.map((p,j)=>`<div class="status" style="padding:5px 0;color:var(--text)">${j+1}. <span class="da-role-player" data-user-id="${esc(p.user_id)}">${esc(names[p.user_id]||'Spiller')}</span></div>`).join('')}</div>`).join('');
+  $('groupPreview').innerHTML=drawnGroups.map((group,i)=>`<div class="player-row" style="display:block"><div class="player-name" style="color:#00eaf4;margin-bottom:8px">Pulje ${i+1}</div>${group.map((p,j)=>`<div class="status" style="padding:5px 0;color:var(--text)">${j+1}. <span class="da-role-player" data-user-id="${esc(p.user_id)}">${esc(p.ai_rival?('AI Rival – '+(window.DartArenaSelectedAIRival?.name||'Spiller')):(names[p.user_id]||'Spiller'))}</span></div>`).join('')}</div>`).join('');
   window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
 }
 
@@ -614,17 +619,27 @@ async function startGroups(){
     const byNo=Object.fromEntries(savedGroups.map(g=>[g.group_no,g]));
 
     const playerRows=[];
-    drawnGroups.forEach((group,gi)=>group.forEach((p,pi)=>playerRows.push({tournament_id:id,group_id:byNo[gi+1].id,user_id:p.user_id,seed_no:pi+1})));
+    drawnGroups.forEach((group,gi)=>group.forEach((p,pi)=>{if(!p.ai_rival)playerRows.push({tournament_id:id,group_id:byNo[gi+1].id,user_id:p.user_id,seed_no:pi+1});}));
     const {error:pErr}=await db.from('tournament_group_players').insert(playerRows);
     if(pErr)throw pErr;
 
     const matchRows=[];
+    const aiRows=[];
     drawnGroups.forEach((group,gi)=>{
       let matchNo=1;
-      roundRobin(group).forEach((round,ri)=>round.forEach(([p1,p2])=>matchRows.push({
-        tournament_id:id,stage:'group',group_id:byNo[gi+1].id,round_no:ri+1,match_no:matchNo++,player1_id:p1,player2_id:p2,best_of:bestOf,status:'pending',is_wo:false
-      })));
+      roundRobin(group).forEach((round,ri)=>round.forEach(([p1,p2])=>{
+        const no=matchNo++;
+        if(p1===AI_RIVAL_ID||p2===AI_RIVAL_ID){
+          aiRows.push({tournament_id:id,group_id:byNo[gi+1].id,round_no:ri+1,match_no:no,human_id:p1===AI_RIVAL_ID?p2:p1,ai_as_player1:p1===AI_RIVAL_ID,best_of:bestOf});
+        }else matchRows.push({tournament_id:id,stage:'group',group_id:byNo[gi+1].id,round_no:ri+1,match_no:no,player1_id:p1,player2_id:p2,best_of:bestOf,status:'pending',is_wo:false});
+      }));
     });
+    if(aiRows.length){
+      const {error:aiErr}=await db.from('tournament_ai_rivals').update({group_id:aiRows[0].group_id}).eq('tournament_id',id);
+      if(aiErr)throw aiErr;
+      const {error:fixturesErr}=await db.from('tournament_ai_group_matches').insert(aiRows);
+      if(fixturesErr)throw fixturesErr;
+    }
     if(matchRows.length){
       const {error:mErr}=await db.from('tournament_matches').insert(matchRows);
       if(mErr)throw mErr;
@@ -642,7 +657,7 @@ async function startGroups(){
     tournament.cup_game_variant=cupGameVariant;
     drawnGroups=null;
     await load();
-    alert(`Puljespillet er startet. ${matchRows.length} kamper er satt opp.`);
+    alert(`Puljespillet er startet. ${matchRows.length+aiRows.length} kamper er satt opp.`);
   }catch(e){
     console.error(e);
     alert('Kunne ikke starte puljespillet: '+(e.message||e));
