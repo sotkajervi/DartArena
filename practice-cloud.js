@@ -75,6 +75,36 @@ async function init(){
  staff=['admin','owner'].includes(role?.role);
  await sync();showCloudHistory();
 }
+function renderPracticeTrends(finished){
+ const host=document.getElementById('practiceCloudTotals');
+ let chart=document.getElementById('practiceCloudTrends');
+ if(!chart){chart=document.createElement('div');chart.id='practiceCloudTrends';chart.style.cssText='padding:14px 0;margin:12px 0;border-top:1px solid #2c5054';host.after(chart)}
+ chart.replaceChildren();
+ const heading=document.createElement('h3');heading.textContent='Formkurve – '+(category==='ai_rival'?'AI Rival':'Head-to-Head');chart.append(heading);
+ const cards=finished.slice().reverse().map(match=>{
+  const visits=(match.state?.visits||[]).filter(v=>v.player===0);
+  const darts=visits.reduce((n,v)=>n+(v.checkout?Math.max(1,Math.min(3,Number(v.darts)||3)):3),0);
+  const score=visits.reduce((n,v)=>n+Number(v.score||0),0);
+  const checkout=visits.filter(v=>v.checkout);
+  return {avg:darts?score/darts*3:0,fast:(()=>{
+   let min=Infinity;
+   for(const end of checkout){const leg=visits.filter(v=>v.leg===end.leg&&(v.set||1)===(end.set||1));const count=leg.reduce((n,v)=>n+(v.checkout?Number(v.darts)||3:3),0);if(count>0)min=Math.min(min,count)}
+   return Number.isFinite(min)?min:null})(),high:Math.max(0,...checkout.map(v=>Number(v.score)||0))};
+ }).slice(-20);
+ if(!cards.length){const e=document.createElement('p');e.className='muted compact';e.textContent='Formkurven vises når du har fullført en kamp.';chart.append(e);return}
+ const bars=document.createElement('div');bars.style.cssText='display:flex;align-items:end;gap:5px;min-height:125px;overflow-x:auto;padding:12px 2px 4px';
+ const max=Math.max(60,...cards.map(c=>c.avg));
+ cards.forEach((c,i)=>{
+  const outer=document.createElement('div');outer.style.cssText='display:flex;flex-direction:column;align-items:center;gap:3px;min-width:25px;flex:1';
+  const number=document.createElement('small');number.textContent=c.avg.toFixed(0);number.style.fontSize='10px';
+  const bar=document.createElement('div');bar.style.cssText='width:100%;max-width:34px;min-height:2px;border-radius:5px 5px 0 0;background:#16d0c9;height:'+Math.max(2,Math.round(c.avg/max*95))+'px';
+  outer.title='Kamp '+(i+1)+' · Snitt '+c.avg.toFixed(2)+' · Høyeste checkout '+c.high;
+  outer.append(number,bar);bars.append(outer);
+ });
+ chart.append(bars);
+ const details=document.createElement('p');details.className='muted compact';details.textContent='Siste '+cards.length+' kamper · Høyeste checkout: '+Math.max(...cards.map(c=>c.high))+' · Raskeste leg: '+(Math.min(...cards.map(c=>c.fast||Infinity))===Infinity?'–':Math.min(...cards.map(c=>c.fast||Infinity))+' piler');
+ chart.append(details);
+}
 async function showCloudHistory(){
  if(!uid)return;
  let host=document.getElementById('practiceCloudHistory');
@@ -91,7 +121,7 @@ async function showCloudHistory(){
  if(error){rows.textContent='Kunne ikke hente kamper: '+error.message;return}
  const mine=data||[];
  rows.replaceChildren();
- if(!mine.length){rows.textContent='Ingen lagrede kamper ennå.';document.getElementById('practiceCloudTotals').textContent='';return}
+ if(!mine.length){rows.textContent='Ingen lagrede kamper ennå.';document.getElementById('practiceCloudTotals').textContent='';document.getElementById('practiceCloudTrends')?.remove();return}
  const finished=mine.filter(m=>m.status==='finished'&&m.user_id===uid);
  const visits=finished.flatMap(m=>(m.state?.visits||[]).filter(v=>v.player===0));
  const darts=visits.reduce((n,v)=>n+(v.checkout?Number(v.darts)||3:3),0);
@@ -101,6 +131,7 @@ async function showCloudHistory(){
  const c140=visits.filter(v=>Number(v.score)>=140).length;
  const c180=visits.filter(v=>Number(v.score)===180).length;
  document.getElementById('practiceCloudTotals').textContent='Mine ferdige kamper: '+finished.length+' · 3-dart-snitt: '+avg+' · 100+: '+hundreds+' · 140+: '+c140+' · 180: '+c180+' (basert på viste kamper)';
+ renderPracticeTrends(finished);
  for(const item of mine){
   const div=document.createElement('div');div.style.cssText='border-top:1px solid #325055;padding:10px 0;display:flex;justify-content:space-between;gap:12px;align-items:center';
   const label=document.createElement('span');
