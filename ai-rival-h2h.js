@@ -467,6 +467,10 @@ ui.setupForm.addEventListener('submit',async event=>{
     }
     cancelBot();
     state=created;botRecorded=false;
+    const tournamentFixture=new URLSearchParams(location.search).get('tournamentAiMatch');
+    if(tournamentFixture&&selectedBot){
+      try{localStorage.setItem('dartarena-ai-rival-tournament-session',JSON.stringify({fixtureId:tournamentFixture,stateId:created.id}))}catch{}
+    }
     botConfig=selectedBot?{mode:botMode,profile,name:persona,average:selectedLevel,format:state.format,
       sigma:B.calibrate(selectedLevel,profile,state.format)}:null;
     window.DartArenaLocalNameHistory?.remember(selectedBot?[state.players[0]]:state.players);
