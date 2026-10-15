@@ -4,6 +4,7 @@
 const db=window.supabase?.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
 if(!db)return;
 const category=document.body.dataset.practiceCategory;
+if(new URLSearchParams(location.search).has('tournamentAiMatch'))return; // Tournament AI results use their own authenticated RPC.
 if(!['ai_rival','head_to_head'].includes(category))return;
 const key=category==='ai_rival'?'dartarena-ai-rival-501-state-v1':'dartarena-local-h2h-state-v1';
 const historyKey='dartarena-local-h2h-history-v1';
