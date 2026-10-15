@@ -10,6 +10,8 @@ const fmt=n=>Math.round(n*10000)/10000;
 function exportTest(){
  const rows=marks.map((m,i)=>({number:i+1,timestamp:m.timestamp,quality:m.quality,
    estimate:{u:fmt(m.estimatedU),v:fmt(m.estimatedV)},
+   detected:{u:fmt(m.detectedU),v:fmt(m.detectedV)},
+   tipCandidateFound:m.tipDetected,
    corrected:m.corrected?{u:fmt(m.u),v:fmt(m.v)}:null,
    errorPercentOfBoardRadius:m.corrected?fmt(Math.hypot(m.u-m.estimatedU,m.v-m.estimatedV)*100):null}));
  const data={schema:'dartarena-autozoom-corrections-v1',createdAt:new Date().toISOString(),coordinateSystem:'normalized board radius from bull; u right, v down',rows};
@@ -37,6 +39,11 @@ function paint(){
  }
  for(const [rad,color] of [[.093,'#169b77'],[.037,'#c83244']]){ctx.beginPath();ctx.arc(c,c,r*rad,0,Math.PI*2);ctx.fillStyle=color;ctx.fill()}
  marks.forEach((m,i)=>{
+  // Amber ring = original change center (typically flight); turquoise = proposed tip.
+  if(Number.isFinite(m.detectedU)&&Number.isFinite(m.detectedV)){
+   const fx=c+m.detectedU*r,fy=c+m.detectedV*r;
+   ctx.beginPath();ctx.arc(fx,fy,5,0,Math.PI*2);ctx.strokeStyle='#ffb547';ctx.lineWidth=2;ctx.stroke();
+  }
   const x=c+m.u*r,y=c+m.v*r;
   ctx.beginPath();ctx.arc(x,y,i===selected?7:5,0,Math.PI*2);ctx.fillStyle=m.corrected?'#fff':'#24d6d0';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#071012';ctx.stroke();
  });
@@ -74,6 +81,12 @@ function infer(base,frame,w,h,hit,board){
  if(!Number.isFinite(widths[narrow])||!Number.isFinite(widths[wide])||
     widths[wide]<Math.max(3,widths[narrow]*1.45))
   return{x:hit.x,y:hit.y,quality:'usikkert – kan ikke skille flight fra spiss',tipDetected:false};
+ // The lower visible part is the expected board-entry side in this camera setup.
+ // Do not use the upper narrow endpoint: it may still be a flight edge.
+ const upperEnd=ends[0].reduce((a,p)=>a+p.y,0)/ends[0].length;
+ const lowerEnd=ends[1].reduce((a,p)=>a+p.y,0)/ends[1].length;
+ const lower=upperEnd>lowerEnd?0:1;
+ if(narrow!==lower)return{x:hit.x,y:hit.y,quality:'usikkert – smal ende ikke nederst',tipDetected:false};
  // Use robust tail location (not the single outermost noise pixel).
  const tail=ends[narrow].sort((a,b)=>narrow===0?a.t-b.t:b.t-a.t);
  const point=tail[Math.min(tail.length-1,Math.max(0,Math.floor(tail.length*.15)))];
@@ -89,7 +102,8 @@ window.addEventListener('dartarena:autozoom-test-hit',e=>{
  // Isolated heatmap display only; does not move AutoZoom or alter hit detection.
  const CALIBRATION={u:-0.06,v:0.13};
  const u=(tip.x-board.x)/board.radius+(tip.tipDetected?0:CALIBRATION.u),v=(tip.y-board.y)/board.radius+(tip.tipDetected?0:CALIBRATION.v);
- marks.push({u,v,estimatedU:u,estimatedV:v,timestamp:new Date().toISOString(),corrected:false,quality:tip.quality});selected=marks.length-1;paint();
+ const detectedU=(hit.x-board.x)/board.radius,detectedV=(hit.y-board.y)/board.radius;
+ marks.push({u,v,estimatedU:u,estimatedV:v,detectedU,detectedV,tipDetected:tip.tipDetected,timestamp:new Date().toISOString(),corrected:false,quality:tip.quality});selected=marks.length-1;paint();
  summary.textContent+=' · '+tip.quality+' (ikke bekreftet pilspiss)';
 });
 canvas.addEventListener('click',e=>{
