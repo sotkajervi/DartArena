@@ -93,7 +93,7 @@ async function loadPlayers(query=''){
   const {data,error}=await db.rpc('get_player_directory_stats',{p_search:query,p_limit:500});
   if(request!==requestNo)return;
   if(error)throw error;
-  allRows=data||[];
+  allRows=(data||[]).filter(p=>!["d32a4234-68fa-4c94-a0b0-2aff4831344a","049fdb78-ee46-41cb-a25f-a48d90a028e5"].includes(p.user_id));
   render();
 }
 
