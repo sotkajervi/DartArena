@@ -28,6 +28,13 @@ Recovery-epostmalen må bruke `{{ .ConfirmationURL }}` slik at Supabase verifise
 engangstokenet før retur. En egendefinert PKCE/token-hash-mal støttes ikke av denne
 rene HTML-flyten. Supabase SDK er beholdt på repoets eksisterende versjon 2.117.2.
 
+Kontrollert i Supabase Dashboard 15. oktober 2026: Site URL er riktig, eksisterende
+redirect-regel dekker DartArena, og recovery-malen bruker `{{ .ConfirmationURL }}`.
+Custom SMTP er ikke aktivert. Supabases standardutsending tillater bare
+teamadresser; utsending til vanlige spillere krever at en e-postleverandør kobles
+til under Authentication → Emails → SMTP Settings. Se
+[Supabases SMTP-dokumentasjon](https://supabase.com/docs/guides/auth/auth-smtp).
+
 ## Bygg og kontroll
 
 Ny kode ligger i `src/pages/password-reset.ts`. GitHub Pages har ingen
@@ -40,6 +47,14 @@ Testene dekker fast redirect, nøytral utsendingsmelding, isolert sesjon,
 blokkert direkte tilgang, utløpt lenke, passordlengde, ulike passord,
 kontroll av kontoidentitet, vellykket oppdatering, svak-passord-feil,
 ratebegrensning og videresending fra lobbyinngangen.
+
+Verifikasjon ved publisering: typekontroll og ESLint består, og alle sju nye
+recovery-tester består. Den brede testsuiten har 123 beståtte av 126. De samme tre
+eldre feilene finnes på uendret base (AutoZoom-overlay, ferdigkampens lobbyknapp
+og en eldre versjonsstreng for turneringsskriptet). Repoets samlede
+formateringskontroll har også eksisterende avvik; endrede TypeScript-/JSON-filer
+og dette dokumentet består. På den publiserte siden er «Glemt passord?»,
+skjemaet og håndtering av en utløpt lenke kontrollert i nettleseren.
 
 En full ende-til-ende-test krever tilgang til innboksen til en eksisterende
 testkonto: be om lenke, åpne e-posten, velg nytt passord, logg inn og kontroller
