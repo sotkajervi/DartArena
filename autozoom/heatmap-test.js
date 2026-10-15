@@ -45,23 +45,34 @@ function infer(base,frame,w,h,hit,board){
  const mx=samples.reduce((a,p)=>a+p.x,0)/samples.length,my=samples.reduce((a,p)=>a+p.y,0)/samples.length;
  let xx=0,yy=0,xy=0;for(const p of samples){xx+=(p.x-mx)**2;yy+=(p.y-my)**2;xy+=(p.x-mx)*(p.y-my)}
  const angle=.5*Math.atan2(2*xy,xx-yy),ax=Math.cos(angle),ay=Math.sin(angle);
- // Robust end-of-axis estimate: pixels at a single extreme can be camera
- // noise, reflections or a flight. Use the first/last 12% of projections
- // and prefer the cluster closer to the bull (the likely embedded tip).
- const projected=samples.map(p=>({p,t:(p.x-mx)*ax+(p.y-my)*ay})).sort((a,b)=>a.t-b.t);
+ // Estimate both ends of the dart silhouette. Flights tend to produce a
+ // broader cross-section than the shaft/tip, so favor the narrow end.
+ // This is a heuristic, NOT verified tip detection.
+ const projected=samples.map(p=>({p,t:(p.x-mx)*ax+(p.y-my)*ay,
+   cross:-(p.x-mx)*ay+(p.y-my)*ax})).sort((a,b)=>a.t-b.t);
  const span=projected.at(-1).t-projected[0].t;
- if(span<6)return{x:mx,y:my,quality:'lite avlang endring'};
- const count=Math.max(4,Math.ceil(projected.length*.12));
+ if(span<8)return{x:hit.x,y:hit.y,quality:'kort endring – klynge'};
+ const band=Math.max(3,span*.22);
+ const min=projected[0].t,max=projected.at(-1).t;
+ const ends=[projected.filter(p=>p.t<=min+band),projected.filter(p=>p.t>=max-band)];
+ const sortedWidth=part=>{
+   const vals=part.map(v=>v.cross).sort((a,b)=>a-b);
+   return vals[Math.floor(vals.length*.85)]-vals[Math.floor(vals.length*.15)];
+ };
  const centroid=part=>({x:part.reduce((sum,v)=>sum+v.p.x,0)/part.length,
-                          y:part.reduce((sum,v)=>sum+v.p.y,0)/part.length});
- const lo=centroid(projected.slice(0,count)),hi=centroid(projected.slice(-count));
- const distance=p=>(p.x-board.x)**2+(p.y-board.y)**2;
- const end=distance(lo)<distance(hi)?lo:hi;
- // Keep this conservative: avoid large jumps from a diffuse change cluster.
- const correction=Math.min(5,span*.08);
- const direction=end===lo?-1:1;
- const x=end.x+direction*ax*correction,y=end.y+direction*ay*correction;
- return{x,y,quality:'robust akse-estimat (test)'};
+   y:part.reduce((sum,v)=>sum+v.p.y,0)/part.length});
+ const centers=ends.map(centroid),widths=ends.map(sortedWidth);
+ const ratio=Math.max(...widths)/Math.max(1,Math.min(...widths));
+ let choice;
+ if(ratio>=1.35)choice=widths[0]<widths[1]?0:1;
+ else{
+   const dist=p=>Math.hypot(p.x-board.x,p.y-board.y);
+   choice=dist(centers[0])<dist(centers[1])?0:1;
+ }
+ // Stay inside the observed silhouette: never extrapolate beyond it.
+ const chosen=centers[choice];
+ return{x:chosen.x,y:chosen.y,quality:ratio>=1.35?'smal ende (test)':'akse-estimat, usikker retning'};
+
 }
 window.addEventListener('dartarena:autozoom-test-hit',e=>{
  const {base,frame,width,height,hit,board}=e.detail;
