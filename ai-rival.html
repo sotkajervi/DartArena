@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="no"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Rival · DartArena</title>
+<link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./brand-header.css">
+<style>
+body{background:#071012;color:#edf8f8;font-family:system-ui,sans-serif}main{max-width:1050px;margin:32px auto;padding:0 16px}.rival-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.rival-panel{background:#102126;border:1px solid #275055;border-radius:16px;padding:20px}.rival-panel h2{margin:0 0 10px}.rival-score{font-size:clamp(48px,8vw,104px);font-weight:800;font-variant-numeric:tabular-nums}.rival-score.active{color:#12d3d3}select,input,button{font:inherit;padding:10px;border-radius:9px}select,input{background:#0a181b;border:1px solid #407075;color:white}button{cursor:pointer;background:#12bdbd;border:0;color:#031315;font-weight:700}button:disabled{opacity:.4;cursor:default}button.secondary{background:#243d41;color:white}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.muted{color:#a9bfc3}.rival-status{min-height:30px}.rival-input{width:110px}.rival-setup{display:flex;gap:12px;flex-wrap:wrap;align-items:end}.rival-setup label{display:grid;gap:6px}.visit-log{max-height:200px;overflow:auto}.visit-log div{padding:5px 0;border-bottom:1px solid #254044}.rival-hidden{display:none!important}@media(max-width:620px){.rival-grid{grid-template-columns:1fr}}
+</style></head><body>
+<header><div class="brand"><a href="scoringarena.html"><img class="brand-logo" src="./assets/dartarena-logo.jpg" alt="DartArena" width="210"></a></div><div class="live">AI RIVAL · TESTVERSJON</div></header>
+<main><h1>AI <span style="color:#12d3d3">Rival</span></h1>
+<p class="muted">Spill 501 mot en statistisk simulering av deg selv eller en annen DartArena-spiller. Prototypen endrer ikke online-kamper, ranking eller turneringsresultater.</p>
+<section class="rival-panel"><div class="rival-setup">
+<label>Motstander <select id="rivalPlayer"><option value="">Laster profiler…</option></select></label>
+<label>Best av <select id="rivalLegs"><option>1</option><option selected>3</option><option>5</option><option>7</option><option>9</option></select></label>
+<button id="rivalStart" disabled>Start 501</button></div>
+<p id="rivalModel" class="muted">Laster…</p>
+<p id="rivalNotice" class="muted" role="status"></p>
+</section>
+<section id="rivalGame" class="rival-hidden"><div class="rival-grid" style="margin-top:16px">
+<div class="rival-panel"><h2 id="rivalHumanName">Du</h2><div id="rivalHumanScore" class="rival-score active">501</div><div id="rivalHumanLegs">0 legs</div></div>
+<div class="rival-panel"><h2 id="rivalBotName">AI Rival</h2><div id="rivalBotScore" class="rival-score">501</div><div id="rivalBotLegs">0 legs</div></div></div>
+<div class="rival-panel" style="margin-top:16px">
+<h2>Registrer din runde</h2><p id="rivalStatus" class="rival-status" role="status"></p>
+<div class="row"><label>Score <input id="rivalInput" class="rival-input" type="number" min="0" max="180" step="1" inputmode="numeric" placeholder="0–180"></label><label>Piler ved checkout <select id="rivalDarts"><option value="3">3</option><option value="2">2</option><option value="1">1</option></select></label><button id="rivalThrow">Registrer</button><button id="rivalUndo" class="secondary">Angre runde</button></div>
+<p class="muted">Registrer summen for opptil tre piler. Ved checkout velger du 1–3 piler. Bust registreres som 0. Utsjekk krever gyldig dobbel-ut.</p></div>
+<div class="rival-panel" style="margin-top:16px"><h2>Kamplogg</h2><div id="rivalLog" class="visit-log"></div></div>
+</section></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+<script src="./ai-rival.js?v=phase1-1"></script>
+</body></html>
