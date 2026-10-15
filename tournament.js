@@ -553,6 +553,7 @@ async function loadGroupLobby(){
   $('groupLobby')?.classList.toggle('group-archive-full',archive);
   const groupLabel=$('groupLobby')?.querySelector('.heading small');
   if(groupLabel)groupLabel.textContent=archive?'PULJEHISTORIKK':'LIVE';
+  matches.sort((a,b)=>Number(a.round_no)-Number(b.round_no)||Number(a.match_no)-Number(b.match_no));
   $('groupProgress').textContent=archive?`${matches.length} puljekamper`:`${done} / ${matches.length} kamper ferdig`;
   const collapseArchivedGroups=archive;
   $('liveGroups').innerHTML=groups.map(g=>{
@@ -614,6 +615,7 @@ async function startGroups(){
     const game=chicago?501:Number(selection);
     const gameVariant=chicago?'chicago':'x01';
     if(!chicago&&!validTournamentGame(game))throw new Error('Velg et gyldig puljespill.');
+    if(drawnGroups?.some(group=>group.some(p=>p.ai_rival))&&(chicago||game!==501))throw new Error('AI Rival i online-puljer støtter foreløpig bare 501. Velg 501 i puljespillet.');
 
     const cupSelection=document.getElementById('tournamentCupGame')?.value||(tournamentCupIsChicago()?'chicago':String(tournament.cup_game||501));
     const cupChicago=cupSelection==='chicago';
