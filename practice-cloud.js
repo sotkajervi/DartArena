@@ -182,7 +182,9 @@ function openPracticeMatchStats(item){
   ];
   const card=document.createElement('article');card.className='premium-player-card';
   const head=document.createElement('div');head.className='premium-player-head';
-  const name=document.createElement('div');name.className='premium-player-name';name.textContent=names[i]||'Spiller '+(i+1);
+  const name=document.createElement('div');name.className='premium-player-name da-role-player';name.textContent=names[i]||'Spiller '+(i+1);
+  const profileId=i===0?item.user_id:(category==='ai_rival'?item.settings?.rivalId:null);
+  if(profileId)name.dataset.userId=profileId;
   head.append(name);card.append(head);
   const metrics=document.createElement('div');metrics.className='premium-stat-grid';
   for(const [key,value] of values){
@@ -194,6 +196,7 @@ function openPracticeMatchStats(item){
   card.append(metrics);grid.append(card);
  }
  section.append(grid);
+ window.DartArenaRoleVisuals?.scan(grid);
  const legs=document.createElement('section');legs.className='premium-leg-section';
  const legHead=document.createElement('div');legHead.className='premium-leg-title';legHead.textContent='LEG-OVERSIKT';
  const list=document.createElement('div');list.className='premium-leg-list';
