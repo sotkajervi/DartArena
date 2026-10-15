@@ -550,6 +550,7 @@ $('localCheckoutBust').addEventListener('click',()=>{
   commit(()=>E.submit(state,score,{bust:true}),'BUST for '+name+'.');
 });
 function newMatch(){
+  if(state?.status==='finished'){location.assign('./ai-rival.html');return;}
   if(state&&state.status!=='finished'&&!window.confirm('Avslutte denne lokale kampen? Resultatet kan ikke gjenopprettes etterpå.'))return;
   clearTimeout(betweenTimer);betweenTimer=null;
   cancelBot();
