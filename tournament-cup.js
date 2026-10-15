@@ -66,6 +66,22 @@
       db.from('tournament_matches').select('*').eq('tournament_id',id).eq('stage','cup').order('round_no').order('match_no')
     ]);
     const groupMatches=gm||[],cupMatches=cm||[];
+    const {data:aiMatches,error:aiError}=await db.from('tournament_ai_group_matches').select('*').eq('tournament_id',id);
+    if(aiError){console.warn('AI Rival cup fixtures unavailable',aiError);return{groups:[],players:[],gm:[],cm:cupMatches,aiLoadError:true}}
+    if(aiMatches?.length){
+      const {data:config,error:configError}=await db.from('tournament_ai_rivals').select('model_player_id,group_id').eq('tournament_id',id).maybeSingle();
+      if(configError||!config)return{groups:[],players:[],gm:[],cm:cupMatches,aiLoadError:true};
+      const aiId='00000000-0000-4000-8000-0000000000a1';
+      const {data:profile}=await db.from('profiles').select('username').eq('id',config.model_player_id).maybeSingle();
+      names[aiId]='AI Rival – '+(profile?.username||'Spiller');
+      players.push({id:aiId,user_id:aiId,group_id:config.group_id||aiMatches[0].group_id,seed_no:99});
+      for(const f of aiMatches){
+        groupMatches.push({id:f.id,group_id:f.group_id,round_no:f.round_no,match_no:f.match_no,
+          player1_id:f.ai_as_player1?aiId:f.human_id,player2_id:f.ai_as_player1?f.human_id:aiId,
+          player1_legs:f.ai_as_player1?f.ai_legs:f.human_legs,player2_legs:f.ai_as_player1?f.human_legs:f.ai_legs,
+          winner_id:f.status==='finished'?(f.winner_is_ai?aiId:f.human_id):null,status:f.status});
+      }
+    }
     const liveIds=[...new Set([...groupMatches,...cupMatches].filter(m=>m.status==='live'&&m.live_match_id).map(m=>m.live_match_id))];
     if(liveIds.length){
       const {data:liveRows,error:liveError}=await db.from('matches').select('id,player1_legs,player2_legs').in('id',liveIds);
@@ -85,10 +101,10 @@
   }
   function qualifiers(d){const out=[];for(const g of d.groups){const gp=d.players.filter(p=>p.group_id===g.id),matches=d.gm.filter(m=>m.group_id===g.id),table=standings(gp,matches),n=g.advance_mode==='all'?table.length:Number(g.advance_count||0);table.slice(0,n).forEach((p,i)=>out.push({id:p.id,group:g.group_no,pos:i+1,seedLabel:`${i+1}P${g.group_no}`}))}return out}
   async function buildCup(){
-    if(tournament?.tournament_type!=='groups_cup'||tournament.owner_id!==me)return;const d=await data();if(d.cm.length)return alert('Cupen er allerede opprettet.');if(!d.gm.length||d.gm.some(m=>!done(m)))return alert('Alle puljekampene må være ferdige før cupen kan opprettes.');
+    if(tournament?.tournament_type!=='groups_cup'||tournament.owner_id!==me)return;const d=await data();if(d.aiLoadError)return alert('Kunne ikke kontrollere AI Rival-kampene. Prøv igjen.');if(d.cm.length)return alert('Cupen er allerede opprettet.');if(!d.gm.length||d.gm.some(m=>!done(m)))return alert('Alle puljekampene må være ferdige før cupen kan opprettes.');
     const q=qualifiers(d);if(q.length<2)return alert('Minst to spillere må gå videre til cup.');
     const size=nextPow2(q.length),rounds=Math.log2(size),slots=seededSlots(q,size),roundFormats=selectedCupFormats(rounds);
-    const rows=[];let matchNo=1;for(let i=0;i<size/2;i++){const a=slots[i*2],b=slots[i*2+1];rows.push({tournament_id:id,stage:'cup',round_no:1,match_no:matchNo++,player1_id:a?.id||null,player2_id:b?.id||null,best_of:roundFormats[1],status:a&&b?'pending':a||b?'wo':'pending',winner_id:a&&!b?a.id:!a&&b?b.id:null,is_wo:!!(a&&!b||!a&&b)})}
+    const rows=[];let matchNo=1;for(let i=0;i<size/2;i++){const a=slots[i*2],b=slots[i*2+1];const aiA=a?.id==='00000000-0000-4000-8000-0000000000a1',aiB=b?.id==='00000000-0000-4000-8000-0000000000a1',humanA=a&&!aiA?a:null,humanB=b&&!aiB?b:null,won=humanA&&!humanB?humanA:!humanA&&humanB?humanB:null;rows.push({tournament_id:id,stage:'cup',round_no:1,match_no:matchNo++,player1_id:humanA?.id||null,player2_id:humanB?.id||null,best_of:roundFormats[1],status:won?'wo':'pending',winner_id:won?.id||null,is_wo:!!won,ai_rival_wo:!!(won&&(aiA||aiB))})}
     for(let r=2;r<=rounds;r++){const count=size/(2**r);for(let i=0;i<count;i++)rows.push({tournament_id:id,stage:'cup',round_no:r,match_no:i+1,player1_id:null,player2_id:null,best_of:roundFormats[r],status:'pending',is_wo:false})}
     const {error}=await db.from('tournament_matches').insert(rows);if(error)return alert('Kunne ikke opprette cup: '+error.message);const {error:te}=await db.from('tournaments').update({status:'cup',updated_at:new Date().toISOString()}).eq('id',id).eq('owner_id',me);if(te)return alert(te.message);await load();await loadCup();
   }
@@ -160,14 +176,14 @@
     if(tournament.tournament_type==='cup'&&tournament.status==='cup_setup')return;
     const d=await data();const setup=$('cupSetup'),lobby=$('cupLobby');if(!setup||!lobby)return;
     setup.classList.toggle('hidden',tournament.status!=='cup_setup');lobby.classList.toggle('hidden',!['cup','finished'].includes(tournament.status));
-    if(tournament.status==='cup_setup'){const allDone=d.gm.length&&d.gm.every(done),q=allDone?qualifiers(d):[];$('cupSetupInfo').textContent=allDone?`${q.length} spillere er klare for sluttspillet. Cupen bruker NDF-oppsett der dette er definert, og viser puljeplassering som 1P1, 2P1 osv.`:'Cupen kan opprettes når alle puljekampene er ferdige.';$('buildCupBtn').disabled=!allDone;if(allDone&&q.length>=2)renderCupFormat(q);return}
+    if(tournament.status==='cup_setup'){const allDone=!d.aiLoadError&&d.gm.length&&d.gm.every(done),q=allDone?qualifiers(d):[];$('cupSetupInfo').textContent=allDone?`${q.length} spillere er klare for sluttspillet. Cupen bruker NDF-oppsett der dette er definert, og viser puljeplassering som 1P1, 2P1 osv.`:'Cupen kan opprettes når alle puljekampene er ferdige.';$('buildCupBtn').disabled=!allDone;if(allDone&&q.length>=2)renderCupFormat(q);return}
     if(!d.cm.length)return;const advancementBlocked=await advanceWinners(d.cm);const ids=[...new Set(d.cm.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))],missing=ids.filter(x=>!names[x]);if(missing.length){const {data:p}=await db.from('profiles').select('id,username').in('id',missing);Object.assign(names,Object.fromEntries((p||[]).map(x=>[x.id,x.username])))}
     const seedById=new Map(qualifiers(d).map(p=>[p.id,p.seedLabel]));
     const matchAverages=await cupMatchAverages(d.cm);
     const max=Math.max(...d.cm.map(m=>m.round_no));
     const finalRound=d.cm.filter(m=>Number(m.round_no)===Number(max));
     const final=finalRound.length===1?finalRound[0]:null;
-    $('cupBracket').innerHTML=Array.from({length:max},(_,i)=>i+1).map(r=>{const rm=d.cm.filter(m=>m.round_no===r),bo=rm[0]?.best_of;return `<div class="cup-round"><div class="cup-round-title">${cupRoundName(r,2**max)}${isChicagoTournament()?' • Chicago Style':bo?` • Bo${bo}`:''}</div>${rm.map(m=>{const score=m.status==='live'?`${Number(m._live_player1_legs??m.player1_legs??0)}–${Number(m._live_player2_legs??m.player2_legs??0)}`:done(m)&&!m.is_wo?`${m.player1_legs||0}–${m.player2_legs||0}`:m.is_wo?'WO':'vs',aBye=r===1&&m.is_wo&&!m.player1_id,bBye=r===1&&m.is_wo&&!m.player2_id;const avgs=matchAverages.get(m.id);return `<div class="cup-match" data-match="${m.id}"><div class="cup-player ${m.winner_id===m.player1_id&&m.player1_id?'winner':''}">${cupPlayerHtml(m.player1_id,seedById,{bye:aBye,avg:avgs?.get(m.player1_id)})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner_id===m.player2_id&&m.player2_id?'winner':''}">${cupPlayerHtml(m.player2_id,seedById,{bye:bBye,avg:avgs?.get(m.player2_id)})}</div></div>`}).join('')}</div>`}).join('');
+    $('cupBracket').innerHTML=Array.from({length:max},(_,i)=>i+1).map(r=>{const rm=d.cm.filter(m=>m.round_no===r),bo=rm[0]?.best_of;return `<div class="cup-round"><div class="cup-round-title">${cupRoundName(r,2**max)}${isChicagoTournament()?' • Chicago Style':bo?` • Bo${bo}`:''}</div>${rm.map(m=>{const score=m.status==='live'?`${Number(m._live_player1_legs??m.player1_legs??0)}–${Number(m._live_player2_legs??m.player2_legs??0)}`:done(m)&&!m.is_wo?`${m.player1_legs||0}–${m.player2_legs||0}`:m.is_wo?'WO':'vs',aBye=r===1&&m.is_wo&&!m.player1_id,bBye=r===1&&m.is_wo&&!m.player2_id;const avgs=matchAverages.get(m.id);return `<div class="cup-match" data-match="${m.id}"><div class="cup-player ${m.winner_id===m.player1_id&&m.player1_id?'winner':''}">${aBye&&m.ai_rival_wo?'<span class="cup-bye">AI Rival · WO</span>':cupPlayerHtml(m.player1_id,seedById,{bye:aBye,avg:avgs?.get(m.player1_id)})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner_id===m.player2_id&&m.player2_id?'winner':''}">${bBye&&m.ai_rival_wo?'<span class="cup-bye">AI Rival · WO</span>':cupPlayerHtml(m.player2_id,seedById,{bye:bBye,avg:avgs?.get(m.player2_id)})}</div></div>`}).join('')}</div>`}).join('');
     window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
     if(finalRound.length!==1){$('cupProgress').textContent='Cupoppsettet må kontrolleres: ugyldig finalerunde';return}
     $('cupProgress').textContent=final?.winner_id?`Vinner: ${names[final.winner_id]||'Spiller'}`:`${d.cm.filter(done).length} / ${d.cm.length} kamper ferdig`;
