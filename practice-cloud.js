@@ -229,7 +229,7 @@ async function showCloudHistory(){
   const actions=document.createElement('div');actions.style.cssText='display:flex;gap:6px;flex-wrap:wrap;align-items:center';
   const details=document.createElement('button');details.type='button';details.className='outline';details.textContent='Kampstatistikk';details.setAttribute('aria-expanded','false');
   details.onclick=()=>{
-   const opened=div.querySelector('.practice-match-stats');
+   const opened=div.nextElementSibling?.classList.contains('practice-match-stats')?div.nextElementSibling:null;
    if(opened){opened.remove();details.textContent='Kampstatistikk';details.setAttribute('aria-expanded','false');return}
    const stats=practiceMatchStats(item);stats.classList.add('practice-match-stats');div.after(stats);details.textContent='Skjul statistikk';details.setAttribute('aria-expanded','true');
   };
