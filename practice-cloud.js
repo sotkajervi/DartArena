@@ -7,6 +7,7 @@ const category=document.body.dataset.practiceCategory;
 if(!['ai_rival','head_to_head'].includes(category))return;
 const key=category==='ai_rival'?'dartarena-ai-rival-501-state-v1':'dartarena-local-h2h-state-v1';
 const historyKey='dartarena-local-h2h-history-v1';
+const sessionKey=category==='ai_rival'?'dartarena-ai-rival-501-bot-session-v1':'dartarena-local-h2h-bot-session-v1';
 const deletedKey=historyKey+'-deleted-ids';
 const status=document.createElement('div');status.id='practiceCloudStatus';status.className='muted compact';status.style.margin='12px 0';
 const parent=document.querySelector('.local-h2h-heading')||document.querySelector('main');
@@ -15,7 +16,7 @@ let uid=null,working=false,queued=false,lastSynced='',staff=false,showAll=false;
 const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch{return null}};
 function uuid(v){return typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)}
 function sanitize(s){return s&&validId(s.id)&&['playing','between','finished'].includes(s.status)&&Array.isArray(s.visits)&&Array.isArray(s.players)?s:null}
-async function saveOne(s,kind){
+async function saveOne(s,kind,isCurrent=false){
  if(!sanitize(s))return;
  const id=cloudId(s.id);
  const {data:existing,error:e}=await db.from('practice_matches').select('id,deleted_at,status,state').eq('id',id).maybeSingle();
@@ -29,8 +30,9 @@ async function saveOne(s,kind){
   const localAt=Date.parse(s.visits?.at(-1)?.at||'')||0;
   if(remoteAt>localAt)return;
  }
- const payload={id,user_id:uid,category:kind,state:s,status:s.status,updated_at:new Date().toISOString()};
- if(existing){const {error}=await db.from('practice_matches').update({state:s,status:s.status,updated_at:payload.updated_at}).eq('id',id);if(error)throw error}
+ const settings=isCurrent?{botSession:read(sessionKey),rivalId:category==='ai_rival'?new URLSearchParams(location.search).get('player'):null}:{};
+ const payload={id,user_id:uid,category:kind,state:s,settings,status:s.status,updated_at:new Date().toISOString()};
+ if(existing){const {error}=await db.from('practice_matches').update({state:s,settings,status:s.status,updated_at:payload.updated_at}).eq('id',id);if(error)throw error}
  else {const {error}=await db.from('practice_matches').insert(payload);if(error)throw error}
 }
 async function sync(){
@@ -41,7 +43,7 @@ async function sync(){
   const current=sanitize(read(key));
   if(current){
    const stamp=JSON.stringify(current);
-   if(stamp!==lastSynced){await saveOne(current,category);lastSynced=stamp}
+   if(stamp!==lastSynced){await saveOne(current,category,true);lastSynced=stamp}
   }
   if(category==='head_to_head'){
    const archived=read(historyKey),deleted=new Set(read(deletedKey)||[]);
@@ -82,7 +84,7 @@ async function showCloudHistory(){
   document.querySelector('main')?.append(host);
  }
  const rows=document.getElementById('practiceCloudRows');
- let request=db.from('practice_matches').select('id,user_id,category,status,state,updated_at,deleted_at').eq('category',category).is('deleted_at',null).order('updated_at',{ascending:false}).limit(200);
+ let request=db.from('practice_matches').select('id,user_id,category,status,state,settings,updated_at,deleted_at').eq('category',category).is('deleted_at',null).order('updated_at',{ascending:false}).limit(200);
  if(!staff||!showAll)request=request.eq('user_id',uid);
  const {data,error}=await request;
  if(error){rows.textContent='Kunne ikke hente kamper: '+error.message;return}
@@ -115,7 +117,25 @@ async function showCloudHistory(){
    }
    await showCloudHistory();
   };
-  div.append(label,button);rows.append(div);
+  div.append(label);
+  if(item.status!=='finished'&&item.user_id===uid){
+   const resume=document.createElement('button');resume.type='button';resume.className='outline';resume.textContent='Fortsett';
+   resume.onclick=()=>{
+    const local=read(key);
+    if(local?.id!==item.state?.id&&local?.status!=='finished'&&local&&!confirm('Erstatte pågående lokal kamp med kampen fra Supabase?'))return;
+    localStorage.setItem(key,JSON.stringify(item.state));
+    if(item.settings?.botSession)localStorage.setItem(sessionKey,JSON.stringify(item.settings.botSession));
+    else localStorage.removeItem(sessionKey);
+    if(category==='ai_rival'){
+     const selected=item.settings?.rivalId;
+     if(!selected){alert('Denne AI Rival-kampen mangler spillerreferanse og kan ikke gjenopptas på ny enhet.');return}
+     localStorage.setItem('dartarena-ai-rival-501-selected-player',selected);
+     location.href='ai-rival-501.html?player='+encodeURIComponent(selected);
+    }else location.reload();
+   };
+   div.append(resume);
+  }
+  div.append(button);rows.append(div);
  }
 }
 window.addEventListener('dartarena:practice-save',()=>{sync().then(()=>{if(read(key)?.status==='finished')showCloudHistory()})});
