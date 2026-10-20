@@ -6,11 +6,46 @@ const CONFIG_KEY='dartarena-zoomcam-calibration-v1';
 const MODE_KEY='dartarena-zoomcam-mode';
 const ZOOM_VALUE='__dartarena_zoomcam__';
 const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));
+function framingOf(data={}){
+  const zoom=Number(data.zoom),panX=Number(data.panX),panY=Number(data.panY);
+  return{
+    zoom:Number.isFinite(zoom)?clamp(zoom,1,3):1,
+    panX:Number.isFinite(panX)?clamp(panX,-1,1):0,
+    panY:Number.isFinite(panY)?clamp(panY,-1,1):0
+  };
+}
+// Framing is a crop of the physical image. Board calibration and hit detection
+// continue using raw camera coordinates, so changing framing cannot alter scoring.
+function framingCrop(width,height,settings={}){
+  if(!(width>0&&height>0))return null;
+  const {zoom,panX,panY}=framingOf(settings);
+  const cropW=width/zoom,cropH=height/zoom;
+  return{
+    x:(width-cropW)*(panX+1)/2,y:(height-cropH)*(panY+1)/2,
+    width:cropW,height:cropH
+  };
+}
+// Exact mapping of clicks on the fitted/framed Cam-test canvas back to
+// unmodified video coordinates (used for Bull / D20 calibration).
+function framedPointer(video,preview,event,settings={}){
+  const w=video?.videoWidth,h=video?.videoHeight;
+  const box=preview?.getBoundingClientRect?.(),crop=framingCrop(w,h,settings);
+  if(!box?.width||!box?.height||!crop)return null;
+  const fit=Math.min(box.width/crop.width,box.height/crop.height);
+  const dx=(box.width-crop.width*fit)/2,dy=(box.height-crop.height*fit)/2;
+  const x=(event.clientX-box.left-dx)/fit,y=(event.clientY-box.top-dy)/fit;
+  if(x<0||y<0||x>crop.width||y>crop.height)return null;
+  return {x:crop.x+x,y:crop.y+y};
+}
+function insetRect(width,height){
+  const w=Math.round(width*.33),h=Math.round(w*3/4),pad=Math.round(width*.016);
+  return {x:width-w-pad,y:pad,width:w,height:h};
+}
 function saveConfig(storage,data){
   if(!data||typeof data.deviceId!=='string'||!data.deviceId)return false;
   if(![data.cx,data.cy,data.radius,data.rotation,data.aspect].every(Number.isFinite))return false;
   if(data.cx<0||data.cx>1||data.cy<0||data.cy>1||data.radius<.03||data.radius>.65||data.aspect<.5||data.aspect>3)return false;
-  storage.setItem(CONFIG_KEY,JSON.stringify({...data,
+  storage.setItem(CONFIG_KEY,JSON.stringify({...data,...framingOf(data),
     speed:['fast','normal','smooth'].includes(data.speed)?data.speed:'normal',
     sensitivity:['low','normal','high'].includes(data.sensitivity)?data.sensitivity:'normal',
     version:1}));
@@ -22,7 +57,7 @@ function loadConfig(storage){
     if(!data||data.version!==1||typeof data.deviceId!=='string'||!data.deviceId)return null;
     if(![data.cx,data.cy,data.radius,data.rotation,data.aspect].every(Number.isFinite)
       ||data.cx<0||data.cx>1||data.cy<0||data.cy>1||data.radius<.03||data.radius>.65||data.aspect<.5||data.aspect>3)return null;
-    return data;
+    return {...data,...framingOf(data)};
   }catch{return null}
 }
 function selected(storage){return storage.getItem(MODE_KEY)==='zoom'}
@@ -86,11 +121,13 @@ function create(raw,config,{fps=25,video=null,
     if(video.videoWidth&&video.videoHeight){
       const w=canvas.width||1280,h=canvas.height||720;
       const sw=video.videoWidth,sh=video.videoHeight;
-      const widthRatio=w/sw,heightRatio=h/sh;
+      const framed=framingCrop(sw,sh,config);
       ctx.fillStyle='#030708';ctx.fillRect(0,0,w,h);
-      // Full camera remains visible; only the inset is a zoomed crop.
-      const fit=Math.min(widthRatio,heightRatio),dx=(w-sw*fit)/2,dy=(h-sh*fit)/2;
-      ctx.drawImage(video,dx,dy,sw*fit,sh*fit);
+      // User-framed main image. The overlay and hit tracking still use raw pixels.
+      const fit=Math.min(w/framed.width,h/framed.height);
+      const dx=(w-framed.width*fit)/2,dy=(h-framed.height*fit)/2;
+      ctx.drawImage(video,framed.x,framed.y,framed.width,framed.height,
+        dx,dy,framed.width*fit,framed.height*fit);
       const board={x:config.cx*sw,y:config.cy*sh,radius:config.radius*sw};
       if(!target){const p=tracker.targetPoint(board.x,board.y,board.radius,'T20',config.rotation);target=p;current={...p}}
       if(now-lastAnalysis>=speed.intervalMs){
@@ -118,9 +155,9 @@ function create(raw,config,{fps=25,video=null,
         }
       }
       current.x+=(target.x-current.x)*speed.ease;current.y+=(target.y-current.y)*speed.ease;
-      const insetW=Math.round(w*.33),insetH=Math.round(insetW*3/4),pad=Math.round(w*.016);
+      const inset=insetRect(w,h);
+      const {x:ix,y:iy,width:insetW,height:insetH}=inset;
       const crop=tracker.zoomCrop(sw,sh,current.x,current.y,board.radius,4/3);
-      const ix=w-insetW-pad,iy=pad;
       ctx.fillStyle='#071b20';ctx.fillRect(ix-3,iy-3,insetW+6,insetH+6);
       ctx.drawImage(video,crop.x,crop.y,crop.width,crop.height,ix,iy,insetW,insetH);
       ctx.strokeStyle='#00eaf4';ctx.lineWidth=Math.max(2,w/450);ctx.strokeRect(ix-2,iy-2,insetW+4,insetH+4);
@@ -149,6 +186,6 @@ function create(raw,config,{fps=25,video=null,
   };
 }
 root.DartArenaZoomCam={CONFIG_KEY,MODE_KEY,ZOOM_VALUE,saveConfig,loadConfig,
-  selected,setSelected,compatible,pointer,calibration,create};
+  selected,setSelected,compatible,pointer,framingOf,framingCrop,framedPointer,insetRect,calibration,create};
 if(typeof module==='object'&&module.exports)module.exports=root.DartArenaZoomCam;
 })(typeof window!=='undefined'?window:globalThis);
