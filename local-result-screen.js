@@ -122,7 +122,7 @@
      stats=[0,1].map(p=>{
        const v=forPlayer(p);
        return[
-         {label:'HØYESTE UT',value:state.high61?.[p]||'–'},
+         {label:'HIGHSCORE',value:state.high61?.[p]||'–'},
          {label:'TREFF',value:v.filter(x=>x.hit===true).length},
          {label:'BOM',value:v.filter(x=>x.hit===false).length},
          {label:'FORSØK',value:v.length}
