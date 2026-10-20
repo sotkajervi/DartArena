@@ -15,7 +15,7 @@ test('Cam-test calibration stores only device geometry across navigation',()=>{
   const store=storage();
   assert.ok(Z.saveConfig(store,sample));
   const saved=Z.loadConfig(store);
-  assert.deepEqual({...saved},{...sample,speed:'normal',sensitivity:'normal',version:1});
+  assert.deepEqual({...saved},{...sample,zoom:1,panX:0,panY:0,speed:'normal',sensitivity:'normal',version:1});
   assert.equal(Object.keys(saved).includes('track'),false);
   assert.equal(Z.loadConfig(storage()),null);
   assert.equal(Z.saveConfig(store,{...sample,cx:4}),false);
@@ -96,14 +96,14 @@ test('Zoom-cam has fallback when captureStream is unsupported',()=>{
 });
 test('main lobby Cam-test includes calibration code and the physical camera selector',()=>{
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-  assert.match(html,/autozoom\/camera-calibration\.js\?v=20261013-zoomcam1/);
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261013-zoomcam1/);
+  assert.match(html,/autozoom\/camera-calibration\.js\?v=20261020-framing1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261020-framing1/);
   assert.match(html,/id="cameraTestCameraSelect"/);
 });
 test('waiting room includes calibrated Zoom-cam selection and real sender.replaceTrack',()=>{
   const html=fs.readFileSync(path.join(root,'room.html'),'utf8');
   const js=fs.readFileSync(path.join(root,'room-device-selector.js'),'utf8');
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261013-zoomcam1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261020-framing1/);
   assert.match(js,/ZOOM_VALUE/);
   assert.match(js,/option\.textContent='Zoom-cam \(kalibrert\)'/);
   assert.match(js,/sender\.replaceTrack\(next\.track\)/);
@@ -113,7 +113,7 @@ test('waiting room includes calibrated Zoom-cam selection and real sender.replac
 test('X01 match reloads physical input and composes actual outbound video',()=>{
   const html=fs.readFileSync(path.join(root,'match.html'),'utf8');
   const js=fs.readFileSync(path.join(root,'match.js'),'utf8');
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261013-zoomcam1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261020-framing1/);
   assert.match(js,/Z\.create\(raw,config\)/);
   assert.match(js,/stream=zoomCamSession\.stream/);
   assert.match(js,/deviceId:\{exact:config\.deviceId\}/);
@@ -214,4 +214,52 @@ test('Zoom-cam resets only after successful normal-score and checkout saves',()=
     assert.ok(reset>0,'Score handler calls the optional Zoom-cam reset');
     if(fail>=0)assert.ok(reset>fail,'Reset occurs after a failed-score return');
   }
+});
+
+test('digital framing crops and pans without changing camera calibration coordinates',()=>{
+  assert.deepEqual(Z.framingOf(null),{zoom:1,panX:0,panY:0});
+  assert.deepEqual(Z.framingCrop(1280,720,{}),
+    {x:0,y:0,width:1280,height:720});
+  assert.deepEqual(Z.framingCrop(1280,720,{zoom:2,panX:1,panY:-1}),
+    {x:640,y:0,width:640,height:360});
+  assert.deepEqual(Z.framingOf({zoom:99,panX:-4,panY:4}),
+    {zoom:3,panX:-1,panY:1});
+  assert.equal(Z.framingCrop(0,720,{zoom:2}),null);
+});
+test('Bull/D20 clicks on zoomed and panned preview map to raw video pixels',()=>{
+  const video={videoWidth:1280,videoHeight:720};
+  const preview={getBoundingClientRect:()=>({left:100,top:50,width:640,height:360})};
+  const p=Z.framedPointer(video,preview,{clientX:420,clientY:230},
+    {zoom:2,panX:.5,panY:0});
+  assert.ok(p);
+  assert.equal(p.x,800);assert.equal(p.y,360);
+  const top=Z.framedPointer(video,preview,{clientX:420,clientY:50},
+    {zoom:2,panX:.5,panY:0});
+  assert.equal(top.y,180);
+  assert.equal(Z.framedPointer(video,preview,{clientX:50,clientY:50},{zoom:2}),null);
+});
+test('saved framing survives navigation and is bounded safely',()=>{
+  const store=storage();
+  assert.ok(Z.saveConfig(store,{...sample,zoom:2.5,panX:.4,panY:-.35}));
+  const cfg=Z.loadConfig(store);
+  assert.equal(cfg.zoom,2.5);assert.equal(cfg.panX,.4);assert.equal(cfg.panY,-.35);
+  assert.equal(cfg.cx,sample.cx);
+});
+test('inset location matches the optional top-right placement guide',()=>{
+  const r=Z.insetRect(1280,720);
+  assert.equal(r.width,422);assert.equal(r.height,317);
+  assert.equal(r.x,838);assert.equal(r.y,20);
+  const css=fs.readFileSync(path.join(root,'autozoom','camera-calibration.css'),'utf8');
+  assert.match(css,/right:1\.6%;top:2\.8%;width:33%;aspect-ratio:4\/3/);
+});
+test('Cam-test offers zoom, draggable positioning, reset and optional inset guide',()=>{
+  const ui=fs.readFileSync(path.join(root,'autozoom','camera-calibration.js'),'utf8');
+  assert.match(ui,/id="camFramingZoom"/);
+  assert.match(ui,/id="camFramingReset"/);
+  assert.match(ui,/id="camFramingGuide"/);
+  assert.match(ui,/framedPointer\(video,preview,event,framing\)/);
+  assert.match(ui,/pointermove/);
+  assert.match(ui,/\.\.\.settings,\.\.\.framing/);
+  const match=fs.readFileSync(path.join(root,'match.html'),'utf8');
+  assert.match(match,/autozoom\/zoom-cam\.js\?v=20261020-framing1/);
 });
