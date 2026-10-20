@@ -25,6 +25,7 @@ async function boot(){
    const {data,error}=await db.rpc(rpc,{p_match_id:match.id,p_score:score,p_darts:darts});
    if(error||!data){$('matchMessage').textContent='Checkout kunne ikke lagres: '+(error?.message||'ukjent feil');return}
    match=data;$('matchScoreInput').value='';
+   window.DartArenaX01ZoomSession?.resetToT20?.();
    const wonMatch=match.status==='finished',wonSet=!chicago&&match.match_mode==='sets'&&Number(match.current_set||1)>beforeSet;
    if(chicago){
     $('matchMessage').textContent=beforeStage===1?`301 vunnet på checkout ${score} • videre til Cricket`:wonMatch?'Chicago Style vunnet!':`Checkout ${score} på ${darts} ${darts===1?'pil':'piler'}`;
