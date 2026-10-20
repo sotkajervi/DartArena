@@ -145,7 +145,7 @@ function cricketBoard(){
    return '<div class="special-cricket-row">'+
       '<span class="special-cricket-mark" aria-label="'+esc(state.players[0])+': '+state.marks[0][t]+' merker">'+glyph(state.marks[0][t])+'</span>'+
       '<button type="button" class="special-cricket-target'+(n?' has-pending':'')+
-      '" data-mark="'+t+'" aria-label="Legg til ett merke på '+label+'">'+label+
+      '" data-mark="'+t+'" aria-label="Legg til ett merke på '+label+' (hurtigtast '+({20:'0',19:'9',18:'8',17:'7',16:'6',15:'5',B:'B'})[t]+')">'+label+' <span class="da-key">'+({20:'0',19:'9',18:'8',17:'7',16:'6',15:'5',B:'B'})[t]+'</span>'+
       (n?'<small>+'+n+'</small>':'')+'</button>'+
       '<span class="special-cricket-mark" aria-label="'+esc(state.players[1])+': '+state.marks[1][t]+' merker">'+glyph(state.marks[1][t])+'</span>'+
       '</div>';
