@@ -260,7 +260,7 @@
   }
   function summaryHtml(summary,names,m){
     if(!summary?.length)return'';
-    const all=summary,visible=all.length>5?all.slice(-5):all,[leftId,rightId]=displayOrder(m);
+    const all=summary,visible=all,[leftId,rightId]=displayOrder(m);
     const rows=visible.map(row=>{
       const name=row.winnerId?names[row.winnerId]||'Vinner':'Uavgjort';
       const metric=row.metric?.label?(
@@ -268,8 +268,7 @@
       ):'';
       return`<div class="da-result-legrow"><span>${esc(row.label)}</span><span class="da-result-legscore">${esc(row.score||'–')}</span><span class="da-result-legwinner ${row.winnerId===m.winner_id?'is-winner':''}">${esc(name)}</span>${metric}</div>`;
     }).join('');
-    const more=all.length>visible.length?`<div class="da-result-more">+ ${all.length-visible.length} tidligere legs</div>`:'';
-    return`<section class="da-result-legs"><div class="da-result-legs-title">LEG-OVERSIKT</div>${rows}${more}</section>`;
+    return`<section class="da-result-legs"><div class="da-result-legs-title">LEG-OVERSIKT</div><div class="da-result-legs-scroll" role="region" aria-label="Alle leg – rull for å se tidligere leg" tabindex="0">${rows}</div></section>`;
   }
   function mountOverlay(html){
     hideResult();document.body.classList.add('da-result-open');
@@ -319,6 +318,9 @@
     const score=scoreInfo(m),ordered=orderedScore(m,score),label=payload?.label||gameLabel(m),format=payload?.format||formatLabel(m);
     const[leftId,rightId]=displayOrder(m),leftName=names[leftId]||'Spiller 1',rightName=names[rightId]||'Spiller 2';
     const overlay=mountOverlay(`<section class="da-result-card" role="dialog" aria-modal="true" aria-label="Kampresultat"><div class="da-result-kicker">KAMP FERDIG</div><h1 class="da-result-title"><span class="da-result-winner-name">${esc(winnerName)}</span>${m.winner_id?' vant!':' er ferdig'}</h1><div class="da-result-sub">${esc(label)} • ${esc(format)}</div><div class="da-result-scorebox">${ordered.left}<span>–</span>${ordered.right}</div><div class="da-result-stats">${playerCardHtml(leftId,leftName,m,stats[leftId])}${playerCardHtml(rightId,rightName,m,stats[rightId])}</div>${summaryHtml(summary,names,m)}<div class="da-result-actions"><button id="daResultLobby" class="primary" type="button">Til lobby</button><button id="daResultClose" class="outline" type="button">Lukk kampfane</button></div><p class="da-result-note">DartArena • resultatet er lagret i kamphistorikken</p></section>`);
+    // Keep the final legs in view while allowing scrolling back to leg 1.
+    const legScroll=overlay.querySelector('.da-result-legs-scroll');
+    if(legScroll)legScroll.scrollTop=legScroll.scrollHeight;
     const tournamentResult=!!resultTournamentMatchId;
     if(tournamentResult)overlay.querySelector('#daResultLobby').textContent='Til turneringen';
     overlay.querySelector('#daResultLobby').onclick=returnFromResult;
