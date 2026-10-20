@@ -7,6 +7,7 @@ const MODE_KEY='dartarena-zoomcam-mode';
 const ZOOM_VALUE='__dartarena_zoomcam__';
 const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));
 function framingOf(data={}){
+  data=data||{};
   const zoom=Number(data.zoom),panX=Number(data.panX),panY=Number(data.panY);
   return{
     zoom:Number.isFinite(zoom)?clamp(zoom,1,3):1,
