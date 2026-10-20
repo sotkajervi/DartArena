@@ -13,33 +13,8 @@ if(start)start.disabled=true;
 const notice=document.createElement('p');notice.className='muted compact';notice.id='aiRivalModelInfo';
 form.after(notice);
 notice.textContent='Laster AI Rival fra DartArena-historikken…';
-const pick=values=>values[Math.floor(Math.random()*values.length)];
-function makeModel(visits){
- const valid=visits.filter(v=>Number.isInteger(v.score)&&v.score>=0&&v.score<=180);
- const normal=valid.filter(v=>!v.is_checkout);
- const checkouts=valid.filter(v=>v.is_checkout);
- const scores=normal.map(v=>v.score);
- const avg=scores.reduce((a,b)=>a+b,0)/Math.max(1,scores.length);
- return {normal:scores,checkoutCount:checkouts.length,total:valid.length,average:avg};
-}
-function makeVisit(remaining,model){
- const options=E.checkoutOptions(remaining);
- // Attempt checkouts independently; never remove historical scoring visits from the model.
- const rate=model.checkoutCount/Math.max(1,model.total);
- const likelihood=Math.min(.58,Math.max(.015,rate*(remaining<=40?5:remaining<=80?2.9:1.25)));
- if(options.length&&Math.random()<likelihood){
-  return {score:remaining,bust:false,checkout:true,darts:pick(options),throws:[]};
- }
- // Draw only legal non-checkout totals. Rejection sampling used to emit 0
- // despite valid historical totals being available, especially below 100.
- const legal=model.normal.filter(s=>s<=remaining-2&&E.validScore(s));
- if(legal.length){
-  const score=pick(legal);
-  return {score,bust:false,checkout:false,darts:3,throws:[]};
- }
- // No historical total can leave a legal double-out remainder.
- return {score:0,bust:false,checkout:false,darts:3,throws:[]};
-}
+const Model=window.DartArenaRivalModel;
+if(!Model)return;
 const selector=$('rivalHistoryPlayer');
 let loading=false;
 async function loadRival(id,{autoStart=false}={}){
@@ -54,15 +29,14 @@ async function loadRival(id,{autoStart=false}={}){
   const [{data:player,error:pe},{data:me,error:meError},{data:visits,error:ve}]=await Promise.all([
    db.from('profiles').select('id,username').eq('id',id).single(),
    db.from('profiles').select('username').eq('id',session.user.id).single(),
-   db.from('match_throws').select('score,is_checkout').eq('player_id',id).order('id',{ascending:false}).limit(2500)
+   db.from('match_throws').select('id,match_id,set_no,leg_no,visit_no,score,darts_used,is_checkout,matches!inner(game,game_variant)').eq('player_id',id).eq('matches.game',501).eq('matches.game_variant','x01').order('id',{ascending:false}).limit(2500)
   ]);
   if(pe||!player?.username)throw Error('Fant ikke spilleren.');
   if(meError)throw Error('Kunne ikke hente din profil.');
   if(ve)throw Error('Kunne ikke lese spillerens registrerte runder.');
-  const model=makeModel(visits||[]);
-  if(model.normal.length<30)throw Error(player.username+' har for få registrerte kasterunder (minst 30 kreves).');
+  const model=Model.build(visits||[],E);
   window.DartArenaRivalProfile={id,name:player.username};
-  B.visit=remaining=>makeVisit(remaining,model);
+  B.visit=remaining=>model.visit(remaining);
   try{localStorage.setItem('dartarena-ai-rival-501-selected-player',id)}catch{}
   window.dispatchEvent(new Event('dartarena:rival-ready'));
   $('localName1').value=me?.username||'Spiller';
@@ -74,7 +48,7 @@ async function loadRival(id,{autoStart=false}={}){
   $('localMode').dispatchEvent(new Event('change',{bubbles:true}));
   const best=$('localBestOf');
   if(autoStart&&[...best.options].some(o=>Number(o.value)===requestedLegs))best.value=String(requestedLegs);
-  notice.textContent='AI Rival: '+player.username+' · '+model.total+' historiske kasterunder · rundesnitt uten checkout '+model.average.toFixed(1)+'. Resultatet lagres lokalt.';
+  notice.textContent='AI Rival: '+player.username+' · '+model.historyVisits+' gyldige 501-runder · historisk 3-dart-snitt '+model.historyAverage.toFixed(2)+' · simulert nivå '+model.estimatedAverage.toFixed(2)+' · '+model.historyCheckouts+' checkouts. Resultatet lagres lokalt.';
   if(start)start.disabled=false;
   if(autoStart&&$('localGame')?.hidden)form.requestSubmit();
  }catch(error){
