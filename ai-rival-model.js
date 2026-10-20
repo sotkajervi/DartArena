@@ -80,11 +80,20 @@
    }
    return {average:darts?3*scored/darts:0,finished};
   }
-  let best={scale:1,diff:Infinity,estimate:0};
-  for(let i=0;i<10;i++){
-   const scale=.10*Math.pow(1.6,i);
-   const check=simulate(scale,200);
-   const diff=Math.abs(check.average-avg)+(check.finished<200?100:0);
+  // Fit checkout completion speed to observed 3-dart scoring across both
+  // winning and unfinished legs; retain the empirical non-checkout distribution.
+  let low=.15,high=5,best={scale:1,diff:Infinity,estimate:0};
+  for(let i=0;i<12;i++){
+   const scale=(low+high)/2;
+   const check=simulate(scale,750);
+   const diff=Math.abs(check.average-avg)+(check.finished<750?100:0);
+   if(diff<best.diff)best={scale,diff,estimate:check.average};
+   if(check.average<avg)low=scale;else high=scale;
+  }
+  // Re-evaluate neighboring values with a larger sample to reduce sampling noise.
+  for(const factor of [.86,.93,1,1.07,1.14]){
+   const scale=clamp(best.scale*factor,.08,8),check=simulate(scale,1800);
+   const diff=Math.abs(check.average-avg)+(check.finished<1800?100:0);
    if(diff<best.diff)best={scale,diff,estimate:check.average};
   }
   return {historyAverage:avg,historyVisits:events.length,historyCheckouts:wins,
