@@ -157,6 +157,10 @@ function cricketBoard(){
 function halfPad(){
  const rule=E.halfRule(state),choice=rule==='exact'?
   '<div class="special-choice-row">'+state.exactOptions.map(x=>'<button class="'+(state.exactChoice===x?'primary':'outline')+'" type="button" data-exact="'+x+'">'+x+'</button>').join('')+'</div>':'';
+ if(rule===41)return '<div class="special-half-controls"><div class="special-choice-row">'+
+  '<button type="button" class="primary" data-half41="hit">TREFF (+41) <span class="da-key">T</span></button>'+
+  '<button type="button" class="outline" data-half41="bust">BUST (halver score) <span class="da-key">B</span></button>'+
+  '</div></div>';
  let keys='';
  if(typeof rule==='number'&&rule!==41){keys=[1,2,3].map(mult=>({n:rule,mult}))}
  else if(rule==='bull'){keys=[{n:25,mult:1},{n:25,mult:2}]}
@@ -165,9 +169,9 @@ function halfPad(){
    else{keys=Array.from({length:20},(_,i)=>({n:i+1,mult:selectedMult}));if(selectedMult<=2)keys.push({n:25,mult:selectedMult})}
  }
  const multis=['same','different','exact',41].includes(rule)?'<div class="special-choice-row">'+
-  [1,2,3].map(m=>'<button type="button" class="'+(selectedMult===m?'primary':'outline')+'" data-mult="'+m+'">'+({1:'SINGLE',2:'DOBBEL',3:'TRIPPEL'})[m]+'</button>').join('')+'</div>':'';
+  [1,2,3].map(m=>'<button type="button" class="'+(selectedMult===m?'primary':'outline')+'" data-mult="'+m+'">'+({1:'SINGLE',2:'DOBBEL',3:'TRIPPEL'})[m]+' <span class="da-key">'+m+'</span></button>').join('')+'</div>':'';
  return '<div class="special-half-controls">'+choice+multis+
-  '<div class="special-numbers">'+keys.map(d=>'<button type="button" class="outline special-choice" data-n="'+d.n+'" data-m="'+d.mult+'">'+labelDart(d)+'</button>').join('')+'</div></div>'+
+  '<div class="special-numbers">'+keys.map(d=>'<button type="button" class="outline special-choice" data-n="'+d.n+'" data-m="'+d.mult+'">'+labelDart(d)+(typeof rule==='number'&&rule!==41?' <span class="da-key">'+d.mult+'</span>':'')+'</button>').join('')+'</div></div>'+
   '<p class="muted compact special-half-classic-hint">Velg treff og trykk Enter for å avslutte turen. Ubrukte piler regnes som MISS. Bare Enter = tre bom.</p>';
 }
 function jdcPad(){
