@@ -295,7 +295,7 @@ function renderHistory(){
    const item=document.createElement('div');item.className='local-history-row';
    const title=document.createElement('strong'),detail=document.createElement('span'),point=document.createElement('strong');
    title.textContent=state.players[v.player];
-   detail.textContent=(v.round?'Runde '+v.round:'Leg '+v.leg)+(v.codes?' · '+v.codes.join(','):Array.isArray(v.darts)?' · '+v.darts.map(labelDart).join(' '):v.hit!==undefined?' · '+(v.hit?'Treff':'Bom'):'');
+   detail.textContent=(v.round?'Runde '+v.round:'Leg '+v.leg)+(v.codes?' · '+v.codes.join(','):typeof v.hit41==='boolean'?' · '+(v.hit41?'TREFF 41':'BUST'):Array.isArray(v.darts)?' · '+v.darts.map(labelDart).join(' '):v.hit!==undefined?' · '+(v.hit?'Treff':'Bom'):'');
    point.textContent=v.score!==undefined?String(v.score):v.points!==undefined?String(v.points):'';
    item.append(title,detail,point);dom.hist.append(item);
  }
@@ -361,7 +361,8 @@ function submit(){
  }else commit(()=>E.submit(state,mode()==='jdc'?{codes:darts}:{darts,exactChoice:state.exactChoice}),'Kast registrert.');
 }
 function clonePending(){return pending.map(x=>typeof x==='string'?x:{...x})}
-function submit61(hit){if(state?.game!=='sixty_one'||state.status!=='playing'||state.paused)return;
+function submit41(hit){if(mode()!=='half'||E.halfRule(state)!==41||state.status!=='playing'||state.paused)return;pending=[];commit(()=>E.submit(state,{darts:[{n:0,mult:0},{n:0,mult:0},{n:0,mult:0}],hit41:hit}),hit?'41 TREFF registrert.':'41 BUST registrert.')} 
+ function submit61(hit){if(state?.game!=='sixty_one'||state.status!=='playing'||state.paused)return;
  commit(()=>E.submit(state,{hit}),hit?'TREFF registrert.':'BOM registrert.')}
 function x01score(){
  const input=$('specialX01');if(!input)return;
@@ -423,7 +424,8 @@ dom.controls.addEventListener('click',event=>{
  else if(button.dataset.jdc)push(button.dataset.jdc);
  else if(button.dataset.mult){selectedMult=Number(button.dataset.mult);renderPad()}
  else if(button.dataset.exact){state.exactChoice=Number(button.dataset.exact);store();renderPad()}
- else if(button.dataset.hit)submit61(button.dataset.hit==='yes');
+ else if(button.dataset.half41)submit41(button.dataset.half41==='hit');
+  else if(button.dataset.hit)submit61(button.dataset.hit==='yes');
  else if(button.dataset.pause)commit(()=>E.pause(state),state.paused?'Fortsett':'Pause');
  else if(button.id==='specialX01Submit')x01score();
 });
@@ -465,7 +467,8 @@ document.addEventListener('keydown',event=>{
    else if(key==='z'){event.preventDefault();if(state.undo?.length)commit(()=>E.undo(state),'Angret.')}
    return;
  }
- if(event.key==='Enter'){event.preventDefault();submit();return}
+ if(modeNow==='half'&&E.halfRule(state)===41){if(event.key==='Enter'){event.preventDefault();return}if(key==='t'){event.preventDefault();submit41(true)}else if(key==='b'){event.preventDefault();submit41(false)}return}
+  if(event.key==='Enter'){event.preventDefault();submit();return}
  if(event.key==='Backspace'){event.preventDefault();pending.pop();renderPad();return}
  if(modeNow==='cricket'){
    const t=({'0':'20','9':'19','8':'18','7':'17','6':'16','5':'15','b':'B'})[key];
