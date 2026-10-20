@@ -69,7 +69,7 @@
       const setWinner=setWinnerId?names[setWinnerId]||'Vinner':'Uavgjort';
       return `<div class="da-result-setblock"><div class="da-result-sethead"><strong>SETT ${setNo}</strong><span><b>${escapeHtml(setWinner)}</b> · ${left}–${right}</span></div>${rows}</div>`;
     }).join('');
-    section.innerHTML=`<div class="da-result-legs-title">SETT FOR SETT · LEGS</div>${html}`;
+    section.innerHTML=`<div class="da-result-legs-title">SETT FOR SETT · LEGS</div><div class="da-result-legs-scroll" role="region" aria-label="Alle leg per sett – rull for å se tidligere leg" tabindex="0">${html}</div>`;
   }
 
   async function enhance(){
@@ -92,6 +92,8 @@
 
       if(match.match_mode==='sets'){
         await renderSets(section,match,completed);
+        const scroller=section.querySelector('.da-result-legs-scroll');
+        if(scroller)scroller.scrollTop=scroller.scrollHeight;
         overlay.dataset.x01LegDetails='1';
         return;
       }
