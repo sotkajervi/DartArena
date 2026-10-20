@@ -153,3 +153,65 @@ test('ordinary stream is used if Zoom-cam fails; camera and mic controls still w
   assert.match(controls,/DartArenaX01ZoomSession\.sourceTrack\.enabled=false/);
   assert.match(controls,/DartArenaX01ZoomSession\.sourceTrack\.enabled=true/);
 });
+
+
+test('Zoom-cam resets immediately to T20 after a saved visit and keeps the media track',()=>{
+  const source={kind:'video',readyState:'live',getSettings:()=>({deviceId:'webcam-1',width:1280,height:720})};
+  const outgoing={kind:'video',readyState:'live',stop(){}};
+  class FakeStream{
+    constructor(tracks){this.tracks=tracks}
+    getVideoTracks(){return this.tracks.filter(t=>t.kind==='video')}
+    getAudioTracks(){return this.tracks.filter(t=>t.kind==='audio')}
+  }
+  const crops=[],frames=[];
+  const context=()=>({
+    fillRect(){},drawImage(){},strokeRect(){},
+    getImageData(){return{data:new Uint8ClampedArray(480*270*4)}}
+  });
+  const renderCanvas={width:0,height:0,getContext:context,captureStream:()=>new FakeStream([outgoing])};
+  const video={videoWidth:1280,videoHeight:720,play:async()=>{},pause(){},srcObject:null};
+  const fakeTracker={
+    ...T,
+    speedPreset:()=>({...T.speedPreset('fast'),intervalMs:1,quietFrames:0,ease:1}),
+    findChange:()=>({x:390,y:100}),
+    motionRatio:()=>0,
+    createChangeGate:()=>({observe:hit=>hit,reset(){}}),
+    zoomCrop:(w,h,x,y)=>{
+      crops.push({x,y});
+      return{x:100,y:50,width:60,height:45};
+    }
+  };
+  const old={media:global.MediaStream,raf:global.requestAnimationFrame,
+    cancel:global.cancelAnimationFrame,doc:global.document};
+  try{
+    global.MediaStream=FakeStream;
+    global.requestAnimationFrame=fn=>{frames.push(fn);return frames.length};
+    global.cancelAnimationFrame=()=>{};
+    global.document={createElement:()=>({width:0,height:0,getContext:context})};
+    const session=Z.create(new FakeStream([source]),sample,
+      {video,canvas:renderCanvas,tracker:fakeTracker});
+    frames.shift()(performance.now()+4000);
+    assert.ok(crops.at(-1).x>800,'The detected hit moved the inset from T20');
+    assert.equal(session.resetToT20(),true);
+    frames.shift()(performance.now()+20);
+    assert.ok(Math.abs(crops.at(-1).x-640)<.001,'Inset immediately returns to T20 x');
+    assert.ok(crops.at(-1).y<360,'T20 target is above the bull');
+    assert.equal(session.track,outgoing,'Reset does not replace or interrupt outbound video');
+    session.stop();
+    assert.equal(session.resetToT20(),false,'Stopped camera cannot restart a reset');
+  }finally{
+    global.MediaStream=old.media;global.requestAnimationFrame=old.raf;
+    global.cancelAnimationFrame=old.cancel;global.document=old.doc;
+  }
+});
+test('Zoom-cam resets only after successful normal-score and checkout saves',()=>{
+  const regular=fs.readFileSync(path.join(root,'set-engine.js'),'utf8');
+  const checkout=fs.readFileSync(path.join(root,'checkout-engine.js'),'utf8');
+  const fallback=fs.readFileSync(path.join(root,'match.js'),'utf8');
+  for(const code of [regular,checkout,fallback]){
+    const fail=code.indexOf('if(error||!data)');
+    const reset=code.indexOf('window.DartArenaX01ZoomSession?.resetToT20?.()');
+    assert.ok(reset>0,'Score handler calls the optional Zoom-cam reset');
+    if(fail>=0)assert.ok(reset>fail,'Reset occurs after a failed-score return');
+  }
+});
