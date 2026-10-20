@@ -67,7 +67,20 @@ function create(raw,config,{fps=25,video=null,
   const speed=tracker.speedPreset(config.speed);
   const gate=tracker.createChangeGate({stableFrames:speed.stableFrames,motionWindowMs:4000,cooldownMs:speed.cooldownMs});
   const sampled=document.createElement('canvas'),sampleCtx=sampled.getContext('2d',{willReadFrequently:true});
-  let lastAnalysis=0;
+  let lastAnalysis=0,resetResumeAt=0;
+  function resetToT20(){
+    if(stopped)return false;
+    // Go straight back to the 20-bed after a recorded visit. Do not treat
+    // dart removal as a new hit while the player clears the board.
+    const sw=video.videoWidth||dims.width||1280;
+    const sh=video.videoHeight||dims.height||720;
+    const p=tracker.targetPoint(config.cx*sw,config.cy*sh,config.radius*sw,'T20',config.rotation);
+    if(!p)return false;
+    target={...p};current={...p};
+    prev=null;ref=null;still=0;gate.reset();
+    resetResumeAt=(typeof performance!=='undefined'?performance.now():0)+1800;
+    return true;
+  }
   function tick(now){
     if(stopped)return;
     if(video.videoWidth&&video.videoHeight){
@@ -90,9 +103,14 @@ function create(raw,config,{fps=25,video=null,
         const motion=prev?tracker.motionRatio(prev,frame,sampled.width,sampled.height,small,{searchRadius:1.65}):0;
         const moved=prev&&motion<=.008?tracker.findChange(prev,frame,sampled.width,sampled.height,small,{...opts,maxRatio:.045}):null;
         prev=frame;
-        if(motion>.008)still=0;else still++;
-        if(!ref)ref=new Uint8ClampedArray(frame);
-        const hit=gate.observe(still>=speed.quietFrames?tracker.findChange(ref,frame,sampled.width,sampled.height,small,opts):null,
+        if(now<resetResumeAt){
+          // Refresh the baseline as darts are collected; no zoom jumps.
+          ref=new Uint8ClampedArray(frame);still=0;gate.reset();
+        }else{
+          if(motion>.008)still=0;else still++;
+          if(!ref)ref=new Uint8ClampedArray(frame);
+        }
+        const hit=now<resetResumeAt?null:gate.observe(still>=speed.quietFrames?tracker.findChange(ref,frame,sampled.width,sampled.height,small,opts):null,
           {movement:motion>.008||!!moved,now,radius:small.radius});
         if(hit){
           target={x:hit.x*sw/sampled.width,y:hit.y*sh/sampled.height};
@@ -120,6 +138,7 @@ function create(raw,config,{fps=25,video=null,
   }catch(error){out?.stop();video.srcObject=null;throw error}
   return{
     track:out,sourceTrack,stream:new MediaStream([out,...raw.getAudioTracks()]),
+    resetToT20,
     stop(){
       if(stopped)return;stopped=true;
       if(loop)cancelAnimationFrame(loop);
