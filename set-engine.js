@@ -63,6 +63,7 @@ async function boot(){
      if(error||!data){$('matchMessage').textContent=error?.message||'Kastet kunne ikke lagres.';return}
      match=data.match||data;
      input.value='';
+     window.DartArenaX01ZoomSession?.resetToT20?.();
      $('matchMessage').textContent=data.bust?'Bust.':'';
      draw();
    }finally{syncEntryLock()}
