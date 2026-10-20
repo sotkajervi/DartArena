@@ -15,21 +15,29 @@ form.after(notice);
 notice.textContent='Laster AI Rival fra DartArena-historikken…';
 const pick=values=>values[Math.floor(Math.random()*values.length)];
 function makeModel(visits){
- const normal=visits.filter(v=>!v.is_checkout&&Number.isInteger(v.score)&&v.score>=0&&v.score<=180);
- const checkouts=visits.filter(v=>v.is_checkout&&Number.isInteger(v.score));
- return {normal:normal.map(v=>v.score),checkoutCount:checkouts.length,total:visits.length};
+ const valid=visits.filter(v=>Number.isInteger(v.score)&&v.score>=0&&v.score<=180);
+ const normal=valid.filter(v=>!v.is_checkout);
+ const checkouts=valid.filter(v=>v.is_checkout);
+ const scores=normal.map(v=>v.score);
+ const avg=scores.reduce((a,b)=>a+b,0)/Math.max(1,scores.length);
+ return {normal:scores,checkoutCount:checkouts.length,total:valid.length,average:avg};
 }
 function makeVisit(remaining,model){
  const options=E.checkoutOptions(remaining);
- const likelihood=Math.min(.52,Math.max(.012,(model.checkoutCount/Math.max(1,model.total))*(remaining<=40?4.3:remaining<=80?2.5:1.3)));
+ // Attempt checkouts independently; never remove historical scoring visits from the model.
+ const rate=model.checkoutCount/Math.max(1,model.total);
+ const likelihood=Math.min(.58,Math.max(.015,rate*(remaining<=40?5:remaining<=80?2.9:1.25)));
  if(options.length&&Math.random()<likelihood){
   return {score:remaining,bust:false,checkout:true,darts:pick(options),throws:[]};
  }
- for(let i=0;i<48;i++){
-  const score=pick(model.normal);
-  if(Number.isInteger(score)&&E.validScore(score)&&score<=remaining-2)
-   return {score,bust:false,checkout:false,darts:3,throws:[]};
+ // Draw only legal non-checkout totals. Rejection sampling used to emit 0
+ // despite valid historical totals being available, especially below 100.
+ const legal=model.normal.filter(s=>s<=remaining-2&&E.validScore(s));
+ if(legal.length){
+  const score=pick(legal);
+  return {score,bust:false,checkout:false,darts:3,throws:[]};
  }
+ // No historical total can leave a legal double-out remainder.
  return {score:0,bust:false,checkout:false,darts:3,throws:[]};
 }
 const selector=$('rivalHistoryPlayer');
@@ -66,7 +74,7 @@ async function loadRival(id,{autoStart=false}={}){
   $('localMode').dispatchEvent(new Event('change',{bubbles:true}));
   const best=$('localBestOf');
   if(autoStart&&[...best.options].some(o=>Number(o.value)===requestedLegs))best.value=String(requestedLegs);
-  notice.textContent='AI Rival: '+player.username+' · '+model.total+' historiske kasterunder. Resultatet lagres lokalt.';
+  notice.textContent='AI Rival: '+player.username+' · '+model.total+' historiske kasterunder · rundesnitt uten checkout '+model.average.toFixed(1)+'. Resultatet lagres lokalt.';
   if(start)start.disabled=false;
   if(autoStart&&$('localGame')?.hidden)form.requestSubmit();
  }catch(error){
