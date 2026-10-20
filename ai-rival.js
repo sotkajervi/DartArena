@@ -68,11 +68,14 @@ function render(){
 }
 async function loadModel(id){
  $('rivalStart').disabled=true;model=null;
- const {data,error}=await db.from('match_throws').select('score,darts_used,is_checkout').eq('player_id',id).order('id',{ascending:false}).limit(2500);
- if(error){$('rivalModel').textContent='Kunne ikke lese kasthistorikk: '+error.message;return}
- model=modelFrom(data||[]);modelPlayer=profiles.find(p=>p.id===id);
- if(model.count<30){$('rivalModel').textContent='For få registrerte runder ('+model.count+'). Minst 30 trengs.';return}
- $('rivalModel').textContent=modelPlayer.username+' · '+model.count+' registrerte runder · estimert rundesnitt '+model.avg.toFixed(1)+' · '+model.checkoutCount+' registrerte checkouts. Modellen er en simulering, ikke ekte pildeteksjon.';
+ const {data,error}=await db.from('match_throws').select('id,match_id,set_no,leg_no,visit_no,score,darts_used,is_checkout,matches!inner(game,game_variant)').eq('player_id',id).eq('matches.game',501).eq('matches.game_variant','x01').order('id',{ascending:false}).limit(2500);
+ if(error){$('rivalModel').textContent='Kunne ikke lese 501-historikk: '+error.message;return}
+ modelPlayer=profiles.find(p=>p.id===id);
+ try{
+  const trained=window.DartArenaRivalModel.build(data||[],window.DartArenaLocalH2HEngine);
+  model={...modelFrom(data||[]),count:trained.historyVisits,checkoutCount:trained.historyCheckouts,avg:trained.historyAverage};
+  $('rivalModel').textContent=modelPlayer.username+' · '+trained.historyVisits+' registrerte 501-runder · historisk 3-dart-snitt '+trained.historyAverage.toFixed(2)+' · kalibrert AI-snitt '+trained.estimatedAverage.toFixed(2)+' · '+trained.historyCheckouts+' checkouts.';
+ }catch(e){model=null;$('rivalModel').textContent=e.message||'Kunne ikke bygge AI-modellen.';return}
  $('rivalStart').disabled=false;
 }
 async function init(){
