@@ -125,11 +125,13 @@ function submit(state,payload){
      need(s.exactOptions.includes(choice),'Velg en av de tre eksakte scorene.');
      s.exactChoice=choice;
    }
-   const result=halfPoints(s,darts,p);
+   const is41=halfRule(s)===41;
+   if(payload?.hit41!==undefined)need(is41&&typeof payload.hit41==='boolean','Treff/Bust kan kun brukes i 41-runden.');
+   const result=is41&&typeof payload.hit41==='boolean'?{points:payload.hit41?41:0,success:payload.hit41,round:s.round[p],rule:41}:halfPoints(s,darts,p);
    s.scores[p]=result.success?s.scores[p]+result.points:
        (s.game==='half_standard'?Math.ceil(s.scores[p]/2):Math.floor(s.scores[p]/2));
    Object.assign(entry,{darts:clone(darts),round:result.round,points:result.points,
-     success:result.success,after:s.scores[p],choice:s.exactChoice});
+     success:result.success,after:s.scores[p],choice:s.exactChoice,...(is41&&typeof payload.hit41==='boolean'?{hit41:payload.hit41}:{})});
    s.visits.push(entry);s.round[p]++;
    if(s.round[0]>12&&s.round[1]>12){
      if(s.scores[0]!==s.scores[1])finishLeg(s,s.scores[0]>s.scores[1]?0:1);
