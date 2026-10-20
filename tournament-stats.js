@@ -207,7 +207,7 @@
           c180:pt.filter(t=>Number(t.score)===180).length,
           fast:fastestLeg(pt,pid)
         };
-      }).sort((a,b)=>b.wins-a.wins||b.winPct-a.winPct||b.avg-a.avg||a.name.localeCompare(b.name,'nb'));
+      }).sort((a,b)=>b.wins-a.wins||b.legDiff-a.legDiff||b.avg-a.avg||a.name.localeCompare(b.name,'nb'));
 
       meta.textContent=chicago
         ?`${playedMatches.length} ferdige kamper • X01: ${allThrows.length} visits • Cricket: ${allCricket.length} visits`
