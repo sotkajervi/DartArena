@@ -37,9 +37,9 @@
     Object.values(ch.presenceState()||{}).flat().forEach(p=>{
       if(p?.role!=='spectator')return;
       const key=String(p.user_id||p.presence_ref||'unknown');
-      const name=String(p.username||'Tilskuer').trim()||'Tilskuer';
+      const name=String(p.username||'Gjest').trim()||'Gjest';
       const existing=unique.get(key);
-      if(!existing||existing==='Tilskuer')unique.set(key,name);
+      if(!existing||existing==='Gjest')unique.set(key,name);
     });
     return [...unique.values()].sort((a,b)=>a.localeCompare(b,'nb'));
   }
@@ -59,7 +59,7 @@
       const {data:{session}}=await db.auth.getSession();
       if(!session?.user?.id)return;
       const {data:p}=await db.from('profiles').select('username').eq('id',session.user.id).maybeSingle();
-      const username=p?.username||'Tilskuer';
+      const username=p?.username||'Gjest';
       for(let i=0;i<40;i++){
         const ch=currentPresence();
         if(ch){
