@@ -86,13 +86,13 @@ function renderScores(){
      average=visits.length?visits.reduce((sum,v)=>sum+Number(v.points||0),0)/visits.length:0;
      unit=mode()==='half'?'P/R':'P/R';
    }else if(mode()==='sixty_one'){
-     average=state.attempts[p]?state.target[p]/state.attempts[p]:0;unit='61/F';
+     average=Number(state.high61?.[p]||0);unit='HIGHSCORE';
    }else {
      const dartsSum=visits.reduce((sum,v)=>sum+(v.darts||3),0);
      const pts=visits.reduce((sum,v)=>sum+Number(v.score||0),0);
      average=dartsSum?pts/dartsSum*3:0;unit='AVG';
    }
-   $('specialAvg'+p).textContent=average.toFixed(2);
+   $('specialAvg'+p).textContent=mode()==='sixty_one'?String(average):average.toFixed(2);
    $('specialAvgLabel'+p).textContent=unit;
    $('specialLegText'+p).textContent=state.legs[p]+' LEGS';
  }
@@ -118,7 +118,7 @@ function stats(){
  }else if(mode()==='sixty_one'){
    cards.push(card('Nåværende mål',state.target));
    cards.push(card('Forsøk',state.attempts));
-   cards.push(card('Høyeste checkout',state.high61||[0,0]));
+   cards.push(card('Highscore',state.high61||[0,0]));
    cards.push(card('Treff',[0,1].map(p=>stat(p,v=>v.filter(t=>t.hit).length))));
    cards.push(card('Bom',[0,1].map(p=>stat(p,v=>v.filter(t=>!t.hit).length))));
  }else if(mode()==='jdc'){
