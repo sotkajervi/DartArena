@@ -618,7 +618,7 @@ async function startGroups(){
     const game=chicago?501:Number(selection);
     const gameVariant=chicago?'chicago':'x01';
     if(!chicago&&!validTournamentGame(game))throw new Error('Velg et gyldig puljespill.');
-    if(drawnGroups?.some(group=>group.some(p=>p.ai_rival))&&(chicago||game!==501))throw new Error('AI Rival i online-puljer støtter foreløpig bare 501. Velg 501 i puljespillet.');
+    if(drawnGroups?.some(group=>group.some(p=>p.ai_rival))&&(chicago||![170,501,1001].includes(game)))throw new Error('AI Rival i puljer støtter 170, 501 og 1001. 301 DI/DO krever eget turneringsformat og er foreløpig bare tilgjengelig som AI-kamp utenfor turnering.');
 
     const cupSelection=document.getElementById('tournamentCupGame')?.value||(tournamentCupIsChicago()?'chicago':String(tournament.cup_game||501));
     const cupChicago=cupSelection==='chicago';
