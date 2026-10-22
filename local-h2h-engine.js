@@ -7,6 +7,8 @@ const doubles=numbers.map(n=>n*2).concat(50);
 const any=[0,...new Set([...numbers,...doubles,...numbers.map(n=>n*3),25,50])];
 const outs=[new Set(),new Set(),new Set(),new Set()];
 for(const d of doubles){outs[1].add(d);for(const a of any){outs[2].add(a+d);for(const b of any)outs[3].add(a+b+d)}}
+const possibleDoubleIn=new Set();
+for(const d of doubles)for(const x of any)for(const y of any)possibleDoubleIn.add(d+x+y);
 const clone=value=>JSON.parse(JSON.stringify(value));
 function assert(test,message){if(!test)throw Error(message)}
 const validScore=n=>Number.isInteger(n)&&n>=0&&n<=180&&!forbidden.has(n);
@@ -45,6 +47,7 @@ function submit(state,value,opts={}){
   const requiresDouble=next.doubleIn===true&&next.entered?.[p]!==true;
   const enteredNow=requiresDouble&&!bust&&score>0&&opts.doubleInConfirmed===true;
   if(requiresDouble&&!enteredNow&&!bust&&score>0)throw Error('Double In: Bekreft at første tellende pil traff en dobbel, eller registrer 0.');
+  if(enteredNow&&!possibleDoubleIn.has(score))throw Error('Denne rundescoren er ikke mulig etter Double In med tre piler.');
   if(score>remaining||remaining-score===1)bust=true;
   if(score===remaining&&!bust){
     darts=Number(opts.darts);
