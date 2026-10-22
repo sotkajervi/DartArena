@@ -16,7 +16,10 @@
       if(!t||t.status!=='groups'||t.owner_id!==me||t.tournament_type!=='groups_cup'){b.classList.add('hidden');return}
       // AI training fixtures are optional and must never block official advancement.
       const {data:m,error}=await client.from('tournament_matches').select('status').eq('tournament_id',tournamentId).eq('stage','group');if(error){b.classList.add('hidden');return}
-      const allDone=!!m?.length&&m.every(x=>['finished','wo'].includes(x.status));
+      const {count:humanCount,error:playersError}=await client.from('tournament_group_players')
+        .select('id',{count:'exact',head:true}).eq('tournament_id',tournamentId);
+      if(playersError){b.classList.add('hidden');return}
+      const allDone=Number(humanCount||0)>=2&&(m||[]).every(x=>['finished','wo'].includes(x.status));
       b.classList.toggle('hidden',!allDone);
     }finally{busy=false}
   }
