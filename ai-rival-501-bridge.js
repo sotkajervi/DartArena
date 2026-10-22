@@ -4,6 +4,9 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search);
 const playerId=params.get('player');
 const requestedLegs=Number(params.get('legs'))||3;
+const requestedFormat=Number(params.get('format'))||501;
+const allowedFormats=[170,301,501,1001];
+if(!allowedFormats.includes(requestedFormat))return;
 const db=window.supabase?.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
 const E=window.DartArenaLocalH2HEngine;
 const B=window.DartArenaBotEngine;
@@ -16,6 +19,8 @@ notice.textContent='Laster AI Rival fra DartArena-historikken…';
 const Model=window.DartArenaRivalModel;
 if(!Model)return;
 const selector=$('rivalHistoryPlayer');
+$('localFormat').value=String(requestedFormat);
+if(params.get('tournamentAiMatch'))$('localFormat').disabled=true;
 let loading=false;
 async function loadRival(id,{autoStart=false}={}){
  if(loading)return;
@@ -34,21 +39,22 @@ async function loadRival(id,{autoStart=false}={}){
   if(pe||!player?.username)throw Error('Fant ikke spilleren.');
   if(meError)throw Error('Kunne ikke hente din profil.');
   if(ve)throw Error('Kunne ikke lese spillerens registrerte runder.');
-  const model=Model.build(visits||[],E);
+  const selectedFormat=Number($('localFormat').value)||requestedFormat;
+  const model=Model.build(visits||[],E,{format:selectedFormat,doubleIn:selectedFormat===301});
   window.DartArenaRivalProfile={id,name:player.username};
-  B.visit=remaining=>model.visit(remaining);
+  B.visit=(remaining,config={})=>model.visit(remaining,{needsDoubleIn:config.doubleInPending===true});
   try{localStorage.setItem('dartarena-ai-rival-501-selected-player',id)}catch{}
   window.dispatchEvent(new Event('dartarena:rival-ready'));
   $('localName1').value=me?.username||'Spiller';
   $('localOpponentType').value='bot';
   $('localOpponentType').dispatchEvent(new Event('change',{bubbles:true}));
   $('localBotMode').value='standard';
-  $('localFormat').value='501';
+  $('localFormat').value=String(selectedFormat);
   $('localMode').value='legs';
   $('localMode').dispatchEvent(new Event('change',{bubbles:true}));
   const best=$('localBestOf');
   if(autoStart&&[...best.options].some(o=>Number(o.value)===requestedLegs))best.value=String(requestedLegs);
-  notice.textContent='AI Rival: '+player.username+' · '+model.historyVisits+' gyldige 501-runder · historisk 3-dart-snitt '+model.historyAverage.toFixed(2)+' · simulert nivå '+model.estimatedAverage.toFixed(2)+' · '+model.historyCheckouts+' checkouts. Resultatet lagres lokalt.';
+  notice.textContent='AI Rival: '+player.username+' · '+model.historyVisits+' gyldige 501-runder · historisk 3-dart-snitt '+model.historyAverage.toFixed(2)+' · simulert nivå '+model.estimatedAverage.toFixed(2)+' · '+model.historyCheckouts+' checkouts. Modellen bruker 501-historikk'+(selectedFormat!==501?' som estimat for '+selectedFormat:'')+(selectedFormat===301?' (Double In er estimert fra dobbel-ut)':'')+'. Resultatet lagres lokalt.';
   if(start)start.disabled=false;
   if(autoStart&&$('localGame')?.hidden)form.requestSubmit();
  }catch(error){
@@ -69,5 +75,6 @@ async function init(){
  else notice.textContent='Velg en DartArena-spiller over for å bruke den registrerte kasthistorikken som AI Rival.';
 }
 selector.addEventListener('change',()=>loadRival(selector.value));
+$('localFormat').addEventListener('change',()=>{if(selector.value)loadRival(selector.value);});
 init().catch(error=>{notice.textContent=error.message||'Kunne ikke laste spillere.';if(start)start.disabled=true});
 })();
