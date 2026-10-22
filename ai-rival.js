@@ -72,9 +72,10 @@ async function loadModel(id){
  if(error){$('rivalModel').textContent='Kunne ikke lese 501-historikk: '+error.message;return}
  modelPlayer=profiles.find(p=>p.id===id);
  try{
-  const trained=window.DartArenaRivalModel.build(data||[],window.DartArenaLocalH2HEngine);
+  const format=Number($('rivalFormat').value);
+  const trained=window.DartArenaRivalModel.build(data||[],window.DartArenaLocalH2HEngine,{format,doubleIn:format===301});
   model={...modelFrom(data||[]),count:trained.historyVisits,checkoutCount:trained.historyCheckouts,avg:trained.historyAverage};
-  $('rivalModel').textContent=modelPlayer.username+' · '+trained.historyVisits+' registrerte 501-runder · historisk 3-dart-snitt '+trained.historyAverage.toFixed(2)+' · kalibrert AI-snitt '+trained.estimatedAverage.toFixed(2)+' · '+trained.historyCheckouts+' checkouts.';
+  $('rivalModel').textContent=modelPlayer.username+' · '+trained.historyVisits+' registrerte 501-runder · historisk 3-dart-snitt '+trained.historyAverage.toFixed(2)+' · simulert '+format+'-snitt '+trained.estimatedAverage.toFixed(2)+' · '+trained.historyCheckouts+' historiske checkouts (501)'+(format===301?' · Double In er estimert':(format!==501?' · 501-historikk brukt som grunnlag':''))+'.';
  }catch(e){model=null;$('rivalModel').textContent=e.message||'Kunne ikke bygge AI-modellen.';return}
  $('rivalStart').disabled=false;
 }
@@ -90,10 +91,11 @@ async function init(){
  if(sel.value)await loadModel(sel.value);
 }
 $('rivalPlayer').addEventListener('change',e=>loadModel(e.target.value));
+$('rivalFormat').addEventListener('change',()=>{if($('rivalPlayer').value)loadModel($('rivalPlayer').value)});
 $('rivalStart').addEventListener('click',()=>{
  if(!model||model.count<30||!modelPlayer)return;
  const best=Number($('rivalLegs').value);
- location.href='ai-rival-501.html?player='+encodeURIComponent(modelPlayer.id)+'&legs='+encodeURIComponent(best);
+ location.href='ai-rival-501.html?player='+encodeURIComponent(modelPlayer.id)+'&format='+encodeURIComponent($('rivalFormat').value)+'&legs='+encodeURIComponent(best);
 });
 
 function throwScore(){
