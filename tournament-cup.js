@@ -91,7 +91,7 @@
     return out;
   }
   async function buildCup(){
-    if(tournament?.tournament_type!=='groups_cup'||tournament.owner_id!==me)return;const d=await data();if(d.cm.length)return alert('Cupen er allerede opprettet.');if(!d.gm.length||d.gm.some(m=>!done(m)))return alert('Alle puljekampene må være ferdige før cupen kan opprettes.');
+    if(tournament?.tournament_type!=='groups_cup'||tournament.owner_id!==me)return;const d=await data();if(d.cm.length)return alert('Cupen er allerede opprettet.');if(d.players.length<2||d.gm.some(m=>!done(m)))return alert('Alle offisielle puljekamper må være ferdige, og minst to ekte spillere må delta.');
     const q=qualifiers(d);if(q.length<2)return alert('Minst to spillere må gå videre til cup.');
     const size=nextPow2(q.length),rounds=Math.log2(size),slots=seededSlots(q,size),roundFormats=selectedCupFormats(rounds);
     const rows=[];let matchNo=1;for(let i=0;i<size/2;i++){const a=slots[i*2],b=slots[i*2+1];const humanA=a||null,humanB=b||null,won=humanA&&!humanB?humanA:!humanA&&humanB?humanB:null;rows.push({tournament_id:id,stage:'cup',round_no:1,match_no:matchNo++,player1_id:humanA?.id||null,player2_id:humanB?.id||null,best_of:roundFormats[1],status:won?'wo':'pending',winner_id:won?.id||null,is_wo:!!won})}
@@ -166,7 +166,7 @@
     if(tournament.tournament_type==='cup'&&tournament.status==='cup_setup')return;
     const d=await data();const setup=$('cupSetup'),lobby=$('cupLobby');if(!setup||!lobby)return;
     setup.classList.toggle('hidden',tournament.status!=='cup_setup');lobby.classList.toggle('hidden',!['cup','finished'].includes(tournament.status));
-    if(tournament.status==='cup_setup'){const allDone=d.gm.length>0&&d.gm.every(done),q=allDone?qualifiers(d):[];$('cupSetupInfo').textContent=allDone?`${q.length} spillere er klare for sluttspillet. Cupen bruker NDF-oppsett der dette er definert, og viser puljeplassering som 1P1, 2P1 osv.`:'Cupen kan opprettes når alle puljekampene er ferdige.';$('buildCupBtn').disabled=!allDone;if(allDone&&q.length>=2)renderCupFormat(q);return}
+    if(tournament.status==='cup_setup'){const allDone=d.players.length>=2&&d.gm.every(done),q=allDone?qualifiers(d):[];$('cupSetupInfo').textContent=allDone?`${q.length} spillere er klare for sluttspillet. Cupen bruker NDF-oppsett der dette er definert, og viser puljeplassering som 1P1, 2P1 osv.`:'Cupen kan opprettes når alle puljekampene er ferdige.';$('buildCupBtn').disabled=!allDone;if(allDone&&q.length>=2)renderCupFormat(q);return}
     if(!d.cm.length)return;const advancementBlocked=await advanceWinners(d.cm);const ids=[...new Set(d.cm.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))],missing=ids.filter(x=>!names[x]);if(missing.length){const {data:p}=await db.from('profiles').select('id,username').in('id',missing);Object.assign(names,Object.fromEntries((p||[]).map(x=>[x.id,x.username])))}
     const seedById=new Map(qualifiers(d).map(p=>[p.id,p.seedLabel]));
     const matchAverages=await cupMatchAverages(d.cm);
