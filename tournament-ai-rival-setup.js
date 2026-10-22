@@ -68,7 +68,8 @@
   const match=row.dataset.aiMatch,model=row.dataset.aiModel,legs=row.dataset.aiBestOf;
   if(!match||!model||!legs)return;
   event.preventDefault();
-  location.href='ai-rival-501.html?player='+encodeURIComponent(model)+'&legs='+encodeURIComponent(legs)+'&tournament='+encodeURIComponent(id)+'&tournamentAiMatch='+encodeURIComponent(match);
+  const format=Number(tournament?.game)||501;
+  location.href='ai-rival-501.html?player='+encodeURIComponent(model)+'&format='+encodeURIComponent(format)+'&legs='+encodeURIComponent(legs)+'&tournament='+encodeURIComponent(id)+'&tournamentAiMatch='+encodeURIComponent(match);
  });
  window.addEventListener('dartarena:tournament-loaded',loadSelection);
 })();
