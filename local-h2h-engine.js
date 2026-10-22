@@ -24,10 +24,11 @@ function setup(config){
   const mode=config?.mode==='sets'?'sets':'legs',firstStarter=Number(config?.starter);
   assert(players.every(Boolean),'Skriv inn navn på begge spillerne.');
   assert([170,301,501,1001].includes(format),'Ugyldig startscore.');
-  assert(Number.isInteger(bestOf)&&bestOf%2===1&&bestOf>=1&&bestOf<=15,'Velg gyldig antall legs.');
+  assert(Number.isInteger(bestOf)&&bestOf%2===1&&bestOf>=1&&bestOf<=21,'Velg gyldig antall legs.');
   assert(Number.isInteger(bestOfSets)&&bestOfSets%2===1&&bestOfSets>=1&&bestOfSets<=15,'Velg gyldig antall sets.');
   assert([0,1].includes(firstStarter),'Ugyldig startspiller.');
-  return {version:2,id:String(Date.now()),players,format,mode,bestOf,
+  const doubleIn=config?.doubleIn===true&&format===301;
+  return {version:2,id:String(Date.now()),players,format,mode,bestOf,doubleIn,entered:[!doubleIn,!doubleIn],
     bestOfSets:mode==='sets'?bestOfSets:1,currentSet:1,leg:1,
     firstStarter,starter:firstStarter,turn:firstStarter,sets:[0,0],legs:[0,0],
     scores:[format,format],status:'playing',winner:null,betweenType:null,
@@ -41,6 +42,9 @@ function submit(state,value,opts={}){
   assert(raw!==''&&validScore(score),'Scoren er ikke mulig med tre piler (0–180).');
   const next=snapshot(state),p=state.turn,remaining=state.scores[p];
   let bust=opts.bust===true,checkout=false,darts=3;
+  const requiresDouble=next.doubleIn===true&&next.entered?.[p]!==true;
+  const enteredNow=requiresDouble&&!bust&&score>0&&opts.doubleInConfirmed===true;
+  if(requiresDouble&&!enteredNow&&!bust&&score>0)throw Error('Double In: Bekreft at første tellende pil traff en dobbel, eller registrer 0.');
   if(score>remaining||remaining-score===1)bust=true;
   if(score===remaining&&!bust){
     darts=Number(opts.darts);
@@ -48,10 +52,11 @@ function submit(state,value,opts={}){
     assert(validCheckout(score,darts),'Ugyldig utsjekk med valgt antall piler.');
     checkout=true;
   }
-  const credited=bust?0:score;
+  const credited=bust||requiresDouble&&!enteredNow?0:score;
+  if(enteredNow)next.entered[p]=true;
   next.scores[p]=remaining-credited;
   next.visits.push({player:p,set:state.currentSet,leg:state.leg,
-    score:credited,attempt:score,darts,bust,checkout,remaining:next.scores[p],
+    score:credited,attempt:score,darts,bust,checkout,doubleInConfirmed:enteredNow,remaining:next.scores[p],
     at:new Date().toISOString()});
   if(!checkout){next.turn=opposite(p);return changed(state,next)}
   next.legs[p]++;
@@ -70,6 +75,7 @@ function nextLeg(state){
   else next.leg++;
   next.starter=legStarter(next,next.currentSet,next.leg);
   next.turn=next.starter;next.scores=[next.format,next.format];
+  next.entered=next.doubleIn?[false,false]:[true,true];
   next.betweenType=null;next.status='playing';
   return changed(state,next);
 }
@@ -94,7 +100,7 @@ function correctVisit(state,index,newScore,checkoutDarts=null){
   assert(raw!==''&&validScore(score),'Ny score er ikke mulig med tre piler.');
   let replay=setup({name1:state.players[0],name2:state.players[1],
     format:state.format,mode:state.mode,bestOf:state.bestOf,
-    bestOfSets:state.bestOfSets,starter:state.firstStarter});
+    bestOfSets:state.bestOfSets,starter:state.firstStarter,doubleIn:state.doubleIn});
   replay.id=state.id;replay.startedAt=state.startedAt;
   for(let i=0;i<state.visits.length;i++){
     const old=state.visits[i];
@@ -103,7 +109,7 @@ function correctVisit(state,index,newScore,checkoutDarts=null){
       replay.leg===old.leg&&replay.turn===old.player,
       'Korrigeringen endrer tidligere leg eller spillerrekkefølge.');
     const edited=i===index,points=edited?score:old.attempt;
-    const options=edited?{}:{bust:old.bust,doubleConfirmed:old.checkout,darts:old.darts};
+    const options=edited?{doubleInConfirmed:old.doubleInConfirmed}:{bust:old.bust,doubleConfirmed:old.checkout,darts:old.darts,doubleInConfirmed:old.doubleInConfirmed};
     if(edited&&points===replay.scores[old.player]){
       assert(i===state.visits.length-1,'Kan ikke avslutte leget når senere kast er registrert.');
       options.doubleConfirmed=true;options.darts=checkoutDarts;
@@ -145,6 +151,7 @@ function upgrade(old){
 }
 function restore(raw){
   const value=upgrade(raw);
+  if(value?.doubleIn===true&&(!Array.isArray(value.entered)||value.entered.length!==2))return null;
   if(!value||![170,301,501,1001].includes(value.format)||
     !['legs','sets'].includes(value.mode)||![0,1].includes(value.firstStarter)||
     !Array.isArray(value.players)||value.players.length!==2||
