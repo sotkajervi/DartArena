@@ -9,7 +9,7 @@ if(!fixtureId||!tournamentId)return;
 const db=window.supabase?.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
 if(!db)return;
 const stateKey='dartarena-ai-rival-tournament-state-'+fixtureId;
-let fixture=null,me=null,saving=false,committed=false;
+let fixture=null,me=null,saving=false,committed=false,expectedFormat=501;
 const note=document.createElement('p');
 note.className='muted compact';
 note.style.cssText='margin:14px auto;max-width:800px;color:#24d6d0';
@@ -30,6 +30,10 @@ async function init(){
  if(data.human_id!==me)throw Error('Bare spilleren som er satt opp mot AI kan spille denne kampen.');
  const {data:config,error:configError}=await db.from('tournament_ai_rivals').select('model_player_id').eq('tournament_id',tournamentId).single();
  if(configError||!config||params.get('player')!==config.model_player_id)throw Error('Feil AI Rival er valgt for denne turneringen.');
+ const {data:tour,error:tourError}=await db.from('tournaments').select('game,game_variant').eq('id',tournamentId).single();
+ if(tourError||!tour||tour.game_variant!=='x01'||![170,501,1001].includes(Number(tour.game)))throw Error('Denne turneringens spillformat er ikke støttet av AI Rival.');
+ expectedFormat=Number(tour.game);
+ if(Number(params.get('format')||501)!==expectedFormat)throw Error('AI-kampens spillformat stemmer ikke med turneringen.');
  fixture=data;
  if(data.status==='finished'){
   committed=true;
@@ -41,7 +45,7 @@ async function init(){
 async function save(){
  if(!fixture||committed||saving)return;
  let state;try{state=JSON.parse(localStorage.getItem(stateKey)||'null')}catch{return}
- if(!state||state.status!=='finished'||!Array.isArray(state.legs)||Number(state.format)!==501)return;
+ if(!state||state.status!=='finished'||!Array.isArray(state.legs)||Number(state.format)!==expectedFormat||state.doubleIn===true)return;
  let linked;try{linked=JSON.parse(localStorage.getItem('dartarena-ai-rival-tournament-session')||'null')}catch{}
  if(linked?.fixtureId!==fixtureId||linked?.stateId!==state.id)return;
  if(state.mode!=='legs'||Number(state.bestOf)!==Number(fixture.best_of))return;
