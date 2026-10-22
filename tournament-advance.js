@@ -14,16 +14,15 @@
     busy=true;try{
       const {data:t}=await client.from('tournaments').select('owner_id,status,tournament_type').eq('id',tournamentId).single();
       if(!t||t.status!=='groups'||t.owner_id!==me||t.tournament_type!=='groups_cup'){b.classList.add('hidden');return}
+      // AI training fixtures are optional and must never block official advancement.
       const {data:m,error}=await client.from('tournament_matches').select('status').eq('tournament_id',tournamentId).eq('stage','group');if(error){b.classList.add('hidden');return}
-      const {data:ai,error:aiError}=await client.from('tournament_ai_group_matches').select('status').eq('tournament_id',tournamentId);
-      if(aiError){b.classList.add('hidden');return}
-      const allDone=!!((m?.length||0)+(ai?.length||0))&&m.every(x=>['finished','wo'].includes(x.status))&&(ai||[]).every(x=>x.status==='finished');
+      const allDone=!!m?.length&&m.every(x=>['finished','wo'].includes(x.status));
       b.classList.toggle('hidden',!allDone);
     }finally{busy=false}
   }
   async function advance(){
     const b=ensureButton();if(!b||b.classList.contains('hidden'))return;
-    const text='Alle puljekampene er ferdige.\n\nGå videre til oppsett av cup?';
+    const text='Alle offisielle puljekamper er ferdige.\n\nAI-treningskamper teller ikke og trenger ikke være ferdigspilt. Gå videre til oppsett av cup?';
     const ok=window.DartArenaDialog
       ?await window.DartArenaDialog.confirm(text,{title:'Gå videre til cup',confirmText:'Gå videre'})
       :confirm(text);
@@ -40,7 +39,6 @@
     await refresh();
     ch=client.channel(`advance-cup-${tournamentId}`)
       .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${tournamentId}`},queueRefresh)
-      .on('postgres_changes',{event:'*',schema:'public',table:'tournament_ai_group_matches',filter:`tournament_id=eq.${tournamentId}`},queueRefresh)
       .on('postgres_changes',{event:'UPDATE',schema:'public',table:'tournaments',filter:`id=eq.${tournamentId}`},queueRefresh)
       .subscribe();
     pollTimer=setInterval(()=>{if(!document.hidden)queueRefresh()},30000);
