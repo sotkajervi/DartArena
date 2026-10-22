@@ -567,6 +567,9 @@ $('localCheckoutBust').addEventListener('click',()=>{
   commit(()=>E.submit(state,score,{bust:true}),'BUST for '+name+'.');
 });
 function navigateToRival(){
+  // Tournament games are tied to one fixture; never offer a replay or clear
+  // its saved result before the tournament backend has acknowledged it.
+  if(tournamentFixture){window.DartArenaTournamentAiMatch?.returnToTournament?.();return}
   clearTimeout(betweenTimer);betweenTimer=null;
   cancelBot();
   closeStats();
@@ -575,6 +578,11 @@ function navigateToRival(){
   location.assign('./ai-rival.html');
 }
 function newMatch(){
+  if(tournamentFixture){
+    if(state?.status==='finished')navigateToRival();
+    else showMessage('Turneringskampen må fullføres før du kan starte en ny kamp.',true);
+    return;
+  }
   if(!state||state.status==='finished'){navigateToRival();return}
   const dialog=$('aiRivalNewMatchDialog');
   if(!dialog){showMessage('Kunne ikke åpne bekreftelse for ny kamp. Oppdater siden.',true);return}
@@ -596,6 +604,12 @@ document.addEventListener('keydown',event=>{
 });
 $('localNewMatch').addEventListener('click',newMatch);
 $('localPlayAgain').addEventListener('click',newMatch);
+if(tournamentFixture){
+  for(const buttonId of ['localNewMatch','localPlayAgain']){
+    const button=$(buttonId);
+    if(button){button.hidden=true;button.style.display='none'}
+  }
+}
 document.addEventListener('keydown',event=>{if(event.key==='Escape'){
   if(document.body.classList.contains('local-stats-open')){event.preventDefault();closeStats()}
   else if(!ui.correction.hidden){event.preventDefault();closeCorrection()}
