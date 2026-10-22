@@ -59,52 +59,42 @@
     const defaults=loadCupFormat(rounds);document.querySelectorAll('#cupFormatSettings select[data-cup-round]').forEach(s=>{const r=Number(s.dataset.cupRound),n=Number(s.value);if(r&&validBestOf(n))defaults[r]=n});return defaults
   }
   async function data(){
-    const [{data:groups},{data:players},{data:gm},{data:cm}]=await Promise.all([
+    // Official cup seeding uses human group players and official group matches ONLY.
+    // AI Rival is an optional training opponent and must never occupy a seed.
+    const [groupsResult,playersResult,groupsMatchesResult,cupMatchesResult]=await Promise.all([
       db.from('tournament_groups').select('*').eq('tournament_id',id).order('group_no'),
       db.from('tournament_group_players').select('*').eq('tournament_id',id),
       db.from('tournament_matches').select('*').eq('tournament_id',id).eq('stage','group'),
       db.from('tournament_matches').select('*').eq('tournament_id',id).eq('stage','cup').order('round_no').order('match_no')
     ]);
-    const groupMatches=gm||[],cupMatches=cm||[];
-    const {data:aiMatches,error:aiError}=await db.from('tournament_ai_group_matches').select('*').eq('tournament_id',id);
-    if(aiError){console.warn('AI Rival cup fixtures unavailable',aiError);return{groups:[],players:[],gm:[],cm:cupMatches,aiLoadError:true}}
-    if(aiMatches?.length){
-      const {data:config,error:configError}=await db.from('tournament_ai_rivals').select('model_player_id,group_id').eq('tournament_id',id).maybeSingle();
-      if(configError||!config)return{groups:[],players:[],gm:[],cm:cupMatches,aiLoadError:true};
-      const aiId='00000000-0000-4000-8000-0000000000a1';
-      const {data:profile}=await db.from('profiles').select('username').eq('id',config.model_player_id).maybeSingle();
-      names[aiId]='AI Rival – '+(profile?.username||'Spiller');
-      players.push({id:aiId,user_id:aiId,group_id:config.group_id||aiMatches[0].group_id,seed_no:99});
-      for(const f of aiMatches){
-        groupMatches.push({id:f.id,group_id:f.group_id,round_no:f.round_no,match_no:f.match_no,
-          player1_id:f.ai_as_player1?aiId:f.human_id,player2_id:f.ai_as_player1?f.human_id:aiId,
-          player1_legs:f.ai_as_player1?f.ai_legs:f.human_legs,player2_legs:f.ai_as_player1?f.human_legs:f.ai_legs,
-          winner_id:f.status==='finished'?(f.winner_is_ai?aiId:f.human_id):null,status:f.status});
-      }
-    }
-    const liveIds=[...new Set([...groupMatches,...cupMatches].filter(m=>m.status==='live'&&m.live_match_id).map(m=>m.live_match_id))];
-    if(liveIds.length){
-      const {data:liveRows,error:liveError}=await db.from('matches').select('id,player1_legs,player2_legs').in('id',liveIds);
-      if(liveError)console.warn('Could not load live cup scores',liveError);
-      else{
-        const liveById=new Map((liveRows||[]).map(row=>[row.id,row]));
-        for(const match of [...groupMatches,...cupMatches]){
-          const live=liveById.get(match.live_match_id);
-          if(live){
-            match._live_player1_legs=Number(live.player1_legs||0);
-            match._live_player2_legs=Number(live.player2_legs||0);
-          }
-        }
-      }
-    }
-    return{groups:groups||[],players:players||[],gm:groupMatches,cm:cupMatches}
+    const error=[groupsResult,playersResult,groupsMatchesResult,cupMatchesResult].find(result=>result.error)?.error;
+    if(error)throw Error('Kunne ikke lese cupgrunnlaget: '+error.message);
+    const aiId='00000000-0000-4000-8000-0000000000a1';
+    return {
+      groups:groupsResult.data||[],
+      players:(playersResult.data||[]).filter(p=>p.user_id!==aiId),
+      gm:(groupsMatchesResult.data||[]).filter(m=>m.player1_id!==aiId&&m.player2_id!==aiId),
+      cm:cupMatchesResult.data||[]
+    };
   }
-  function qualifiers(d){const out=[];for(const g of d.groups){const gp=d.players.filter(p=>p.group_id===g.id),matches=d.gm.filter(m=>m.group_id===g.id),table=standings(gp,matches),n=g.advance_mode==='all'?table.length:Number(g.advance_count||0);table.slice(0,n).forEach((p,i)=>out.push({id:p.id,group:g.group_no,pos:i+1,seedLabel:`${i+1}P${g.group_no}`}))}return out}
+  function qualifiers(d){
+    const out=[];
+    for(const g of d.groups){
+      const gp=d.players.filter(p=>p.group_id===g.id);
+      const matches=d.gm.filter(m=>m.group_id===g.id);
+      const table=standings(gp,matches);
+      const n=g.advance_mode==='all'?table.length:Math.min(table.length,Number(g.advance_count||0));
+      table.slice(0,n).forEach((p,i)=>out.push({
+        id:p.id,group:g.group_no,pos:i+1,seedLabel:`${i+1}P${g.group_no}`
+      }));
+    }
+    return out;
+  }
   async function buildCup(){
-    if(tournament?.tournament_type!=='groups_cup'||tournament.owner_id!==me)return;const d=await data();if(d.aiLoadError)return alert('Kunne ikke kontrollere AI Rival-kampene. Prøv igjen.');if(d.cm.length)return alert('Cupen er allerede opprettet.');if(!d.gm.length||d.gm.some(m=>!done(m)))return alert('Alle puljekampene må være ferdige før cupen kan opprettes.');
+    if(tournament?.tournament_type!=='groups_cup'||tournament.owner_id!==me)return;const d=await data();if(d.cm.length)return alert('Cupen er allerede opprettet.');if(!d.gm.length||d.gm.some(m=>!done(m)))return alert('Alle puljekampene må være ferdige før cupen kan opprettes.');
     const q=qualifiers(d);if(q.length<2)return alert('Minst to spillere må gå videre til cup.');
     const size=nextPow2(q.length),rounds=Math.log2(size),slots=seededSlots(q,size),roundFormats=selectedCupFormats(rounds);
-    const rows=[];let matchNo=1;for(let i=0;i<size/2;i++){const a=slots[i*2],b=slots[i*2+1];const aiA=a?.id==='00000000-0000-4000-8000-0000000000a1',aiB=b?.id==='00000000-0000-4000-8000-0000000000a1',humanA=a&&!aiA?a:null,humanB=b&&!aiB?b:null,won=humanA&&!humanB?humanA:!humanA&&humanB?humanB:null;rows.push({tournament_id:id,stage:'cup',round_no:1,match_no:matchNo++,player1_id:humanA?.id||null,player2_id:humanB?.id||null,best_of:roundFormats[1],status:won?'wo':'pending',winner_id:won?.id||null,is_wo:!!won,ai_rival_wo:!!(won&&(aiA||aiB))})}
+    const rows=[];let matchNo=1;for(let i=0;i<size/2;i++){const a=slots[i*2],b=slots[i*2+1];const humanA=a||null,humanB=b||null,won=humanA&&!humanB?humanA:!humanA&&humanB?humanB:null;rows.push({tournament_id:id,stage:'cup',round_no:1,match_no:matchNo++,player1_id:humanA?.id||null,player2_id:humanB?.id||null,best_of:roundFormats[1],status:won?'wo':'pending',winner_id:won?.id||null,is_wo:!!won})}
     for(let r=2;r<=rounds;r++){const count=size/(2**r);for(let i=0;i<count;i++)rows.push({tournament_id:id,stage:'cup',round_no:r,match_no:i+1,player1_id:null,player2_id:null,best_of:roundFormats[r],status:'pending',is_wo:false})}
     const {error}=await db.from('tournament_matches').insert(rows);if(error)return alert('Kunne ikke opprette cup: '+error.message);const {error:te}=await db.from('tournaments').update({status:'cup',updated_at:new Date().toISOString()}).eq('id',id).eq('owner_id',me);if(te)return alert(te.message);await load();await loadCup();
   }
@@ -176,7 +166,7 @@
     if(tournament.tournament_type==='cup'&&tournament.status==='cup_setup')return;
     const d=await data();const setup=$('cupSetup'),lobby=$('cupLobby');if(!setup||!lobby)return;
     setup.classList.toggle('hidden',tournament.status!=='cup_setup');lobby.classList.toggle('hidden',!['cup','finished'].includes(tournament.status));
-    if(tournament.status==='cup_setup'){const allDone=!d.aiLoadError&&d.gm.length&&d.gm.every(done),q=allDone?qualifiers(d):[];$('cupSetupInfo').textContent=allDone?`${q.length} spillere er klare for sluttspillet. Cupen bruker NDF-oppsett der dette er definert, og viser puljeplassering som 1P1, 2P1 osv.`:'Cupen kan opprettes når alle puljekampene er ferdige.';$('buildCupBtn').disabled=!allDone;if(allDone&&q.length>=2)renderCupFormat(q);return}
+    if(tournament.status==='cup_setup'){const allDone=d.gm.length>0&&d.gm.every(done),q=allDone?qualifiers(d):[];$('cupSetupInfo').textContent=allDone?`${q.length} spillere er klare for sluttspillet. Cupen bruker NDF-oppsett der dette er definert, og viser puljeplassering som 1P1, 2P1 osv.`:'Cupen kan opprettes når alle puljekampene er ferdige.';$('buildCupBtn').disabled=!allDone;if(allDone&&q.length>=2)renderCupFormat(q);return}
     if(!d.cm.length)return;const advancementBlocked=await advanceWinners(d.cm);const ids=[...new Set(d.cm.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))],missing=ids.filter(x=>!names[x]);if(missing.length){const {data:p}=await db.from('profiles').select('id,username').in('id',missing);Object.assign(names,Object.fromEntries((p||[]).map(x=>[x.id,x.username])))}
     const seedById=new Map(qualifiers(d).map(p=>[p.id,p.seedLabel]));
     const matchAverages=await cupMatchAverages(d.cm);
