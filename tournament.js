@@ -381,7 +381,8 @@ async function saveTournamentGame(select){
 }
 
 function renderSetup(){
-  const n=getParticipants().length+(window.DartArenaSelectedAIRival?1:0);
+  // Only actual competitors determine group count and qualification capacity.
+  const n=getParticipants().length;
   const g=$('groupCount');
   ensureTournamentGameSelector(tournament?.owner_id===me);
   if(Number(g.dataset.playerCount||0)!==n){
@@ -423,15 +424,17 @@ function shuffled3(arr){
 }
 
 function drawGroups(){
-  const players=shuffled3([...getParticipants(),...(window.DartArenaSelectedAIRival?[{user_id:AI_RIVAL_ID,ai_rival:true}]:[])]);
+  // AI is placed after the human draw; it must not move anyone between groups.
+  const players=shuffled3(getParticipants());
   const count=Number($('groupCount').value);
   drawnGroups=Array.from({length:count},()=>[]);
   players.forEach((p,i)=>drawnGroups[i%count].push(p));
+  if(window.DartArenaSelectedAIRival)drawnGroups[0]?.push({user_id:AI_RIVAL_ID,ai_rival:true});
   renderSetup();
 }
 
 function renderGroups(){
-  $('groupPreview').innerHTML=drawnGroups.map((group,i)=>`<div class="player-row" style="display:block"><div class="player-name" style="color:#00eaf4;margin-bottom:8px">Pulje ${i+1}</div>${group.map((p,j)=>`<div class="status" style="padding:5px 0;color:var(--text)">${j+1}. <span class="da-role-player" data-user-id="${esc(p.user_id)}">${esc(p.ai_rival?('AI Rival – '+(window.DartArenaSelectedAIRival?.name||'Spiller')):(names[p.user_id]||'Spiller'))}</span></div>`).join('')}</div>`).join('');
+  $('groupPreview').innerHTML=drawnGroups.map((group,i)=>`<div class="player-row" style="display:block"><div class="player-name" style="color:#00eaf4;margin-bottom:8px">Pulje ${i+1}</div>${group.map((p,j)=>`<div class="status" style="padding:5px 0;color:var(--text)">${p.ai_rival?'Trening: ':j+1+'. '}<span class="da-role-player" data-user-id="${esc(p.user_id)}">${esc(p.ai_rival?('AI Rival – '+(window.DartArenaSelectedAIRival?.name||'Spiller')+' (teller ikke)'):(names[p.user_id]||'Spiller'))}</span></div>`).join('')}</div>`).join('');
   window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
 }
 
@@ -657,13 +660,26 @@ async function startGroups(){
     const matchRows=[];
     const aiRows=[];
     drawnGroups.forEach((group,gi)=>{
+      const humans=group.filter(p=>!p.ai_rival&&p.user_id!==AI_RIVAL_ID);
+      const officialRounds=roundRobin(humans);
       let matchNo=1;
-      roundRobin(group).forEach((round,ri)=>round.forEach(([p1,p2])=>{
-        const no=matchNo++;
-        if(p1===AI_RIVAL_ID||p2===AI_RIVAL_ID){
-          aiRows.push({tournament_id:id,group_id:byNo[gi+1].id,round_no:ri+1,match_no:no,human_id:p1===AI_RIVAL_ID?p2:p1,ai_as_player1:p1===AI_RIVAL_ID,best_of:bestOf});
-        }else matchRows.push({tournament_id:id,stage:'group',group_id:byNo[gi+1].id,round_no:ri+1,match_no:no,player1_id:p1,player2_id:p2,best_of:bestOf,status:'pending',is_wo:false});
+      officialRounds.forEach((round,ri)=>round.forEach(([p1,p2])=>{
+        matchRows.push({
+          tournament_id:id,stage:'group',group_id:byNo[gi+1].id,
+          round_no:ri+1,match_no:matchNo++,player1_id:p1,player2_id:p2,
+          best_of:bestOf,status:'pending',is_wo:false
+        });
       }));
+      // Optional training fixtures follow the official round-robin. They do not
+      // change official opponents, round numbering, group standings or cup seed.
+      if(group.some(p=>p.ai_rival)){
+        const trainingRound=officialRounds.length+1;
+        humans.forEach((p,i)=>aiRows.push({
+          tournament_id:id,group_id:byNo[gi+1].id,round_no:trainingRound,
+          match_no:matchNo++,human_id:p.user_id,ai_as_player1:i%2===1,
+          best_of:bestOf
+        }));
+      }
     });
     if(aiRows.length){
       const {error:aiErr}=await db.from('tournament_ai_rivals').update({group_id:aiRows[0].group_id}).eq('tournament_id',id);
