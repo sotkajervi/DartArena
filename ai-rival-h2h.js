@@ -38,6 +38,12 @@ const ui={
   correctionCheckout:$('localCorrectionCheckout'),correctionDarts:$('localCorrectionDarts')
 };
 window.DartArenaLocalNameHistory?.attach(['localName1','localName2']);
+const doubleInLabel=document.createElement('label');
+doubleInLabel.className='field ai-rival-double-in';
+doubleInLabel.style.cssText='display:flex;gap:9px;align-items:center;margin:10px 0';
+doubleInLabel.innerHTML='<input id="aiRivalDoubleIn" type="checkbox"> Første tellende pil traff dobbel (DOUBLE IN)';
+ui.scoreForm.prepend(doubleInLabel);
+const doubleInCheck=$('aiRivalDoubleIn');
 function showMessage(text,error=false){message=text;isError=error;ui.message.textContent=text;ui.message.classList.toggle('is-error',error)}
 function safeSave(){
   try{
@@ -164,8 +170,8 @@ function scheduleBot(){
       state.currentSet!==set||state.leg!==leg||state.scores[1]!==remaining||
       pendingCheckout||editingIndex!==null)return;
     try{
-      const outcome=B.visit(remaining,botConfig);
-      const updated=E.submit(state,outcome.score,{bust:outcome.bust,doubleConfirmed:outcome.checkout,darts:outcome.darts});
+      const outcome=B.visit(remaining,{...botConfig,doubleInPending:state.doubleIn===true&&state.entered?.[1]!==true});
+      const updated=E.submit(state,outcome.score,{bust:outcome.bust,doubleConfirmed:outcome.checkout,darts:outcome.darts,doubleInConfirmed:outcome.doubleInConfirmed===true});
       const visit=updated.visits[updated.visits.length-1];visit.dartDetails=outcome.throws;
       state=updated;
       showMessage(visit.bust?'Bot: BUST.':visit.checkout?'Bot sjekket ut '+visit.score+' med '+visit.darts+' piler.':'Bot scoret '+visit.score+' poeng.');
@@ -205,7 +211,7 @@ function render(){
   document.body.classList.toggle('local-match-finished',state?.status==='finished');
   if(!state){window.DartArenaLocalResults?.syncX01(null,newMatch);return;}
   ui.opponentLabel.textContent=botConfig?'BOT':'SPILLER 2';
-  statValue('localFormatLabel',state.format);
+  statValue('localFormatLabel',state.doubleIn?'301 DI/DO':state.format);
   $('localSetLabel').hidden=state.mode!=='sets';
   statValue('localSetLabel','Set '+state.currentSet);
   statValue('localLegLabel','Leg '+state.leg);
@@ -250,6 +256,9 @@ function render(){
   }
   const playing=state.status==='playing';
   const humanTurn=playing&&(!botConfig||state.turn===0);
+  const needsDoubleIn=humanTurn&&state.doubleIn===true&&state.entered?.[state.turn]!==true;
+  doubleInLabel.hidden=!needsDoubleIn;
+  doubleInLabel.style.display=needsDoubleIn?'flex':'none';
   ui.scoreForm.hidden=!humanTurn;ui.keypad.hidden=!humanTurn;
   ui.bust.disabled=!humanTurn;ui.submit.disabled=!humanTurn;ui.score.disabled=!humanTurn;
   ui.between.hidden=state.status!=='between';ui.finished.hidden=state.status!=='finished';
@@ -387,7 +396,7 @@ function commit(fn,msg){
     ui.checkout.hidden=true;
     editingIndex=null;
     ui.correction.hidden=true;
-    ui.score.value='';
+    ui.score.value='';doubleInCheck.checked=false;
     showMessage(msg||'Score registrert.');
     safeSave();render();
   }catch(e){showMessage(e?.message||'Ugyldig registrering.',true)}
@@ -452,7 +461,8 @@ ui.setupForm.addEventListener('submit',async event=>{
     const opponent=selectedBot&&window.DartArenaRivalProfile?window.DartArenaRivalProfile.name+' AI':selectedBot?persona+' BOT ('+Math.round(selectedLevel)+')':ui.name2.value;
     const created=E.setup({name1:ui.name1.value,name2:opponent,
       format:ui.format.value,mode:ui.mode.value,bestOf:ui.bestOf.value,
-      bestOfSets:ui.bestOfSets.value,starter});
+      bestOfSets:ui.bestOfSets.value,starter,
+      doubleIn:selectedBot&&!!window.DartArenaRivalProfile&&Number(ui.format.value)===301});
     let coinAnimationFailed=false;
     if(useCoin){
       coinBusy=true;
@@ -488,10 +498,11 @@ ui.scoreForm.addEventListener('submit',event=>{
   if(!raw){showMessage('Skriv en score fra 0 til 180.',true);return}
   const value=Number(raw);
   if(!Number.isInteger(value)||value<0||value>180){showMessage('Scoren må være fra 0 til 180.',true);return}
+  if(state.doubleIn&&!state.entered[state.turn]&&value>0&&!doubleInCheck.checked){showMessage('301 Double In: Kryss av for treff på dobbel, eller registrer 0.',true);return}
   if(value===state.scores[state.turn]){openCheckout(value);return}
   const p=state.turn,old=state.scores[p];
   const isBust=value>old||old-value===1;
-  commit(()=>E.submit(state,value),isBust?'BUST – '+player(p)+' beholder '+old+'.':'Registrert: '+value+' poeng.');
+  commit(()=>E.submit(state,value,{doubleInConfirmed:doubleInCheck.checked}),isBust?'BUST – '+player(p)+' beholder '+old+'.':'Registrert: '+value+' poeng.');
 });
 // Keyboard-first scoring: after a mouse click elsewhere, the first digit
 // redirects typing to the score field. Enter then submits the same form.
@@ -545,7 +556,7 @@ ui.checkoutForm.addEventListener('submit',event=>{
   event.preventDefault();
   if(!pendingCheckout||!state||state.turn!==pendingCheckout.player)return closeCheckout();
   const score=pendingCheckout.score,darts=Number(ui.checkoutDarts.value),name=player(state.turn);
-  commit(()=>E.submit(state,score,{doubleConfirmed:true,darts}),name+' sjekket ut '+score+' med '+darts+' pil'+(darts===1?'':'er')+'.');
+  commit(()=>E.submit(state,score,{doubleConfirmed:true,darts,doubleInConfirmed:doubleInCheck.checked}),name+' sjekket ut '+score+' med '+darts+' pil'+(darts===1?'':'er')+'.');
 });
 $('localCheckoutCancel').addEventListener('click',closeCheckout);
 $('localCheckoutBust').addEventListener('click',()=>{
