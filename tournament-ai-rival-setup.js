@@ -17,12 +17,14 @@
    try{drawnGroups=null;renderSetup()}catch{}
  }
  function refresh(){
+   const selectedGame=document.getElementById('tournamentGame')?.value||String(tournament?.game||501);
+   const supported=['170','501','1001'].includes(selectedGame);
    const active=!!tournament&&tournament.owner_id===me&&tournament.status==='groups_setup'&&tournament.tournament_type==='groups_cup';
    panel.classList.toggle('hidden',!active);
-   add.disabled=busy||!active||!select.value||!!selected;
+   add.disabled=busy||!active||!supported||!select.value||!!selected;
    remove.disabled=busy||!active||!selected;
    select.disabled=busy||!!selected;
-   status.textContent=lastError?lastError:selected?'Valgt AI Rival: '+(select.selectedOptions[0]?.textContent||'Spiller')+'. Puljetrekkingen inkluderer AI Rival.':'Velg en spiller AI Rival skal etterligne. AI Rival deltar i puljespillet og gir WO i cup.';
+   status.textContent=lastError?lastError:!supported?'AI Rival i puljer krever 170, 501 eller 1001. 301 DI/DO er foreløpig bare tilgjengelig som egen AI-kamp.':selected?'Valgt AI Rival: '+(select.selectedOptions[0]?.textContent||'Spiller')+'. Puljetrekkingen inkluderer AI Rival.':'Velg en spiller AI Rival skal etterligne. AI Rival deltar i puljespillet og gir WO i cup.';
  }
  async function loadSelection(){
   if(!tournament||tournament.status!=='groups_setup'){panel.classList.add('hidden');return;}
@@ -60,6 +62,7 @@
   finally{busy=false;refresh();}
  }
  select.addEventListener('change',refresh);
+ document.getElementById('tournamentGame')?.addEventListener('change',refresh);
  add.addEventListener('click',()=>mutate('add'));
  remove.addEventListener('click',()=>mutate('remove'));
  document.addEventListener('click',event=>{
