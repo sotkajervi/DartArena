@@ -20,7 +20,7 @@ const Model=window.DartArenaRivalModel;
 if(!Model)return;
 const selector=$('rivalHistoryPlayer');
 $('localFormat').value=String(requestedFormat);
-if(params.get('tournamentAiMatch'))$('localFormat').disabled=true;
+if(playerId||params.get('tournamentAiMatch'))$('localFormat').disabled=true;
 let loading=false;
 async function loadRival(id,{autoStart=false}={}){
  if(loading)return;
