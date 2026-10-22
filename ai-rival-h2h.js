@@ -464,7 +464,7 @@ ui.setupForm.addEventListener('submit',async event=>{
     const created=E.setup({name1:ui.name1.value,name2:opponent,
       format:ui.format.value,mode:ui.mode.value,bestOf:ui.bestOf.value,
       bestOfSets:ui.bestOfSets.value,starter,
-      doubleIn:selectedBot&&!!window.DartArenaRivalProfile&&Number(ui.format.value)===301});
+      doubleIn:Number(ui.format.value)===301});
     let coinAnimationFailed=false;
     if(useCoin){
       coinBusy=true;
