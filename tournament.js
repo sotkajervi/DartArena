@@ -452,8 +452,11 @@ function roundRobin(players){
 }
 
 function standings(players,matches){
-  const s=Object.fromEntries(players.map(p=>[p.user_id,{id:p.user_id,w:0,lf:0,la:0,d:0}]));
-  matches.filter(m=>['finished','wo'].includes(m.status)).forEach(m=>{
+  // AI Rival fixtures are optional training, never official group results.
+  const humans=players.filter(p=>p.user_id!==AI_RIVAL_ID&&!p.is_ai_rival);
+  const official=matches.filter(m=>!m.is_ai_rival&&m.player1_id!==AI_RIVAL_ID&&m.player2_id!==AI_RIVAL_ID);
+  const s=Object.fromEntries(humans.map(p=>[p.user_id,{id:p.user_id,w:0,lf:0,la:0,d:0}]));
+  official.filter(m=>['finished','wo'].includes(m.status)).forEach(m=>{
     if(!s[m.player1_id]||!s[m.player2_id])return;
     const a=Number(m.player1_legs||0),b=Number(m.player2_legs||0);
     s[m.player1_id].lf+=a;s[m.player1_id].la+=b;
@@ -461,7 +464,7 @@ function standings(players,matches){
     if(m.winner_id&&s[m.winner_id])s[m.winner_id].w++;
   });
   Object.values(s).forEach(x=>x.d=x.lf-x.la);
-  return Object.values(s).sort((a,b)=>b.w-a.w||b.d-a.d||b.lf-a.lf||headToHead(a.id,b.id,matches)||String(names[a.id]||'').localeCompare(String(names[b.id]||'')));
+  return Object.values(s).sort((a,b)=>b.w-a.w||b.d-a.d||b.lf-a.lf||headToHead(a.id,b.id,official)||String(names[a.id]||'').localeCompare(String(names[b.id]||'')));
 }
 
 function headToHead(a,b,matches){
@@ -514,7 +517,7 @@ async function loadGroupLobby(){
     if(aiConfigError||!aiConfig)return;
     const {data:profile}=await db.from('profiles').select('username').eq('id',aiConfig.model_player_id).maybeSingle();
     names[AI_RIVAL_ID]='AI Rival – '+(profile?.username||'Spiller');
-    players.push({id:AI_RIVAL_ID,user_id:AI_RIVAL_ID,group_id:aiConfig.group_id||aiFixtures[0].group_id,seed_no:99,is_ai_rival:true});
+    // Do not register AI as a ranked group player. Fixtures still display below.
     for(const f of aiFixtures){
       matches.push({id:f.id,tournament_id:id,stage:'group',group_id:f.group_id,round_no:f.round_no,match_no:f.match_no,
         player1_id:f.ai_as_player1?AI_RIVAL_ID:f.human_id,player2_id:f.ai_as_player1?f.human_id:AI_RIVAL_ID,
@@ -551,22 +554,27 @@ async function loadGroupLobby(){
     match._player1_avg=groupAvgs.get(`${match.id}:${match.player1_id}`)??null;
     match._player2_avg=groupAvgs.get(`${match.id}:${match.player2_id}`)??null;
   }
-  const done=matches.filter(m=>['finished','wo'].includes(m.status)).length;
+  const officialMatches=matches.filter(m=>!m.is_ai_rival);
+  const trainingMatches=matches.filter(m=>m.is_ai_rival);
+  const done=officialMatches.filter(m=>['finished','wo'].includes(m.status)).length;
   const archive=tournament?.status==='finished';
   $('groupLobby')?.classList.toggle('group-archive-full',archive);
   const groupLabel=$('groupLobby')?.querySelector('.heading small');
   if(groupLabel)groupLabel.textContent=archive?'PULJEHISTORIKK':'LIVE';
   matches.sort((a,b)=>Number(a.round_no)-Number(b.round_no)||Number(a.match_no)-Number(b.match_no));
-  $('groupProgress').textContent=archive?`${matches.length} puljekamper`:`${done} / ${matches.length} kamper ferdig`;
+  $('groupProgress').textContent=archive?`${officialMatches.length} puljekamper`:`${done} / ${officialMatches.length} puljekamper ferdig`;
+  if(trainingMatches.length)$('groupProgress').textContent+=' · '+trainingMatches.length+' AI-treningskamper';
   const collapseArchivedGroups=archive;
   $('liveGroups').innerHTML=groups.map(g=>{
-    const gp=players.filter(p=>p.group_id===g.id);
-    const gm=matches.filter(m=>m.group_id===g.id);
+    const gp=players.filter(p=>p.group_id===g.id&&!p.is_ai_rival&&p.user_id!==AI_RIVAL_ID);
+    const gm=matches.filter(m=>m.group_id===g.id&&!m.is_ai_rival);
+    const ai=matches.filter(m=>m.group_id===g.id&&m.is_ai_rival);
     const table=standings(gp,gm);
     const qualify=g.advance_mode==='all'?table.length:Number(g.advance_count||0);
     const rounds=[...new Set(gm.map(m=>m.round_no))];
     const roundHtml=rounds.map(r=>`<div class="round-block"><div class="round-title">Runde ${r}</div>${gm.filter(m=>m.round_no===r).map(matchHtml).join('')}</div>`).join('');
-    return `<div class="group-card"><div class="heading"><div><small>PULJE ${g.group_no}</small><h2>${gp.length} spillere</h2></div><div class="status">${tournamentIsChicago()? 'Chicago Style' : `${Number(tournament?.game)||501} • Best av ${g.best_of}`}</div></div><table class="standings"><thead><tr><th>#</th><th>Spiller</th><th>V</th><th>+/-</th><th>${tournamentIsChicago()?'Games':'Legs'}</th></tr></thead><tbody>${table.map((x,i)=>`<tr class="${i<qualify?'qualify':''}"><td>${i+1}</td><td><span class="da-role-player" data-user-id="${esc(x.id)}">${esc(names[x.id]||'Spiller')}</span></td><td>${x.w}</td><td>${x.d>0?'+':''}${x.d}</td><td>${x.lf}</td></tr>`).join('')}</tbody></table><details class="group-matches-details" ${collapseArchivedGroups?'':'open'}><summary><span>Puljekamper</span><span class="group-match-summary-meta">${gm.length} kamper <span class="group-match-chevron" aria-hidden="true">⌄</span></span></summary><div class="group-rounds">${roundHtml}</div></details></div>`;
+    const trainingHtml=ai.length?`<details class="group-matches-details ai-training-matches" ${collapseArchivedGroups?'':'open'}><summary><span>AI-TRENINGSKAMPER</span><span class="group-match-summary-meta">${ai.length} kamper <span class="group-match-chevron" aria-hidden="true">⌄</span></span></summary><p class="muted compact" style="margin:10px 0">Resultatene teller ikke i puljetabellen og påvirker ikke cup eller seeding.</p><div class="group-rounds">${ai.map(matchHtml).join('')}</div></details>`:'';
+    return `<div class="group-card"><div class="heading"><div><small>PULJE ${g.group_no}</small><h2>${gp.length} spillere</h2></div><div class="status">${tournamentIsChicago()? 'Chicago Style' : `${Number(tournament?.game)||501} • Best av ${g.best_of}`}</div></div><table class="standings"><thead><tr><th>#</th><th>Spiller</th><th>V</th><th>+/-</th><th>${tournamentIsChicago()?'Games':'Legs'}</th></tr></thead><tbody>${table.map((x,i)=>`<tr class="${i<qualify?'qualify':''}"><td>${i+1}</td><td><span class="da-role-player" data-user-id="${esc(x.id)}">${esc(names[x.id]||'Spiller')}</span></td><td>${x.w}</td><td>${x.d>0?'+':''}${x.d}</td><td>${x.lf}</td></tr>`).join('')}</tbody></table><details class="group-matches-details" ${collapseArchivedGroups?'':'open'}><summary><span>Puljekamper</span><span class="group-match-summary-meta">${gm.length} kamper <span class="group-match-chevron" aria-hidden="true">⌄</span></span></summary><div class="group-rounds">${roundHtml}</div></details>${trainingHtml}</div>`;
   }).join('');
   window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
   if(collapseArchivedGroups){
