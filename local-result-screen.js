@@ -7,6 +7,8 @@
  const initial=name=>String(name||'?').trim().slice(0,1).toUpperCase()||'?';
  const fmt=value=>n(value).toFixed(2);
  let lastKey=null;
+ const params=new URLSearchParams(location.search);
+ const isTournamentAi=!!(params.get('tournamentAiMatch')&&params.get('tournament'));
 
  function hide(){
    document.getElementById('dartArenaResultOverlay')?.remove();
@@ -172,7 +174,9 @@
    const [a,b]=order;
    const winner=Number.isInteger(state.winner)?state.players[state.winner]:null;
    const result=payload.scores||[0,0];
-   const note='DartArena • lokal kamp, lagret bare i denne nettleseren';
+   const note=isTournamentAi
+     ?'DartArena • turneringskamp. Resultatet kontrolleres og registreres i turneringen.'
+     :'DartArena • lokal kamp, lagret bare i denne nettleseren';
    document.body.classList.add('da-result-open');
    const overlay=document.createElement('div');
    overlay.id='dartArenaResultOverlay';
@@ -185,17 +189,25 @@
      '<div class="da-result-stats">'+playerCard(a,state,payload.stats)+playerCard(b,state,payload.stats)+'</div>'+
      comparisonTable(state,payload.stats,order)+
      summaryHtml(payload.summary,state)+
-     '<div class="da-result-actions"><button type="button" class="primary" id="daLocalResultNew">Ny kamp</button>'+
-     '<button type="button" class="outline" id="daLocalResultLobby">Til lobby</button>'+
+     '<div class="da-result-actions">'+(isTournamentAi?'':'<button type="button" class="primary" id="daLocalResultNew">Ny kamp</button>')+
+     '<button type="button" class="'+(isTournamentAi?'primary':'outline')+'" id="daLocalResultLobby">'+(isTournamentAi?'Til turnering':'Til lobby')+'</button>'+
      '<button type="button" class="outline" id="daLocalResultReview">Se kampskjerm</button></div>'+
      '<p class="da-result-note">'+esc(note)+'</p></section>';
    document.body.appendChild(overlay);
-   overlay.querySelector('#daLocalResultNew').addEventListener('click',()=>{
+   overlay.querySelector('#daLocalResultNew')?.addEventListener('click',()=>{
      if(typeof onRematch!=='function')return;
      hide();
      onRematch();
    });
-   overlay.querySelector('#daLocalResultLobby').addEventListener('click',()=>{location.href='./'});
+   overlay.querySelector('#daLocalResultLobby').addEventListener('click',()=>{
+     if(!isTournamentAi){location.href='./';return}
+     if(typeof root.DartArenaTournamentAiMatch?.returnToTournament==='function'){
+       root.DartArenaTournamentAiMatch.returnToTournament();
+     }else{
+       const note=overlay.querySelector('.da-result-note');
+       if(note)note.textContent='Kunne ikke kontrollere turneringsresultatet. Oppdater siden og prøv igjen.';
+     }
+   });
    overlay.querySelector('#daLocalResultReview').addEventListener('click',hide);
  }
  function sync(state,kind,onRematch){
