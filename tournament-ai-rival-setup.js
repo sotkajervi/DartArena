@@ -24,7 +24,7 @@
    add.disabled=busy||!active||!supported||!select.value||!!selected;
    remove.disabled=busy||!active||!selected;
    select.disabled=busy||!!selected;
-   status.textContent=lastError?lastError:!supported?'AI Rival i puljer krever 170, 501 eller 1001. 301 DI/DO er foreløpig bare tilgjengelig som egen AI-kamp.':selected?'Valgt AI Rival: '+(select.selectedOptions[0]?.textContent||'Spiller')+'. Puljetrekkingen inkluderer AI Rival.':'Velg en spiller AI Rival skal etterligne. AI Rival deltar i puljespillet og gir WO i cup.';
+   status.textContent=lastError?lastError:!supported?'AI Rival i puljer krever 170, 501 eller 1001. 301 DI/DO er foreløpig bare tilgjengelig som egen AI-kamp.':selected?'Valgt treningsmotstander: '+(select.selectedOptions[0]?.textContent||'Spiller')+'. AI vises separat og teller ikke i tabell eller cup.':'Velg en spiller AI Rival skal etterligne. AI brukes kun som treningsmotstander, uten kvalifiseringsplass eller cup-WO.';
  }
  async function loadSelection(){
   if(!tournament||tournament.status!=='groups_setup'){panel.classList.add('hidden');return;}
