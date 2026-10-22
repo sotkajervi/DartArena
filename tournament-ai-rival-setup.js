@@ -44,6 +44,7 @@
   busy=true;lastError='';refresh();
   try{
    if(op==='add'){
+    if(!['170','501','1001'].includes(document.getElementById('tournamentGame')?.value||String(tournament?.game||501)))throw Error('AI Rival er tilgjengelig i 170, 501 og 1001-puljer.');
     if(!select.value)throw Error('Velg en spiller først.');
     const {count,error:historyError}=await db.from('match_throws').select('id',{count:'exact',head:true}).eq('player_id',select.value).eq('is_checkout',false);
     if(historyError)throw Error('Kunne ikke kontrollere spillerhistorikken: '+historyError.message);
@@ -62,7 +63,7 @@
   finally{busy=false;refresh();}
  }
  select.addEventListener('change',refresh);
- document.getElementById('tournamentGame')?.addEventListener('change',refresh);
+ document.addEventListener('change',event=>{if(event.target?.id==='tournamentGame')refresh()});
  add.addEventListener('click',()=>mutate('add'));
  remove.addEventListener('click',()=>mutate('remove'));
  document.addEventListener('click',event=>{
