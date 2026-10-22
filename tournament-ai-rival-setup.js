@@ -66,14 +66,23 @@
  document.addEventListener('change',event=>{if(event.target?.id==='tournamentGame')refresh()});
  add.addEventListener('click',()=>mutate('add'));
  remove.addEventListener('click',()=>mutate('remove'));
+ function openAiMatch(row){
+  if(!row||row.dataset.aiStatus!=='pending'||tournament?.status!=='groups')return;
+  if(row.dataset.aiHuman!==me){
+   if(window.DartArenaDialog?.alert)window.DartArenaDialog.alert('Bare spilleren som er satt opp mot AI Rival kan starte denne kampen.',{title:'AI Rival'});
+   return;
+  }
+  const match=row.dataset.aiMatch,model=row.dataset.aiModel,legs=Number(row.dataset.aiBestOf);
+  const format=Number(tournament?.game);
+  if(!match||!model||!Number.isInteger(legs)||legs<1||![170,501,1001].includes(format))return;
+  location.assign('ai-rival-501.html?player='+encodeURIComponent(model)+'&format='+encodeURIComponent(format)+'&legs='+encodeURIComponent(legs)+'&tournament='+encodeURIComponent(id)+'&tournamentAiMatch='+encodeURIComponent(match));
+ }
  document.addEventListener('click',event=>{
-  const row=event.target.closest('.match-row[data-ai-match]');
-  if(!row||row.dataset.aiHuman!==me)return;
-  const match=row.dataset.aiMatch,model=row.dataset.aiModel,legs=row.dataset.aiBestOf;
-  if(!match||!model||!legs)return;
+  const button=event.target.closest('.ai-rival-start-btn');
+  if(!button)return;
   event.preventDefault();
-  const format=Number(tournament?.game)||501;
-  location.href='ai-rival-501.html?player='+encodeURIComponent(model)+'&format='+encodeURIComponent(format)+'&legs='+encodeURIComponent(legs)+'&tournament='+encodeURIComponent(id)+'&tournamentAiMatch='+encodeURIComponent(match);
+  event.stopPropagation();
+  openAiMatch(button.closest('.match-row[data-ai-match]'));
  });
  window.addEventListener('dartarena:tournament-loaded',loadSelection);
 })();
