@@ -57,7 +57,7 @@ body::after{display:none!important}
 .rival-panel{background:#102126!important;border:1px solid #2d4e54!important;border-radius:19px;padding:32px!important;box-shadow:0 24px 70px rgba(0,0,0,.32)!important}
 .rival-panel h2{font-size:27px;font-weight:850;letter-spacing:-.035em;margin:8px 0 28px}
 .rival-panel small{font-size:12px}
-.rival-setup{grid-template-columns:minmax(0,1.7fr) 132px;gap:18px}
+.rival-setup{grid-template-columns:minmax(0,1.7fr) minmax(145px,.9fr) 132px;gap:18px}
 .rival-setup label,.rival-entry label{font-size:14px;color:#c2d6d9;gap:10px}
 .rival-setup select,.rival-entry select,.rival-entry input{height:56px!important;min-height:56px!important;font-size:16px!important;font-weight:700!important;background:#061316!important;border:1px solid #34585f!important;border-radius:12px!important;color:#f1ffff!important;padding:14px 17px!important}
 .rival-setup .rival-primary{grid-column:1/-1;height:58px!important;font-size:16px!important;letter-spacing:.01em!important;border-radius:12px!important;background:linear-gradient(110deg,#02e6ef,#00b9c6)!important;color:#052327!important;border:0!important;box-shadow:0 8px 26px rgba(0,220,231,.13)}
@@ -75,8 +75,9 @@ body::after{display:none!important}
 <div class="rival-hero"><div><small style="color:#00eaf4;font-size:11px;letter-spacing:.14em;font-weight:900">SCORINGARENA / TRENING</small><h1>AI <span style="color:#00eaf4">Rival</span></h1><p>Spill 501 mot en simulering basert på dine egne eller en annen DartArena-spillers registrerte runder. Treningsresultatene påvirker ikke onlinekampene, ranking eller turneringer.</p></div><a class="rival-back" href="./scoringarena.html">← Til ScoringArena</a></div>
 <section class="rival-panel" aria-label="Kampinnstillinger"><small>KAMPINNSTILLINGER</small><h2>Velg din AI-motstander</h2>
 <div class="rival-setup"><label>DartArena-spiller<select id="rivalPlayer"><option value="">Laster profiler…</option></select></label>
+<label>Spillmodus<select id="rivalFormat"><option value="501" selected>501 – Double Out</option><option value="170">170 – Double Out</option><option value="301">301 – Double In / Double Out</option><option value="1001">1001 – Double Out</option></select></label>
 <label>Best av<select id="rivalLegs"><option>1</option><option selected>3</option><option>5</option><option>7</option><option>9</option></select></label>
-<button class="rival-primary" id="rivalStart" disabled>Start 501-kamp →</button></div>
+<button class="rival-primary" id="rivalStart" disabled>Start AI-kamp →</button></div>
 <div class="rival-info"><p id="rivalModel">Laster spillerstatistikk…</p><p id="rivalNotice" role="status"></p></div>
 </section>
 <section id="rivalGame" class="rival-hidden">
@@ -89,6 +90,6 @@ body::after{display:none!important}
 </section></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
 <script src="./local-h2h-engine.js?v=20261011-online-parity1"></script>
-<script src="./ai-rival-model.js?v=20261021-calibrated1"></script>
-<script src="./ai-rival.js?v=20261021-calibrated1"></script>
+<script src="./ai-rival-model.js?v=20261022-x01modes1"></script>
+<script src="./ai-rival.js?v=20261022-x01modes1"></script>
 </body></html>
