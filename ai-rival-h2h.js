@@ -4,7 +4,9 @@
 const E=window.DartArenaLocalH2HEngine;
 const B=window.DartArenaBotEngine;
 const tournamentFixture=new URLSearchParams(location.search).get('tournamentAiMatch');
-const BOT_SESSION_KEY=tournamentFixture?'dartarena-ai-rival-tournament-bot-session-'+tournamentFixture:'dartarena-ai-rival-501-bot-session-v1';
+const requestedX01=Number(new URLSearchParams(location.search).get('format'))||501;
+const rivalStorageFormat=[170,301,501,1001].includes(requestedX01)?requestedX01:501;
+const BOT_SESSION_KEY=tournamentFixture?'dartarena-ai-rival-tournament-bot-session-'+tournamentFixture:rivalStorageFormat===501?'dartarena-ai-rival-501-bot-session-v1':'dartarena-ai-rival-'+rivalStorageFormat+'-bot-session-v1';
 const ADAPT_KEY='dartarena-bot-adaptive-v1';
 const BOT_PERSONAS={
   steady:['Clockwork','The Metronome','Iron Mike'],
@@ -15,7 +17,7 @@ const BOT_PERSONAS={
 };
 const $=id=>document.getElementById(id);
 if(!E||!$('localSetupForm'))return;
-const KEY=tournamentFixture?'dartarena-ai-rival-tournament-state-'+tournamentFixture:'dartarena-ai-rival-501-state-v1';
+const KEY=tournamentFixture?'dartarena-ai-rival-tournament-state-'+tournamentFixture:rivalStorageFormat===501?'dartarena-ai-rival-501-state-v1':'dartarena-ai-rival-'+rivalStorageFormat+'-state-v1';
 let state=null,pendingCheckout=null,editingIndex=null,betweenTimer=null,botTimer=null,coinBusy=false,
   botConfig=null,botRecorded=false,message='Skriv score og trykk Enter.',isError=false;
 const ui={
