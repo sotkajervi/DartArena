@@ -2,6 +2,7 @@
 (()=>{
 'use strict';
 const G=window.DartArenaAutoZoom;
+const TipMap=window.DartArenaAutoZoomTipMap;
 const $=id=>document.getElementById(id);
 const els={
   stage:$('azStage'),video:$('azVideo'),overlay:$('azOverlay'),zoom:$('azZoom'),camera:$('azCamera'),
@@ -21,6 +22,7 @@ let changeGate=G.createChangeGate({stableFrames:5,motionWindowMs:4000,cooldownMs
 let accepted=0,analysisTimer=null,animationFrame=null,current=null,target=null,lastLabel='T20';
 let autoEnabled=true,starting=false;
 let pendingMotion=null, rejected=0;
+let visibleZoomCrop=null,zoomTip=null,heatmapHitReady=false;
 async function refreshDevices(){
   if(!navigator.mediaDevices?.enumerateDevices)return;
   const selected=els.camera.value;
@@ -76,6 +78,7 @@ function aimLabel(label){
 }
 function clearDetection(){
   base=null;previous=null;quiet=0;pendingMotion=null;rejected=0;changeGate.reset();
+  visibleZoomCrop=null;zoomTip=null;heatmapHitReady=false;
 }
 function cropFrame(){
   if(!stream||!els.video.videoWidth||!board)return;
@@ -91,7 +94,23 @@ function cropFrame(){
   zoomCtx.clearRect(0,0,z.width,z.height);
   try{
     zoomCtx.drawImage(els.video,crop.x,crop.y,crop.width,crop.height,0,0,z.width,z.height);
-  }catch{}
+    visibleZoomCrop={...crop};
+    const marker=zoomTip&&TipMap?.pointOnZoom(zoomTip,crop,z.width,z.height);
+    if(marker){
+      const confirmed=zoomTip.confirmed;
+      zoomCtx.save();
+      zoomCtx.beginPath();zoomCtx.arc(marker.x,marker.y,8,0,Math.PI*2);
+      zoomCtx.strokeStyle=confirmed?'#eaffff':zoomTip.tipDetected?'#24d6d0':'#ffb547';
+      zoomCtx.lineWidth=2.5;zoomCtx.shadowColor=zoomCtx.strokeStyle;zoomCtx.shadowBlur=9;zoomCtx.stroke();
+      zoomCtx.beginPath();zoomCtx.moveTo(marker.x-3,marker.y);zoomCtx.lineTo(marker.x+3,marker.y);
+      zoomCtx.moveTo(marker.x,marker.y-3);zoomCtx.lineTo(marker.x,marker.y+3);zoomCtx.stroke();
+      zoomCtx.shadowBlur=0;zoomCtx.font='bold 12px sans-serif';
+      zoomCtx.fillStyle=zoomCtx.strokeStyle;
+      zoomCtx.fillText(confirmed?'BEKREFTET SPISS':zoomTip.tipDetected?'SPISSFORSLAG':'USIKKERT ESTIMAT',
+        Math.min(z.width-130,Math.max(7,marker.x+12)),Math.max(16,marker.y-12));
+      zoomCtx.restore();
+    }
+  }catch{visibleZoomCrop=null}
 }
 function animate(){
   cropFrame();
@@ -163,6 +182,7 @@ function analyse(){
   const x=hit.x*els.video.videoWidth/w,y=hit.y*els.video.videoHeight/h;
   window.dispatchEvent(new CustomEvent('dartarena:autozoom-test-hit',{detail:{
     base,frame:new Uint8ClampedArray(frame),width:w,height:h,hit,
+    sourceWidth:els.video.videoWidth,sourceHeight:els.video.videoHeight,
     board:boardSmall
   }}));
   aim(x,y,'Siste endring');
@@ -178,6 +198,7 @@ function stopCamera(){
   if(stream){stream.getTracks().forEach(track=>track.stop());stream=null}
   els.video.pause();els.video.srcObject=null;
   board=null;calibrationBull=null;calibrationStep=0;current=null;target=null;
+  zoomTip=null;heatmapHitReady=false;visibleZoomCrop=null;
   clearDetection();
   ctx.clearRect(0,0,els.overlay.width,els.overlay.height);
   zoomCtx.clearRect(0,0,els.zoom.width,els.zoom.height);
@@ -221,6 +242,23 @@ function startCalibration(){
   status('Klikk midt i Bull på hovedbildet.');
   overlay();
 }
+window.addEventListener('dartarena:autozoom-tip-estimate',event=>{
+  const detail=event.detail||{};
+  if(!stream||!board||![detail.x,detail.y].every(Number.isFinite))return;
+  zoomTip={x:detail.x,y:detail.y,tipDetected:detail.tipDetected===true,confirmed:false};
+  heatmapHitReady=true;
+});
+window.addEventListener('dartarena:autozoom-test-reset',()=>{zoomTip=null;heatmapHitReady=false;visibleZoomCrop=null});
+els.zoom.addEventListener('click',event=>{
+  if(!TipMap||!stream||!board||!heatmapHitReady||!visibleZoomCrop)return;
+  const point=TipMap.pointFromZoom(event,els.zoom.getBoundingClientRect(),visibleZoomCrop,els.zoom.width,els.zoom.height);
+  if(!point||Math.hypot(point.x-board.x,point.y-board.y)>board.radius*1.55){
+    status('Klikk der pilspissen går inn i skiva, innenfor det synlige skiveområdet.');return;
+  }
+  window.dispatchEvent(new CustomEvent('dartarena:autozoom-tip-confirmed',{detail:{x:point.x,y:point.y}}));
+  zoomTip={...point,tipDetected:true,confirmed:true};
+  status('Pilspiss bekreftet i ZoomCam. Heatmap er oppdatert – ingen poeng er registrert.');
+});
 els.overlay.addEventListener('click',event=>{
   if(!stream)return;
   const rect=els.overlay.getBoundingClientRect();
