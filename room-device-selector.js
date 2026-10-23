@@ -11,6 +11,8 @@
   const CAMERA_KEY = 'dartarena-preferred-camera';
   const MIC_KEY = 'dartarena-preferred-microphone';
   const Z = window.DartArenaZoomCam;
+  const P = window.DartArenaCameraPicture;
+  const pictureSession=()=>window.DartArenaRoomPictureSession||null;
   let zoomSession = null;
   let switching = false;
   let meterContext = null;
@@ -20,7 +22,8 @@
   let initializedStream = null;
 
   const currentTrack = kind => stream?.getTracks?.().find(track => track.kind === kind && track.readyState === 'live') || null;
-  const currentDeviceId = kind => (kind==='video'&&zoomSession?zoomSession.sourceTrack:currentTrack(kind))?.getSettings?.().deviceId || '';
+  const sourceVideo=()=>zoomSession?.sourceTrack||pictureSession()?.sourceTrack||currentTrack('video');
+  const currentDeviceId = kind => (kind==='video'?sourceVideo():currentTrack(kind))?.getSettings?.().deviceId || '';
   const roomStreamReady = () => !!stream?.getTracks?.().length;
 
   function setMicLevel(value) {
@@ -178,7 +181,7 @@
     if (!deviceId || switching || !navigator.mediaDevices?.getUserMedia || !roomStreamReady()) return;
     if(kind==='video'&&deviceId===Z?.ZOOM_VALUE){
       if(!Z||zoomSession)return;
-      const config=Z.loadConfig(localStorage),sourceTrack=currentTrack('video');
+      const config=Z.loadConfig(localStorage),sourceTrack=sourceVideo();
       if(!config||!sourceTrack||!Z.compatible(config,sourceTrack,
         sourceTrack.getSettings?.().width||1280,sourceTrack.getSettings?.().height||720)){
         setStatus('Zoom-cam må kalibreres i Cam-test med samme kamera og bildeformat.');
@@ -190,7 +193,10 @@
         next=Z.create(new MediaStream([sourceTrack]),config);
         const sender=pc?.getSenders?.().find(x=>x.track?.kind==='video');
         if(sender)await sender.replaceTrack(next.track);
-        stream.removeTrack(sourceTrack);stream.addTrack(next.track);
+        const outgoing=currentTrack('video');
+        if(outgoing)stream.removeTrack(outgoing);
+        stream.addTrack(next.track);
+        pictureSession()?.stop();window.DartArenaRoomPictureSession=null;
         zoomSession=next;
         Z.setSelected(localStorage,true);
         const v=document.getElementById('localVideo');
@@ -226,9 +232,15 @@
       const replacementStream=source?null:await navigator.mediaDevices.getUserMedia(mediaConstraint(kind,deviceId));
       const newTrack=source||(kind==='video'?replacementStream.getVideoTracks()[0]:replacementStream.getAudioTracks()[0]);
       if (!newTrack) throw new Error(`Mangler ${kind}-track`);
-
+      let nextPicture=null;
+      if(kind==='video'){
+        try{nextPicture=P?.createStream(new MediaStream([newTrack]))||null}
+        catch(error){console.warn('Bildejustering ved kamerabytte feilet',error)}
+      }
+      const outgoingTrack=nextPicture?.track||newTrack;
       const sender = pc?.getSenders?.().find(item => item.track?.kind === kind);
-      if (sender) await sender.replaceTrack(newTrack);
+      try{if (sender) await sender.replaceTrack(outgoingTrack)}
+      catch(error){nextPicture?.stop();if(!source)newTrack.stop();throw error}
 
       if (!stream) stream = new MediaStream();
       if (oldTrack) {
@@ -238,9 +250,13 @@
           zoomSession.stop();zoomSession=null;
           if(raw!==newTrack)raw.stop();
           Z.setSelected(localStorage,false);
-        }else try{oldTrack.stop()}catch{}
+        }else if(kind==='video'&&pictureSession()){
+          const oldPicture=pictureSession();oldPicture.stop();
+          if(oldPicture.sourceTrack!==newTrack)oldPicture.sourceTrack?.stop();
+        }else if(oldTrack!==newTrack)try{oldTrack.stop()}catch{}
       }
-      stream.addTrack(newTrack);
+      stream.addTrack(outgoingTrack);
+      if(kind==='video')window.DartArenaRoomPictureSession=nextPicture;
 
       const localVideo = document.getElementById('localVideo');
       if (localVideo) {
@@ -311,8 +327,9 @@
   waitForRoomStream();
   window.addEventListener('beforeunload',()=>{
     const raw=zoomSession?.sourceTrack;
-    zoomSession?.stop();
-    raw?.stop();
+    zoomSession?.stop();raw?.stop();
+    const enhanced=pictureSession();enhanced?.stop();enhanced?.sourceTrack?.stop();
+    window.DartArenaRoomPictureSession=null;
     stopMeter();
   });
 })();
