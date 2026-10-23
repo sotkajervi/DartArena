@@ -170,6 +170,7 @@ function receive(payload){
  const cleanRows=clean(payload.points);
  // Identical-player snapshots are authoritative only for the other player's
  // camera; save the latest one received (including their empty baseline).
+ if(cleanRows.length<(data[payload.from]||[]).length)return;
  data[payload.from]=cleanRows;remoteUpdatedAt=Date.now();persist();refreshResult();
 }
 function resultDraw(card,id){
@@ -193,6 +194,7 @@ function attachResult(result,mrow){
  if(mrow.game_variant&&mrow.game_variant!=='x01')return;
  if(String(mrow?.game_config?.chicago||'false')==='true')return;
  overlay=result;
+ if(m)m.status='finished';
  const left=mrow.winner_id===mrow.player2_id?mrow.player2_id:mrow.player1_id;
  const right=left===mrow.player1_id?mrow.player2_id:mrow.player1_id;
  const stats=result.querySelector('.da-result-stats');
@@ -231,7 +233,7 @@ async function start(){
  if(error||!row||![row.player1_id,row.player2_id].includes(userId))return;
  if(row.game_variant&&row.game_variant!=='x01')return;
  if(String(row?.game_config?.chicago||'false')==='true')return;
- m=row;playerIds=[row.player1_id,row.player2_id];
+ m=row;playerIds=[row.player1_id,row.player2_id];refreshResult();
  for(const p of playerIds)if(!data[p])data[p]=[];
  channel=db.channel('x01-heatmap-'+matchId,{config:{broadcast:{self:false}}})
    .on('broadcast',{event:'heatmap-v1'},({payload})=>receive(payload))
