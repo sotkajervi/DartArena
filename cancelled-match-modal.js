@@ -5,8 +5,10 @@
   function goLobby(){
     const matchId=new URLSearchParams(location.search).get('id');
     try{window.opener?.postMessage({type:'dartarena-match-ended',id:matchId},location.origin)}catch{}
-    window.close();
-    setTimeout(()=>{if(!window.closed)location.href='./'},150);
+    // The match can be the only browser tab. Never close it from a "Til lobby"
+    // action; navigate the existing tab so the player is not left without a page.
+    clearInterval(watchTimer);
+    location.href='./';
   }
 
   function ensureStyle(){
