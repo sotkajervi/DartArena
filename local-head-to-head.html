@@ -8,7 +8,6 @@
 <link rel="stylesheet" href="./style.css?v=20261011-unified-bg1">
 <link rel="stylesheet" href="./brand-header.css?v=20261009-mobile1">
 <link rel="stylesheet" href="./local-h2h.css?v=20261011-personas2">
-<link rel="stylesheet" href="./fx-live.css?v=20261023-fx1">
 <link rel="stylesheet" href="./shared-results.css?v=20261006-chicago3">
 <link rel="stylesheet" href="./local-result-screen.css?v=20261011-fullstats1">
 <link rel="stylesheet" href="./premium-match-stats.css?v=20261003-premium1">
@@ -19,7 +18,7 @@
   <div class="live"><i></i> LOKAL HEAD-TO-HEAD</div>
 </header>
 <main class="shell local-h2h-shell">
-  <div class="local-h2h-heading"><div><small>LOKAL 1V1 • SPILLER ELLER BOT</small><h1>Head-to-Head</h1><p class="muted compact">Velg 1v1 mot en annen spiller eller en bot som motstander. Samme scorekort, kampflyt og statistikk. <a href="./fx-preview.html" target="_blank" rel="noopener" style="color:#00eaf4;text-decoration:underline">Prøv FX Studio ↗</a></p></div><a class="outline local-back" href="./scoringarena.html">Tilbake til ScoringArena</a></div>
+  <div class="local-h2h-heading"><div><small>LOKAL 1V1 • SPILLER ELLER BOT</small><h1>Head-to-Head</h1><p class="muted compact">Velg 1v1 mot en annen spiller eller en bot som motstander. Samme scorekort, kampflyt og statistikk.</p></div><a class="outline local-back" href="./scoringarena.html">Tilbake til ScoringArena</a></div>
   <section id="localSetup" class="card local-setup">
     <div class="heading"><div><small>KAMPINNSTILLINGER</small><h2>Start lokal kamp</h2></div><span class="local-pill">Ingen kamera</span></div>
     <form id="localSetupForm" class="local-setup-form">
@@ -49,7 +48,7 @@
   <section id="localGame" hidden>
     <div class="local-game-top">
       <div><span class="local-pill" id="localFormatLabel">501</span><span class="local-pill" id="localSetLabel" hidden>Set 1</span><span class="local-pill" id="localLegLabel">Leg 1</span><span class="local-pill" id="localBestLabel">Best av 3</span></div>
-      <div class="local-game-actions"><label class="da-fx-level-control" title="Kun visuelle effekter — endrer ikke scoring">FX <select id="localFxLevel" aria-label="FX-nivå"><option value="off">Av</option><option value="minimal">Minimal</option><option value="normal">Normal</option><option value="cinematic">Cinematic</option></select></label><button id="localStatsOpen" class="outline local-mobile-stats-trigger" type="button" aria-expanded="false" aria-controls="localStatsPanel">Statistikk</button><button id="localUndo" class="outline" type="button" disabled>Angre</button><button id="localNewMatch" class="outline" type="button">Ny kamp</button></div>
+      <div class="local-game-actions"><button id="localStatsOpen" class="outline local-mobile-stats-trigger" type="button" aria-expanded="false" aria-controls="localStatsPanel">Statistikk</button><button id="localUndo" class="outline" type="button" disabled>Angre</button><button id="localNewMatch" class="outline" type="button">Ny kamp</button></div>
     </div>
     <div class="local-play-layout"><div class="local-play-main"><div class="local-board" id="localBoard">
       <article class="local-player" id="localPlayer0"><div class="local-player-top"><small>SPILLER 1</small><span class="local-current-marker" aria-hidden="true">Kaster nå</span></div><h2 class="local-match-name"><span id="localPlayerName0">Spiller 1</span><span id="localStarterMarker0" class="local-starter-mark" aria-label="Starter leget" title="Starter leget" hidden><svg viewBox="0 0 34 30" aria-hidden="true" focusable="false"><g transform="translate(7.2 0) rotate(-10 0 13)"><path class="dart-flight" d="M0 0 -4.2 2.2 -2.7 6.2 0 4.6 2.7 6.2 4.2 2.2Z"/><path class="dart-shaft" d="M0 4.5V12"/><path class="dart-barrel" d="M-1.8 11.5H1.8L2.3 18.4 1.25 21H-1.25L-2.3 18.4Z"/><path class="dart-grip" d="M-1.65 14.2H1.65M-1.8 16.2H1.8M-1.65 18.2H1.65"/><path class="dart-point" d="M0 21V28"/></g><g transform="translate(17 0) rotate(0 0 13)"><path class="dart-flight" d="M0 0 -4.2 2.2 -2.7 6.2 0 4.6 2.7 6.2 4.2 2.2Z"/><path class="dart-shaft" d="M0 4.5V12"/><path class="dart-barrel" d="M-1.8 11.5H1.8L2.3 18.4 1.25 21H-1.25L-2.3 18.4Z"/><path class="dart-grip" d="M-1.65 14.2H1.65M-1.8 16.2H1.8M-1.65 18.2H1.65"/><path class="dart-point" d="M0 21V28"/></g><g transform="translate(26.8 0) rotate(10 0 13)"><path class="dart-flight" d="M0 0 -4.2 2.2 -2.7 6.2 0 4.6 2.7 6.2 4.2 2.2Z"/><path class="dart-shaft" d="M0 4.5V12"/><path class="dart-barrel" d="M-1.8 11.5H1.8L2.3 18.4 1.25 21H-1.25L-2.3 18.4Z"/><path class="dart-grip" d="M-1.65 14.2H1.65M-1.8 16.2H1.8M-1.65 18.2H1.65"/><path class="dart-point" d="M0 21V28"/></g></svg></span></h2><div class="local-score-band"><div class="local-live-darts"><b id="localDarts0">0</b><span>PILER</span></div><div class="local-score" id="localScore0">501</div><div class="local-avg"><b id="localAverage0">–</b><span>AVG</span></div></div><div class="local-leg-label"><span><strong id="localLegs0">0</strong> LEGS</span><span id="localSetsWrap0" class="local-sets-label" hidden><strong id="localSets0">0</strong> SETS</span></div></article>
@@ -150,8 +149,7 @@
 <script src="./room-coin-flip.js?v=20261012-local1"></script>
 <script src="./local-coin-start.js?v=20261012-all1"></script>
 <script src="./local-h2h-history.js?v=20261012-recover3"></script>
-<script src="./fx-live.js?v=20261023-fx1"></script>
-<script src="./local-h2h.js?v=20261023-fx1"></script>
+<script src="./local-h2h.js?v=20261012-premiumarchive3"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
 <script src="./role-visuals.js?v=20261015-practice1"></script>
 <script src="./practice-cloud.js?v=20261015-premiumhistory2"></script>
