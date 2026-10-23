@@ -127,8 +127,8 @@ window.addEventListener('dartarena:autozoom-tip-confirmed',e=>{
  marks[index]={...marks[index],u,v,corrected:true,correctedFrom:'zoomcam'};
  selected=index;paint();
 });
-undo.onclick=()=>{marks.pop();selected=marks.length-1;paint()};
-clear.onclick=()=>{marks=[];selected=-1;paint()};
+undo.onclick=()=>{marks.pop();selected=marks.length-1;paint();window.dispatchEvent(new Event('dartarena:autozoom-tip-clear'))};
+clear.onclick=()=>{marks=[];selected=-1;paint();window.dispatchEvent(new Event('dartarena:autozoom-tip-clear'))};
 window.addEventListener('dartarena:autozoom-test-reset',()=>{marks=[];selected=-1;paint()});
 paint();
 })();
