@@ -4,24 +4,6 @@
   const done=m=>['finished','wo'].includes(m.status);
   const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const CUP_FORMAT_KEY=`dartarena-cup-format-${id}`;
-  const FX=window.DartArenaFXLive;
-  const fxSelect=$('cupFxLevel');
-  let cupFx=null,cupFxId=null;
-  if(FX&&fxSelect){
-    fxSelect.value=FX.readLevel();
-    fxSelect.addEventListener('change',()=>{
-      if(!Object.prototype.hasOwnProperty.call(FX.LEVELS,fxSelect.value))return;
-      FX.storeLevel(fxSelect.value);cupFx?.setLevel(fxSelect.value);
-    });
-  }
-  function syncCupFx(matches){
-    if(!FX||!$('cupBracket'))return;
-    if(cupFxId!==id){cupFx?.destroy();cupFx=null;cupFxId=null}
-    if(!cupFx){try{cupFx=FX.createCup({tournamentId:id,level:FX.readLevel()});cupFxId=id}
-      catch(error){console.warn('Cup FX unavailable',error);return}}
-    cupFx.afterBracketRender(matches);
-  }
-  window.addEventListener('pagehide',()=>{cupFx?.destroy();cupFx=null;cupFxId=null});
 
   function isChicagoTournament(){try{return String(tournament?.cup_game_variant||tournament?.game_variant||'x01').toLowerCase()==='chicago'}catch{return false}}
   function nextPow2(n){let x=1;while(x<n)x*=2;return x}
@@ -192,8 +174,7 @@
     const finalRound=d.cm.filter(m=>Number(m.round_no)===Number(max));
     const final=finalRound.length===1?finalRound[0]:null;
     $('cupBracket').innerHTML=Array.from({length:max},(_,i)=>i+1).map(r=>{const rm=d.cm.filter(m=>m.round_no===r),bo=rm[0]?.best_of;return `<div class="cup-round"><div class="cup-round-title">${cupRoundName(r,2**max)}${isChicagoTournament()?' • Chicago Style':bo?` • Bo${bo}`:''}</div>${rm.map(m=>{const score=m.status==='live'?`${Number(m._live_player1_legs??m.player1_legs??0)}–${Number(m._live_player2_legs??m.player2_legs??0)}`:done(m)&&!m.is_wo?`${m.player1_legs||0}–${m.player2_legs||0}`:m.is_wo?'WO':'vs',aBye=r===1&&m.is_wo&&!m.player1_id,bBye=r===1&&m.is_wo&&!m.player2_id;const avgs=matchAverages.get(m.id);return `<div class="cup-match" data-match="${m.id}"><div class="cup-player ${m.winner_id===m.player1_id&&m.player1_id?'winner':''}">${aBye&&m.ai_rival_wo?'<span class="cup-bye">AI Rival · WO</span>':cupPlayerHtml(m.player1_id,seedById,{bye:aBye,avg:avgs?.get(m.player1_id)})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner_id===m.player2_id&&m.player2_id?'winner':''}">${bBye&&m.ai_rival_wo?'<span class="cup-bye">AI Rival · WO</span>':cupPlayerHtml(m.player2_id,seedById,{bye:bBye,avg:avgs?.get(m.player2_id)})}</div></div>`}).join('')}</div>`}).join('');
-    syncCupFx(d.cm);
-     window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
+    window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
     if(finalRound.length!==1){$('cupProgress').textContent='Cupoppsettet må kontrolleres: ugyldig finalerunde';return}
     $('cupProgress').textContent=final?.winner_id?`Vinner: ${names[final.winner_id]||'Spiller'}`:`${d.cm.filter(done).length} / ${d.cm.length} kamper ferdig`;
     if(advancementBlocked)$('cupProgress').textContent+=' • Vinner venter på overføring til neste runde';
