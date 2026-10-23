@@ -166,7 +166,8 @@ test('room-to-match navigation stays in the current tab', () => {
 
 test('completed-match result screen retains a same-tab Til lobby action', () => {
   const screen = fs.readFileSync(path.join(root, 'shared-results.js'), 'utf8');
-  assert.match(screen, /daResultLobby'\)\.onclick=\(\)=>location\.href='\.\/'/);
+  assert.match(screen, /overlay\.querySelector\('#daResultLobby'\)\.onclick=returnFromResult/);
+  assert.match(screen, /if\(!resultTournamentMatchId\)return '\.\/'/);
 });
 
 
@@ -201,7 +202,7 @@ test('opponent-cancelled popup Til lobby navigates SAME tab and never calls wind
         if (tag === 'style') return { textContent: '', id: '' };
         modal = {
           id: '', className: '', classList: modalClasses,
-          setAttribute() {}, innerHTML: ''
+          setAttribute() {}, innerHTML: '', querySelector() { return null; }
         };
         return modal;
       },
