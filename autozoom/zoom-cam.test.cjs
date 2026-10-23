@@ -96,14 +96,14 @@ test('Zoom-cam has fallback when captureStream is unsupported',()=>{
 });
 test('main lobby Cam-test includes calibration code and the physical camera selector',()=>{
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-  assert.match(html,/autozoom\/camera-calibration\.js\?v=20261020-framing1/);
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261020-framing1/);
+  assert.match(html,/autozoom\/camera-calibration\.js\?v=20261023-picture1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261023-picture1/);
   assert.match(html,/id="cameraTestCameraSelect"/);
 });
 test('waiting room includes calibrated Zoom-cam selection and real sender.replaceTrack',()=>{
   const html=fs.readFileSync(path.join(root,'room.html'),'utf8');
   const js=fs.readFileSync(path.join(root,'room-device-selector.js'),'utf8');
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261020-framing1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261023-picture1/);
   assert.match(js,/ZOOM_VALUE/);
   assert.match(js,/option\.textContent='Zoom-cam \(kalibrert\)'/);
   assert.match(js,/sender\.replaceTrack\(next\.track\)/);
@@ -113,7 +113,7 @@ test('waiting room includes calibrated Zoom-cam selection and real sender.replac
 test('X01 match reloads physical input and composes actual outbound video',()=>{
   const html=fs.readFileSync(path.join(root,'match.html'),'utf8');
   const js=fs.readFileSync(path.join(root,'match.js'),'utf8');
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261020-framing1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261023-picture1/);
   assert.match(js,/Z\.create\(raw,config\)/);
   assert.match(js,/stream=zoomCamSession\.stream/);
   assert.match(js,/deviceId:\{exact:config\.deviceId\}/);
@@ -261,5 +261,18 @@ test('Cam-test offers zoom, draggable positioning, reset and optional inset guid
   assert.match(ui,/pointermove/);
   assert.match(ui,/\.\.\.settings,\.\.\.framing/);
   const match=fs.readFileSync(path.join(root,'match.html'),'utf8');
-  assert.match(match,/autozoom\/zoom-cam\.js\?v=20261020-framing1/);
+  assert.match(match,/autozoom\/zoom-cam\.js\?v=20261023-picture1/);
+});
+
+test('Cam-test picture controls load after calibration and stay separate from detection',()=>{
+  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+  const i=html.indexOf('autozoom/camera-calibration.js?v=20261023-picture1');
+  const pic=html.indexOf('camera-picture.js?v=20261023-picture1');
+  assert.ok(i>0&&pic>i);
+  assert.match(html,/camera-test\.css\?v=20261023-picture1/);
+  const calibration=fs.readFileSync(path.join(root,'autozoom','camera-calibration.js'),'utf8');
+  assert.match(calibration,/picture:false/);
+  const zoom=fs.readFileSync(path.join(root,'autozoom','zoom-cam.js'),'utf8');
+  assert.match(zoom,/P\.cssFilter/);
+  assert.match(zoom,/sampleCtx\.drawImage\(video/);
 });
