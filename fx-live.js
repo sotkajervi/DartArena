@@ -2,6 +2,9 @@
 (function(root){
 'use strict';
 const LEVELS=Object.freeze({off:0,minimal:1,normal:2,cinematic:3});
+const EFFECT_MIN_LEVEL=Object.freeze({rolling_score:1,neon_relay:2,led_score_rail:1,cinematic_switch:3,elimination_fx:2,bracket_power:2});
+const DEFAULT_EFFECTS=Object.freeze(Object.fromEntries(Object.keys(EFFECT_MIN_LEVEL).map(name=>[name,true])));
+function effectsFrom(input){const result={...DEFAULT_EFFECTS};for(const key of Object.keys(result)){if(typeof input?.[key]==='boolean')result[key]=input[key]}return result}
 const KEY='dartarena-fx-level-v1';
 const validLevel=s=>Object.prototype.hasOwnProperty.call(LEVELS,s);
 function readLevel(){try{const s=root.localStorage.getItem(KEY);return validLevel(s)?s:'off'}catch{return 'off'}}
@@ -18,6 +21,8 @@ function connectSelect(element,instance){
 function engine(matchId,options={}){
   const doc=options.document||root.document,seen=new Set(),order=[],active=new Map();
   let level=validLevel(options.level)?options.level:'off',dead=false;
+  let effects=effectsFrom(options.effects);
+  const can=name=>!!effects[name]&&LEVELS[level]>=EFFECT_MIN_LEVEL[name]&&!reduced();
   const targets=options.targets||{};
   function find(key){const target=targets[key];return typeof target==='function'?target():typeof target==='string'?doc.querySelector(target):target||null}
   function stopAll(){for(const controller of active.values())controller.abort();active.clear()}
@@ -38,26 +43,27 @@ function engine(matchId,options={}){
        e.previousScore>=2&&e.newScore!==1&&(e.newScore!==0||e.checkout===true)&&
        Number.isInteger(e.scored)&&e.scored>0&&e.scored<=180&&
        e.previousScore-e.newScore===e.scored&&!e.bust&&!e.undo){
-      if(LEVELS[level]>=1){
-        play('rolling:'+e.playerSlot,signal=>rolling(doc,find(e.playerSlot),e,signal,level));
-        play('rail:'+e.playerSlot,()=>{const rail=find('rail:'+e.playerSlot);if(rail)paintRail(rail,e.newScore,e.startScore,true)});
-      }
+      if(can('rolling_score'))play('rolling:'+e.playerSlot,signal=>rolling(doc,find(e.playerSlot),e,signal,level));
+      if(can('led_score_rail'))play('rail:'+e.playerSlot,()=>{const rail=find('rail:'+e.playerSlot);if(rail)paintRail(rail,e.newScore,e.startScore,true)});
     }
     if(e.type==='turn_changed'&&e.previousSlot!==e.nextSlot&&!e.legEnded&&!e.matchEnded){
-      if(LEVELS[level]>=2)play('turn',signal=>relay(doc,find('card:'+e.previousSlot),find('card:'+e.nextSlot),signal));
-      if(LEVELS[level]>=3)play('camera',signal=>cinematic(doc,find('camera:'+e.nextSlot),signal));
+      if(can('neon_relay'))play('turn',signal=>relay(doc,find('card:'+e.previousSlot),find('card:'+e.nextSlot),signal));
+      if(can('cinematic_switch'))play('camera',signal=>cinematic(doc,find('camera:'+e.nextSlot),signal));
     }
-    if(e.type==='cup_result_confirmed'&&LEVELS[level]>=2)
+    if(e.type==='cup_result_confirmed'&&can('elimination_fx'))
       play('cup:'+e.cupMatchId,signal=>elimination(doc,e,signal));
-    if(e.type==='cup_bracket_advanced'&&LEVELS[level]>=2)
+    if(e.type==='cup_bracket_advanced'&&can('bracket_power'))
       play('bracket:'+e.cupMatchId,signal=>bracket(doc,e,signal));
     return 1;
   }
   function setLevel(next){if(!validLevel(next)||dead)return;stopAll();level=next}
+  function setEffects(next){if(dead||!next||typeof next!=='object')return;stopAll();effects=effectsFrom({...effects,...next})}
+  const getEffects=()=>({...effects});
+  const isEnabled=name=>Object.prototype.hasOwnProperty.call(effects,name)&&can(name);
   function onHide(){if(doc.hidden)stopAll()}
   function destroy(){if(dead)return;dead=true;stopAll();doc.removeEventListener('visibilitychange',onHide);root.removeEventListener('pagehide',destroy)}
   doc.addEventListener('visibilitychange',onHide);root.addEventListener('pagehide',destroy);
-  return {emit,setLevel,getLevel:()=>level,reset:stopAll,destroy,find};
+  return {emit,setLevel,getLevel:()=>level,setEffects,getEffects,isEnabled,reset:stopAll,destroy,find};
 }
 function onAbort(signal,cleanup){
   signal.addEventListener('abort',cleanup,{once:true});
@@ -183,7 +189,7 @@ function createX01(options={}){
     const card=typeof slots[s]?.card==='string'?doc.querySelector(slots[s].card):slots[s]?.card;
     const rail=makeRail(doc,card,s);if(rail){railNodes[s]=rail;targets['rail:'+s]=rail}
   }
-  const fx=engine(matchId,{document:doc,level:options.level||'off',targets});
+  const fx=engine(matchId,{document:doc,level:options.level||'off',effects:options.effects,targets});
   const scores={p1:Number(options.initialScores?.p1??start),p2:Number(options.initialScores?.p2??start)};
   let destroyed=false;
   function syncSnapshot(next={},opts={}){
@@ -191,11 +197,9 @@ function createX01(options={}){
     for(const s of ['p1','p2'])if(scoreValid(Number(next[s])))scores[s]=Number(next[s]);
     for(const s of ['p1','p2'])if(railNodes[s])paintRail(railNodes[s],scores[s],start,false);
   }
-  function setLevel(next){
-    fx.setLevel(next);
-    for(const rail of Object.values(railNodes))rail.hidden=next==='off';
-    syncSnapshot(scores);
-  }
+  function railVisibility(){for(const rail of Object.values(railNodes))rail.hidden=!fx.isEnabled('led_score_rail')}
+  function setLevel(next){fx.setLevel(next);railVisibility();syncSnapshot(scores)}
+  function setEffects(next){fx.setEffects(next);railVisibility();syncSnapshot(scores)}
   function confirmed(x){
     if(destroyed||x?.confirmed!==true||!x.eventId||!['p1','p2'].includes(x.playerSlot))return 0;
     const prev=Number(x.previousScore),newScore=Number(x.newScore),points=Number(x.scored);
@@ -229,12 +233,12 @@ function createX01(options={}){
   }
   function destroy(){if(destroyed)return;destroyed=true;fx.destroy();for(const s of ['p1','p2']){railNodes[s]?.remove();const card=doc.querySelector(typeof slots[s]?.card==='string'?slots[s].card:'#__no_fx_card__');card?.classList.remove('da-fx-rail-host')}}
   syncSnapshot(scores);setLevel(fx.getLevel());
-  return {acceptLocalTransition,acceptConfirmedOnlineVisit:confirmed,syncSnapshot,setLevel,
-    getLevel:fx.getLevel,destroy,emit:fx.emit};
+  return {acceptLocalTransition,acceptConfirmedOnlineVisit:confirmed,syncSnapshot,setLevel,setEffects,
+    getEffects:fx.getEffects,isEnabled:fx.isEnabled,getLevel:fx.getLevel,destroy,emit:fx.emit};
 }
 function createCup(options={}){
   const id=String(options.tournamentId||'');if(!id)throw Error('FX tournamentId required');
-  const fx=engine(id,{document:options.document,level:options.level||'off'});
+  const fx=engine(id,{document:options.document,level:options.level||'off',effects:options.effects});
   let known=null,disposed=false;const pending=new Map();
   const asMap=list=>new Map((list||[]).filter(m=>m?.id&&m.stage==='cup').map(m=>[String(m.id),m]));
   const human=m=>!!m.winner_id&&!!m.player1_id&&!!m.player2_id&&
@@ -264,7 +268,8 @@ function createCup(options={}){
     known=now;return count;
   }
   function destroy(){if(disposed)return;disposed=true;pending.clear();known=null;fx.destroy()}
-  return {afterBracketRender,setLevel:fx.setLevel,getLevel:fx.getLevel,destroy,emit:fx.emit};
+  return {afterBracketRender,setLevel:fx.setLevel,setEffects:fx.setEffects,getEffects:fx.getEffects,
+    isEnabled:fx.isEnabled,getLevel:fx.getLevel,destroy,emit:fx.emit};
 }
-root.DartArenaFXLive=Object.freeze({LEVELS,readLevel,storeLevel,connectSelect,createX01,createCup,engine});
+root.DartArenaFXLive=Object.freeze({LEVELS,EFFECT_MIN_LEVEL,DEFAULT_EFFECTS,readLevel,storeLevel,connectSelect,createX01,createCup,engine});
 })(window);
