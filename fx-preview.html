@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="no"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#071012"><title>DartArena • FX Studio</title>
+<link rel="stylesheet" href="./style.css?v=20261011-unified-bg1"><link rel="stylesheet" href="./brand-header.css?v=20261009-mobile1">
+<link rel="stylesheet" href="./fx-live.css?v=20261023-fx1">
+<style>
+.fx-studio{max-width:1100px;margin:0 auto;padding:20px 14px 60px}
+.fx-studio-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.fx-studio h1{margin:0 0 4px}.fx-studio p{color:#9fb8bf;line-height:1.5}
+.fx-studio-panel{border:1px solid rgba(0,234,244,.19);border-radius:16px;padding:18px;background:rgba(5,20,24,.88);margin-top:16px}
+.fx-studio-panel h2{font-size:18px;margin:0 0 12px}
+.fx-studio-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:14px}
+.fx-studio-controls button,.fx-studio-controls a{min-height:36px}
+.fx-studio-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fx-studio-player{position:relative;border:1px solid rgba(0,234,244,.22);background:linear-gradient(145deg,#102c31,#0a171c);border-radius:14px;padding:18px;text-align:center}
+.fx-studio-player.active{border-color:#00eaf4;box-shadow:inset 0 0 0 1px rgba(0,234,244,.3)}
+.fx-studio-player strong{font-size:14px}.fx-studio-score{font-size:clamp(48px,8vw,84px);line-height:1.25;font-weight:950;letter-spacing:-.05em;display:block;font-variant-numeric:tabular-nums}
+.fx-studio-camera{height:130px;display:grid;place-items:center;border:1px solid rgba(0,234,244,.2);border-radius:10px;background:radial-gradient(circle at center,rgba(0,234,244,.11),transparent 75%),#07161b;margin-top:12px;color:#81a3aa;font-size:12px}
+.fx-studio-cup{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center}
+.fx-studio-cup .cup-match{border:1px solid rgba(0,234,244,.22);border-radius:10px;padding:9px;background:#0b1e22}
+.fx-studio-cup .cup-player{position:relative;min-height:42px;display:flex;align-items:center;padding:9px;border-radius:7px;gap:8px;font-size:13px;font-weight:800}
+.fx-studio-cup .cup-player.winner{background:rgba(0,234,244,.12);color:#00eaf4}
+.fx-studio-cup .cup-score{text-align:center;font-size:12px;color:#a1b9bd;margin:3px}
+.fx-studio-cup small{display:block;color:#74a8af;margin-bottom:7px}
+.fx-studio-note{font-size:12px;color:#9cb0b7}
+@media(max-width:630px){.fx-studio-grid{gap:7px}.fx-studio-panel{padding:12px}.fx-studio-player{padding:12px 7px}.fx-studio-camera{height:90px}.fx-studio-cup{gap:8px}.fx-studio-player strong{font-size:12px}}
+</style></head><body>
+<header><div class="brand"><a href="./" aria-label="DartArena"><img class="brand-logo" src="./assets/dartarena-logo.jpg?v=20261009-global1" width="420" height="116" alt="DartArena"></a></div><div class="live"><i></i> FX STUDIO</div></header>
+<main class="fx-studio">
+  <div class="fx-studio-top"><div><small>DESIGNTEST • KUN DEMO</small><h1>DartArena FX Studio</h1><p>Prøv effektene med simulerte resultater. Dette lagrer ingen kamper og endrer ingen turneringer.</p></div><a class="outline" href="./scoringarena.html">Til ScoringArena</a></div>
+  <div class="fx-studio-controls"><label class="da-fx-level-control">Effektnivå <select id="studioLevel" aria-label="Velg FX-nivå"><option value="off">Av</option><option value="minimal">Minimal</option><option value="normal">Normal</option><option value="cinematic">Cinematic</option></select></label><span class="fx-studio-note" id="studioLevelHint"></span></div>
+  <section class="fx-studio-panel"><h2>Score + Neon Relay + LED Score Rail + Cinematic Switch</h2>
+    <div class="fx-studio-grid">
+      <article class="fx-studio-player active" id="studioCard1"><strong>SPILLER 1</strong><span class="fx-studio-score" id="studioScore1">501</span><div class="fx-studio-camera" id="studioCam1">KAMERAVISNING • DEMO</div></article>
+      <article class="fx-studio-player" id="studioCard2"><strong>SPILLER 2</strong><span class="fx-studio-score" id="studioScore2">501</span><div class="fx-studio-camera" id="studioCam2">KAMERAVISNING • DEMO</div></article>
+    </div>
+    <div class="fx-studio-controls"><button class="primary" data-score="60">60 poeng</button><button class="primary" data-score="140">140 poeng</button><button class="primary" data-score="180">180 poeng</button><button class="outline" id="studioBust">BUST / turbytte</button><button class="outline" id="studioReset">Nullstill score</button></div>
+    <p class="fx-studio-note">Rolling Score og LED vises fra Minimal. Neon Relay fra Normal. Kamerarammen vises på Cinematic. Kameraboksene er bare illustrasjoner.</p>
+  </section>
+  <section class="fx-studio-panel"><h2>Elimination FX + Bracket Power</h2>
+    <div id="cupBracket" class="fx-studio-cup">
+      <div><small>SEMIFINALE</small><div class="cup-match" data-match="demo-semi"><div class="cup-player"><span data-user-id="demo-p1">Spiller 1</span></div><div class="cup-score" id="studioCupScore">vs</div><div class="cup-player"><span data-user-id="demo-p2">Spiller 2</span></div></div></div>
+      <div><small>FINALE</small><div class="cup-match" data-match="demo-final"><div class="cup-player" id="studioFinalFirst"><span>Venter på finalist</span></div><div class="cup-score">vs</div><div class="cup-player"><span data-user-id="demo-p3">Spiller 3</span></div></div></div>
+    </div>
+    <div class="fx-studio-controls"><button class="primary" id="studioCupWin">Spiller 1 vinner semifinalen</button><button class="outline" id="studioCupReset">Nullstill cupdemo</button></div>
+    <p class="fx-studio-note">Cup-effekter vises fra Normal og utløses bare av bekreftet resultat i et faktisk cupoppsett. Her simuleres bekreftelsen lokalt.</p>
+  </section>
+</main>
+<script src="./fx-live.js?v=20261023-fx1"></script>
+<script>
+(function(){
+'use strict';
+const FX=window.DartArenaFXLive,$=id=>document.getElementById(id);
+const score={'p1':501,'p2':501};let turn='p1',seq=0;
+let level=FX.readLevel()==='off'?'cinematic':FX.readLevel();
+const select=$('studioLevel');select.value=level;
+const x01=FX.createX01({matchId:'fx-demo-match',level,startScore:501,initialScores:{p1:501,p2:501},
+  slots:{p1:{score:'#studioScore1',card:'#studioCard1',camera:'#studioCam1'},
+    p2:{score:'#studioScore2',card:'#studioCard2',camera:'#studioCam2'}}});
+const cup=FX.createCup({tournamentId:'fx-demo-cup',level});
+function cupRows(won){
+  return [{id:'demo-semi',stage:'cup',round_no:1,match_no:1,status:won?'finished':'pending',
+    player1_id:'demo-p1',player2_id:'demo-p2',winner_id:won?'demo-p1':null},
+    {id:'demo-final',stage:'cup',round_no:2,match_no:1,status:'pending',
+      player1_id:won?'demo-p1':null,player2_id:'demo-p3',winner_id:null}];
+}
+cup.afterBracketRender(cupRows(false));
+function hint(){
+  $('studioLevelHint').textContent={
+    off:'Alle effekter av.',minimal:'Rolling Score + LED Score Rail.',
+    normal:'Rolling, LED, Neon Relay og cup-effekter.',cinematic:'Alle seks effekter.'
+  }[level]||'';
+}
+hint();
+select.addEventListener('change',()=>{
+  level=select.value;FX.storeLevel(level);x01.setLevel(level);cup.setLevel(level);hint();
+});
+function showScore(){
+  $('studioScore1').textContent=score.p1;
+  $('studioScore2').textContent=score.p2;
+  $('studioCard1').classList.toggle('active',turn==='p1');
+  $('studioCard2').classList.toggle('active',turn==='p2');
+}
+function resetScore(){
+  score.p1=501;score.p2=501;turn='p1';x01.syncSnapshot(score,{resetEffects:true});showScore();
+}
+function apply(points,bust=false){
+  if(!bust&&score[turn]<=points){resetScore();return}
+  const from=turn,to=turn==='p1'?'p2':'p1',old=score[from];
+  if(!bust)score[from]=old-points;
+  turn=to;showScore();
+  x01.acceptConfirmedOnlineVisit({confirmed:true,eventId:'studio:'+(++seq),
+    playerSlot:from,previousScore:old,newScore:score[from],scored:bust?0:points,
+    bust,previousTurnSlot:from,nextTurnSlot:to,legEnded:false,matchEnded:false});
+}
+document.querySelectorAll('[data-score]').forEach(btn=>btn.addEventListener('click',()=>apply(Number(btn.dataset.score))));
+$('studioBust').addEventListener('click',()=>apply(0,true));
+$('studioReset').addEventListener('click',resetScore);
+$('studioCupWin').addEventListener('click',()=>{
+  $('studioCupScore').textContent='3–1';
+  const match=document.querySelector('[data-match="demo-semi"]');
+  match.querySelectorAll('.cup-player')[0].classList.add('winner');
+  $('studioFinalFirst').innerHTML='<span data-user-id="demo-p1">Spiller 1</span>';
+  cup.afterBracketRender(cupRows(true));$('studioCupWin').disabled=true;
+});
+$('studioCupReset').addEventListener('click',()=>{
+  cup.afterBracketRender(cupRows(false));
+  $('studioCupScore').textContent='vs';
+  document.querySelector('[data-match="demo-semi"] .cup-player').classList.remove('winner');
+  $('studioFinalFirst').textContent='Venter på finalist';
+  $('studioCupWin').disabled=false;
+});
+window.addEventListener('pagehide',()=>{x01.destroy();cup.destroy()});
+})();
+</script>
+</body></html>
