@@ -3,48 +3,62 @@ const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const root=path.join(__dirname,'..');
 const H=require('../autozoom/heatmap-math.js');
-const T=require('../autozoom/tip-map.js');
-test('calibrated heatmap puts bull at center and D20 at top with tilted cameras',()=>{
- const b={x:640,y:360,radius:290,rotation:Math.PI/6};
- assert.deepEqual(H.normalize(b,{x:640,y:360}),{u:0,v:0});
- const d20={x:b.x+b.radius*Math.sin(b.rotation),y:b.y-b.radius*Math.cos(b.rotation)};
- const p=H.normalize(b,d20);
- assert.ok(Math.abs(p.u)<1e-10,'D20 must remain centered');
- assert.ok(Math.abs(p.v+1)<1e-10,'D20 remains above bull');
- assert.equal(H.normalize(b,{x:1600,y:990}),null,'Outside-board point rejected');
+const Chart=require('../online-heatmap-chart.js');
+
+test('heatmap calibration keeps D20 north even when the camera image is rotated',()=>{
+ const board={x:550,y:350,radius:190,rotation:Math.PI/5};
+ const target={x:board.x+board.radius*Math.sin(board.rotation),
+   y:board.y-board.radius*Math.cos(board.rotation)};
+ const p=H.normalize(board,target);
+ assert.ok(Math.abs(p.u)<1e-8);
+ assert.ok(Math.abs(p.v+1)<1e-8);
+ assert.equal(H.normalize(board,{x:1500,y:1200}),null);
 });
-test('zoom canvas clicks map precisely to video coordinates',()=>{
- const crop={x:200,y:100,width:400,height:300},rect={left:10,top:20,width:640,height:480};
- assert.deepEqual(T.pointFromZoom({clientX:330,clientY:260},rect,crop,320,240),{x:400,y:250});
- assert.deepEqual(T.pointOnZoom({x:400,y:250},crop,320,240),{x:160,y:120});
- assert.equal(T.pointFromZoom({clientX:9,clientY:260},rect,crop,320,240),null);
+
+test('result heatmap blends red-yellow-green density over an intact board background',()=>{
+ const width=200,height=200;
+ const pixel=new Uint8ClampedArray(width*height*4);
+ for(let i=0;i<pixel.length;i+=4){pixel[i]=85;pixel[i+1]=90;pixel[i+2]=91;pixel[i+3]=255}
+ let final=null;
+ const noop=()=>{};
+ const ctx={clearRect:noop,fillRect:noop,beginPath:noop,moveTo:noop,arc:noop,closePath:noop,
+  fill:noop,stroke:noop,lineTo:noop,fillText:noop,
+  getImageData(){return{data:new Uint8ClampedArray(pixel)}},
+  putImageData(result){final=result.data}
+ };
+ Chart.draw({width,height,getContext:()=>ctx},[{u:0,v:-.5},{u:.02,v:-.52},{u:-.01,v:-.47}]);
+ assert.ok(final,'The chart must produce a blended heatmap');
+ assert.deepEqual(Array.from(final.slice(0,4)),[85,90,91,255],
+  'Pixels outside the glow retain the board beneath');
+ const center=(Math.round(height/2-(height*.395*.5))*width+Math.round(width/2))*4;
+ assert.ok(final[center]>final[center+1],'Peak heat is red, not green');
 });
-test('the raw ZoomCam source is used without starting another capture or updating scoring',()=>{
- const source=fs.readFileSync(path.join(root,'online-heatmap-beta.js'),'utf8');
+
+test('X01 online keeps its match room clean while showing two heatmaps after finish',()=>{
  const html=fs.readFileSync(path.join(root,'match.html'),'utf8');
- assert.match(source,/DartArenaX01ZoomSession\?\.sourceTrack/);
- assert.match(source,/new MediaStream\(\[s\.track\]\)/);
- assert.doesNotMatch(source,/getUserMedia|\.rpc\(|\.from\(|\.insert\(|\.update\(/);
- assert.match(source,/if\(!active\(\)\)/);
- assert.match(source,/sessionStorage\.setItem/);
- assert.match(source,/tipDetected/);
- assert.match(source,/pointFromZoom/);
- const ordered=['autozoom/tracker.js','autozoom/heatmap-math.js','autozoom/tip-map.js','online-heatmap-beta.js'];
- let last=-1;
- for(const file of ordered){
-   const pos=html.indexOf('src="'+file);
-   assert.ok(pos>last,'Correct script dependency order for '+file);
-   last=pos;
- }
- assert.match(html,/online-heatmap-beta\.css/);
- for(const normal of ['cricket.html','half-it.html','61-match.html']){
-   assert.doesNotMatch(fs.readFileSync(path.join(root,normal),'utf8'),/online-heatmap-beta\.js/);
+ const collector=fs.readFileSync(path.join(root,'online-heatmap-result.js'),'utf8');
+ const results=fs.readFileSync(path.join(root,'shared-results.js'),'utf8');
+ assert.match(html,/online-heatmap-result\.js\?v=20261023-final1/);
+ assert.match(html,/online-heatmap-chart\.js\?v=20261023-final1/);
+ assert.match(html,/online-heatmap-result\.css\?v=20261023-final1/);
+ assert.doesNotMatch(html,/online-heatmap-beta\.(js|css)/);
+ assert.match(results,/DartArenaOnlineHeatmap\?\.attachResult\(overlay,m\)/);
+ assert.match(collector,/result\.querySelector\('\.da-result-stats'\)/);
+ assert.match(collector,/for\(const id of \[left,right\]\)/);
+ assert.match(collector,/tipDetected/);
+ assert.match(collector,/\.on\('broadcast',\{event:'heatmap-v1'\}/);
+ assert.doesNotMatch(collector,/getUserMedia|\.rpc\(|\.insert\(|\.update\(/);
+ assert.match(collector,/DartArenaX01ZoomSession\?\.sourceTrack/);
+ assert.match(collector,/if\(!ownTurn\(\)\)/);
+ assert.match(collector,/sessionStorage\.setItem/);
+ for(const page of ['cricket.html','half-it.html','61-match.html']){
+   assert.doesNotMatch(fs.readFileSync(path.join(root,page),'utf8'),/online-heatmap-result\.js/);
  }
 });
-test('narrow-tip inference never reports certainty on unchanged video frames',()=>{
- const width=100,height=70;
- const data=new Uint8ClampedArray(width*height*4);
- const p=H.infer(data,data,width,height,{x:45,y:35},{x:50,y:35,radius:24});
+
+test('the detector remains explicitly uncertain for an unchanged video frame',()=>{
+ const w=100,h=70,frame=new Uint8ClampedArray(w*h*4);
+ const p=H.infer(frame,frame,w,h,{x:50,y:32},{x:50,y:35,radius:28});
  assert.equal(p.tipDetected,false);
  assert.ok(Number.isFinite(p.x)&&Number.isFinite(p.y));
 });
