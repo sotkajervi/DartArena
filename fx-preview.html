@@ -2,7 +2,7 @@
 <html lang="no"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#071012"><title>DartArena • FX Studio</title>
 <link rel="stylesheet" href="./style.css?v=20261011-unified-bg1"><link rel="stylesheet" href="./brand-header.css?v=20261009-mobile1">
-<link rel="stylesheet" href="./fx-live.css?v=20261023-handoff1">
+<link rel="stylesheet" href="./fx-live.css?v=20261023-sweep2">
 <style>
 .fx-studio{max-width:1100px;margin:0 auto;padding:20px 14px 60px}
 .fx-studio-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -44,7 +44,7 @@
     <label class="fx-studio-toggle"><input type="checkbox" data-fx-effect="rolling_score"><span class="fx-studio-toggle-copy"><strong>Rolling Score</strong><small>Poengsummen teller animert ned</small></span></label>
     <label class="fx-studio-toggle"><input type="checkbox" data-fx-effect="neon_relay"><span class="fx-studio-toggle-copy"><strong>Neon Relay</strong><small>Neonlys ved bytte av spiller</small></span></label>
     <label class="fx-studio-toggle"><input type="checkbox" data-fx-effect="led_score_rail"><span class="fx-studio-toggle-copy"><strong>LED Score Rail</strong><small>Lysstripe som viser poengfremdriften</small></span></label>
-    <label class="fx-studio-toggle"><input type="checkbox" data-fx-effect="cinematic_switch"><span class="fx-studio-toggle-copy"><strong>Cinematic Switch</strong><small>Turkis lysstripe som går fra forrige spillerkort til neste</small></span></label>
+    <label class="fx-studio-toggle"><input type="checkbox" data-fx-effect="cinematic_switch"><span class="fx-studio-toggle-copy"><strong>Cinematic Switch</strong><small>Kraftig lysstripe over hele spillerkortet ved turbytte</small></span></label>
     <label class="fx-studio-toggle"><input type="checkbox" data-fx-effect="elimination_fx"><span class="fx-studio-toggle-copy"><strong>Elimination FX</strong><small>Effekt på utslått cupspiller</small></span></label>
     <label class="fx-studio-toggle"><input type="checkbox" data-fx-effect="bracket_power"><span class="fx-studio-toggle-copy"><strong>Bracket Power</strong><small>Linje til neste runde i cupstreet</small></span></label>
   </div>
@@ -57,7 +57,7 @@
       <article class="fx-studio-player" id="studioCard2"><strong>SPILLER 2</strong><span class="fx-studio-score" id="studioScore2">501</span><div class="fx-studio-camera" id="studioCam2">KAMERAVISNING • DEMO</div></article>
     </div>
     <div class="fx-studio-controls"><button class="primary" data-score="60">60 poeng</button><button class="primary" data-score="100">100 poeng</button><button class="primary" data-score="140">140 poeng</button><button class="primary" data-score="180">180 poeng</button><button class="outline" id="studioBust">BUST / turbytte</button><button class="outline" id="studioReset">Nullstill score</button></div>
-    <p class="fx-studio-note">Rolling Score og LED vises fra Minimal. Neon Relay fra Normal. Cinematic sender en kort lysstripe ned eller opp mellom spillerkortene og fremhever mottakeren. Effekten berører ikke kameravisningene.</p>
+    <p class="fx-studio-note">Rolling Score og LED vises fra Minimal. Neon Relay fra Normal. Cinematic sender en kraftig horisontal lysstripe ned/opp over stablede spillerkort, eller en vertikal stripe sideveis når kortene står ved siden av hverandre. Effekten berører ikke kameravisningene.</p>
   </section>
   <section class="fx-studio-panel"><h2>Elimination FX + Bracket Power</h2>
     <div id="cupBracket" class="fx-studio-cup">
@@ -68,7 +68,7 @@
     <p class="fx-studio-note">Cup-effekter vises fra Normal og utløses bare av bekreftet resultat i et faktisk cupoppsett. Her simuleres bekreftelsen lokalt.</p>
   </section>
 </main>
-<script src="./fx-live.js?v=20261023-handoff1"></script>
+<script src="./fx-live.js?v=20261023-sweep2"></script>
 <script>
 (function(){
 'use strict';
@@ -96,7 +96,7 @@ cup.afterBracketRender(cupRows(false));
 function hint(){
   $('studioLevelHint').textContent={
     off:'Alle effekter av.',minimal:'Rolling Score + LED Score Rail.',
-    normal:'Normal gir tilgang til fire kampeffekter/cupeffekter.',cinematic:'Alle de avkryssede effektene kan vises, inkludert retningsstyrt turbytte.'
+    normal:'Normal gir tilgang til fire kampeffekter/cupeffekter.',cinematic:'Alle de avkryssede effektene kan vises, inkludert kraftig turbyttestripe.'
   }[level]||'';
 }
 function store(){
