@@ -8,7 +8,7 @@ const mid=new URLSearchParams(location.search).get('id');
 if(!FX||!mid||!window.supabase)return;
 const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
 const effects={...FX.DEFAULT_EFFECTS,neon_relay:false};
-let fx=null,stage=null,cached=null,me=null,channel=null,disposed=false;
+let fx=null,stage=null,cached=null,me=null,channel=null,disposed=false,lastAppliedUpdate=null;
 const transitions=[],pending=new Map(),seen=new Set();
 const scorePair=m=>({p1:Number(m?.player1_score),p2:Number(m?.player2_score)});
 const slotOf=(m,id)=>id===m?.player1_id?'p1':id===m?.player2_id?'p2':null;
@@ -100,6 +100,7 @@ function apply(visit){
   }
   if(!found)return;
   const {candidate,index,before,after}=found;
+  lastAppliedUpdate=after;
   seen.add(String(visit.id));if(seen.size>500)seen.clear();
   pending.delete(String(visit.id));transitions.splice(0,index+1);
   setupFx(before);
@@ -138,6 +139,12 @@ function updateMatch(next){
     return;
   }
   checkPending();
+  // Unanimated corrections or a missed Realtime INSERT must still keep
+  // the LED rail synchronized with the authoritative match score.
+  window.setTimeout(()=>{
+    if(disposed||cached!==next||lastAppliedUpdate===next)return;
+    fx?.syncSnapshot(scorePair(next));
+  },800);
 }
 function queueVisit(row){
   if(disposed||!row?.id||row.match_id!==mid||seen.has(String(row.id)))return;
