@@ -87,7 +87,7 @@ function calibration(video,bull,d20,deviceId){
     rotation:Math.atan2(d20.x-bull.x,bull.y-d20.y),aspect:w/h};
 }
 function create(raw,config,{fps=25,video=null,
-  canvas=null,tracker=root.DartArenaAutoZoom}={}){
+  canvas=null,tracker=root.DartArenaAutoZoom,picture=null}={}){
   const sourceTrack=raw?.getVideoTracks?.()[0];
   if(!sourceTrack||sourceTrack.readyState!=='live'||!tracker)throw Error('Zoom-cam krever et aktivt kamera.');
   if(!canvas&&typeof document!=='undefined')canvas=document.createElement('canvas');
@@ -99,6 +99,11 @@ function create(raw,config,{fps=25,video=null,
   video.autoplay=true;video.muted=true;video.playsInline=true;video.srcObject=new MediaStream([sourceTrack]);
   const ctx=canvas.getContext('2d',{alpha:false});
   if(!ctx)throw Error('Kan ikke tegne Zoom-cam.');
+  // Presentation filter only. Change detection always reads the untouched source video.
+  const P=root.DartArenaCameraPicture;
+  const deviceId=sourceTrack.getSettings?.()?.deviceId||config?.deviceId||'';
+  const visualFilter=picture!==false&&P?P.cssFilter(picture||P.load(root.localStorage,deviceId)):'none';
+  const setDrawFilter=value=>{if('filter' in ctx)ctx.filter=value};
   let out=null,loop=0,clock=0,stopped=false,prev=null,ref=null,still=0,target=null,current=null;
   const speed=tracker.speedPreset(config.speed);
   const gate=tracker.createChangeGate({stableFrames:speed.stableFrames,motionWindowMs:4000,cooldownMs:speed.cooldownMs});
@@ -124,11 +129,13 @@ function create(raw,config,{fps=25,video=null,
       const sw=video.videoWidth,sh=video.videoHeight;
       const framed=framingCrop(sw,sh,config);
       ctx.fillStyle='#030708';ctx.fillRect(0,0,w,h);
+      setDrawFilter(visualFilter);
       // User-framed main image. The overlay and hit tracking still use raw pixels.
       const fit=Math.min(w/framed.width,h/framed.height);
       const dx=(w-framed.width*fit)/2,dy=(h-framed.height*fit)/2;
       ctx.drawImage(video,framed.x,framed.y,framed.width,framed.height,
         dx,dy,framed.width*fit,framed.height*fit);
+      setDrawFilter('none');
       const board={x:config.cx*sw,y:config.cy*sh,radius:config.radius*sw};
       if(!target){const p=tracker.targetPoint(board.x,board.y,board.radius,'T20',config.rotation);target=p;current={...p}}
       if(now-lastAnalysis>=speed.intervalMs){
@@ -160,7 +167,9 @@ function create(raw,config,{fps=25,video=null,
       const {x:ix,y:iy,width:insetW,height:insetH}=inset;
       const crop=tracker.zoomCrop(sw,sh,current.x,current.y,board.radius,4/3);
       ctx.fillStyle='#071b20';ctx.fillRect(ix-3,iy-3,insetW+6,insetH+6);
+      setDrawFilter(visualFilter);
       ctx.drawImage(video,crop.x,crop.y,crop.width,crop.height,ix,iy,insetW,insetH);
+      setDrawFilter('none');
       ctx.strokeStyle='#00eaf4';ctx.lineWidth=Math.max(2,w/450);ctx.strokeRect(ix-2,iy-2,insetW+4,insetH+4);
     }
     loop=requestAnimationFrame(tick);
