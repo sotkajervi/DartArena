@@ -62,3 +62,77 @@ test('the detector remains explicitly uncertain for an unchanged video frame',()
  assert.equal(p.tipDetected,false);
  assert.ok(Number.isFinite(p.x)&&Number.isFinite(p.y));
 });
+
+
+test('Realtime peer points appear in both final-result heatmaps without writing scores',async()=>{
+ const vm=require('node:vm');
+ const source=fs.readFileSync(path.join(root,'online-heatmap-result.js'),'utf8');
+ const me='11111111-1111-4111-8111-111111111111';
+ const opponent='22222222-2222-4222-8222-222222222222';
+ const matchId='match-heatmap-test';
+ const events={},sent=[],stored={},reads=[];
+ function node(tag){
+   return {tag,id:'',width:340,height:340,textContent:'',isConnected:true,children:[],attributes:{},
+     setAttribute(k,v){this.attributes[k]=v},
+     getAttribute(k){return this.attributes[k]},
+     append(...x){this.children.push(...x)},appendChild(x){this.children.push(x)},
+     getContext(){return{}},
+     querySelector(selector){
+       if(selector==='.da-result-hm-grid')return this.grid||(this.grid=node('grid'));
+       if(selector==='canvas')return this.children.find(x=>x.tag==='canvas');
+       if(selector==='.da-hm-caption')return this.children.find(x=>x.className==='da-hm-caption');
+       return null;
+     }};
+ }
+ const stat=node('div');
+ stat.querySelector=()=>({textContent:'Spiller'});
+ stat.insertAdjacentElement=(_,section)=>{stat.heatmap=section};
+ const overlay={isConnected:true,
+   querySelector(selector){return selector==='.da-result-stats'?stat:null},
+   querySelectorAll(){return stat.heatmap?.grid?.children||[]}};
+ const channel={on(_type,filter,handler){events[filter.event||filter.table]=handler;return this},
+   subscribe(callback){callback('SUBSCRIBED');return this},
+   send(message){sent.push(message);return Promise.resolve('ok')}};
+ const client={
+   auth:{async getSession(){return{data:{session:{user:{id:me}}},error:null}}},
+   from(table){
+     reads.push(table);
+     return{select(){return this},eq(){return this},
+       async single(){return{data:{id:matchId,player1_id:me,player2_id:opponent,
+         status:'finished',game_variant:'x01',game_config:null},error:null}}}
+   },
+   channel(){return channel},removeChannel(){}
+ };
+ const window={
+   supabase:{createClient(){return client}},
+   DartArenaAutoZoom:{createChangeGate(){return{observe(){},reset(){}}}},
+   DartArenaHeatmapMath:{},
+   DartArenaHeatmapChart:{draw(canvas,points){canvas.pointCount=points.length}},
+   DartArenaZoomCam:{},
+   addEventListener(){}
+ };
+ const sessionStorage={getItem(key){return stored[key]||null},
+   setItem(key,value){stored[key]=value}};
+ vm.runInNewContext(source,{
+   window,document:{createElement:node,getElementById(){return null}},
+   location:{search:'?id='+matchId},URLSearchParams,
+   sessionStorage,localStorage:{getItem(){return null}},
+   setInterval(){return 5},clearInterval(){},console
+ });
+ for(let i=0;i<8;i++)await Promise.resolve();
+ assert.deepEqual(reads,['matches']);
+ assert.ok(sent.some(x=>x.event==='heatmap-v1'),'Initial local snapshot is shared');
+ assert.ok(sent.some(x=>x.event==='heatmap-request-v1'),'Peer heatmap is requested');
+ events['heatmap-v1']({payload:{matchId,from:opponent,
+   points:[{u:.02,v:-.6,tipDetected:true,time:'2026-10-23T12:00:00Z'}]}});
+ window.DartArenaOnlineHeatmap.attachResult(overlay,{
+   id:matchId,status:'finished',game_variant:'x01',
+   player1_id:me,player2_id:opponent,winner_id:opponent
+ });
+ assert.equal(stat.heatmap.grid.children.length,2,'Exactly two player heatmaps');
+ assert.equal(stat.heatmap.grid.children[0].getAttribute('data-heatmap-player'),opponent);
+ assert.equal(stat.heatmap.grid.children[0].querySelector('canvas').pointCount,1);
+ assert.equal(stat.heatmap.grid.children[1].querySelector('canvas').pointCount,0);
+ assert.match(stat.heatmap.grid.children[1].querySelector('.da-hm-caption').textContent,/Ingen registrerte treff/);
+ assert.equal(JSON.parse(stored['dartarena-x01-heatmap-result-v1:'+matchId])[opponent].length,1);
+});
