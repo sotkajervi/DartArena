@@ -68,6 +68,11 @@ function parseTransition(before,after,visit){
   // Non-scoring BUST/0 visits can change turns without changing remaining.
   // A changed score must correspond precisely to the recorded committed visit.
   const bust=old===next&&scored>0;
+  const doubleIn=String(before.game_config?.chicago??'false').toLowerCase()==='true'&&
+    Number(before.game_config?.chicago_stage||before.current_leg||1)===1;
+  // In ordinary X01 a valid subtractive score cannot also be a BUST.
+  // This prevents a delayed/unrelated INSERT from being paired with a turn change.
+  if(bust&&old-scored>=2&&!doubleIn)return null;
   if(!(old===next||old-next===scored))return null;
   if(old-next!==scored&&!bust)return null;
   if(afterScores[playerSlot==='p1'?'p2':'p1']!==beforeScores[playerSlot==='p1'?'p2':'p1'])return null;
