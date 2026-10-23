@@ -1,0 +1,27 @@
+/* Online X01 heatmap beta: initially hidden, scoped below the standard room.
+   No modifications to WebRTC media, player cards, or scoring elements. */
+#onlineHeatmapPanel[hidden]{display:none!important}
+.online-heatmap-panel{margin:16px 0 24px;padding:18px!important;border:1px solid rgba(0,234,244,.36)!important;border-radius:16px;background:#0a1b20!important;color:#e8f5f6}
+.online-heatmap-panel .hm-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;padding:0;margin:0 0 14px;background:transparent;min-height:0;position:static;box-shadow:none}
+.online-heatmap-panel .hm-head small{color:#00eaf4;font-weight:900;font-size:11px;letter-spacing:.1em}
+.online-heatmap-panel .hm-head h2{font-size:20px;line-height:1.3;margin:4px 0 6px}
+.online-heatmap-panel .hm-head p{margin:0;color:#b7cbd0;font-size:12px;line-height:1.5}
+.online-heatmap-panel .hm-actions{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px}
+.online-heatmap-panel .hm-actions button{min-height:36px;font-size:12px;padding:6px 11px}
+.online-heatmap-panel .hm-status{border:1px solid #325961;border-radius:9px;background:#071518;padding:10px 12px;margin:0 0 15px;min-height:38px;font-size:12px;color:#cbefed;line-height:1.45}
+.online-heatmap-panel .hm-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(250px,1fr);gap:16px}
+.online-heatmap-panel .hm-column{display:flex;flex-direction:column;align-items:stretch;gap:9px;min-width:0}
+.online-heatmap-panel .hm-column strong{font-size:13px;font-weight:900;line-height:1.3}
+.online-heatmap-panel .hm-column small{color:#a9c2c8;line-height:1.5;font-size:11px;margin:0 0 7px}
+.online-heatmap-panel canvas{display:block;width:100%;max-width:100%;height:auto;border:1px solid rgba(0,234,244,.27);border-radius:10px;background:#071012;object-fit:contain}
+#hmPreview,#hmZoom{cursor:crosshair}
+#hmZoom{max-width:380px;aspect-ratio:4/3}
+#hmBoard{max-width:390px;align-self:center;aspect-ratio:1;cursor:crosshair}
+#hmCount{color:#00eaf4;font-size:13px;align-self:center}
+#onlineHeatmapBtn{border-color:rgba(0,234,244,.55);color:#e7ffff}
+@media(max-width:770px){
+ .online-heatmap-panel .hm-grid{grid-template-columns:1fr}
+ .online-heatmap-panel{padding:12px!important}
+ .online-heatmap-panel .hm-head h2{font-size:18px}
+}
+@media(prefers-reduced-motion:reduce){.online-heatmap-panel *{scroll-behavior:auto!important}}
