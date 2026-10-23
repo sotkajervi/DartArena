@@ -68,7 +68,7 @@ test('ordinary camera sends enhanced pixels while raw detection source remains u
   assert.match(source,/sourceTrack,track/);
 });
 test('main game paths transmit picture-enhanced streams',()=>{
-  for(const filename of ['room.js','match.js','cricket.js','half-it-standard.js','one-to-one-media.js','room-device-selector.js']){
+  for(const filename of ['room.js','match.js','cricket.js','half-it-standard.js','one-to-one-media.js','room-device-selector.js','tournament-room-preferred-media.js']){
     const source=fs.readFileSync(path.join(__dirname,filename),'utf8');
     assert.match(source,/createStream\(/,filename);
   }
