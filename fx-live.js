@@ -129,13 +129,66 @@ function relay(doc,from,to,signal){
     const off=onAbort(signal,clear);if(signal.aborted)clear();else timer=root.setTimeout(clear,350);
   });
 }
-function cinematic(doc,target,signal){
-  if(!target?.isConnected)return;
-  const sweep=doc.createElement('span');sweep.className='da-fx-camera-sweep';sweep.setAttribute('aria-hidden','true');
-  target.classList.add('da-fx-camera-active');target.append(sweep);
-  return new Promise(resolve=>{let done=false,timer;
-    function clear(){if(done)return;done=true;root.clearTimeout(timer);off();sweep.remove();target.classList.remove('da-fx-camera-active');resolve()}
-    const off=onAbort(signal,clear);if(signal.aborted)clear();else timer=root.setTimeout(clear,440);
+// Cinematic Switch travels from the lower-left to the upper-right of the
+// *visible screen*. Only box outlines and text glow: video pixels stay intact.
+const CINEMATIC_EDGES=[
+  '.video-card','.match-player','.score-card','.match-info',
+  '.local-player','.local-entry-card','.local-corrections',
+  '.fx-studio-player','.fx-studio-camera','.fx-studio-panel'
+].join(',');
+const CINEMATIC_TEXT=[
+  'header .live','.match-head h1','#matchFormat','.top-actions button',
+  '.video-name','.match-name','.match-score','.match-legs','.match-sets',
+  '#turnText','#matchStatus','.score-entry button',
+  '.local-pill','.local-match-name','.local-score','.local-avg',
+  '.local-leg-label','.local-turn',
+  '.fx-studio-top h1','.fx-studio-panel h2',
+  '.fx-studio-player strong','.fx-studio-score','.fx-studio-camera'
+].join(',');
+function cinematic(doc,_camera,signal){
+  const win=doc.defaultView;
+  if(!doc.body||!win||signal.aborted)return;
+  const width=Math.max(1,win.innerWidth||doc.documentElement?.clientWidth||1);
+  const height=Math.max(1,win.innerHeight||doc.documentElement?.clientHeight||1);
+  // Sample positions before starting, so staggered animation never changes layout.
+  // Diagonal progress is 0 at (left,bottom), 1 at (right,top).
+  const entries=[];
+  for(const [selector,className] of [
+    [CINEMATIC_EDGES,'da-fx-diagonal-edge'],
+    [CINEMATIC_TEXT,'da-fx-diagonal-text']
+  ]){
+    for(const element of doc.querySelectorAll(selector)){
+      if(!element.isConnected||element.hidden||element.closest('[hidden],.hidden'))continue;
+      const rect=element.getBoundingClientRect();
+      if(!rect.width||!rect.height||rect.bottom<=0||rect.top>=height||
+         rect.right<=0||rect.left>=width)continue;
+      const x=Math.min(width,Math.max(0,rect.left+rect.width/2));
+      const y=Math.min(height,Math.max(0,rect.top+rect.height/2));
+      const progress=(x/width+(1-y/height))/2;
+      entries.push({element,className,delay:Math.round(60+progress*960)});
+    }
+  }
+  if(!entries.length)return;
+  return new Promise(resolve=>{
+    let done=false;const timers=[],touched=[];
+    function cleanup(){
+      if(done)return;done=true;
+      for(const timer of timers)root.clearTimeout(timer);
+      off();
+      for(const {element,className} of touched)element.classList.remove(className);
+      resolve();
+    }
+    const off=onAbort(signal,cleanup);
+    if(signal.aborted){cleanup();return}
+    for(const item of entries){
+      timers.push(root.setTimeout(()=>{
+        if(signal.aborted||!item.element.isConnected)return;
+        item.element.classList.add(item.className);
+        touched.push(item);
+      },item.delay));
+    }
+    // Each contact lasts 430ms; any later turn aborts this sequence immediately.
+    timers.push(root.setTimeout(cleanup,Math.max(...entries.map(e=>e.delay))+510));
   });
 }
 const findCupMatch=(doc,id)=>[...doc.querySelectorAll('#cupBracket .cup-match[data-match]')].find(x=>x.getAttribute('data-match')===String(id));
