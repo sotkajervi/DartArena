@@ -1,0 +1,43 @@
+/* Isolated owner/admin D1 testing. No match or scoring styles are changed. */
+.d1-page [hidden]{display:none!important}
+.d1-page .d1-shell{max-width:1500px;margin:0 auto}
+.d1-top{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:17px}
+.d1-top h1{margin-bottom:5px}
+.d1-back{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;min-height:42px;padding:8px 14px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--text);font-weight:800}
+.d1-gate{padding:24px;text-align:center;color:var(--muted)}
+.d1-note{padding:13px 16px;border:1px solid rgba(0,234,244,.26);border-radius:11px;background:rgba(0,234,244,.055);margin-bottom:15px;line-height:1.5;font-size:13px}
+.d1-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.85fr);gap:16px;align-items:start}
+.d1-layout>.card{min-width:0}
+.d1-page .heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.d1-page .heading h2{margin:2px 0}
+.d1-pill{border:1px solid rgba(0,234,244,.25);background:rgba(0,234,244,.05);color:#00eaf4;border-radius:999px;padding:6px 10px;font-size:10px;font-weight:800;max-width:230px;text-align:center}
+.d1-field{display:flex;flex-direction:column;gap:6px;margin:10px 0 14px;font-size:13px}
+.d1-field select,.d1-field input{width:100%;max-width:100%;min-width:0}
+.d1-field input[type=file]{padding:8px 0}
+.d1-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.d1-actions button:disabled{opacity:.45;cursor:not-allowed}
+.d1-stage{width:100%;position:relative;overflow:hidden;min-height:230px;background:#03090a;border:1px solid #25464b;border-radius:12px;touch-action:manipulation}
+#dzVideo,#dzSnapshot,#dzOverlay{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}
+#dzOverlay{cursor:crosshair;touch-action:manipulation}
+#dzStageHint{position:absolute;inset:0;display:grid;place-items:center;padding:20px;text-align:center;color:#d5e5e6;background:rgba(3,9,10,.8);pointer-events:none;font-weight:750}
+.d1-status{font-size:13px;line-height:1.5;background:rgba(255,255,255,.025);padding:10px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.08);margin-top:10px;white-space:pre-line;overflow-wrap:anywhere}
+.d1-check{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid rgba(255,255,255,.1);border-radius:10px;font-size:13px;margin-top:14px;cursor:pointer}
+.d1-check input{margin-top:3px;width:18px;height:18px;accent-color:#00eaf4}
+.d1-check small{display:block;color:var(--muted);font-size:12px;line-height:1.45;margin-top:5px}
+.d1-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:15px 0}
+.d1-metrics>div{padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:10px;background:rgba(255,255,255,.025);min-width:0}
+.d1-metrics small{display:block;font-size:10px;font-weight:850;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.025em}
+.d1-metrics strong{font-size:17px;color:var(--cyan);overflow-wrap:anywhere}
+.d1-check-result{border:1px solid rgba(0,234,244,.22);background:rgba(0,234,244,.025);padding:13px;border-radius:11px;margin:16px 0}
+.d1-log-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:18px 0 10px}
+.d1-log{border:1px solid var(--line);border-radius:10px;max-height:230px;min-height:70px;overflow:auto}
+.d1-log p{padding:10px;margin:0}
+.d1-log-item{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.07);font-size:12px;line-height:1.5}
+.d1-log-item:last-child{border-bottom:0}
+.d1-log-item strong{color:var(--cyan)}
+@media(max-width:980px){.d1-layout{grid-template-columns:1fr}}
+@media(max-width:650px){.d1-top{flex-direction:column}.d1-back{width:100%}.d1-layout>.card{padding:14px}.d1-stage{min-height:180px}.d1-page .heading{flex-wrap:wrap}.d1-actions button{flex:1 1 auto}}
+
+.d1-diagnostics{border:1px solid rgba(255,255,255,.08);padding:10px 12px;border-radius:9px;margin:10px 0}
+.d1-diagnostics summary{cursor:pointer;font-size:12px;color:var(--muted)}
+.d1-diagnostics pre{max-height:260px;overflow:auto;font-size:11px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
