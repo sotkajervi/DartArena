@@ -48,7 +48,7 @@ function engine(matchId,options={}){
     }
     if(e.type==='turn_changed'&&e.previousSlot!==e.nextSlot&&!e.legEnded&&!e.matchEnded){
       if(can('neon_relay'))play('turn',signal=>relay(doc,find('card:'+e.previousSlot),find('card:'+e.nextSlot),signal));
-      if(can('cinematic_switch'))play('camera',signal=>cinematic(doc,find('camera:'+e.nextSlot),signal));
+      if(can('cinematic_switch'))play('handoff',signal=>cinematic(doc,find('card:'+e.previousSlot),find('card:'+e.nextSlot),signal));
     }
     if(e.type==='cup_result_confirmed'&&can('elimination_fx'))
       play('cup:'+e.cupMatchId,signal=>elimination(doc,e,signal));
@@ -129,66 +129,58 @@ function relay(doc,from,to,signal){
     const off=onAbort(signal,clear);if(signal.aborted)clear();else timer=root.setTimeout(clear,350);
   });
 }
-// Cinematic Switch travels from the lower-left to the upper-right of the
-// *visible screen*. Only box outlines and text glow: video pixels stay intact.
-const CINEMATIC_EDGES=[
-  '.video-card','.match-player','.score-card','.match-info',
-  '.local-player','.local-entry-card','.local-corrections',
-  '.fx-studio-player','.fx-studio-camera','.fx-studio-panel'
-].join(',');
-const CINEMATIC_TEXT=[
-  'header .live','.match-head h1','#matchFormat','.top-actions button',
-  '.video-name','.match-name','.match-score','.match-legs','.match-sets',
-  '#turnText','#matchStatus','.score-entry button',
-  '.local-pill','.local-match-name','.local-score','.local-avg',
-  '.local-leg-label','.local-turn',
-  '.fx-studio-top h1','.fx-studio-panel h2',
-  '.fx-studio-player strong','.fx-studio-score','.fx-studio-camera'
-].join(',');
-function cinematic(doc,_camera,signal){
+// Cinematic Switch: a short, directional handoff between the two scorecards.
+// On vertically stacked scorecards it travels down or up the right-hand border;
+// with side-by-side cards it crosses the gap horizontally. Never touch the video.
+function cinematic(doc,from,to,signal){
   const win=doc.defaultView;
-  if(!doc.body||!win||signal.aborted)return;
-  const width=Math.max(1,win.innerWidth||doc.documentElement?.clientWidth||1);
-  const height=Math.max(1,win.innerHeight||doc.documentElement?.clientHeight||1);
-  // Sample positions before starting, so staggered animation never changes layout.
-  // Diagonal progress is 0 at (left,bottom), 1 at (right,top).
-  const entries=[];
-  for(const [selector,className] of [
-    [CINEMATIC_EDGES,'da-fx-diagonal-edge'],
-    [CINEMATIC_TEXT,'da-fx-diagonal-text']
-  ]){
-    for(const element of doc.querySelectorAll(selector)){
-      if(!element.isConnected||element.hidden||element.closest('[hidden],.hidden'))continue;
-      const rect=element.getBoundingClientRect();
-      if(!rect.width||!rect.height||rect.bottom<=0||rect.top>=height||
-         rect.right<=0||rect.left>=width)continue;
-      const x=Math.min(width,Math.max(0,rect.left+rect.width/2));
-      const y=Math.min(height,Math.max(0,rect.top+rect.height/2));
-      const progress=(x/width+(1-y/height))/2;
-      entries.push({element,className,delay:Math.round(60+progress*960)});
-    }
-  }
-  if(!entries.length)return;
+  if(!doc.body||!win||signal.aborted||!from?.isConnected||!to?.isConnected)return;
+  const a=from.getBoundingClientRect(),b=to.getBoundingClientRect();
+  if(!a.width||!a.height||!b.width||!b.height)return;
+  const ax=a.left+a.width/2,ay=a.top+a.height/2;
+  const bx=b.left+b.width/2,by=b.top+b.height/2;
+  // The layout may change at breakpoints. Prefer a vertical handoff when the
+  // cards are stacked; use a gap-to-gap path for side-by-side cards.
+  const vertical=Math.abs(by-ay)>=Math.abs(bx-ax)*0.65;
+  const down=by>=ay,right=bx>=ax;
+  const x1=vertical?a.right-3:(right?a.right-3:a.left+3);
+  const x2=vertical?b.right-3:(right?b.left+3:b.right-3);
+  const y1=vertical?ay:(a.bottom-3);
+  const y2=vertical?by:(b.bottom-3);
+  const dx=x2-x1,dy=y2-y1,length=Math.hypot(dx,dy);
+  if(length<12)return;
+  const guide=doc.createElement('span'),tracer=doc.createElement('span');
+  guide.className='da-fx-turn-guide';
+  tracer.className='da-fx-turn-tracer'+(vertical?' is-vertical':' is-horizontal');
+  guide.setAttribute('aria-hidden','true');tracer.setAttribute('aria-hidden','true');
+  Object.assign(guide.style,{left:x1+'px',top:y1+'px',width:length+'px',
+    transform:'rotate('+Math.atan2(dy,dx)+'rad)'});
+  Object.assign(tracer.style,{
+    left:(x1-(vertical?2:17))+'px',
+    top:(y1-(vertical?17:2))+'px',
+  });
+  tracer.style.setProperty('--da-fx-travel-x',dx+'px');
+  tracer.style.setProperty('--da-fx-travel-y',dy+'px');
+  const duration=510,arrivalAt=320;
   return new Promise(resolve=>{
-    let done=false;const timers=[],touched=[];
+    let finished=false;
+    const timers=[];
     function cleanup(){
-      if(done)return;done=true;
+      if(finished)return;finished=true;
       for(const timer of timers)root.clearTimeout(timer);
       off();
-      for(const {element,className} of touched)element.classList.remove(className);
-      resolve();
+      from.classList.remove('da-fx-turn-source');
+      to.classList.remove('da-fx-turn-arrival');
+      guide.remove();tracer.remove();resolve();
     }
     const off=onAbort(signal,cleanup);
-    if(signal.aborted){cleanup();return}
-    for(const item of entries){
-      timers.push(root.setTimeout(()=>{
-        if(signal.aborted||!item.element.isConnected)return;
-        item.element.classList.add(item.className);
-        touched.push(item);
-      },item.delay));
-    }
-    // Each contact lasts 430ms; any later turn aborts this sequence immediately.
-    timers.push(root.setTimeout(cleanup,Math.max(...entries.map(e=>e.delay))+510));
+    if(signal.aborted)return cleanup();
+    doc.body.append(guide,tracer);
+    from.classList.add('da-fx-turn-source');
+    timers.push(root.setTimeout(()=>{
+      if(!signal.aborted&&to.isConnected)to.classList.add('da-fx-turn-arrival');
+    },arrivalAt));
+    timers.push(root.setTimeout(cleanup,duration+110));
   });
 }
 const findCupMatch=(doc,id)=>[...doc.querySelectorAll('#cupBracket .cup-match[data-match]')].find(x=>x.getAttribute('data-match')===String(id));
