@@ -129,39 +129,45 @@ function relay(doc,from,to,signal){
     const off=onAbort(signal,clear);if(signal.aborted)clear();else timer=root.setTimeout(clear,350);
   });
 }
-// Cinematic Switch: a short, directional handoff between the two scorecards.
-// On vertically stacked scorecards it travels down or up the right-hand border;
-// with side-by-side cards it crosses the gap horizontally. Never touch the video.
+// Cinematic Switch: a bright full-width band moving vertically over stacked
+// scorecards, or a full-height band moving horizontally over adjacent cards.
+// Geometry comes from actual card positions, not a page layout assumption.
 function cinematic(doc,from,to,signal){
-  const win=doc.defaultView;
-  if(!doc.body||!win||signal.aborted||!from?.isConnected||!to?.isConnected)return;
+  if(!doc.body||signal.aborted||!from?.isConnected||!to?.isConnected)return;
   const a=from.getBoundingClientRect(),b=to.getBoundingClientRect();
   if(!a.width||!a.height||!b.width||!b.height)return;
   const ax=a.left+a.width/2,ay=a.top+a.height/2;
   const bx=b.left+b.width/2,by=b.top+b.height/2;
-  // The layout may change at breakpoints. Prefer a vertical handoff when the
-  // cards are stacked; use a gap-to-gap path for side-by-side cards.
-  const vertical=Math.abs(by-ay)>=Math.abs(bx-ax)*0.65;
-  const down=by>=ay,right=bx>=ax;
-  const x1=vertical?a.right-3:(right?a.right-3:a.left+3);
-  const x2=vertical?b.right-3:(right?b.left+3:b.right-3);
-  const y1=vertical?ay:(a.bottom-3);
-  const y2=vertical?by:(b.bottom-3);
-  const dx=x2-x1,dy=y2-y1,length=Math.hypot(dx,dy);
-  if(length<12)return;
-  const guide=doc.createElement('span'),tracer=doc.createElement('span');
-  guide.className='da-fx-turn-guide';
-  tracer.className='da-fx-turn-tracer'+(vertical?' is-vertical':' is-horizontal');
-  guide.setAttribute('aria-hidden','true');tracer.setAttribute('aria-hidden','true');
-  Object.assign(guide.style,{left:x1+'px',top:y1+'px',width:length+'px',
-    transform:'rotate('+Math.atan2(dy,dx)+'rad)'});
-  Object.assign(tracer.style,{
-    left:(x1-(vertical?2:17))+'px',
-    top:(y1-(vertical?17:2))+'px',
-  });
-  tracer.style.setProperty('--da-fx-travel-x',dx+'px');
-  tracer.style.setProperty('--da-fx-travel-y',dy+'px');
-  const duration=510,arrivalAt=320;
+  const stacked=Math.abs(by-ay)>=Math.abs(bx-ax)*0.65;
+  const thickness=14,margin=3;
+  let left,top,width,height,dx=0,dy=0;
+  if(stacked){
+    const down=by>ay;
+    // Span the entire width of BOTH cards, even if their widths differ.
+    left=Math.min(a.left,b.left)+margin;
+    width=Math.max(a.right,b.right)-margin-left;
+    top=down?a.top-thickness:a.bottom;
+    height=thickness;
+    const end=down?b.bottom:b.top-thickness;
+    dy=end-top;
+  }else{
+    const right=bx>ax;
+    // Span the entire height of BOTH cards, even if their heights differ.
+    top=Math.min(a.top,b.top)+margin;
+    height=Math.max(a.bottom,b.bottom)-margin-top;
+    left=right?a.left-thickness:a.right;
+    width=thickness;
+    const end=right?b.right:b.left-thickness;
+    dx=end-left;
+  }
+  if(width<=0||height<=0||Math.hypot(dx,dy)<12)return;
+  const sweep=doc.createElement('span');
+  sweep.className='da-fx-turn-sweep '+(stacked?'is-horizontal-band':'is-vertical-band');
+  sweep.setAttribute('aria-hidden','true');
+  Object.assign(sweep.style,{left:left+'px',top:top+'px',width:width+'px',height:height+'px'});
+  sweep.style.setProperty('--da-fx-travel-x',dx+'px');
+  sweep.style.setProperty('--da-fx-travel-y',dy+'px');
+  const duration=580,arrivalAt=345,cleanupAt=810;
   return new Promise(resolve=>{
     let finished=false;
     const timers=[];
@@ -171,16 +177,17 @@ function cinematic(doc,from,to,signal){
       off();
       from.classList.remove('da-fx-turn-source');
       to.classList.remove('da-fx-turn-arrival');
-      guide.remove();tracer.remove();resolve();
+      sweep.remove();
+      resolve();
     }
     const off=onAbort(signal,cleanup);
     if(signal.aborted)return cleanup();
-    doc.body.append(guide,tracer);
+    doc.body.append(sweep);
     from.classList.add('da-fx-turn-source');
     timers.push(root.setTimeout(()=>{
       if(!signal.aborted&&to.isConnected)to.classList.add('da-fx-turn-arrival');
     },arrivalAt));
-    timers.push(root.setTimeout(cleanup,duration+110));
+    timers.push(root.setTimeout(cleanup,cleanupAt));
   });
 }
 const findCupMatch=(doc,id)=>[...doc.querySelectorAll('#cupBracket .cup-match[data-match]')].find(x=>x.getAttribute('data-match')===String(id));
