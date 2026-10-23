@@ -5,7 +5,7 @@ const board=new Image();
 let ready=false;
 board.onload=()=>{
  ready=true;
- document.querySelectorAll('.da-result-hm-player canvas').forEach(canvas=>draw(canvas,canvas.__heatmapPoints||[]));
+ document.querySelectorAll('.da-result-hm-player canvas, .premium-hm-player canvas').forEach(canvas=>draw(canvas,canvas.__heatmapPoints||[]));
 };
 board.onerror=()=>console.warn('DartArena: original heatmap image did not load');
 board.src='./assets/dartarena-heatmap-board.png?v=20261023-heatmap3';
