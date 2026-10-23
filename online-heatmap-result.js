@@ -178,7 +178,7 @@ function resultDraw(card,id){
  const points=data[id]||[];
  Chart.draw(canvas,points);
  label.textContent=points.length
-   ?points.length+' registrert'+(points.length===1?'':'e')+' treff · '+points.filter(p=>p.tipDetected).length+' spissforslag (beta)'
+   ?points.length+' registrert'+(points.length===1?'':'e')+' treff'
    :id===userId?'Ingen registrerte treff – kontroller ZoomCam-kalibrering.':
      'Ingen heatmap-data mottatt fra motstander.';
 }
