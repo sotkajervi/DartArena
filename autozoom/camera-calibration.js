@@ -9,10 +9,110 @@ const camera=document.getElementById('cameraTestCameraSelect');
 if(!Z||!modal||!preview||!video||!camera)return;
 const tools=document.createElement('div');
 tools.className='cam-zoom-tools';
-tools.innerHTML='<div class="cam-zoom-row"><button type="button" id="camZoomCalibrate" class="outline">Kalibrer Zoom-cam</button><button type="button" id="camZoomPreview" class="outline">Forhåndsvis Zoom-cam</button><button type="button" id="camZoomClear" class="outline">Fjern kalibrering</button></div><div class="cam-zoom-settings"><label>Følsomhet<select id="camZoomSensitivity"><option value="normal" selected>Normal (stabil)</option><option value="low">Lav</option><option value="high">Høy (test)</option></select></label><label>Hastighet<select id="camZoomSpeed"><option value="fast">Rask</option><option value="normal" selected>Normal</option><option value="smooth">Rolig</option></select></label></div><p class="muted compact" id="camZoomHelp">Marker Bull og deretter D20. Zoom-cam kan velges i venterom etter kalibrering.</p>';
+tools.innerHTML='<div class="cam-zoom-row"><button type="button" id="camZoomAuto" class="outline">Autokalibrer (BETA)</button><button type="button" id="camZoomCalibrate" class="outline">Kalibrer Zoom-cam</button><button type="button" id="camZoomPreview" class="outline">Forhåndsvis Zoom-cam</button><button type="button" id="camZoomClear" class="outline">Fjern kalibrering</button></div><div class="cam-zoom-settings"><label>Følsomhet<select id="camZoomSensitivity"><option value="normal" selected>Normal (stabil)</option><option value="low">Lav</option><option value="high">Høy (test)</option></select></label><label>Hastighet<select id="camZoomSpeed"><option value="fast">Rask</option><option value="normal" selected>Normal</option><option value="smooth">Rolig</option></select></label></div><p class="muted compact" id="camZoomHelp">Marker Bull og deretter D20. Zoom-cam kan velges i venterom etter kalibrering.</p>';
 preview.insertAdjacentElement('afterend',tools);
 const button=tools.querySelector('#camZoomCalibrate'),clear=tools.querySelector('#camZoomClear'),help=tools.querySelector('#camZoomHelp');
 const previewButton=tools.querySelector('#camZoomPreview');
+const autoButton=tools.querySelector('#camZoomAuto');
+const autoPanel=document.createElement('div');
+autoPanel.className='cam-auto-panel';
+autoPanel.hidden=true;
+autoPanel.innerHTML='<strong>TEST AV AUTOKALIBRERING</strong><p id="camAutoStatus" role="status" aria-live="polite"></p><div class="cam-zoom-row"><button type="button" class="primary" id="camAutoApply" disabled>Bruk forslaget</button><button type="button" class="outline" id="camAutoCancel">Avbryt</button></div>';
+tools.appendChild(autoPanel);
+const autoStatus=autoPanel.querySelector('#camAutoStatus');
+const autoApply=autoPanel.querySelector('#camAutoApply');
+const autoCancel=autoPanel.querySelector('#camAutoCancel');
+const autoGuide=document.createElement('canvas');
+autoGuide.className='cam-auto-guide-canvas';
+autoGuide.hidden=true;
+preview.appendChild(autoGuide);
+let autoProposal=null;
+function clearAuto(){
+  autoProposal=null;
+  autoApply.disabled=true;
+  autoGuide.hidden=true;
+  autoGuide.getContext('2d')?.clearRect(0,0,autoGuide.width,autoGuide.height);
+}
+function drawAutoGuide(){
+  if(!autoProposal||!video.videoWidth||!video.videoHeight)return;
+  const rect=preview.getBoundingClientRect(),w=rect.width,h=rect.height;
+  const crop=Z.framingCrop(video.videoWidth,video.videoHeight,framing);
+  if(!w||!h||!crop)return;
+  const ratio=Math.min(2,window.devicePixelRatio||1);
+  autoGuide.width=Math.max(1,Math.round(w*ratio));
+  autoGuide.height=Math.max(1,Math.round(h*ratio));
+  const ctx=autoGuide.getContext('2d');
+  ctx.scale(ratio,ratio);
+  const fit=Math.min(w/crop.width,h/crop.height);
+  const dx=(w-crop.width*fit)/2,dy=(h-crop.height*fit)/2;
+  const map=p=>({x:dx+(p.x-crop.x)*fit,y:dy+(p.y-crop.y)*fit});
+  const bull=map(autoProposal.bull),d20=map(autoProposal.d20),rad=autoProposal.radius*fit;
+  ctx.lineWidth=2;
+  ctx.setLineDash([7,5]);
+  ctx.strokeStyle='rgba(0,234,244,.92)';
+  ctx.beginPath();ctx.arc(bull.x,bull.y,rad,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);
+  for(const [p,color] of [[bull,'#00ef95'],[d20,'#ffcc49']]){
+    ctx.strokeStyle='#031114';ctx.lineWidth=5;
+    ctx.beginPath();ctx.moveTo(p.x-13,p.y);ctx.lineTo(p.x+13,p.y);
+    ctx.moveTo(p.x,p.y-13);ctx.lineTo(p.x,p.y+13);ctx.stroke();
+    ctx.strokeStyle=color;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(p.x-13,p.y);ctx.lineTo(p.x+13,p.y);
+    ctx.moveTo(p.x,p.y-13);ctx.lineTo(p.x,p.y+13);ctx.stroke();
+  }
+  autoGuide.hidden=false;
+}
+autoButton.addEventListener('click',async()=>{
+  if(!video.videoWidth||!video.videoHeight||!track()){
+    autoPanel.hidden=false;autoStatus.textContent='Start kameraet først.';return;
+  }
+  stopPreview();cancel();clearAuto();
+  autoPanel.hidden=false;autoStatus.textContent='Analyserer skiveringene lokalt…';
+  autoButton.disabled=true;
+  const startedDevice=deviceId();
+  try{
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+    const width=Math.min(420,video.videoWidth);
+    const height=Math.round(width*video.videoHeight/video.videoWidth);
+    if(width<150||height<130)throw new Error('Kameraoppløsningen er for lav.');
+    const cv=document.createElement('canvas');cv.width=width;cv.height=height;
+    const context=cv.getContext('2d',{willReadFrequently:true});
+    context.drawImage(video,0,0,width,height);
+    const image=context.getImageData(0,0,width,height);
+    const found=window.DartArenaAutoCalibration?.detect(image);
+    if(startedDevice!==deviceId())throw new Error('Kameraet ble byttet under analysen.');
+    if(!found){
+      autoStatus.textContent='Fant ikke to tydelige fargede skiveringer. Prøv bedre lys, få hele skiven med i bildet, eller bruk manuell kalibrering.';
+      return;
+    }
+    const sx=video.videoWidth/width,sy=video.videoHeight/height;
+    autoProposal={deviceId:startedDevice,width:video.videoWidth,height:video.videoHeight,
+      bull:{x:found.x*sx,y:found.y*sy},
+      d20:{x:found.d20.x*sx,y:found.d20.y*sy},
+      radius:found.radius*sx};
+    const config=Z.calibration(video,autoProposal.bull,autoProposal.d20,startedDevice);
+    if(!config)throw new Error('Skiven kunne ikke kalibreres med forslaget.');
+    autoApply.disabled=false;
+    drawAutoGuide();
+    autoStatus.textContent='Grønt kryss: Bull. Gult kryss: foreslått D20. Linjen viser dobbelringen. Forutsetter at 20 er øverst og skiven står relativt rett. Kontroller markørene før du lagrer, ellers bruk manuell kalibrering.';
+  }catch(error){
+    clearAuto();
+    autoStatus.textContent='Autokalibrering feilet: '+String(error?.message||error);
+  }finally{autoButton.disabled=false}
+});
+autoApply.addEventListener('click',()=>{
+  const p=autoProposal;
+  if(!p||!track()||p.deviceId!==deviceId()||p.width!==video.videoWidth||p.height!==video.videoHeight){
+    clearAuto();autoStatus.textContent='Kamera eller oppløsning ble endret. Test på nytt.';return;
+  }
+  const config=Z.calibration(video,p.bull,p.d20,p.deviceId);
+  if(!config||!Z.saveConfig(localStorage,{...config,...framing,speed:speedSelect.value,sensitivity:sensitivitySelect.value})){
+    autoStatus.textContent='Kunne ikke lagre forslaget. Bruk manuell kalibrering.';return;
+  }
+  clearAuto();autoPanel.hidden=true;stopPreview();updateHelp();
+});
+autoCancel.addEventListener('click',()=>{clearAuto();autoPanel.hidden=true});
+window.addEventListener('resize',()=>{if(autoProposal)drawAutoGuide()});
 const speedSelect=tools.querySelector('#camZoomSpeed');
 const sensitivitySelect=tools.querySelector('#camZoomSensitivity');
 const framingPanel=document.createElement('section');
@@ -79,6 +179,7 @@ function stopFramingLoop(){
 }
 function framingChanged(){
   updateFramingDisplay();
+  if(autoProposal)drawAutoGuide();
   saveFraming();
   stopPreview();
 }
@@ -109,6 +210,7 @@ framedCanvas.addEventListener('pointermove',event=>{
     panX:framing.panX-2*dx/(rect.width*extent),
     panY:framing.panY-2*dy/(rect.height*extent)});
   framing=next;dragging.x=event.clientX;dragging.y=event.clientY;
+  if(autoProposal)drawAutoGuide();
   event.preventDefault();
 });
 function endFramingDrag(event){
@@ -169,6 +271,7 @@ previewButton.addEventListener('click',async()=>{
 });
 button.addEventListener('click',()=>{
   if(!video.videoWidth||!track()){help.textContent='Start kameraet først.';return}
+  clearAuto();autoPanel.hidden=true;
   stopPreview();cancel();step=1;marker.classList.remove('hidden');help.textContent='Klikk midt i Bull på kamerabildet.';
 });
 marker.addEventListener('click',event=>{
@@ -183,6 +286,7 @@ marker.addEventListener('click',event=>{
   cancel();stopPreview();updateHelp();
 });
 clear.addEventListener('click',()=>{
+  clearAuto();autoPanel.hidden=true;
   stopPreview();
   localStorage.removeItem(Z.CONFIG_KEY);
   Z.setSelected(localStorage,false);
@@ -197,11 +301,11 @@ function saveOptions(){
 }
 speedSelect.addEventListener('change',saveOptions);
 sensitivitySelect.addEventListener('change',saveOptions);
-camera.addEventListener('change',()=>{stopPreview();cancel();setTimeout(()=>{loadFraming();updateHelp()},300)});
-document.getElementById('closeCameraTest')?.addEventListener('click',()=>{stopPreview();cancel();stopFramingLoop()});
+camera.addEventListener('change',()=>{clearAuto();autoPanel.hidden=true;stopPreview();cancel();setTimeout(()=>{loadFraming();updateHelp()},300)});
+document.getElementById('closeCameraTest')?.addEventListener('click',()=>{clearAuto();autoPanel.hidden=true;stopPreview();cancel();stopFramingLoop()});
 document.getElementById('cameraTestBackdrop')?.addEventListener('click',stopFramingLoop);
-document.getElementById('restartCameraTest')?.addEventListener('click',stopPreview);
-window.addEventListener('pagehide',()=>{stopPreview();stopFramingLoop()});
+document.getElementById('restartCameraTest')?.addEventListener('click',()=>{clearAuto();autoPanel.hidden=true;stopPreview()});
+window.addEventListener('pagehide',()=>{clearAuto();stopPreview();stopFramingLoop()});
 document.getElementById('cameraTestBtn')?.addEventListener('click',()=>{loadFraming();startFramingLoop();setTimeout(updateHelp,400)});
 loadFraming();updateHelp();
 })();
