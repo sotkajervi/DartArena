@@ -26,7 +26,7 @@ let timer=0,frame=0,lastMessage='',videoDims='',tipQuality=null;
 try{const old=JSON.parse(sessionStorage.getItem(storageKey)||'[]');
   if(Array.isArray(old))marks=old.slice(-600).filter(m=>Number.isFinite(m?.u)&&Number.isFinite(m?.v)&&Math.hypot(m.u,m.v)<=1.55)}catch{}
 const active=()=>$('matchStatus')?.textContent?.trim()==='Pågår'&&$('matchScoreInput')?.disabled===false;
-const ready=()=>!!video&&video.readyState>=2&&video.videoWidth>0&&video.videoHeight>0;
+const ready=()=>!!video&&video.readyState>=2&&video.videoWidth>0&&video.videoHeight>0&&!video.paused;
 function say(msg){if(msg!==lastMessage){lastMessage=msg;$('hmStatus').textContent=msg}}
 function save(){try{sessionStorage.setItem(storageKey,JSON.stringify(marks.slice(-600)))}catch{}}
 function resetDetection(){baseline=null;previous=null;quiet=0;motion=null;gate=G.createChangeGate({stableFrames:4,motionWindowMs:4000,cooldownMs:1600})}
@@ -108,7 +108,7 @@ function tick(){
  const dims=video.videoWidth+'x'+video.videoHeight;
  if(videoDims&&dims!==videoDims){board=null;resetDetection();say('Videoformat endret. Kalibrer skiva på nytt.')}
  videoDims=dims;
- if(!board){loadBoard();return}
+ if(!board){if(!step)loadBoard();return}
  if(step)return;
  if(!active()){
    if(turnState!==false){turnState=false;turnHits=0;resetDetection();say('Motstanderens tur. Heatmap venter på ditt neste kast.')}
@@ -171,6 +171,7 @@ function display(){
 function start(){
  visible=true;panel.hidden=false;button.textContent='Lukk heatmap β';button.setAttribute('aria-expanded','true');
  resetDetection();drawBoard();display();timer=setInterval(tick,180);
+ panel.scrollIntoView?.({block:'nearest',behavior:'smooth'});
  say('Bruk ditt eksisterende kamera. Kalibrer eller gjenbruk ZoomCam-kalibrering, og ta referanse med tom skive.');
 }
 function stop(){
