@@ -13,7 +13,7 @@
     "lint": "eslint \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.{ts,md}\" \"*.md\" \"*.json\" \"*.mjs\"",
     "format:check": "prettier --check \"src/**/*.{ts,md}\" \"*.md\" \"*.json\" \"*.mjs\"",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test:audio && npm run test:invites && npm run test:lobby && npm run test:navigation && npm run test:rooms && npm run test:tournament-lobby && npm run test:group-redirect && npm run test:autozoom && npm run test:zoom-cam && npm run test:password-reset && npm run test:fx && npm run test:zoom-tip && npm run test:online-heatmap",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test:audio && npm run test:invites && npm run test:lobby && npm run test:navigation && npm run test:rooms && npm run test:tournament-lobby && npm run test:group-redirect && npm run test:autozoom && npm run test:zoom-cam && npm run test:password-reset && npm run test:fx && npm run test:zoom-tip && npm run test:online-heatmap && npm run test:d1-live",
     "test:audio": "node --test tests/remote-audio-autounlock.test.cjs",
     "test:invites": "node --test tests/challenge-outgoing.test.cjs",
     "test:lobby": "node --test tests/lobby-shortcuts.test.cjs",
@@ -27,7 +27,8 @@
     "test:zoom-cam": "node --test autozoom/zoom-cam.test.cjs",
     "test:fx": "node --test tests/fx-live.test.cjs tests/fx-match-bridge.test.cjs",
     "test:zoom-tip": "node --test autozoom/tip-map.test.cjs",
-    "test:online-heatmap": "node --test tests/online-heatmap-beta.test.cjs"
+    "test:online-heatmap": "node --test tests/online-heatmap-beta.test.cjs",
+    "test:d1-live": "node --test tests/d1-live-testzone.test.cjs"
   },
   "devDependencies": {
     "eslint": "10.10.0",
