@@ -46,7 +46,7 @@ function draw(canvas,rows=[]){
  }
  let peak=0;for(let i=0;i<field.length;i++)if(field[i]>peak)peak=field[i];
  if(peak<=0)return;
- const pixels=ctx.createImageData(W,H),rgba=pixels.data;
+ const pixels=ctx.getImageData(0,0,W,H),rgba=pixels.data;
  for(let i=0;i<size;i++){
    const d=field[i]/peak;if(d<.055)continue;
    let r,g,b;
@@ -54,8 +54,11 @@ function draw(canvas,rows=[]){
    else if(d<.50){const t=(d-.25)/.25;r=Math.round(86+160*t);g=Math.round(220+12*t);b=Math.round(35-30*t)}
    else if(d<.75){const t=(d-.50)/.25;r=246;g=Math.round(232-118*t);b=5}
    else{const t=(d-.75)/.25;r=Math.round(246-29*t);g=Math.round(114-101*t);b=Math.round(5+10*t)}
-   const n=i*4;rgba[n]=r;rgba[n+1]=g;rgba[n+2]=b;
-   rgba[n+3]=Math.round(Math.min(.96,.25+d*.76)*255);
+   const n=i*4,alpha=Math.min(.96,.25+d*.76);
+   rgba[n]=Math.round(rgba[n]*(1-alpha)+r*alpha);
+   rgba[n+1]=Math.round(rgba[n+1]*(1-alpha)+g*alpha);
+   rgba[n+2]=Math.round(rgba[n+2]*(1-alpha)+b*alpha);
+   rgba[n+3]=255;
  }
  ctx.putImageData(pixels,0,0);
 }
