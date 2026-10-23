@@ -15,7 +15,7 @@ async function mount(initial){
       return {select(){return this},eq(){return this},single:async()=>({data:initial,error:null})};
     },
     channel(){
-      return {on(type,filter,cb){handlers[filter.table+':'+type]=cb;return this},subscribe(){return this}};
+      return {on(type,filter,cb){handlers[filter.table+':'+filter.event]=cb;return this},subscribe(){return this}};
     },
     removeChannel(){}
   };
