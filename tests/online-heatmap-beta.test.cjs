@@ -38,9 +38,9 @@ test('X01 online keeps its match room clean while showing two heatmaps after fin
  const html=fs.readFileSync(path.join(root,'match.html'),'utf8');
  const collector=fs.readFileSync(path.join(root,'online-heatmap-result.js'),'utf8');
  const results=fs.readFileSync(path.join(root,'shared-results.js'),'utf8');
- assert.match(html,/online-heatmap-result\.js\?v=20261023-final1/);
- assert.match(html,/online-heatmap-chart\.js\?v=20261023-final1/);
- assert.match(html,/online-heatmap-result\.css\?v=20261023-final1/);
+ assert.match(html,/online-heatmap-result\.js\?v=20261023-final2/);
+ assert.match(html,/online-heatmap-chart\.js\?v=20261023-final2/);
+ assert.match(html,/online-heatmap-result\.css\?v=20261023-final2/);
  assert.doesNotMatch(html,/online-heatmap-beta\.(js|css)/);
  assert.match(results,/DartArenaOnlineHeatmap\?\.attachResult\(overlay,m\)/);
  assert.match(collector,/result\.querySelector\('\.da-result-stats'\)/);
