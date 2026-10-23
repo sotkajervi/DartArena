@@ -52,9 +52,28 @@ test('Zoom-cam preserves raw detection while filtering only the outgoing render'
 test('load helper wherever Zoom-cam is created',()=>{
   for(const page of ['index.html','room.html','match.html','tournament-match-room.html']){
     const html=fs.readFileSync(path.join(__dirname,page),'utf8');
-    assert.ok(html.includes('camera-picture.js?v=20261023-picture1'),page);
-    const pictureIndex=html.indexOf('camera-picture.js?v=20261023-picture1');
+    assert.ok(html.includes('camera-picture.js?v=20261023-picture2'),page);
+    const pictureIndex=html.indexOf('camera-picture.js?v=20261023-picture2');
     if(page!=='index.html')
       assert.ok(pictureIndex<html.indexOf('autozoom/zoom-cam.js'),page+' loads picture helper first');
+  }
+});
+
+test('ordinary camera sends enhanced pixels while raw detection source remains unchanged',()=>{
+  assert.match(fs.readFileSync(path.join(__dirname,'camera-picture.js'),'utf8'),/function createStream\(raw/);
+  const source=fs.readFileSync(path.join(__dirname,'camera-picture.js'),'utf8');
+  assert.match(source,/canvas\.captureStream\(fps\)/);
+  assert.match(source,/new MediaStream\(\[track,\.\.\.raw\.getAudioTracks\(\)\]\)/);
+  assert.match(source,/if\(Object\.keys\(DEFAULTS\)\.every/);
+  assert.match(source,/sourceTrack,track/);
+});
+test('main game paths transmit picture-enhanced streams',()=>{
+  for(const filename of ['room.js','match.js','cricket.js','half-it-standard.js','one-to-one-media.js','room-device-selector.js']){
+    const source=fs.readFileSync(path.join(__dirname,filename),'utf8');
+    assert.match(source,/createStream\(/,filename);
+  }
+  for(const filename of ['index.html','room.html','match.html','cricket.html','half-it.html','61-match.html','jdc-match.html','tournament-match-room.html']){
+    const html=fs.readFileSync(path.join(__dirname,filename),'utf8');
+    assert.match(html,/camera-picture\.js\?v=20261023-picture2/,filename);
   }
 });
