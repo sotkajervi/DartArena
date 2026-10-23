@@ -1,7 +1,7 @@
 const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK',db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY),$=id=>document.getElementById(id);
 const matchId=new URLSearchParams(location.search).get('id');
 let profile,m,other,names={},channel,stream=null,pc=null,remoteStream=null;
-let zoomCamSession=null;
+let zoomCamSession=null,pictureSession=null;
 let localReady=false,remoteReady=false,leaving=false,generation=1,lastSignal='START',candidatePath='?';
 let readyTimer=null,answerWatchTimer=null,handshakeTimer=null,disconnectTimer=null,statsTimer=null,trackMuteTimer=null;
 let pendingCandidates=[],recoveryState='idle',recoveryStartedAt=0,lastRecoveryRequestAt=0,lastVideoBytes=-1,lastVideoFrames=-1,rtpStalls=0;
@@ -47,6 +47,11 @@ async function startCamera(){
         Z.setSelected(localStorage,false);
       }
     }
+    if(!zoomCamSession){
+      try{pictureSession=window.DartArenaCameraPicture?.createStream(raw)||null;
+        if(pictureSession)stream=pictureSession.stream;
+      }catch(error){console.warn('Bildejustering ikke tilgjengelig, sender originalvideo',error)}
+    }
     const v=$('localVideo');v.srcObject=stream;v.muted=true;await v.play().catch(()=>{});
     $('localPlaceholder').classList.add('hidden');
     $('cameraBtn').textContent='Stopp kamera';
@@ -76,9 +81,9 @@ function updatePath(stats){let pair=null;stats.forEach(r=>{if(r.type==='transpor
 function startStatsWatch(p,myGen){clearInterval(statsTimer);lastVideoBytes=-1;lastVideoFrames=-1;rtpStalls=0;statsTimer=setInterval(async()=>{if(leaving||p!==pc||myGen!==generation||p.connectionState!=='connected')return;try{const stats=await p.getStats();updatePath(stats);let bytes=0,frames=0,found=false,hasFrameCounter=false;stats.forEach(r=>{if(r.type==='inbound-rtp'&&r.kind==='video'&&!r.isRemote){found=true;bytes+=Number(r.bytesReceived||0);if(typeof r.framesDecoded==='number'){hasFrameCounter=true;frames+=Number(r.framesDecoded||0)}}});if(!found)return;const firstSample=lastVideoBytes<0;const moving=firstSample||(hasFrameCounter?frames>lastVideoFrames:bytes>lastVideoBytes);if(moving){rtpStalls=0;hideRemote();lastSignal=`VIDEO ${Math.round(bytes/1024)}KB/${frames}f`}else{rtpStalls++;lastSignal=`VIDEO stall ${rtpStalls}/5`;if(rtpStalls>=5){lastSignal='VIDEO HARD STALL';debug();if(isOfferer())startOffererRecovery('video-stall');else requestReset('video-stall');return}}lastVideoBytes=bytes;lastVideoFrames=frames;debug()}catch(e){lastSignal=`STATS ${e?.name||''}`;debug()}},1000)}
 async function send(event,payload={}){if(!channel)return;try{return await channel.send({type:'broadcast',event,payload:{...payload,from:profile.id}})}catch(e){lastSignal=`SEND ${event} failed`;debug()}}
 channelResetHandler=()=>{};
-$('cameraBtn').onclick=async()=>{if(!stream)return startCamera();localReady=false;stream.getTracks().forEach(t=>t.stop());stream=null;destroyPeer();$('localVideo').srcObject=null;$('localPlaceholder').classList.remove('hidden');showRemote('Venter på motstanderens kamera…');$('cameraBtn').textContent='Start kamera';lastSignal='CAMERA stopped';debug()};
+$('cameraBtn').onclick=async()=>{if(!stream)return startCamera();localReady=false;stream.getTracks().forEach(t=>t.stop());pictureSession?.stop();pictureSession?.sourceTrack?.stop();pictureSession=null;if(zoomCamSession){zoomCamSession.stop();zoomCamSession.sourceTrack?.stop();zoomCamSession=null;window.DartArenaX01ZoomSession=null}stream=null;destroyPeer();$('localVideo').srcObject=null;$('localPlaceholder').classList.remove('hidden');showRemote('Venter på motstanderens kamera…');$('cameraBtn').textContent='Start kamera';lastSignal='CAMERA stopped';debug()};
 async function setPlayersUnavailable(){if(m)await db.from('profiles').update({status:'unavailable'}).in('id',[m.player1_id,m.player2_id])}
-function cleanup(){leaving=true;localReady=false;clearInterval(readyTimer);clearTimeout(answerWatchTimer);clearTimeout(handshakeTimer);clearTimeout(disconnectTimer);clearTimeout(trackMuteTimer);clearInterval(statsTimer);stream?.getTracks().forEach(t=>t.stop());stream=null;
+function cleanup(){leaving=true;localReady=false;clearInterval(readyTimer);clearTimeout(answerWatchTimer);clearTimeout(handshakeTimer);clearTimeout(disconnectTimer);clearTimeout(trackMuteTimer);clearInterval(statsTimer);stream?.getTracks().forEach(t=>t.stop());pictureSession?.stop();pictureSession?.sourceTrack?.stop();pictureSession=null;stream=null;
 if(zoomCamSession){zoomCamSession.stop();zoomCamSession.sourceTrack?.stop();zoomCamSession=null;window.DartArenaX01ZoomSession=null}destroyPeer(false);if(channel)db.removeChannel(channel)}
 $('cancelMatchBtn').onclick=async()=>{if(!m||m.status!=='playing'||!confirm('Vil du avbryte kampen?'))return;const{error}=await db.from('matches').update({status:'cancelled',finished_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',m.id);if(error)return $('matchMessage').textContent='Kunne ikke avbryte: '+error.message;await setPlayersUnavailable();window.opener?.postMessage({type:'dartarena-match-ended',id:m.id},location.origin);window.close()};
 $('closeMatchBtn').onclick=()=>{if(m?.status==='playing'&&!confirm('Kampen pågår fortsatt. Lukk kampfanen?'))return;window.close()};
