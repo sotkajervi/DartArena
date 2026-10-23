@@ -59,7 +59,7 @@ test('Cup FX primes old results and accepts only new official human finishes and
   assert.equal(cup2.afterBracketRender([wo,final]),0);
   cup2.destroy();
 });
-test('Six effects have independent switches and remain separate from matches',()=>{
+test('FX Studio has independent switches; live rooms have defaults without switches',()=>{
   const {FX,doc}=fixture();
   const names=Object.keys(FX.DEFAULT_EFFECTS);
   assert.deepEqual(names,['rolling_score','neon_relay','led_score_rail',
@@ -83,8 +83,16 @@ test('Six effects have independent switches and remain separate from matches',()
   const tournament=fs.readFileSync(path.join(root,'tournament.html'),'utf8');
   const studio=fs.readFileSync(path.join(root,'fx-preview.html'),'utf8');
   const arena=fs.readFileSync(path.join(root,'scoringarena.html'),'utf8');
-  assert.doesNotMatch(local,/fx-live.js|localFxLevel/);
-  assert.doesNotMatch(tournament,/fx-live.js|cupFxLevel/);
+  const online=fs.readFileSync(path.join(root,'match.html'),'utf8');
+  const bridge=fs.readFileSync(path.join(root,'fx-match-bridge.js'),'utf8');
+  assert.match(local,/fx-live.js/);
+  assert.match(tournament,/fx-live.js/);
+  assert.match(online,/fx-match-bridge.js/);
+  assert.doesNotMatch(local,/id="localFxLevel"/);
+  assert.doesNotMatch(tournament,/id="cupFxLevel"/);
+  assert.doesNotMatch(online,/id="matchFxLevel"/);
+  assert.match(bridge,/neon_relay:false/);
+  assert.match(bridge,/level:'cinematic'/);
   assert.match(arena,/href="\.\/fx-preview.html"/);
   for(const name of names)assert.match(studio,new RegExp('data-fx-effect="'+name+'"'));
   assert.match(studio,/studioEffectsAll/);
