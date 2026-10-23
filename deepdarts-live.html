@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071012">
+  <title>DartArena • D1 Live-testsone</title>
+  <link rel="stylesheet" href="./style.css?v=20261023-bulldown2">
+  <link rel="stylesheet" href="./brand-header.css?v=20261009-mobile1">
+  <link rel="stylesheet" href="./autoscoring/d1-live.css?v=20261023-1">
+</head>
+<body class="d1-page">
+  <header><div class="brand"><img class="brand-logo" src="./assets/dartarena-logo.jpg?v=20261009-global1" alt="DartArena" width="420" height="116" decoding="async"></div><div class="live"><i></i> D1 LIVE • TESTSONE</div></header>
+  <main class="shell d1-shell">
+    <div class="d1-top"><div><small>OWNER / ADMIN • EKSPERIMENT</small><h1>D1 Live-testsone</h1><p class="muted compact">Test spissdeteksjon fra ett kamera – uten kamp, poenginnsending eller bildeopplasting.</p></div><a class="outline d1-back" href="./">Til lobby</a></div>
+    <section id="dzGate" class="card d1-gate" role="status" aria-live="polite">Kontrollerer tilgang …</section>
+    <div id="dzApp" hidden>
+      <div class="d1-note" role="note"><strong>Dette er en teknisk test, ikke ferdig autoscoring.</strong> D1 ga ingen riktige spissforslag innen 12 piksler i den foreløpige bildesammenligningen. Kontroller alle forslag manuelt. Modellen velges fra din egen PC og kjøres lokalt; den lastes ikke opp. Kamera åpnes bare etter at du trykker Start.</div>
+      <div class="d1-layout">
+        <section class="card d1-camera">
+          <div class="heading"><div><small>LIVE KAMERA</small><h2>Dartskive</h2></div><span class="d1-pill" id="dzCameraState">Kamera av</span></div>
+          <label class="d1-field">Velg kamera<select id="dzCamera"><option value="">Standardkamera</option></select></label>
+          <div class="d1-actions"><button type="button" class="primary" id="dzStart">Start kamera</button><button type="button" class="outline" id="dzStop" disabled>Stopp kamera</button></div>
+          <div class="d1-stage" id="dzStage" style="aspect-ratio:16/9">
+            <video id="dzVideo" autoplay muted playsinline></video>
+            <canvas id="dzSnapshot" hidden aria-hidden="true"></canvas>
+            <canvas id="dzOverlay" aria-label="Klikk på kalibreringspunkter eller korrekt pilspiss"></canvas>
+            <div id="dzStageHint">Start kameraet for å vise skiven</div>
+          </div>
+          <p class="muted compact">Hele skiven bør være synlig, skarpt fokusert og uten OBS-zoomfelt over skiven. Turkise linjer skal følge metalltrådene. Magenta = AI-forslag, grønt = manuelt markert spiss.</p>
+          <div class="d1-actions">
+            <button type="button" class="outline" id="dzAutoCal" disabled>Forsøk autokalibrering</button>
+            <button type="button" class="outline" id="dzManualCal" disabled>Kalibrer manuelt (9 punkter)</button>
+            <button type="button" class="outline" id="dzUndo" disabled>Angre punkt</button>
+          </div>
+          <p id="dzCalibrationState" class="d1-status" role="status" aria-live="polite">Ingen kalibrering. Autokalibrering antar 20 øverst og kan bomme – sjekk linjene visuelt.</p>
+          <div class="d1-actions"><button type="button" id="dzReference" class="outline" disabled>Ta referanse (tom/forrige skive)</button><button type="button" id="dzAnalyze" class="primary" disabled>Analyser nå</button><button type="button" id="dzNext" class="outline" disabled>Tilbake til live / neste pil</button></div>
+          <p class="d1-status" id="dzStatus" role="status" aria-live="polite">Velg modell, start kamera og kalibrer skiven.</p>
+        </section>
+        <section class="card d1-control">
+          <div class="heading"><div><small>DEEPDARTS D1 • LOKAL MODELL</small><h2>Spissdeteksjon</h2></div><span class="d1-pill" id="dzModelState">Ingen modell</span></div>
+          <label class="d1-field">Velg din <strong>model.tflite</strong> fra PC-en<input id="dzFile" type="file" accept=".tflite,application/octet-stream"></label>
+          <div class="d1-actions"><button type="button" id="dzLoad" class="outline">Last inn D1-modell</button></div>
+          <label class="d1-field">Minste AI-konfidens<input type="number" id="dzThreshold" min=".05" max=".95" step=".05" value=".20" inputmode="decimal"></label>
+          <label class="d1-check"><input id="dzAuto" type="checkbox"><span>Auto-test etter stabil bildeendring <small>Krever modell, referansebilde og aktivt kamera. Analyserer maksimalt én gang per kast, og venter på kontroll.</small></span></label>
+          <label class="d1-field">Bevegelsesfølsomhet<select id="dzSensitivity"><option value="high">Høy (små endringer)</option><option value="normal" selected>Normal</option><option value="low">Lav (mindre følsom)</option></select></label>
+          <div class="d1-metrics"><div><small>Testede kast</small><strong id="dzCount">0</strong></div><div><small>Riktig posisjon (≤ 12 px)</small><strong id="dzAcc">–</strong></div><div><small>AI-forslag</small><strong id="dzProposal">–</strong></div><div><small>Avvik fra fasit</small><strong id="dzError">–</strong></div></div>
+          <p class="muted compact" id="dzModelMessage" role="status" aria-live="polite">D1-fil kreves. Ingen modellvekter er lagret på DartArena.</p>
+          <div class="d1-check-result">
+            <strong>Kontroller treffet</strong>
+            <p class="muted compact" id="dzTipState">Etter analyse: klikk den faktiske pilspissen i det frosne bildet. Bekreft eller avvis AI-forslaget.</p>
+            <div class="d1-actions"><button id="dzConfirm" type="button" class="primary" disabled>Bekreft fasit</button><button id="dzReject" type="button" class="outline" disabled>Avvis / neste pil</button></div>
+          </div>
+          <div class="d1-log-head"><strong>Testlogg</strong><button type="button" id="dzExport" class="outline" disabled>Eksporter JSON</button></div>
+          <div id="dzLog" class="d1-log"><p class="muted compact">Ingen testkast ennå.</p></div>
+          <p class="muted compact">Kun koordinater, modellforslag og sammenligninger blir eksportert. Ingen bilder lagres eller sendes videre. Kalibrering slettes når du lukker siden.</p>
+        </section>
+      </div>
+    </div>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+  <script src="./autoscoring/geometry.js?v=20261010-ninepoints1"></script>
+  <script src="./autozoom/auto-calibration.js?v=20261023-autocal1"></script>
+  <script src="./autoscoring/deepdarts-tflite.js?v=20261010-d1decode1"></script>
+  <script src="./autoscoring/d1-live.js?v=20261023-1"></script>
+</body>
+</html>
