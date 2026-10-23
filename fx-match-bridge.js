@@ -55,6 +55,10 @@ function parseTransition(before,after,visit){
   if(Number(visit.set_no||1)!==Number(before.current_set||1)||
      Number(visit.leg_no||1)!==Number(before.current_leg||1))return null;
   if(before.turn_player_id!==visit.player_id)return null;
+  // A real visit hands the turn to the opponent, unless checkout finishes
+  // the match. Score corrections are UPDATEs and do not hand over the turn.
+  if(after.status==='playing'&&after.turn_player_id===before.turn_player_id)return null;
+  if(after.status==='finished'&&(visit.is_checkout!==true||after.winner_id!==visit.player_id))return null;
   const playerSlot=slotOf(before,visit.player_id);
   if(!playerSlot)return null;
   const beforeScores=scorePair(before),afterScores=scorePair(after);
