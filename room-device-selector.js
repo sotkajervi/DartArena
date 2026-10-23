@@ -214,7 +214,7 @@
       return;
     }
     const oldTrack = currentTrack(kind);
-    if (!zoomSession&&oldTrack?.getSettings?.().deviceId === deviceId) {
+    if (!zoomSession&&currentDeviceId(kind) === deviceId) {
       if (save) localStorage.setItem(kind === 'video' ? CAMERA_KEY : MIC_KEY, deviceId);
       if (kind === 'audio') await startMeter(oldTrack);
       return;
