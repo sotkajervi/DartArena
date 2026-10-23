@@ -99,38 +99,36 @@ test('FX Studio has independent switches; live rooms have defaults without switc
   assert.match(studio,/studioEffectsNone/);
 });
 
-test('Cinematic follows the scorecards DOWN and UP with a short arrival pulse',async()=>{
-  const previousTop=40, lowerTop=210, width=290, height=155;
-  async function run(fromSlot,toSlot,sideBySide=false){
-    const contacts=[],added=[],queue=[],cancelled=new Set();
+test('Cinematic full-card sweep follows stacked DOWN/UP and adjacent LEFT/RIGHT layouts',async()=>{
+  const width=290,height=155;
+  async function run(fromSlot,toSlot,layout='stacked',abortEarly=false){
+    const changes=[],added=[],queue=[],cancelled=new Set();
     let time=0,seq=0;
     function node(name,top,left){
       const classes=new Set();
       return {
         isConnected:true,hidden:false,
-        getBoundingClientRect:()=>({left,top,right:left+width,bottom:top+height,
-          width,height}),
+        getBoundingClientRect:()=>({left,top,right:left+width,bottom:top+height,width,height}),
         classList:{
-          add(cls){classes.add(cls);contacts.push({name,cls,time,action:'add'})},
-          remove(cls){classes.delete(cls);contacts.push({name,cls,time,action:'remove'})},
+          add(cls){classes.add(cls);changes.push({name,cls,time,action:'add'})},
+          remove(cls){classes.delete(cls);changes.push({name,cls,time,action:'remove'})},
           contains(cls){return classes.has(cls)}
         }
       };
     }
-    const p1=node('p1',previousTop,40);
-    const p2=node('p2',sideBySide?previousTop:lowerTop,sideBySide?350:40);
-    const cards={p1,p2};
-    const body={append(...nodes){added.push(...nodes)}};
-    const doc={body,querySelector(selector){return cards[selector.slice(1)]||null},
-      querySelectorAll:()=>[],addEventListener(){},removeEventListener(){},hidden:false,
+    const p1=node('p1',40,40);
+    const p2=node('p2',layout==='stacked'?210:40,layout==='stacked'?40:350);
+    const body={append(...els){added.push(...els)}};
+    const doc={body,querySelector:()=>null,querySelectorAll:()=>[],
+      addEventListener(){},removeEventListener(){},hidden:false,
       createElement(tag){
         assert.equal(tag,'span');
         const attrs={},style={setProperty(name,value){this[name]=value}};
-        return {style,className:'',setAttribute(k,v){attrs[k]=v},remove(){this.removed=true},
-          attrs};
+        return {style,className:'',setAttribute(k,v){attrs[k]=v},
+          remove(){this.removed=true},attrs};
       }};
-    const win={document:doc,
-      matchMedia:()=>({matches:false}),addEventListener(){},removeEventListener(){},
+    const win={document:doc,matchMedia:()=>({matches:false}),
+      addEventListener(){},removeEventListener(){},
       setTimeout(fn,ms){const id=++seq;queue.push({id,time:time+ms,fn});return id},
       clearTimeout(id){cancelled.add(id)}
     };
@@ -138,45 +136,54 @@ test('Cinematic follows the scorecards DOWN and UP with a short arrival pulse',a
     const context={window:win,document:doc,console,Promise,Map,Set,AbortController};
     vm.runInNewContext(fs.readFileSync(path.join(root,'fx-live.js'),'utf8'),context);
     const fx=win.DartArenaFXLive.engine('demo',{document:doc,level:'cinematic',
-      effects:{neon_relay:false},
-      targets:{'card:p1':p1,'card:p2':p2}});
-    const count=fx.emit({id:'turn-'+fromSlot,type:'turn_changed',matchId:'demo',
-      previousSlot:fromSlot,nextSlot:toSlot});
-    assert.equal(count,1);
+      effects:{neon_relay:false},targets:{'card:p1':p1,'card:p2':p2}});
+    assert.equal(fx.emit({id:'turn-'+fromSlot,type:'turn_changed',matchId:'demo',
+      previousSlot:fromSlot,nextSlot:toSlot}),1);
     await Promise.resolve();await Promise.resolve();
-    assert.equal(added.length,2,'Only a guide line and a tracer are added');
-    const tracer=added.find(n=>n.className.includes('da-fx-turn-tracer'));
-    const deltaY=parseFloat(tracer.style['--da-fx-travel-y']);
-    const deltaX=parseFloat(tracer.style['--da-fx-travel-x']);
+    assert.equal(added.length,1,'One full-card sweep, no extra guide or camera overlay');
+    const sweep=added[0];
+    assert.match(sweep.className,/da-fx-turn-sweep/);
+    assert.equal(sweep.attrs['aria-hidden'],'true');
+    const deltaY=parseFloat(sweep.style['--da-fx-travel-y']);
+    const deltaX=parseFloat(sweep.style['--da-fx-travel-x']);
+    const dimensions={width:parseFloat(sweep.style.width),height:parseFloat(sweep.style.height)};
+    if(abortEarly)fx.reset();
     while(queue.length){
       queue.sort((a,b)=>a.time-b.time);const item=queue.shift();
-      if(cancelled.has(item.id))continue;
-      time=item.time;item.fn();
+      if(cancelled.has(item.id))continue;time=item.time;item.fn();
     }
     await Promise.resolve();
-    assert.equal(added.filter(n=>!n.removed).length,0,'Both overlays are removed');
-    const arrival=contacts.find(e=>e.name===toSlot&&e.cls==='da-fx-turn-arrival'&&e.action==='add');
-    assert.ok(arrival,'The next player receives a card pulse');
-    assert.equal(contacts.some(e=>e.cls.startsWith('da-fx-diagonal')),false);
-    assert.equal(contacts.some(e=>e.name===fromSlot&&e.cls==='da-fx-turn-source'),true);
+    assert.equal(sweep.removed,true,'Sweeping effect is always removed');
+    const arrival=changes.find(e=>e.name===toSlot&&e.cls==='da-fx-turn-arrival'&&e.action==='add');
+    if(abortEarly)assert.equal(arrival,undefined,'Aborted turn does not pulse next card');
+    else {assert.ok(arrival);assert.equal(arrival.time,345)}
+    assert.equal(changes.some(e=>e.cls.startsWith('da-fx-diagonal')),false);
+    assert.ok(changes.some(e=>e.name===fromSlot&&e.cls==='da-fx-turn-source'));
     fx.destroy();
-    return {deltaY,deltaX,className:tracer.className,arrivalAt:arrival.time};
+    return {deltaY,deltaX,className:sweep.className,dimensions};
   }
   const down=await run('p1','p2');
-  assert.ok(down.deltaY>0,'Top player sends the effect downward');
+  assert.ok(down.deltaY>0,'Top player sends the horizontal band DOWN');
   assert.equal(down.deltaX,0);
-  assert.match(down.className,/is-vertical/);
-  assert.equal(down.arrivalAt,320);
+  assert.match(down.className,/is-horizontal-band/);
+  assert.ok(down.dimensions.width>275,'Horizontal band covers entire scorecard width');
+  assert.equal(down.dimensions.height,14);
   const up=await run('p2','p1');
-  assert.ok(up.deltaY<0,'Lower player sends the effect upward');
-  assert.equal(up.deltaX,0);
-  const horizontal=await run('p1','p2',true);
-  assert.ok(horizontal.deltaX>0,'Side-by-side cards travel horizontally');
-  assert.match(horizontal.className,/is-horizontal/);
+  assert.ok(up.deltaY<0,'Lower player sends the horizontal band UP');
+  const right=await run('p1','p2','adjacent');
+  assert.ok(right.deltaX>0,'Left player sends a vertical band RIGHT');
+  assert.match(right.className,/is-vertical-band/);
+  assert.equal(right.dimensions.width,14);
+  assert.ok(right.dimensions.height>140,'Vertical band covers entire scorecard height');
+  const left=await run('p2','p1','adjacent');
+  assert.ok(left.deltaX<0,'Right player sends the vertical band LEFT');
+  await run('p1','p2','stacked',true);
   const css=fs.readFileSync(path.join(root,'fx-live.css'),'utf8');
-  assert.match(css,/da-fx-turn-travel/);
-  assert.match(css,/da-fx-turn-arrival/);
-  assert.doesNotMatch(css,/da-fx-diagonal/);
-  const preview=fs.readFileSync(path.join(root,'fx-preview.html'),'utf8');
-  assert.match(preview,/Turkis lysstripe som går fra forrige spillerkort til neste/);
+  assert.match(css,/da-fx-turn-sweep/);
+  assert.match(css,/is-horizontal-band/);
+  assert.match(css,/is-vertical-band/);
+  assert.match(css,/da-fx-turn-score-glow/);
+  assert.doesNotMatch(css,/da-fx-turn-tracer|da-fx-turn-guide/);
+  const studio=fs.readFileSync(path.join(root,'fx-preview.html'),'utf8');
+  assert.match(studio,/Kraftig lysstripe over hele spillerkortet ved turbytte/);
 });
