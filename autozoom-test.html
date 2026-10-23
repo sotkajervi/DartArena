@@ -33,11 +33,11 @@
         <canvas id="azOverlay" aria-label="Klikk Bull og D20 for kalibrering, eller klikk for å flytte zoomvinduet"></canvas>
         <div class="az-inset" aria-label="Forstørret del av dartskiva">
           <div class="az-inset-head"><span>LIVE ZOOM</span><span id="azTarget">T20</span></div>
-          <canvas id="azZoom" width="320" height="240" aria-label="Zoom på siste registrerte endring"></canvas>
+          <canvas id="azZoom" width="320" height="240" style="cursor:crosshair;touch-action:manipulation" title="Etter kast: klikk der pilspissen går inn i skiva for å korrigere heatmap" aria-label="Zoom på kastet. Klikk innslagspunktet nederst ved pilspissen for å korrigere heatmap"></canvas>
         </div>
       </div>
       <div class="az-steps">
-        <strong>Slik tester du:</strong> Start kamera → kalibrer ved å klikke Bull og deretter D20 på hovedbildet → fjern alle piler → trykk «Tom skive / referanse» → kast én pil og vent litt. Zoomvinduet forsøker å følge området der bildet er endret. Kast neste pil når zoomvinduet har flyttet seg. Du kan også klikke manuelt på skiva for å teste panoreringen.
+        <strong>Slik tester du:</strong> Start kamera → kalibrer ved å klikke Bull og deretter D20 på hovedbildet → fjern alle piler → trykk «Tom skive / referanse» → kast én pil og vent litt. Zoomvinduet forsøker å følge området der bildet er endret. Når ZoomCam har funnet en mulig pil, får du en ring rundt estimatet. Klikk nøyaktig der pilspissen treffer skiva i ZoomCam for å rette heatmap. Kast neste pil etterpå. Du kan også klikke manuelt på skiva for å teste panoreringen.
       </div>
       <p class="az-small">Dette er en eksperimentell bildeendringstest, ikke ferdig AI-pilspissdeteksjon. Zoomvinduet krever nå ny bevegelse og fem stabile målinger før det flyttes. Normal og Lav bruker midlertidig samme stabile deteksjonsfilter. Høy kan oppdage små piltreff ved kanten (f.eks. D4), men er mer følsom for lys, hender og kamerabevegelse. Ingen poeng føres, og ingen video sendes til DartArena eller lagres av testen.</p>
     </section>
@@ -73,7 +73,7 @@
         <div><small>SISTE UTSNITT</small><strong id="azLast">Ingen registrert</strong></div>
       </div>
       <div class="heading" style="margin-top:22px"><div><small>HEATMAP • EKSPERIMENT</small><h2>Estimert piltreff</h2></div></div>
-      <p class="az-small">AutoZoom beregner et foreløpig treffpunkt fra bildeendringen, som også kan være flighten. Oransje ring viser opprinnelig bildeendring (ofte flight). Turkis prikk viser estimert innslagspunkt. Klikk på skiven for å korrigere siste treff. Estimat og korrigering kan eksporteres som JSON. Ingen videobilder eksporteres.</p>
+      <p class="az-small">AutoZoom beregner et foreløpig treffpunkt fra bildeendringen, som også kan være flighten. Oransje ring viser opprinnelig bildeendring (ofte flight). Turkis prikk viser estimert innslagspunkt. I ZoomCam vises en ring rundt spissforslaget (turkis hvis en smal ende ble funnet, oransje hvis usikkert). Klikk pilens faktiske innslagspunkt i ZoomCam for nøyaktig heatmap-korrigering, eller klikk direkte på skiven her. Estimat og korrigering kan eksporteres som JSON. Ingen videobilder eksporteres.</p>
       <canvas id="azHeatBoard" width="380" height="380" style="display:block;width:min(100%,380px);height:auto;aspect-ratio:1;margin:12px auto;border-radius:14px;cursor:crosshair" aria-label="Digital dartskive med estimerte piltreff, klikk for å korrigere siste treff"></canvas>
       <p id="azHeatSummary" class="az-small" role="status">Ingen treff ennå.</p>
       <div class="az-button-grid"><button id="azHeatUndo" class="outline" type="button" disabled>Angre treff</button><button id="azHeatClear" class="outline" type="button" disabled>Tøm test</button><button id="azHeatExport" class="outline" type="button" disabled>Eksporter testlogg</button></div>
@@ -90,7 +90,8 @@
   </div>
 </main>
 <script src="autozoom/tracker.js?v=20261013-autozoom6"></script>
-<script src="autozoom/test.js?v=20261015-motiongate5"></script>
-<script src="autozoom/heatmap-test.js?v=20261015-lowertip2"></script>
+<script src="autozoom/tip-map.js?v=20261023-tip1"></script>
+<script src="autozoom/test.js?v=20261023-tip1"></script>
+<script src="autozoom/heatmap-test.js?v=20261023-tip1"></script>
 </body>
 </html>
