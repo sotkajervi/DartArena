@@ -98,3 +98,64 @@ test('FX Studio has independent switches; live rooms have defaults without switc
   assert.match(studio,/studioEffectsAll/);
   assert.match(studio,/studioEffectsNone/);
 });
+
+test('Cinematic diagonal wave travels from bottom-left to upper-right and affects contours/text only',async()=>{
+  const contacts=[],queue=[],cancelled=new Set();
+  let now=0,id=0;
+  const make=(name,left,top,right,bottom)=>{
+    const active=new Set();
+    return {
+      isConnected:true,hidden:false,closest:()=>null,
+      getBoundingClientRect:()=>({left,top,right,bottom,width:right-left,height:bottom-top}),
+      classList:{
+        add(cls){active.add(cls);contacts.push({name,cls,at:now,type:'add'})},
+        remove(cls){active.delete(cls);contacts.push({name,cls,at:now,type:'remove'})},
+        contains(cls){return active.has(cls)}
+      }
+    };
+  };
+  const lowerCard=make('lower-card',20,590,260,770);
+  const upperCard=make('upper-card',700,20,980,175);
+  const lowerText=make('lower-text',50,670,190,730);
+  const upperText=make('upper-text',780,55,960,120);
+  const doc={
+    hidden:false,body:{},documentElement:{clientWidth:1000,clientHeight:800},
+    addEventListener(){},removeEventListener(){},querySelector(){return null},
+    querySelectorAll(selector){
+      return selector.includes('.video-card')?[lowerCard,upperCard]:[lowerText,upperText];
+    }
+  };
+  const win={
+    document:doc,innerWidth:1000,innerHeight:800,
+    matchMedia:()=>({matches:false}),addEventListener(){},removeEventListener(){},
+    setTimeout(fn,ms){const key=++id;queue.push({key,at:now+ms,fn});return key},
+    clearTimeout(key){cancelled.add(key)}
+  };
+  doc.defaultView=win;
+  const context={window:win,document:doc,console,Promise,Map,Set,AbortController};
+  vm.runInNewContext(fs.readFileSync(path.join(root,'fx-live.js'),'utf8'),context);
+  const fx=win.DartArenaFXLive.engine('test',{document:doc,level:'cinematic',
+    effects:{neon_relay:false}});
+  assert.equal(fx.emit({id:'turn1',type:'turn_changed',matchId:'test',
+    previousSlot:'p1',nextSlot:'p2'}),1);
+  await Promise.resolve();
+  await Promise.resolve();
+  while(queue.length){
+    queue.sort((a,b)=>a.at-b.at);
+    const item=queue.shift();
+    if(cancelled.has(item.key))continue;
+    now=item.at;item.fn();
+  }
+  const time=name=>contacts.find(e=>e.type==='add'&&e.name===name)?.at;
+  assert.ok(time('lower-card')<time('upper-card'));
+  assert.ok(time('lower-text')<time('upper-text'));
+  assert.equal(contacts.filter(e=>e.type==='add').length,4);
+  assert.equal(contacts.filter(e=>e.type==='remove').length,4);
+  assert.ok(contacts.some(e=>e.cls==='da-fx-diagonal-edge'));
+  assert.ok(contacts.some(e=>e.cls==='da-fx-diagonal-text'));
+  const css=fs.readFileSync(path.join(root,'fx-live.css'),'utf8');
+  assert.match(css,/da-fx-diagonal-edge-glow/);
+  assert.match(css,/da-fx-diagonal-text-glow/);
+  assert.doesNotMatch(css,/da-fx-camera-sweep/);
+  fx.destroy();
+});
