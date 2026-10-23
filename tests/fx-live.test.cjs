@@ -59,12 +59,34 @@ test('Cup FX primes old results and accepts only new official human finishes and
   assert.equal(cup2.afterBracketRender([wo,final]),0);
   cup2.destroy();
 });
-test('Both UI pages load FX before their dependent controllers',()=>{
+test('Six effects have independent switches and remain separate from matches',()=>{
+  const {FX,doc}=fixture();
+  const names=Object.keys(FX.DEFAULT_EFFECTS);
+  assert.deepEqual(names,['rolling_score','neon_relay','led_score_rail',
+    'cinematic_switch','elimination_fx','bracket_power']);
+  const match=FX.createX01({document:doc,matchId:'test-toggles',startScore:501,level:'cinematic'});
+  assert.equal(match.getEffects().neon_relay,true);
+  match.setEffects({neon_relay:false,rolling_score:false});
+  assert.equal(match.getEffects().rolling_score,false);
+  assert.equal(match.getEffects().neon_relay,false);
+  assert.equal(match.getEffects().led_score_rail,true);
+  match.setEffects({rolling_score:true});
+  assert.equal(match.getEffects().rolling_score,true);
+  assert.equal(match.getEffects().neon_relay,false);
+  match.destroy();
+  const cup=FX.createCup({document:doc,tournamentId:'test-cup-switches',level:'cinematic'});
+  cup.setEffects({elimination_fx:false});
+  assert.equal(cup.getEffects().elimination_fx,false);
+  assert.equal(cup.getEffects().bracket_power,true);
+  cup.destroy();
   const local=fs.readFileSync(path.join(root,'local-head-to-head.html'),'utf8');
-  const cup=fs.readFileSync(path.join(root,'tournament.html'),'utf8');
-  assert.match(local,/id="localFxLevel"/);assert.match(cup,/id="cupFxLevel"/);
-  assert.ok(local.indexOf('fx-live.js')<local.indexOf('local-h2h.js'));
-  assert.ok(cup.indexOf('fx-live.js')<cup.indexOf('tournament-cup.js'));
-  assert.match(local,/fx-preview.html/);
-  assert.ok(fs.existsSync(path.join(root,'fx-preview.html')));
+  const tournament=fs.readFileSync(path.join(root,'tournament.html'),'utf8');
+  const studio=fs.readFileSync(path.join(root,'fx-preview.html'),'utf8');
+  const arena=fs.readFileSync(path.join(root,'scoringarena.html'),'utf8');
+  assert.doesNotMatch(local,/fx-live.js|localFxLevel/);
+  assert.doesNotMatch(tournament,/fx-live.js|cupFxLevel/);
+  assert.match(arena,/href="\.\/fx-preview.html"/);
+  for(const name of names)assert.match(studio,new RegExp('data-fx-effect="'+name+'"'));
+  assert.match(studio,/studioEffectsAll/);
+  assert.match(studio,/studioEffectsNone/);
 });
