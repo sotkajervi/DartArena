@@ -303,7 +303,7 @@ speedSelect.addEventListener('change',saveOptions);
 sensitivitySelect.addEventListener('change',saveOptions);
 camera.addEventListener('change',()=>{clearAuto();autoPanel.hidden=true;stopPreview();cancel();setTimeout(()=>{loadFraming();updateHelp()},300)});
 document.getElementById('closeCameraTest')?.addEventListener('click',()=>{clearAuto();autoPanel.hidden=true;stopPreview();cancel();stopFramingLoop()});
-document.getElementById('cameraTestBackdrop')?.addEventListener('click',stopFramingLoop);
+document.getElementById('cameraTestBackdrop')?.addEventListener('click',()=>{clearAuto();autoPanel.hidden=true;cancel();stopPreview();stopFramingLoop()});
 document.getElementById('restartCameraTest')?.addEventListener('click',()=>{clearAuto();autoPanel.hidden=true;stopPreview()});
 window.addEventListener('pagehide',()=>{clearAuto();stopPreview();stopFramingLoop()});
 document.getElementById('cameraTestBtn')?.addEventListener('click',()=>{loadFraming();startFramingLoop();setTimeout(updateHelp,400)});
