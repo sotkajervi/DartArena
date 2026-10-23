@@ -10,7 +10,7 @@
   const micSelect=document.getElementById('micDeviceSelect');
   const micLevelFill=document.getElementById('micLevelFill');
   const micLevelText=document.getElementById('micLevelText');
-  let zoomSession=null;
+  let zoomSession=null,pictureSession=null;
   let switching=false;
   let meterContext=null,meterSource=null,meterAnalyser=null,meterFrame=0;
 
@@ -34,6 +34,8 @@
   function currentDeviceId(kind){
     const track=kind==='video'&&zoomSession?.sourceTrack?.readyState==='live'
       ?zoomSession.sourceTrack
+      :kind==='video'&&pictureSession?.sourceTrack?.readyState==='live'
+      ?pictureSession.sourceTrack
       :stream?.getTracks?.().find(t=>t.kind===kind&&t.readyState==='live');
     return track?.getSettings?.().deviceId||'';
   }
@@ -173,6 +175,7 @@
   async function tearDownLocalPublication(){
     await stopMeter();
     if(zoomSession){zoomSession.stop();zoomSession.sourceTrack?.stop();zoomSession=null;}
+    if(pictureSession){pictureSession.stop();pictureSession.sourceTrack?.stop();pictureSession=null;}
     if(stream){
       try{stream.getTracks().forEach(track=>track.stop())}catch{}
       stream=null;
@@ -222,7 +225,12 @@
         }
       }
 
-      const videoTrack=zoomSession?.sourceTrack||stream.getVideoTracks()[0];
+      if(!zoomSession&&!pictureSession){
+        try{pictureSession=window.DartArenaCameraPicture?.createStream(stream)||null;
+          if(pictureSession)stream=pictureSession.stream;
+        }catch(error){console.warn('Turnering: bildejustering ikke tilgjengelig',error)}
+      }
+      const videoTrack=zoomSession?.sourceTrack||pictureSession?.sourceTrack||stream.getVideoTracks()[0];
       const audioTrack=stream.getAudioTracks()[0];
       const actualCamera=videoTrack?.getSettings?.().deviceId||'';
       const actualMic=audioTrack?.getSettings?.().deviceId||'';
