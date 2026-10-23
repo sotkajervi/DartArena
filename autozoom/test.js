@@ -255,7 +255,7 @@ els.zoom.addEventListener('click',event=>{
   if(!point||Math.hypot(point.x-board.x,point.y-board.y)>board.radius*1.55){
     status('Klikk der pilspissen går inn i skiva, innenfor det synlige skiveområdet.');return;
   }
-  window.dispatchEvent(new CustomEvent('dartarena:autozoom-tip-confirmed',{detail:{x:point.x,y:point.y}}));
+  window.dispatchEvent(new CustomEvent('dartarena:autozoom-tip-confirmed',{detail:{x:point.x,y:point.y,board:{...board}}}));
   zoomTip={...point,tipDetected:true,confirmed:true};
   status('Pilspiss bekreftet i ZoomCam. Heatmap er oppdatert – ingen poeng er registrert.');
 });
