@@ -3,6 +3,7 @@
 'use strict';
 const E=window.DartArenaLocalH2HEngine;
 const B=window.DartArenaBotEngine;
+const FX=window.DartArenaFXLive;
 const BOT_SESSION_KEY='dartarena-local-h2h-bot-session-v1';
 const ADAPT_KEY='dartarena-bot-adaptive-v1';
 const BOT_PERSONAS={
@@ -17,6 +18,7 @@ if(!E||!$('localSetupForm'))return;
 const KEY='dartarena-local-h2h-state-v1';
 let state=null,pendingCheckout=null,editingIndex=null,betweenTimer=null,botTimer=null,coinBusy=false,
   botConfig=null,botRecorded=false,message='Skriv score og trykk Enter.',isError=false;
+let fx=null,fxMatchId=null;
 const ui={
   setup:$('localSetup'),setupForm:$('localSetupForm'),setupError:$('localSetupError'),
   name1:$('localName1'),name2:$('localName2'),format:$('localFormat'),bestOf:$('localBestOf'),
@@ -152,6 +154,20 @@ ui.keypad.addEventListener('click',event=>{
   }
 });
 function player(i){return state.players[i]}
+function ensureFx(){
+  if(!FX)return;
+  if(!state){fx?.destroy();fx=null;fxMatchId=null;return}
+  if(fx&&fxMatchId===state.id)return;
+  fx?.destroy();fx=null;fxMatchId=null;
+  try{
+    fx=FX.createX01({matchId:state.id,level:'cinematic',
+      effects:{...FX.DEFAULT_EFFECTS,neon_relay:false},
+      startScore:Number(state.format),initialScores:{p1:state.scores[0],p2:state.scores[1]},
+      slots:{p1:{score:'#localScore0',card:'#localPlayer0'},p2:{score:'#localScore1',card:'#localPlayer1'}}});
+    fxMatchId=state.id;
+  }catch(error){console.warn('Local FX could not initialize',error)}
+}
+window.addEventListener('pagehide',()=>{fx?.destroy();fx=null;fxMatchId=null});
 function cancelBot(){if(botTimer!==null){clearTimeout(botTimer);botTimer=null}}
 function scheduleBot(){
   if(botTimer!==null||!botConfig||!B||state?.status!=='playing'||state.turn!==1||
@@ -164,11 +180,13 @@ function scheduleBot(){
       pendingCheckout||editingIndex!==null)return;
     try{
       const outcome=B.visit(remaining,botConfig);
+      const beforeFx=state;
       const updated=E.submit(state,outcome.score,{bust:outcome.bust,doubleConfirmed:outcome.checkout,darts:outcome.darts});
       const visit=updated.visits[updated.visits.length-1];visit.dartDetails=outcome.throws;
       state=updated;
       showMessage(visit.bust?'Bot: BUST.':visit.checkout?'Bot sjekket ut '+visit.score+' med '+visit.darts+' piler.':'Bot scoret '+visit.score+' poeng.');
       safeSave();render();
+      fx?.acceptLocalTransition(beforeFx,state,'bot_visit');
     }catch(err){showMessage('Botfeil: '+(err?.message||String(err)),true)}
   },700);
 }
@@ -202,7 +220,8 @@ function render(){
   ui.setup.hidden=!!state;ui.game.hidden=!state;
   document.body.classList.toggle('local-match-active',!!state);
   document.body.classList.toggle('local-match-finished',state?.status==='finished');
-  if(!state){window.DartArenaLocalResults?.syncX01(null,newMatch);return;}
+  if(!state){ensureFx();window.DartArenaLocalResults?.syncX01(null,newMatch);return;}
+  ensureFx();
   ui.opponentLabel.textContent=botConfig?'BOT':'SPILLER 2';
   statValue('localFormatLabel',state.format);
   $('localSetLabel').hidden=state.mode!=='sets';
@@ -378,9 +397,10 @@ function updateCorrectionCheckout(){
   select.value=String(valid[valid.length-1]);
   ui.correctionCheckout.hidden=false;
 }
-function commit(fn,msg){
+function commit(fn,msg,fxAction=null){
   cancelBot();
   try{
+    const beforeFx=state;
     state=fn();
     pendingCheckout=null;
     ui.checkout.hidden=true;
@@ -389,6 +409,8 @@ function commit(fn,msg){
     ui.score.value='';
     showMessage(msg||'Score registrert.');
     safeSave();render();
+    if(fxAction==='submit')fx?.acceptLocalTransition(beforeFx,state,'submit');
+    else fx?.syncSnapshot({p1:state.scores[0],p2:state.scores[1]},{resetEffects:true});
   }catch(e){showMessage(e?.message||'Ugyldig registrering.',true)}
 }
 function closeCheckout(){
@@ -487,7 +509,7 @@ ui.scoreForm.addEventListener('submit',event=>{
   if(value===state.scores[state.turn]){openCheckout(value);return}
   const p=state.turn,old=state.scores[p];
   const isBust=value>old||old-value===1;
-  commit(()=>E.submit(state,value),isBust?'BUST – '+player(p)+' beholder '+old+'.':'Registrert: '+value+' poeng.');
+  commit(()=>E.submit(state,value),isBust?'BUST – '+player(p)+' beholder '+old+'.':'Registrert: '+value+' poeng.','submit');
 });
 // Keyboard-first scoring: after a mouse click elsewhere, the first digit
 // redirects typing to the score field. Enter then submits the same form.
@@ -526,6 +548,7 @@ ui.correctionForm.addEventListener('submit',event=>{
     ui.score.value='';
     showMessage('Kast korrigert til '+score+' poeng.');
     safeSave();render();
+    fx?.syncSnapshot({p1:state.scores[0],p2:state.scores[1]},{resetEffects:true});
   }catch(e){
     ui.correctionError.textContent=e?.message||'Korrigeringen kunne ikke lagres.';
     ui.correctionError.hidden=false;
@@ -541,13 +564,13 @@ ui.checkoutForm.addEventListener('submit',event=>{
   event.preventDefault();
   if(!pendingCheckout||!state||state.turn!==pendingCheckout.player)return closeCheckout();
   const score=pendingCheckout.score,darts=Number(ui.checkoutDarts.value),name=player(state.turn);
-  commit(()=>E.submit(state,score,{doubleConfirmed:true,darts}),name+' sjekket ut '+score+' med '+darts+' pil'+(darts===1?'':'er')+'.');
+  commit(()=>E.submit(state,score,{doubleConfirmed:true,darts}),name+' sjekket ut '+score+' med '+darts+' pil'+(darts===1?'':'er')+'.','submit');
 });
 $('localCheckoutCancel').addEventListener('click',closeCheckout);
 $('localCheckoutBust').addEventListener('click',()=>{
   if(!pendingCheckout||!state)return closeCheckout();
   const score=pendingCheckout.score,name=player(state.turn);
-  commit(()=>E.submit(state,score,{bust:true}),'BUST for '+name+'.');
+  commit(()=>E.submit(state,score,{bust:true}),'BUST for '+name+'.','submit');
 });
 function newMatch(){
   if(state&&state.status!=='finished'&&!window.confirm('Avslutte denne lokale kampen? Resultatet kan ikke gjenopprettes etterpå.'))return;
