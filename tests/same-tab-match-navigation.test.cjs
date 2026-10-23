@@ -168,3 +168,78 @@ test('completed-match result screen retains a same-tab Til lobby action', () => 
   const screen = fs.readFileSync(path.join(root, 'shared-results.js'), 'utf8');
   assert.match(screen, /daResultLobby'\)\.onclick=\(\)=>location\.href='\.\/'/);
 });
+
+
+test('opponent-cancelled popup Til lobby navigates SAME tab and never calls window.close', () => {
+  const script = fs.readFileSync(path.join(root, 'cancelled-match-modal.js'), 'utf8');
+  for (const openedFromLobby of [false, true]) {
+    const navigations = [], messages = [];
+    let closeCount = 0, modal = null, lobbyClick, cleared = false;
+    const button = {
+      dataset: {},
+      addEventListener(event, callback) {
+        if (event === 'click') lobbyClick = callback;
+      },
+      focus() {}
+    };
+    const cancelledText = { textContent: '' };
+    const modalClasses = { add() {}, remove() {} };
+    const location = {
+      origin: 'https://dartarena.test',
+      search: '?id=match-1',
+      set href(next) { navigations.push(next); }
+    };
+    const doc = {
+      addEventListener() {},
+      getElementById(id) {
+        if (id === 'cancelledMatchModal') return modal;
+        if (id === 'cancelledLobbyBtn') return button;
+        if (id === 'cancelledMatchText') return cancelledText;
+        return null;
+      },
+      createElement(tag) {
+        if (tag === 'style') return { textContent: '', id: '' };
+        modal = {
+          id: '', className: '', classList: modalClasses,
+          setAttribute() {}, innerHTML: ''
+        };
+        return modal;
+      },
+      head: { appendChild() {} },
+      body: { appendChild() {} }
+    };
+    const win = {
+      opener: openedFromLobby ? { postMessage: (...args) => messages.push(args) } : null,
+      addEventListener() {},
+      close() { closeCount++; }
+    };
+    vm.runInNewContext(script, {
+      window: win,
+      document: doc,
+      location,
+      URLSearchParams,
+      clearInterval() { cleared = true; },
+      setInterval() { return 77; },
+      setTimeout() { throw new Error('Popup navigation must not use a delayed close fallback'); },
+      console
+    });
+    assert.equal(typeof lobbyClick, 'function');
+    win.DartArenaCancelledMatchModal.show();
+    lobbyClick();
+    assert.deepEqual(navigations, ['./']);
+    assert.equal(closeCount, 0, 'An opponent cancellation must not close the browser tab');
+    assert.equal(cleared, true);
+    if (openedFromLobby) {
+      assert.equal(messages.length, 1);
+      assert.equal(messages[0][0].type, 'dartarena-match-ended');
+      assert.equal(messages[0][0].id, 'match-1');
+    }
+  }
+});
+
+test('opponent-cancelled popup fix loads for every online game variant', () => {
+  for (const file of ['match.html', 'cricket.html', 'half-it.html', '61-match.html', 'jdc-match.html']) {
+    const html = fs.readFileSync(path.join(root, file), 'utf8');
+    assert.match(html, /cancelled-match-modal\.js\?v=20261023-sametab1/);
+  }
+});
