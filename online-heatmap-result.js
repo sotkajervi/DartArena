@@ -235,8 +235,9 @@ async function start(){
  if(String(row?.game_config?.chicago||'false')==='true')return;
  m=row;playerIds=[row.player1_id,row.player2_id];refreshResult();
  for(const p of playerIds)if(!data[p])data[p]=[];
- channel=db.channel('x01-heatmap-'+matchId,{config:{broadcast:{self:false}}})
-   .on('broadcast',{event:'heatmap-v1'},({payload})=>receive(payload))
+ const live=db.channel('x01-heatmap-'+matchId,{config:{broadcast:{self:false}}});
+ channel=live;
+ live.on('broadcast',{event:'heatmap-v1'},({payload})=>receive(payload))
    .on('broadcast',{event:'heatmap-request-v1'},({payload})=>{
       if(payload?.matchId===matchId&&payload.from!==userId&&playerIds.includes(payload.from))sendPoints();
    })
