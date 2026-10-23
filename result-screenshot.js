@@ -6,7 +6,7 @@
 .share-result-overlay{position:fixed;inset:0;z-index:20000;background:#030a0c;overflow:hidden;display:block}
 .share-result-close{position:absolute;right:12px;top:10px;z-index:2;padding:7px 14px;font-size:12px}
 .share-result-card{position:absolute;transform-origin:top left;background:#071416;color:#eef8f8;border:1px solid #245154;border-radius:16px;padding:20px;box-sizing:border-box;box-shadow:0 24px 80px rgba(0,0,0,.58),0 0 36px rgba(0,234,244,.10)}
-.share-result-brand{font-size:18px;font-weight:950;letter-spacing:2px;margin-bottom:12px}.share-result-brand span{color:#00eaf4}
+.share-result-brand{margin-bottom:12px}.share-result-brand img{display:block;width:215px;max-width:100%;height:auto}
 .share-result-card main{width:100%;max-width:none;margin:0;padding:0}
 .share-result-card .top-actions,.share-result-card button,.share-result-card .spectator-videos,.share-result-card .stats-details,.share-result-card .da-result-actions,.share-result-card .da-result-note{display:none!important}
 .share-result-card .da-result-card{width:100%;max-height:none;overflow:visible;border:0;background:transparent;box-shadow:none;padding:0}
@@ -55,8 +55,23 @@
     card.className='share-result-card';
     const brand=document.createElement('div');
     brand.className='share-result-brand';
-    brand.innerHTML='DART<span>ARENA</span>';
+    const logo=document.createElement('img');
+    logo.src='./assets/dartarena-logo.jpg?v=20261009-global1';
+    logo.alt='DartArena';
+    brand.appendChild(logo);
     const clone=source.cloneNode(true);
+    // cloneNode does not copy pixels from canvas; copy each live heatmap first.
+    const sourceCanvases=source.querySelectorAll('canvas');
+    const cloneCanvases=clone.querySelectorAll('canvas');
+    sourceCanvases.forEach((original,index)=>{
+      const target=cloneCanvases[index];
+      if(!target)return;
+      target.width=original.width;
+      target.height=original.height;
+      try{target.getContext('2d')?.drawImage(original,0,0)}
+      catch(error){console.warn('Could not copy canvas to screenshot view',error)}
+    });
+    if(clone.classList?.contains('da-result-card'))clone.style.transform='none';
     clone.querySelectorAll('script,button,.top-actions,.spectator-videos,.stats-details,.da-result-actions,.da-result-note').forEach(el=>el.remove());
     clone.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
     card.append(brand,clone);
@@ -88,6 +103,7 @@
     document.addEventListener('keydown',key);
     window.addEventListener('resize',fit);
     fit();
+    if(!logo.complete)logo.addEventListener('load',fit,{once:true});
     close.focus();
   }
 
