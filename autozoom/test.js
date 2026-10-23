@@ -249,6 +249,7 @@ window.addEventListener('dartarena:autozoom-tip-estimate',event=>{
   heatmapHitReady=true;
 });
 window.addEventListener('dartarena:autozoom-test-reset',()=>{zoomTip=null;heatmapHitReady=false;visibleZoomCrop=null});
+window.addEventListener('dartarena:autozoom-tip-clear',()=>{zoomTip=null;heatmapHitReady=false});
 els.zoom.addEventListener('click',event=>{
   if(!TipMap||!stream||!board||!heatmapHitReady||!visibleZoomCrop)return;
   const point=TipMap.pointFromZoom(event,els.zoom.getBoundingClientRect(),visibleZoomCrop,els.zoom.width,els.zoom.height);
