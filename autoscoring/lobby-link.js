@@ -2,11 +2,11 @@
    The lab itself repeats authorization before accessing the camera. */
 (()=>{
   'use strict';
-  const link=document.getElementById('autoscoringLabLink');
-  if(!link||!window.supabase)return;
+  const links=['autoscoringLabLink','d1LiveZoneLink'].map(id=>document.getElementById(id)).filter(Boolean);
+  if(!links.length||!window.supabase)return;
   const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
   let serial=0;
-  const hide=()=>{link.hidden=true;link.style.display='none'};
+  const hide=()=>links.forEach(link=>{link.hidden=true;link.style.display='none'});
   const refresh=async()=>{
     const ticket=++serial;
     hide();
@@ -16,7 +16,7 @@
       const [admin,owner]=await Promise.all([db.rpc('is_admin'),db.rpc('is_owner')]);
       if(ticket!==serial)return;
       if(admin.error||owner.error)return;
-      if(admin.data===true||owner.data===true){link.hidden=false;link.style.display=''}
+      if(admin.data===true||owner.data===true)links.forEach(link=>{link.hidden=false;link.style.display=''})
     }catch(e){if(ticket===serial)hide()}
   };
   window.addEventListener('dartarena:lobby-entered',refresh);
