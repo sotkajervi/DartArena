@@ -22,6 +22,7 @@
 .fx-studio-toggle:not(:has(input:checked)) .fx-studio-toggle-copy{opacity:.6}
 .fx-studio-choice-status{font-size:12px;color:#b1cacf}
 .fx-studio-grid{display:grid;grid-template-columns:1fr;gap:10px;max-width:520px;margin:0 auto}
+.fx-studio-grid.is-side-by-side{grid-template-columns:repeat(2,minmax(0,1fr));max-width:100%}
 .fx-studio-player{position:relative;border:1px solid rgba(0,234,244,.22);background:linear-gradient(145deg,#102c31,#0a171c);border-radius:14px;padding:18px;text-align:center}
 .fx-studio-player.active{border-color:#00eaf4;box-shadow:inset 0 0 0 1px rgba(0,234,244,.3)}
 .fx-studio-player strong{font-size:14px}.fx-studio-score{font-size:clamp(48px,8vw,84px);line-height:1.25;font-weight:950;letter-spacing:-.05em;display:block;font-variant-numeric:tabular-nums}
@@ -52,7 +53,8 @@
   <div class="fx-studio-controls"><label class="da-fx-level-control">Effektnivå <select id="studioLevel" aria-label="Velg FX-nivå"><option value="off">Av</option><option value="minimal">Minimal</option><option value="normal">Normal</option><option value="cinematic">Cinematic</option></select></label><span class="fx-studio-note" id="studioLevelHint"></span></div>
 </section>
   <section class="fx-studio-panel"><h2>Score + turbytte mellom spillerkort</h2>
-    <div class="fx-studio-grid">
+    <div class="fx-studio-controls" style="margin:0 0 10px"><button type="button" id="studioLayoutToggle" class="outline" aria-pressed="false">Vis kort ved siden av hverandre</button><small class="fx-studio-note" id="studioLayoutLabel">Stablet: horisontal stripe opp/ned</small></div>
+    <div class="fx-studio-grid" id="studioPreviewCards">
       <article class="fx-studio-player active" id="studioCard1"><strong>SPILLER 1</strong><span class="fx-studio-score" id="studioScore1">501</span><div class="fx-studio-camera" id="studioCam1">KAMERAVISNING • DEMO</div></article>
       <article class="fx-studio-player" id="studioCard2"><strong>SPILLER 2</strong><span class="fx-studio-score" id="studioScore2">501</span><div class="fx-studio-camera" id="studioCam2">KAMERAVISNING • DEMO</div></article>
     </div>
@@ -93,6 +95,14 @@ function cupRows(won){
       player1_id:won?'demo-p1':null,player2_id:'demo-p3',winner_id:null}];
 }
 cup.afterBracketRender(cupRows(false));
+const layoutButton=$('studioLayoutToggle'),previewCards=$('studioPreviewCards');
+layoutButton.addEventListener('click',()=>{
+  x01.syncSnapshot(score,{resetEffects:true});
+  const sideBySide=previewCards.classList.toggle('is-side-by-side');
+  layoutButton.textContent=sideBySide?'Vis kort over hverandre':'Vis kort ved siden av hverandre';
+  layoutButton.setAttribute('aria-pressed',String(sideBySide));
+  $('studioLayoutLabel').textContent=sideBySide?'Side ved side: vertikal stripe venstre/høyre':'Stablet: horisontal stripe opp/ned';
+});
 function hint(){
   $('studioLevelHint').textContent={
     off:'Alle effekter av.',minimal:'Rolling Score + LED Score Rail.',
