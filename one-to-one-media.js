@@ -21,7 +21,7 @@
   };
 
   let me=null,match=null,other=null;
-  let zoomSession=null;
+  let zoomSession=null,pictureSession=null;
   let mediaStream=null,channel=null,pc=null,remoteStream=null;
   let remoteReady=false,localReady=false,generation=1,pendingCandidates=[];
   let heartbeat=null,monitor=null,disconnectTimer=null,legacyGuard=null;
@@ -90,15 +90,25 @@
           }
         }
       }
+      if(!zoomSession){
+        try{pictureSession=window.DartArenaCameraPicture?.createStream(raw)||null;
+          if(pictureSession)s=pictureSession.stream;
+        }catch(error){console.warn('Bildejustering ikke tilgjengelig',error)}
+      }
       exposeStream(s);
     }else{
       const Z=window.DartArenaZoomCam;
-      if(!zoomSession&&Z?.selected(localStorage)){
+      if(!zoomSession&&!pictureSession&&Z?.selected(localStorage)){
         const config=Z.loadConfig(localStorage);
         if(config){
           try{zoomSession=Z.create(s,config);s=zoomSession.stream}
           catch(error){console.warn('Zoomcam from existing stream unavailable; retaining camera',error);zoomSession=null}
         }
+      }
+      if(!zoomSession&&!pictureSession){
+        try{pictureSession=window.DartArenaCameraPicture?.createStream(s)||null;
+          if(pictureSession)s=pictureSession.stream;
+        }catch(error){console.warn('Bildejustering ikke tilgjengelig',error)}
       }
       exposeStream(s);
     }
@@ -456,6 +466,6 @@
     getMode:()=>mode,
     getStream:()=>mediaStream
   };
-  window.addEventListener('pagehide',()=>{zoomSession?.stop();zoomSession?.sourceTrack?.stop();stop().catch(()=>{})},{once:true});
+  window.addEventListener('pagehide',()=>{zoomSession?.stop();zoomSession?.sourceTrack?.stop();pictureSession?.stop();pictureSession?.sourceTrack?.stop();stop().catch(()=>{})},{once:true});
   boot().catch(error=>{console.warn('[1V1 MEDIA] startup failed',error);setStatus('Video kunne ikke startes')});
 })();
