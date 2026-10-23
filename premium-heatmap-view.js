@@ -74,6 +74,7 @@
     if(!grid||players.length!==2)return;
     const resultCard=view.querySelector('.premium-result-card');
     if(!resultCard)return;
+    if((resultCard.querySelector('.premium-result-sub')?.textContent||'').includes('Chicago Style')){observer.disconnect();return}
     playerIds=players.map(player=>player.dataset.playerId);
     const section=document.createElement('section');
     section.className='premium-hm-section';
