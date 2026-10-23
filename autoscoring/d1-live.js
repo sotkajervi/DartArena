@@ -12,7 +12,7 @@ const e={
   file:$('dzFile'),load:$('dzLoad'),modelState:$('dzModelState'),threshold:$('dzThreshold'),
   auto:$('dzAuto'),sensitivity:$('dzSensitivity'),modelMessage:$('dzModelMessage'),
   count:$('dzCount'),acc:$('dzAcc'),proposal:$('dzProposal'),error:$('dzError'),
-  tipState:$('dzTipState'),confirm:$('dzConfirm'),reject:$('dzReject'),
+  tipState:$('dzTipState'),diagnostics:$('dzDiagnostics'),confirm:$('dzConfirm'),reject:$('dzReject'),
   export:$('dzExport'),log:$('dzLog')
 };
 const G=window.DartArenaLabGeometry,D=window.DartArenaLabDeepDarts,
@@ -32,7 +32,7 @@ const sampleCtx=sampleCanvas.getContext('2d',{willReadFrequently:true});
 let authorized=false,authTicket=0,stream=null,starting=false,loading=false,busy=false;
 let epoch=0,timer=0,calibrating=false,calPoints=[],board=null,autoEstimated=false;
 let referencePixels=null,lastPixels=null,stableTicks=0,cooldown=0;
-let frozen=false,predictions=[],selected=null,records=[],shotSource='manual',shotTime=null;
+let frozen=false,predictions=[],lastDiagnostic=null,selected=null,records=[],shotSource='manual',shotTime=null;
 function setStatus(message){e.status.textContent=message}
 function setCalState(message){e.calState.textContent=message}
 function fmt(n){return Number.isFinite(n)?Math.round(n*10)/10:null}
@@ -300,7 +300,7 @@ function autoTick(){
 async function analyze(source){
   if(!authorized||!stream||!D.ready()||frozen||busy||calibrating)return;
   busy=true;shotSource=source;shotTime=new Date().toISOString();
-  predictions=[];selected=null;
+  predictions=[];lastDiagnostic=null;selected=null;
   const ticket=epoch;
   const w=e.video.videoWidth,h=e.video.videoHeight;
   try{
@@ -313,6 +313,8 @@ async function analyze(source){
     const region=board?G.boardBounds(board,w,h,.06):{x:0,y:0,width:w,height:h};
     const result=await D.infer(e.snapshot,region,confidence);
     if(ticket!==epoch||!authorized||!stream)return;
+    lastDiagnostic={rawCount:result.rawCount??null,byClass:result.diagnostic?.byClass||null,topByClass:result.diagnostic?.topByClass||null,rawStats:result.diagnostic?.rawStats||null};
+    e.diagnostics.textContent=JSON.stringify(lastDiagnostic,null,2);
     predictions=(result.detections||[]).filter(p=>[p.x,p.y,p.confidence].every(Number.isFinite))
       .sort((a,b)=>b.confidence-a.confidence);
     const best=predictions[0];
@@ -321,7 +323,7 @@ async function analyze(source){
     setStatus('Fryst '+(source==='auto'?'automatisk etter bildeendring':'manuelt')+'; '+predictions.length+' mulige spisser. Ingen score er lagret.');
   }catch(error){
     if(ticket!==epoch||!authorized||!stream)return;
-    predictions=[];e.proposal.textContent='Analysefeil';
+    predictions=[];lastDiagnostic={error:String(error?.message||error)};e.diagnostics.textContent=JSON.stringify(lastDiagnostic,null,2);e.proposal.textContent='Analysefeil';
     e.tipState.textContent='D1 kunne ikke analysere bildet. Du kan markere den faktiske spissen og logge forsøket, eller gå tilbake til live.';
     setStatus('Modellfeil: '+(error?.message||String(error)));
   }finally{if(ticket===epoch){busy=false;draw();updateButtons()}}
@@ -364,6 +366,7 @@ function confirm(){
     nearestErrorPx:closest?fmt(closest.distance):null,
     nearestConfidence:closest?fmt(closest.confidence):null,
     nearestScore:closest&&board?G.score(board,closest).label:null,
+    modelDiagnostic:lastDiagnostic,
     correctWithin12Px:!!closest&&closest.distance<=12,
     correctScore:!!closest&&!!board&&G.score(board,closest).label===actual.label
   };
