@@ -87,6 +87,8 @@ function apply(visit){
   // A DB update and a committed visit can arrive in either order.
   for(let i=0;i<transitions.length;i++){
     const t=transitions[i];
+    // A visit must match a recent committed change, not an old correction.
+    if(Date.now()-t.seenAt>3000)continue;
     const candidate=parseTransition(t.before,t.after,visit);
     if(!candidate)continue;
     found={candidate,index:i,before:t.before,after:t.after};break;
@@ -113,7 +115,7 @@ function updateMatch(next){
       before.current_set!==next.current_set||
       before.status!==next.status;
     if(changed){
-      transitions.push({before,after:next});
+      transitions.push({before,after:next,seenAt:Date.now()});
       if(transitions.length>24)transitions.shift();
     }
   }
@@ -134,9 +136,12 @@ function updateMatch(next){
 }
 function queueVisit(row){
   if(disposed||!row?.id||row.match_id!==mid||seen.has(String(row.id)))return;
-  pending.set(String(row.id),row);
+  const key=String(row.id);
+  pending.set(key,row);
   if(pending.size>30)pending.delete(pending.keys().next().value);
   checkPending();
+  // Do not let a delayed/replayed throw pair with a future unrelated score.
+  window.setTimeout(()=>{if(pending.get(key)===row)pending.delete(key)},3000);
 }
 async function boot(){
   const {data:{session}}=await db.auth.getSession();
