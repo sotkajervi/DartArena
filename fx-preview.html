@@ -57,7 +57,7 @@ const select=$('studioLevel');select.value=level;
 const x01=FX.createX01({matchId:'fx-demo-match',level,startScore:501,initialScores:{p1:501,p2:501},
   slots:{p1:{score:'#studioScore1',card:'#studioCard1',camera:'#studioCam1'},
     p2:{score:'#studioScore2',card:'#studioCard2',camera:'#studioCam2'}}});
-const cup=FX.createCup({tournamentId:'fx-demo-cup',level});
+let cup=FX.createCup({tournamentId:'fx-demo-cup',level});
 function cupRows(won){
   return [{id:'demo-semi',stage:'cup',round_no:1,match_no:1,status:won?'finished':'pending',
     player1_id:'demo-p1',player2_id:'demo-p2',winner_id:won?'demo-p1':null},
@@ -104,6 +104,8 @@ $('studioCupWin').addEventListener('click',()=>{
   cup.afterBracketRender(cupRows(true));$('studioCupWin').disabled=true;
 });
 $('studioCupReset').addEventListener('click',()=>{
+  cup.destroy();
+  cup=FX.createCup({tournamentId:'fx-demo-cup',level});
   cup.afterBracketRender(cupRows(false));
   $('studioCupScore').textContent='vs';
   document.querySelector('[data-match="demo-semi"] .cup-player').classList.remove('winner');
