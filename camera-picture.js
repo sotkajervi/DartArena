@@ -34,7 +34,63 @@ function cssFilter(values){
   const v=normalize(values);
   return 'brightness('+v.brightness+'%) contrast('+v.contrast+'%) saturate('+v.saturation+'%)';
 }
-const api={STORAGE_KEY,DEFAULTS,normalize,load,save,cssFilter};
+// Normal cameras need a real outgoing filtered video track, not just a CSS preview.
+// If no adjustments are stored, keep the original track and avoid extra processing.
+function createStream(raw,{fps=25}={}){
+  const sourceTrack=raw?.getVideoTracks?.()[0];
+  if(!sourceTrack||sourceTrack.readyState!=='live')return null;
+  const deviceId=sourceTrack.getSettings?.()?.deviceId||'';
+  const values=load(root.localStorage,deviceId);
+  if(Object.keys(DEFAULTS).every(key=>values[key]===DEFAULTS[key]))return null;
+  if(typeof document==='undefined'||typeof MediaStream==='undefined')return null;
+  const canvas=document.createElement('canvas');
+  if(typeof canvas.captureStream!=='function')return null;
+  const ctx=canvas.getContext('2d',{alpha:false});
+  // Do not silently transmit unfiltered video if Canvas 2D filters are unavailable.
+  if(!ctx||!('filter' in ctx))return null;
+  const settings=sourceTrack.getSettings?.()||{};
+  const w=Math.max(1,Math.round(settings.width||1280));
+  const h=Math.max(1,Math.round(settings.height||720));
+  canvas.width=w;canvas.height=h;
+  const video=document.createElement('video');
+  video.muted=true;video.autoplay=true;video.playsInline=true;
+  video.srcObject=new MediaStream([sourceTrack]);
+  let capture,track,frame=0,stopped=false;
+  try{
+    capture=canvas.captureStream(fps);
+    track=capture.getVideoTracks()[0];
+    if(!track)throw Error('Ingen filtrert videostrøm');
+    const filter=cssFilter(values);
+    function draw(){
+      if(stopped)return;
+      if(video.readyState>=2&&video.videoWidth&&video.videoHeight){
+        ctx.filter=filter;
+        ctx.drawImage(video,0,0,w,h);
+        ctx.filter='none';
+      }
+      frame=requestAnimationFrame(draw);
+    }
+    frame=requestAnimationFrame(draw);
+    video.play().catch(()=>{});
+  }catch(error){
+    if(frame)cancelAnimationFrame(frame);
+    track?.stop();
+    video.pause();video.srcObject=null;
+    throw error;
+  }
+  return{
+    sourceTrack,track,
+    stream:new MediaStream([track,...raw.getAudioTracks()]),
+    stop(){
+      if(stopped)return;
+      stopped=true;
+      if(frame)cancelAnimationFrame(frame);
+      track.stop();video.pause();video.srcObject=null;
+      // The caller owns and stops the physical track separately.
+    }
+  };
+}
+const api={STORAGE_KEY,DEFAULTS,normalize,load,save,cssFilter,createStream};
 root.DartArenaCameraPicture=api;
 if(typeof module==='object'&&module.exports)module.exports=api;
 if(typeof document==='undefined')return;
