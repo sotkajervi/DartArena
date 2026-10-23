@@ -270,6 +270,34 @@
     }).join('');
     return`<section class="da-result-legs"><div class="da-result-legs-title">LEG-OVERSIKT</div><div class="da-result-legs-scroll" role="region" aria-label="Alle leg – rull for å se tidligere leg" tabindex="0">${rows}</div></section>`;
   }
+
+  // Result stays visible without scrolling; historical legs open separately.
+  function compactSummaryHtml(summary,names){
+    if(!summary?.length)return'';
+    const last=summary[summary.length-1];
+    const winner=last.winnerId?(names[last.winnerId]||'Spiller'):'Uavgjort';
+    return `<div class="da-result-leg-summary"><span>${esc(last.label)}: ${esc(last.score||'–')} · ${esc(winner)}</span><button id="daResultLegs" class="outline" type="button">Alle leg (${summary.length})</button></div>`;
+  }
+  function fitMatchResult(overlay){
+    const card=overlay?.querySelector('.da-result-card--match');if(!card)return;
+    card.style.transform='';
+    const size=card.getBoundingClientRect();
+    if(size.width<1||size.height<1)return;
+    const scale=Math.min(1,(innerHeight-16)/size.height,(innerWidth-16)/size.width);
+    card.style.transform=scale<.999?`scale(${scale})`:'';
+  }
+  window.addEventListener('resize',()=>fitMatchResult(document.getElementById('dartArenaResultOverlay')));
+  function openLegHistory(overlay,summary,names,m){
+    const layer=document.createElement('div');layer.className='da-result-history-mask';
+    layer.innerHTML=`<section class="da-result-history-dialog" role="dialog" aria-modal="true" aria-label="Leg-oversikt"><div class="da-result-history-head"><strong>Alle leg</strong><button class="outline da-result-history-close" type="button">Lukk</button></div>${summaryHtml(summary,names,m)}</section>`;
+    const escape=e=>{if(e.key==='Escape')close()};
+    function close(){window.removeEventListener('keydown',escape);layer.remove()}
+    layer.querySelector('.da-result-history-close').onclick=close;
+    layer.onclick=e=>{if(e.target===layer)close()};
+    overlay.append(layer);window.addEventListener('keydown',escape);
+    layer.querySelector('.da-result-history-close').focus();
+  }
+
   function mountOverlay(html){
     hideResult();document.body.classList.add('da-result-open');
     const overlay=document.createElement('div');overlay.id='dartArenaResultOverlay';overlay.className='da-result-overlay';overlay.innerHTML=html;document.body.appendChild(overlay);return overlay;
@@ -317,12 +345,13 @@
     const stats=payload?.stats||{},summary=payload?.summary||[],winnerName=m.winner_id?names[m.winner_id]||'Vinner':'Kampen';
     const score=scoreInfo(m),ordered=orderedScore(m,score),label=payload?.label||gameLabel(m),format=payload?.format||formatLabel(m);
     const[leftId,rightId]=displayOrder(m),leftName=names[leftId]||'Spiller 1',rightName=names[rightId]||'Spiller 2';
-    const overlay=mountOverlay(`<section class="da-result-card" role="dialog" aria-modal="true" aria-label="Kampresultat"><div class="da-result-kicker">KAMP FERDIG</div><h1 class="da-result-title"><span class="da-result-winner-name">${esc(winnerName)}</span>${m.winner_id?' vant!':' er ferdig'}</h1><div class="da-result-sub">${esc(label)} • ${esc(format)}</div><div class="da-result-scorebox">${ordered.left}<span>–</span>${ordered.right}</div><div class="da-result-stats">${playerCardHtml(leftId,leftName,m,stats[leftId])}${playerCardHtml(rightId,rightName,m,stats[rightId])}</div>${summaryHtml(summary,names,m)}<div class="da-result-actions"><button id="daResultLobby" class="primary" type="button">Til lobby</button><button id="daResultClose" class="outline" type="button">Lukk kampfane</button></div><p class="da-result-note">DartArena • resultatet er lagret i kamphistorikken</p></section>`);
+    const overlay=mountOverlay(`<section class="da-result-card da-result-card--match" role="dialog" aria-modal="true" aria-label="Kampresultat"><div class="da-result-kicker">KAMP FERDIG</div><h1 class="da-result-title"><span class="da-result-winner-name">${esc(winnerName)}</span>${m.winner_id?' vant!':' er ferdig'}</h1><div class="da-result-sub">${esc(label)} • ${esc(format)}</div><div class="da-result-scorebox">${ordered.left}<span>–</span>${ordered.right}</div><div class="da-result-stats">${playerCardHtml(leftId,leftName,m,stats[leftId])}${playerCardHtml(rightId,rightName,m,stats[rightId])}</div>${compactSummaryHtml(summary,names)}<div class="da-result-actions"><button id="daResultLobby" class="primary" type="button">Til lobby</button><button id="daResultClose" class="outline" type="button">Lukk kampfane</button></div><p class="da-result-note">DartArena • resultatet er lagret i kamphistorikken</p></section>`);
     // Append optional per-player heatmaps without changing scoring statistics.
     try{window.DartArenaOnlineHeatmap?.attachResult(overlay,m)}catch(error){console.warn('Heatmap result unavailable',error)}
-    // Keep the final legs in view while allowing scrolling back to leg 1.
-    const legScroll=overlay.querySelector('.da-result-legs-scroll');
-    if(legScroll)legScroll.scrollTop=legScroll.scrollHeight;
+    const legButton=overlay.querySelector('#daResultLegs');
+    if(legButton)legButton.onclick=()=>openLegHistory(overlay,summary,names,m);
+    requestAnimationFrame(()=>fitMatchResult(overlay));
+    document.fonts?.ready?.then(()=>fitMatchResult(overlay));
     const tournamentResult=!!resultTournamentMatchId;
     if(tournamentResult)overlay.querySelector('#daResultLobby').textContent='Til turneringen';
     overlay.querySelector('#daResultLobby').onclick=returnFromResult;

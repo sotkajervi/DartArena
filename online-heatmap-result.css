@@ -9,3 +9,16 @@
 .da-result-hm-player .da-hm-caption{text-align:center;font-size:10px;line-height:1.5;color:#bed1d3;margin-top:8px}
 .da-result-hm-note{font-size:10px;color:#96b1b5;text-align:center;line-height:1.5;margin:10px 2px 0}
 @media(max-width:580px){.da-result-heatmap-section{padding:9px}.da-result-hm-grid{gap:8px}.da-result-hm-player{padding:7px}.da-result-hm-player strong{font-size:11px}.da-result-hm-player .da-hm-caption{font-size:9px}}
+
+/* Heatmap occupies a compact fixed footprint in the non-scrolling result. */
+.da-result-card--match .da-result-heatmap-section{margin-top:8px;padding:8px 10px}
+.da-result-card--match .da-result-hm-title{font-size:11px;margin-bottom:5px}
+.da-result-card--match .da-result-hm-grid{gap:8px}
+.da-result-card--match .da-result-hm-player{padding:5px 7px}
+.da-result-card--match .da-result-hm-player strong{font-size:11px;margin-bottom:4px}
+.da-result-card--match .da-result-hm-player canvas{width:min(100%,220px);height:auto;background:#071012;border-radius:7px}
+.da-result-card--match .da-result-hm-player .da-hm-caption{font-size:9px;line-height:1.15;margin-top:4px}
+.da-result-card--match .da-result-hm-note{font-size:9px;line-height:1.2;margin:5px 0 0}
+@media(max-height:750px){.da-result-card--match .da-result-hm-player canvas{width:min(100%,175px)}}
+@media(max-height:620px){.da-result-card--match .da-result-hm-player canvas{width:min(100%,130px)}}
+@media(max-width:500px){.da-result-card--match .da-result-hm-player{padding:4px}.da-result-card--match .da-result-hm-player canvas{width:min(100%,155px)}}

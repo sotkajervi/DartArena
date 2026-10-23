@@ -203,7 +203,7 @@ function attachResult(result,mrow){
  section.className='da-result-heatmap-section';
  section.innerHTML='<div class="da-result-hm-title">HEATMAP <span>BETA</span></div>'+
    '<div class="da-result-hm-grid"></div>'+
-   '<p class="da-result-hm-note">Automatisk estimerte treffpunkter fra kamera, ikke fasit for poeng. Kun kast som ble oppdaget mens kameraet og kalibreringen var aktive.</p>';
+   '<p class="da-result-hm-note">Kameraestimater, ikke poengfasit. Krever aktivt kalibrert kamera.</p>';
  const grid=section.querySelector('.da-result-hm-grid');
  for(const id of [left,right]){
    const card=document.createElement('article');
