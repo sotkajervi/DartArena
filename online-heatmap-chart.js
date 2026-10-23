@@ -16,8 +16,29 @@ function draw(canvas,rows=[]){
  canvas.__heatmapPoints=rows;
  ctx.clearRect(0,0,W,H);
  if(!ready){ctx.fillStyle='#071012';ctx.fillRect(0,0,W,H);return}
- // Full supplied photo, with identical geometry and no cropping, redraw, or logos.
+ // Keep the supplied dartboard photo intact; only replace its outer white
+ // background during rendering. No logos, wires, numbers, or colors are redrawn.
  ctx.drawImage(board,0,0,W,H);
+ const base=ctx.getImageData(0,0,W,H),rgba0=base.data;
+ const visited=new Uint8Array(W*H),queue=new Int32Array(W*H);
+ let front=0,back=0;
+ function visit(i){
+  if(visited[i])return;
+  const n=i*4,r=rgba0[n],g=rgba0[n+1],b=rgba0[n+2];
+  if(Math.min(r,g,b)<155||Math.max(r,g,b)-Math.min(r,g,b)>35)return;
+  visited[i]=1;queue[back++]=i;
+ }
+ for(let x=0;x<W;x++){visit(x);visit((H-1)*W+x)}
+ for(let y=0;y<H;y++){visit(y*W);visit(y*W+W-1)}
+ while(front<back){
+  const i=queue[front++],n=i*4,x=i%W;
+  rgba0[n]=7;rgba0[n+1]=16;rgba0[n+2]=18;rgba0[n+3]=255;
+  if(x>0)visit(i-1);
+  if(x<W-1)visit(i+1);
+  if(i>=W)visit(i-W);
+  if(i+W<W*H)visit(i+W);
+ }
+ ctx.putImageData(base,0,0);
  // The calibrated camera radius maps to the outer double ring on this image.
  const x0=W*.496,y0=H*.493,R=Math.min(W,H)*.362;
  const points=(Array.isArray(rows)?rows:[]).filter(p=>Number.isFinite(p?.u)&&Number.isFinite(p?.v)&&Math.hypot(p.u,p.v)<=1.55).slice(-600);
