@@ -51,8 +51,9 @@ function normalize(board,point){
   if(!board||!(board.radius>0)||!Number.isFinite(point?.x)||!Number.isFinite(point?.y))return null;
   const x=(point.x-board.x)/board.radius,y=(point.y-board.y)/board.radius;
   const angle=board.rotation||0;
-  const u=x*Math.cos(angle)-y*Math.sin(angle);
-  const v=x*Math.sin(angle)+y*Math.cos(angle);
+  // Undo the clockwise camera rotation so D20 remains at the top.
+  const u=x*Math.cos(angle)+y*Math.sin(angle);
+  const v=-x*Math.sin(angle)+y*Math.cos(angle);
   if(!Number.isFinite(u)||!Number.isFinite(v)||Math.hypot(u,v)>1.55)return null;
   return {u,v};
 }
