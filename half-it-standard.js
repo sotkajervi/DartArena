@@ -93,7 +93,7 @@ async function subscribeRemote(pub){
     showRemote('Kunne ikke koble til motstander via Cloudflare. Prøver igjen…');
   }
 }
-let halfItZoomSession=null;
+let halfItZoomSession=null,halfItPictureSession=null;
 function stopHalfItZoom(){
   if(!halfItZoomSession)return;
   halfItZoomSession.stop();
@@ -116,6 +116,11 @@ async function startCamera(){
         try{halfItZoomSession=Z.create(stream,config);stream=halfItZoomSession.stream}
         catch(error){console.warn('Half-It Zoomcam unavailable, using regular camera',error);stopHalfItZoom()}
       }
+    }
+    if(!halfItZoomSession){
+      try{halfItPictureSession=window.DartArenaCameraPicture?.createStream(stream)||null;
+        if(halfItPictureSession)stream=halfItPictureSession.stream;
+      }catch(error){console.warn('Half-It bildejustering ikke tilgjengelig',error)}
     }
     const v=$('localVideo');
     v.srcObject=stream;v.muted=true;await v.play().catch(()=>{});
@@ -174,6 +179,7 @@ $('cameraBtn').onclick=async()=>{
   localCameraEnabled=!localCameraEnabled;
   stream.getVideoTracks().forEach(t=>t.enabled=localCameraEnabled);
   if(halfItZoomSession?.sourceTrack)halfItZoomSession.sourceTrack.enabled=localCameraEnabled;
+   if(halfItPictureSession?.sourceTrack)halfItPictureSession.sourceTrack.enabled=localCameraEnabled;
   $('localPlaceholder').textContent=localCameraEnabled?'Ditt kamera':'Kamera av';
   $('localPlaceholder').classList.toggle('hidden',localCameraEnabled);
   $('cameraBtn').textContent=localCameraEnabled?'Stopp kamera':'Start kamera';
@@ -181,7 +187,7 @@ $('cameraBtn').onclick=async()=>{
 };
 if($('micBtn'))$('micBtn').onclick=()=>{const t=stream?.getAudioTracks?.()[0];if(!t)return;t.enabled=!t.enabled;$('micBtn').textContent=t.enabled?'Mikrofon på':'Mikrofon av'};
 async function setPlayersUnavailable(){if(m)await db.from('profiles').update({status:'unavailable'}).in('id',[m.player1_id,m.player2_id])}
-function cleanup(){leaving=true;clearInterval(readyTimer);clearInterval(publicationTimer);readyTimer=publicationTimer=null;stream?.getTracks?.().forEach(t=>t.stop());stopHalfItZoom();stream=null;publication=null;try{publisherSfu?.close()}catch{};try{subscriberSfu?.close()}catch{};publisherSfu=subscriberSfu=null;clearRemote(false);if(channel)db.removeChannel(channel).catch?.(()=>{});channel=null}
+function cleanup(){leaving=true;clearInterval(readyTimer);clearInterval(publicationTimer);readyTimer=publicationTimer=null;stream?.getTracks?.().forEach(t=>t.stop());stopHalfItZoom();halfItPictureSession?.stop();halfItPictureSession?.sourceTrack?.stop();halfItPictureSession=null;stream=null;publication=null;try{publisherSfu?.close()}catch{};try{subscriberSfu?.close()}catch{};publisherSfu=subscriberSfu=null;clearRemote(false);if(channel)db.removeChannel(channel).catch?.(()=>{});channel=null}
 $('cancelMatchBtn').onclick=async()=>{if(!m||m.status!=='playing'||!confirm('Vil du avbryte kampen?'))return;const b=$('cancelMatchBtn');b.disabled=true;b.textContent='Avbryter…';const{error}=await db.from('matches').update({status:'cancelled',finished_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',m.id);if(error){b.disabled=false;b.textContent='Avbryt kamp';return $('matchMessage').textContent='Kunne ikke avbryte: '+error.message}await setPlayersUnavailable();window.opener?.postMessage({type:'dartarena-match-ended',id:m.id},location.origin);window.close();if(!window.closed)location.href='./'};
 $('closeMatchBtn').onclick=()=>{if(m?.status==='playing'&&!confirm('Kampen pågår fortsatt. Du kan åpne den igjen fra lobbyen. Lukk kampfanen?'))return;window.close();if(!window.closed)location.href='./'};
 window.addEventListener('beforeunload',cleanup);
