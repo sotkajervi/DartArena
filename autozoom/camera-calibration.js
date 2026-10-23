@@ -155,7 +155,8 @@ previewButton.addEventListener('click',async()=>{
     help.textContent='Kalibrer valgt kamera først, med samme videoformat.';return
   }
   try{
-    zoomSession=Z.create(new MediaStream([physical]),config);
+    // Preview gets the same CSS color treatment as Cam-test; avoid applying it twice.
+    zoomSession=Z.create(new MediaStream([physical]),config,{picture:false});
     previewVideo.srcObject=zoomSession.stream;
     previewVideo.classList.remove('hidden');
     previewButton.textContent='Stopp forhåndsvisning';
