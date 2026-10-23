@@ -12,7 +12,7 @@ function exportTest(){
    estimate:{u:fmt(m.estimatedU),v:fmt(m.estimatedV)},
    detected:{u:fmt(m.detectedU),v:fmt(m.detectedV)},
    tipCandidateFound:m.tipDetected,
-   corrected:m.corrected?{u:fmt(m.u),v:fmt(m.v)}:null,
+   corrected:m.corrected?{u:fmt(m.u),v:fmt(m.v),from:m.correctedFrom||'heatmap'}:null,
    errorPercentOfBoardRadius:m.corrected?fmt(Math.hypot(m.u-m.estimatedU,m.v-m.estimatedV)*100):null}));
  const data={schema:'dartarena-autozoom-corrections-v1',createdAt:new Date().toISOString(),coordinateSystem:'normalized board radius from bull; u right, v down',rows};
  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -47,7 +47,7 @@ function paint(){
   const x=c+m.u*r,y=c+m.v*r;
   ctx.beginPath();ctx.arc(x,y,i===selected?7:5,0,Math.PI*2);ctx.fillStyle=m.corrected?'#fff':'#24d6d0';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#071012';ctx.stroke();
  });
- summary.textContent=marks.length?'Forslag: '+marks.length+' · Siste treff: '+(marks.at(-1).corrected?'manuelt korrigert':'estimert fra bildeendring'):'Ingen treff ennå. Kast en pil etter at referanse er tatt.';
+ summary.textContent=marks.length?'Forslag: '+marks.length+' · Siste treff: '+(marks.at(-1).corrected?(marks.at(-1).correctedFrom==='zoomcam'?'pilspiss korrigert i ZoomCam':'manuelt korrigert på heatmap'):'estimert fra bildeendring'):'Ingen treff ennå. Kast en pil etter at referanse er tatt.';
  undo.disabled=marks.length===0;clear.disabled=marks.length===0;if(exportBtn)exportBtn.disabled=marks.length===0;
 }
 function infer(base,frame,w,h,hit,board){
@@ -96,7 +96,7 @@ function infer(base,frame,w,h,hit,board){
  return{...candidate,quality:'smal ende av pilform (eksperiment)',tipDetected:true};
 }
 window.addEventListener('dartarena:autozoom-test-hit',e=>{
- const {base,frame,width,height,hit,board}=e.detail;
+ const {base,frame,width,height,hit,board,sourceWidth,sourceHeight}=e.detail;
  const tip=infer(base,frame,width,height,hit,board);
  // Empirical calibration from nine manually corrected throws (board-radius units).
  // Isolated heatmap display only; does not move AutoZoom or alter hit detection.
@@ -104,13 +104,28 @@ window.addEventListener('dartarena:autozoom-test-hit',e=>{
  const u=(tip.x-board.x)/board.radius+(tip.tipDetected?0:CALIBRATION.u),v=(tip.y-board.y)/board.radius+(tip.tipDetected?0:CALIBRATION.v);
  const detectedU=(hit.x-board.x)/board.radius,detectedV=(hit.y-board.y)/board.radius;
  marks.push({u,v,estimatedU:u,estimatedV:v,detectedU,detectedV,tipDetected:tip.tipDetected,timestamp:new Date().toISOString(),corrected:false,quality:tip.quality});selected=marks.length-1;paint();
+ if(sourceWidth>0&&sourceHeight>0){
+   window.dispatchEvent(new CustomEvent('dartarena:autozoom-tip-estimate',{detail:{
+     x:tip.x*sourceWidth/width,y:tip.y*sourceHeight/height,tipDetected:tip.tipDetected
+   }}));
+ }
  summary.textContent+=' · '+tip.quality+' (ikke bekreftet pilspiss)';
 });
 canvas.addEventListener('click',e=>{
  if(!marks.length)return;
  const box=canvas.getBoundingClientRect(),x=(e.clientX-box.left)*size/box.width,y=(e.clientY-box.top)*size/box.height;
  const u=(x-c)/r,v=(y-c)/r;if(Math.hypot(u,v)>1.15)return;
- const index=selected>=0?selected:marks.length-1;marks[index]={...marks[index],u,v,corrected:true};paint();
+ const index=selected>=0?selected:marks.length-1;marks[index]={...marks[index],u,v,corrected:true,correctedFrom:'heatmap'};paint();
+});
+window.addEventListener('dartarena:autozoom-tip-confirmed',e=>{
+ if(!marks.length||!e.detail||!Number.isFinite(e.detail.x)||!Number.isFinite(e.detail.y))return;
+ const board=e.detail.board;
+ if(!board||!Number.isFinite(board.x)||!Number.isFinite(board.y)||!(board.radius>0))return;
+ const u=(e.detail.x-board.x)/board.radius,v=(e.detail.y-board.y)/board.radius;
+ if(!Number.isFinite(u)||!Number.isFinite(v)||Math.hypot(u,v)>1.55)return;
+ const index=marks.length-1;
+ marks[index]={...marks[index],u,v,corrected:true,correctedFrom:'zoomcam'};
+ selected=index;paint();
 });
 undo.onclick=()=>{marks.pop();selected=marks.length-1;paint()};
 clear.onclick=()=>{marks=[];selected=-1;paint()};
