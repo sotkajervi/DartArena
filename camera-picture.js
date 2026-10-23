@@ -36,6 +36,7 @@ function cssFilter(values){
 }
 const api={STORAGE_KEY,DEFAULTS,normalize,load,save,cssFilter};
 root.DartArenaCameraPicture=api;
+if(typeof module==='object'&&module.exports)module.exports=api;
 if(typeof document==='undefined')return;
 const modal=document.getElementById('cameraTestModal');
 const preview=modal?.querySelector('.cam-test-preview');
