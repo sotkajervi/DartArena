@@ -17,6 +17,9 @@ const MAX=150;
 let authorized=false,raw=null,rawVideo=null,zoom=null,config=null,store=null,cameraStarting=false;
 let records=[],selected=-1,proposed=null,busy=false,previousVisitCount=null,currentMatch=null;
 let currentObjectUrls=[];
+const reviewUpdates=new Map();
+const reviewKey=(r,n)=>[r.matchId,r.setNo,r.legNo,r.roundIndex,n].join(':');
+function reviewOrder(){return records.map((_,i)=>i).sort((x,y)=>Number(!!records[y].scoreCorrected)-Number(!!records[x].scoreCorrected)||Date.parse(records[y].capturedAt)-Date.parse(records[x].capturedAt))}
 const say=(s,err=false)=>{status.textContent=s;status.classList.toggle('is-error',err)};
 const readState=()=>{try{return JSON.parse(localStorage.getItem(key)||'null')}catch{return null}};
 const request=req=>new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
@@ -77,14 +80,27 @@ async function capture(hit,source,manual=false){
       // Preserve source centroid separately; future training needs the raw input.
       rawProposal:rawPoint,proposal:displayPoint,
       proposalAdjustment:tipBias,corrected:null,
-      status:'pending',score:null,calibration:{...config}
+      status:'pending',score:null,calibration:{...config},scoreCorrected:false
     };
+    Object.assign(item,reviewUpdates.get(reviewKey(round,dartNo))||{});
     await save(item);records.push(item);
     say('Pil '+dartNo+' lagret. '+(tipBias?'Forslaget er forskjøvet ut fra '+tipBias.samples+' tidligere godkjente punkter. ': 'Ingen innlært korreksjon ennå. ')+(hit?'Punktet er IKKE bekreftet pilspiss.':'Manuelt bilde uten forslag.')+' Kontroller manuelt.');
     selected=records.length-1;showReview();setCounter();
   }catch(e){say('Kunne ikke lagre pil '+dartNo+': '+(e?.message||String(e)),true)}
   finally{busy=false;setCounter()}
 }
+window.addEventListener('dartarena:owner-tip-review-update',event=>{
+ if(!authorized)return;
+ const d=event.detail||{};
+ if(typeof d.matchId!=='string'||!Number.isInteger(d.dartNo)||d.dartNo<1||d.dartNo>3)return;
+ const k=reviewKey(d,d.dartNo),patch={scoreCorrected:!!d.corrected};
+ if(Number.isFinite(d.aiSuggestedScore))patch.aiSuggestedScore=d.aiSuggestedScore;
+ if(Number.isFinite(d.finalScore))patch.finalDartScore=d.finalScore;
+ if(Number.isFinite(d.tipX)&&Number.isFinite(d.tipY))patch.aiTip={x:d.tipX,y:d.tipY};
+ reviewUpdates.set(k,{...reviewUpdates.get(k),...patch});
+ const item=records.find(v=>reviewKey(v,v.dartNo)===k);
+ if(item){Object.assign(item,patch);void save(item);if(selected>=0)showReview()}
+});
 function onStableHit(point,source){
   // Owner-only opt-in assist receives a synchronous immutable video snapshot.
   // This event carries no score write; normal training capture stays unchanged.
@@ -173,15 +189,15 @@ function showReview(){
   const item=records[selected];proposed=null;
   $('aiTrainOriginal').src=displayBlob(item.original);
   $('aiTrainCloseup').src=displayBlob(item.closeup);
-  nav.textContent='Bilde '+(selected+1)+' / '+records.length+' · Pil '+item.dartNo+
+  nav.textContent=(item.scoreCorrected?'POENG KORRIGERT · ':'')+'Bilde '+(selected+1)+' / '+records.length+' · Pil '+item.dartNo+
     ' · '+(item.score===null?'score ikke registrert':item.score+' poeng')+' · '+item.status;
-  $('aiTrainMark').textContent=item.proposal?
+  $('aiTrainMark').textContent=item.aiTip?'Lyseblått punkt: AI-spissforslag. Klikk på riktig spiss for finjustering, deretter Godkjenn punkt.':item.proposal?
     (item.proposalAdjustment?
       'Oransje: justert bildeendring fra '+item.proposalAdjustment.samples+' godkjente korrigeringer. Ikke en AI-spissdetektor. ':
       'Oransje: rå bildeendring, ikke AI. ')+
       'Klikk nøyaktig på spissen for å korrigere.':
     'Ingen automatisk forslag. Klikk på riktig spiss i bildet til høyre.';
-  renderDot(item,item.corrected||item.proposal);
+  renderDot(item,item.corrected||item.aiTip||item.proposal);
 }
 $('aiTrainZoom').addEventListener('click',event=>{
   const item=records[selected],rect=event.currentTarget.getBoundingClientRect();
@@ -194,7 +210,7 @@ $('aiTrainZoom').addEventListener('click',event=>{
 });
 $('aiTrainApprove').addEventListener('click',async()=>{
   const item=records[selected];if(!item)return;
-  const point=proposed||item.corrected||item.proposal;
+  const point=proposed||item.corrected||item.aiTip||item.proposal;
   if(!point){say('Marker spissen i bildet før du godkjenner.',true);return}
   item.corrected={x:point.x,y:point.y};
   item.status='approved';
@@ -207,7 +223,8 @@ $('aiTrainReject').addEventListener('click',async()=>{
   try{await save(item);say('Bilde avvist – ekskluderes fra trening.');goReview(1)}
   catch(e){say('Avvisning ble ikke lagret: '+e.message,true)}
 });
-function goReview(step){if(!records.length)return;selected=(selected+step+records.length)%records.length;showReview()}
+function goReview(step){const order=reviewOrder();if(!order.length)return;const pos=order.indexOf(selected);selected=order[(Math.max(0,pos)+step+order.length)%order.length];showReview()}
+$('aiTrainPriority').addEventListener('click',()=>{selected=reviewOrder()[0]??-1;showReview()});
 $('aiTrainPrev').addEventListener('click',()=>goReview(-1));
 $('aiTrainNext').addEventListener('click',()=>goReview(1));
 $('aiTrainManual').addEventListener('click',()=>{if(rawVideo)void capture(null,rawVideo,true)});
@@ -274,8 +291,7 @@ window.addEventListener('pagehide',()=>resultObserver.disconnect());
     if(typeof indexedDB==='undefined')throw new Error('Nettleseren støtter ikke lokal bildelagring.');
     store=await openStore();
     records=(await loadAll()).sort((a,b)=>a.capturedAt.localeCompare(b.capturedAt));
-    selected=records.findIndex(item=>item.status==='pending');
-    if(selected<0&&records.length)selected=0;
+    selected=reviewOrder()[0]??-1;
     authorized=true;
     window.dispatchEvent(new Event('dartarena:owner-tip-authorized'));
     // The match view is hidden when the completed game was left in the lobby.
