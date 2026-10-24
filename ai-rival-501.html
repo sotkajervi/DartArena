@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="./shared-results.css?v=20261023-bulldown2">
 <link rel="stylesheet" href="./local-result-screen.css?v=20261011-fullstats1">
 <link rel="stylesheet" href="./premium-match-stats.css?v=20261003-premium1">
+<link rel="stylesheet" href="./ai-rival-capture.css?v=20261024-owner1">
 </head>
 <body class="local-h2h-page" data-practice-category="ai_rival">
 <header>
@@ -76,6 +77,29 @@
         <button type="button" data-keypad-action="enter" class="local-keypad-enter" aria-label="Registrer scoren">Enter</button>
       </div>
       <p id="localMessage" class="local-message" role="status" aria-live="polite">Skriv score og trykk Enter.</p>
+    </section>
+    <section id="aiTrainingPanel" class="card ai-training-panel" hidden aria-label="Owner AI-treningsbilder">
+      <div class="ai-train-head"><h3>AI Rival · treningsbilder</h3><span class="ai-train-tag">OWNER · LOKALT</span></div>
+      <p class="muted compact">Inntil tre bilder per runde via Zoom-cam. Oransje punkt markerer kun bildeendring, ikke en bekreftet AI-pilspiss. Ingen automatisk scoring eller opplasting.</p>
+      <div id="aiTrainControls" class="ai-training-controls">
+        <video id="aiTrainVideo" class="ai-train-video" autoplay muted playsinline aria-label="Din Zoom-cam i AI Rival"></video>
+        <div class="ai-train-actions"><button id="aiTrainManual" class="outline" type="button">Ta bilde manuelt</button><button id="aiTrainRearm" class="outline" type="button">Tom skive / ny referanse</button><span id="aiTrainCount" class="ai-train-counter">0 / 3 piler</span></div>
+      </div>
+      <p id="aiTrainStatus" class="ai-train-status" role="status">Kontrollerer Owner-tilgang…</p>
+      <div id="aiTrainReview" class="ai-train-review" hidden>
+        <h4>Kontroller og korriger pilspiss</h4>
+        <p id="aiTrainReviewNav" class="ai-train-counter">Ingen bilder ennå.</p>
+        <div class="ai-train-pair">
+          <figure><div class="ai-train-frame"><img id="aiTrainOriginal" alt="Originalt kamerabilde av dartskiven"></div><figcaption>Originalbilde</figcaption></figure>
+          <figure><div id="aiTrainZoom" class="ai-train-frame clickable" role="button" tabindex="0" aria-label="Trykk på det nøyaktige spisspunktet">
+            <img id="aiTrainCloseup" alt="Zoomutsnitt av pilen"><span id="aiTrainDot" class="ai-train-dot" hidden></span>
+          </div><figcaption>Zoom-cam · klikk på riktig spiss</figcaption></figure>
+        </div>
+        <p id="aiTrainMark" class="ai-train-warning">Klikk spissen i bildet til høyre.</p>
+        <div class="ai-train-actions"><button id="aiTrainPrev" type="button" class="outline">← Forrige</button><button id="aiTrainApprove" type="button" class="primary">Godkjenn punkt</button><button id="aiTrainReject" type="button" class="outline">Avvis bilde</button><button id="aiTrainNext" type="button" class="outline">Neste →</button></div>
+      </div>
+      <div class="ai-train-actions"><button id="aiTrainExport" class="primary" type="button" disabled>Eksporter bilder + koordinater (.zip)</button><button id="aiTrainDelete" class="outline" type="button" disabled>Slett lokale bilder</button></div>
+      <p class="ai-train-warning">Bildene lagres i denne nettleseren (IndexedDB). Eksporter ZIP før du sletter data eller bytter nettleser. Bare godkjente punkter skal brukes som fasit i trening.</p>
     </section>
     <section class="card local-corrections" id="localCorrections" aria-label="Korriger nylige kast">
       <div class="local-corrections-header"><strong>Siste kast i dette leget</strong><small>Trykk på score for å korrigere</small></div>
@@ -169,5 +193,9 @@
 <script src="./role-visuals.js?v=20261015-practice1"></script>
 <script src="./practice-cloud.js?v=20261016-ai-isolation1"></script>
 <script src="./tournament-ai-rival-match.js?v=20261022-tournament1"></script>
+<script src="./autozoom/tracker.js?v=20261024-owner1"></script>
+<script src="./autozoom/zoom-cam.js?v=20261024-owner1"></script>
+<script src="./autoscoring/zip-store.js?v=20261024-owner1"></script>
+<script src="./ai-rival-capture.js?v=20261024-owner1"></script>
 </body>
 </html>
