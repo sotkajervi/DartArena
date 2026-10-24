@@ -240,6 +240,10 @@ window.addEventListener('dartarena:practice-save',()=>{void syncGame()});
     authorized=true;panel.hidden=false;
     say('Bildene lagres kun lokalt i nettleseren. Eksporter ZIP for sikkerhetskopi.');
     showReview();setCounter();await syncGame();
-  }catch(e){say(e.message,true);panel.hidden=false;$('aiTrainControls').hidden=true}
+  }catch(e){
+    // Fail closed. Nobody without a verified Owner RPC response sees camera, controls or saved images.
+    authorized=false;panel.hidden=true;
+    console.warn('AI Rival training capture unavailable:',e?.message||String(e));
+  }
 })();
 })();
