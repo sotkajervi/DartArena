@@ -87,7 +87,7 @@ function calibration(video,bull,d20,deviceId){
     rotation:Math.atan2(d20.x-bull.x,bull.y-d20.y),aspect:w/h};
 }
 function create(raw,config,{fps=25,video=null,
-  canvas=null,tracker=root.DartArenaAutoZoom,picture=null}={}){
+  canvas=null,tracker=root.DartArenaAutoZoom,picture=null,onStableHit=null}={}){
   const sourceTrack=raw?.getVideoTracks?.()[0];
   if(!sourceTrack||sourceTrack.readyState!=='live'||!tracker)throw Error('Zoom-cam krever et aktivt kamera.');
   if(!canvas&&typeof document!=='undefined')canvas=document.createElement('canvas');
@@ -160,6 +160,11 @@ function create(raw,config,{fps=25,video=null,
         if(hit){
           target={x:hit.x*sw/sampled.width,y:hit.y*sh/sampled.height};
           ref=new Uint8ClampedArray(frame);still=0;
+          // Optional observer for experimental capture; normal Zoom-cam is unchanged.
+          if(typeof onStableHit==='function'){
+            try{onStableHit({x:target.x,y:target.y,width:sw,height:sh},video)}
+            catch(error){console.warn('Zoom-cam capture observer error',error)}
+          }
         }
       }
       current.x+=(target.x-current.x)*speed.ease;current.y+=(target.y-current.y)*speed.ease;
