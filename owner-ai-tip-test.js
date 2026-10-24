@@ -85,7 +85,12 @@ $('tipForgetCalibration').addEventListener('click',()=>{
   try{localStorage.removeItem(HISTORY_KEY)}catch{}
   showHistory();announce('tipImportStatus','Tidligere lagrede AI+-korrigeringer er slettet fra denne nettleseren.');
 });
-const counter=()=>{$('tipCount').textContent=results.length+' tester';$('tipExport').disabled=!results.length;$('tipClear').disabled=!results.length};
+const counter=()=>{
+  const approved=results.filter(item=>item.verification==='accepted_ai').length;
+  const corrected=results.filter(item=>item.verification==='manual_tip').length;
+  $('tipCount').textContent=results.length+' tester · '+approved+' AI-godkjent · '+corrected+' manuelt korrigert';
+  $('tipExport').disabled=!results.length;$('tipClear').disabled=!results.length;
+};
 function announce(id,text,error=false){
   const node=$(id);node.textContent=text;node.setAttribute('role',error?'alert':'status');
 }
@@ -93,6 +98,7 @@ function update(){
   const playing=authorized&&!!stream;
   $('tipBefore').disabled=!playing||busy;
   $('tipAfter').disabled=!playing||!before||!ready||busy||!!current;
+  $('tipApproveAi').disabled=!playing||!current||busy||current.verification==='accepted_ai';
   $('tipNext').disabled=!playing||!after||!current||busy;
   $('tipStart').disabled=!authorized||playing||busy;
   $('tipStop').disabled=!playing;
@@ -313,6 +319,11 @@ function resultText(){
     'AI+ korrigert med '+current.appliedAdjustment.samples+' tidligere godkjente tester. ':
     'Rå AI-forslag (tilpasning starter etter 5 kontrollerte tester). ')+
     'Klikk den faktiske spissen for å måle feilen.';
+  if(current.verification==='accepted_ai'){
+    text='AI-forslaget er godkjent av Owner uten nytt koordinatpunkt. '+
+      'Godkjent teller i treffoversikten, men brukes ikke som fasit for videre modelltrening eller AI+-justering. '+
+      'Hvis du oppdager en feil: klikk den korrekte spissen i bildet.';
+  }
   if(p){
     const err=Math.hypot(ai.x-p.x,ai.y-p.y);
     const old=current.changeZoom;
@@ -358,7 +369,8 @@ async function analyze(){
       model:'DartArenaDiffNet_v1',cameraWidth:next.width,cameraHeight:next.height,
       cameraCalibration:{...config},crop:rect,source:hit.source,
       beforeBlob,afterBlob,afterImage:laterCrop,
-      changeZoom,rawAiZoom:xy,aiZoom:calibrated,appliedAdjustment,correctedZoom:null
+      changeZoom,rawAiZoom:xy,aiZoom:calibrated,appliedAdjustment,correctedZoom:null,
+      verification:'unreviewed',verifiedAt:null
     };
     current=record;results.push(record);
     manualCenter=null;
@@ -372,6 +384,15 @@ $('tipNext').addEventListener('click',()=>{
   if(!after||!current)return;
   storeBefore(after);
 });
+$('tipApproveAi').addEventListener('click',()=>{
+  if(!authorized||!current||busy)return;
+  // Intentional distinction: a visually accepted AI point is NOT manually
+  // measured ground truth. Never fabricate correctedZoom or learn from it.
+  current.verification='accepted_ai';
+  current.verifiedAt=new Date().toISOString();
+  current.correctedZoom=null;
+  display();resultText();counter();update();
+});
 $('tipZoom').addEventListener('click',e=>{
   if(!current)return;
   const rect=$('tipZoom').getBoundingClientRect();
@@ -379,8 +400,9 @@ $('tipZoom').addEventListener('click',e=>{
   corrected={x:Math.max(0,Math.min(639,(e.clientX-rect.left)*640/rect.width)),
     y:Math.max(0,Math.min(479,(e.clientY-rect.top)*480/rect.height))};
   current.correctedZoom=corrected;
+  current.verification='manual_tip';current.verifiedAt=new Date().toISOString();
   persistHistory();
-  display();resultText();counter();
+  display();resultText();counter();update();
 });
 async function loadOwnerLabels(){
   if(typeof indexedDB==='undefined')return [];
@@ -408,13 +430,13 @@ async function exportBatch(){
       const beforeName='images/'+idx+'-before.jpg',afterName='images/'+idx+'-after.jpg';
       entries.push({name:beforeName,bytes:new Uint8Array(await r.beforeBlob.arrayBuffer())});
       entries.push({name:afterName,bytes:new Uint8Array(await r.afterBlob.arrayBuffer())});
-      const {id,createdAt,model,cameraWidth,cameraHeight,cameraCalibration,crop,source,changeZoom,rawAiZoom,aiZoom,appliedAdjustment,correctedZoom}=r;
+      const {id,createdAt,model,cameraWidth,cameraHeight,cameraCalibration,crop,source,changeZoom,rawAiZoom,aiZoom,appliedAdjustment,correctedZoom,verification,verifiedAt}=r;
       metadata.push({id,createdAt,model,cameraWidth,cameraHeight,cameraCalibration,
-        crop,source,changeZoom,rawAiZoom,aiZoom,appliedAdjustment,correctedZoom,
+        crop,source,changeZoom,rawAiZoom,aiZoom,appliedAdjustment,correctedZoom,verification,verifiedAt,
         beforeFile:beforeName,afterFile:afterName});
     }
     entries.unshift({name:'labels.json',bytes:new TextEncoder().encode(JSON.stringify({
-      purpose:'Owner-only before-after model test. One newest dart per pair; correctedZoom is user supplied.',
+      purpose:'Owner-only before-after model test. accepted_ai means visually accepted prediction, NOT manually measured ground truth; manual_tip correctedZoom is independently clicked.',
       createdAt:new Date().toISOString(),tests:metadata
     },null,2))});
     const blob=window.DartArenaLabZip.build(entries),url=URL.createObjectURL(blob);
