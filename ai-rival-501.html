@@ -78,6 +78,19 @@
       </div>
       <p id="localMessage" class="local-message" role="status" aria-live="polite">Skriv score og trykk Enter.</p>
     </section>
+    <section id="ownerAiScoring" class="card" hidden aria-label="Owner AI Rival poengforslag" style="margin:12px 0;padding:16px;border:1px solid #14606a;background:#0b2025;border-radius:14px">
+      <h3 style="margin:0 0 6px">AI-spiss i kamp · Owner beta</h3>
+      <p style="font-size:13px;color:#c0d5da">Last inn din lokale modell. AI foreslår segmenter, og du kan rette hver pil. Kun du kan føre summen til scorefeltet; Enter registrerer runden på vanlig måte.</p>
+      <label style="font-size:13px;display:block;margin:10px 0">Før-/etter-modell (.json) <input id="ownerAiModelFile" type="file" accept=".json,application/json" style="max-width:100%"></label>
+      <div id="ownerAiScoringStatus" role="status" style="font-size:13px;color:#7ceaf2;margin:10px 0">Venter på modell.</div>
+      <div id="ownerAiDarts" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button id="ownerAiNewRound" type="button" class="outline">Tom skive / start runde</button>
+        <button id="ownerAiApplyScore" type="button" class="primary" disabled>Før sum til scorefelt</button>
+        <strong id="ownerAiTotal">0 poeng</strong>
+      </div>
+      <p style="font-size:12px;color:#c0d5da;margin-top:9px">Om kameraet registrerer falsk pil, start runden på nytt. Spissforslag nær wire må alltid kontrolleres.</p>
+    </section>
     <section id="aiTrainingPanel" class="card ai-training-panel" hidden aria-label="Owner AI-treningsbilder">
       <div class="ai-train-head"><h3>AI Rival · treningsbilder</h3><span class="ai-train-tag">OWNER · LOKALT</span></div>
       <p class="muted compact">Inntil tre bilder per runde via Zoom-cam. Oransje punkt markerer kun bildeendring, ikke en bekreftet AI-pilspiss. Ingen automatisk scoring eller opplasting.</p>
@@ -199,6 +212,8 @@
 <script src="./autozoom/zoom-cam.js?v=20261024-owner1"></script>
 <script src="./autoscoring/zip-store.js?v=20261024-owner1"></script>
 <script src="./autozoom/tip-bias.js?v=20261024-owner-bias1"></script>
-<script src="./ai-rival-capture.js?v=20261024-owner-bias1"></script>
+<script src="./ai-rival-capture.js?v=20261024-owner-assist1"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="./ai-rival-owner-score-assist.js?v=20261024-owner-assist1"></script>
 </body>
 </html>

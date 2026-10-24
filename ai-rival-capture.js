@@ -86,7 +86,13 @@ async function capture(hit,source,manual=false){
   finally{busy=false;setCounter()}
 }
 function onStableHit(point,source){
-  // The zoom tracker reports a change centroid, not a trained AI keypoint.
+  // Owner-only opt-in assist receives a synchronous immutable video snapshot.
+  // This event carries no score write; normal training capture stays unchanged.
+  if(authorized&&source?.videoWidth&&window.DartArenaOwnerTipAssistActive){
+    const c=makeCanvas(source.videoWidth,source.videoHeight);
+    c.getContext('2d').drawImage(source,0,0,c.width,c.height);
+    window.dispatchEvent(new CustomEvent('dartarena:owner-tip-hit',{detail:{point:{x:point.x,y:point.y},frame:c}}));
+  }
   void capture({x:point.x,y:point.y},source,false);
 }
 async function attachScores(s){
@@ -134,6 +140,7 @@ async function startCamera(){
     }
     rawVideo=document.createElement('video');
     zoom=Z.create(raw,config,{video:rawVideo,picture:false,onStableHit});
+    window.dispatchEvent(new CustomEvent('dartarena:owner-tip-camera',{detail:{video:rawVideo,config}}));
     view.srcObject=zoom.stream;await view.play();
     say('Kamera klart. Kast inntil 3 piler, registrer deretter rundescore. Oransje punkt er kun bildeendring.');
   }catch(e){
@@ -270,6 +277,7 @@ window.addEventListener('pagehide',()=>resultObserver.disconnect());
     selected=records.findIndex(item=>item.status==='pending');
     if(selected<0&&records.length)selected=0;
     authorized=true;
+    window.dispatchEvent(new Event('dartarena:owner-tip-authorized'));
     // The match view is hidden when the completed game was left in the lobby.
     // Place the review panel outside that hidden match, and do not start a camera.
     if(reviewOnly){
