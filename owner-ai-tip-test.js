@@ -15,6 +15,7 @@ let authorized=false,stream=null,config=null,before=null,after=null,video=$('tip
 let weights=[],ready=false,busy=false,zoomCrop=null,proposal=null,corrected=null;
 let current=null,results=[],previousRecords=[],manualCenter=null;
 let scanTimer=null,scanBusy=false,roundCount=0,roundArmed=false,scanPrev=null,motionAt=0,quietCount=0,lastScanAt=0,reviewIndex=-1,stableCandidate=null,baselineReadyAt=0,referenceQuiet=0,seenCleanBaseline=false;
+const POST_DART_SETTLE_MS=2100;
 const HISTORY_KEY='dartarena-owner-ai-tip-prior-labels-v1';
 let historyLabels=[];
 function minimalLabel(row){
@@ -452,8 +453,8 @@ async function analyze(frameOverride=null){
       roundCount++;
       before=next;roundArmed=roundCount<3;
       scanPrev=null;motionAt=0;quietCount=0;stableCandidate=null;
-      seenCleanBaseline=false;referenceQuiet=0;baselineReadyAt=performance.now()+1000;lastScanAt=performance.now();
-      announce('tipAutoStatus',roundArmed?'Lagret pil '+roundCount+'/3. Kast pil '+(roundCount+1)+'.':
+      seenCleanBaseline=false;referenceQuiet=0;baselineReadyAt=performance.now()+POST_DART_SETTLE_MS;lastScanAt=performance.now();
+      announce('tipAutoStatus',roundArmed?'Lagret pil '+roundCount+'/3. Vent et par sekunder før pil '+(roundCount+1)+'.':
         '3/3 piler lagret. Gjennomgå forslagene med Forrige/Neste, trekk pilene og trykk Ny runde.');
     }
     display();resultText();counter();
