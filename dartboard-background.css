@@ -12,7 +12,7 @@ body::before{
   height:min(782px,75vw) !important;
   border-radius:0 !important;
   opacity:.48 !important;
-  background:url('./assets/dartarena-bull-down.avif?v=20261023-original1') center top / 100% 100% no-repeat !important;
+  background:url('./assets/dartarena-bull-down-turquoise.avif?v=20261025-cyancrop1') center top / 100% 100% no-repeat !important;
   filter:saturate(.58) brightness(.58) contrast(1.14) !important;
   -webkit-mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.98) 30%,rgba(0,0,0,.8) 57%,rgba(0,0,0,.42) 77%,transparent 96%) !important;
   mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.98) 30%,rgba(0,0,0,.8) 57%,rgba(0,0,0,.42) 77%,transparent 96%) !important;
