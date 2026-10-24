@@ -35,9 +35,18 @@ function update(){
   input.addEventListener('change',()=>{
    const val=Number(input.value);
    if(!Number.isInteger(val)||val<0||val>60){input.value=String(d.points);say('Hver pil må ha et gyldig poengtall mellom 0 og 60.');return}
-   d.points=val;update();
+   d.points=val;d.manualBounce=false;update();
   });
-  label.append(note,input);host.append(label);
+  const bounce=document.createElement('button');
+  bounce.type='button';bounce.className='outline';
+  bounce.textContent=d.points===0&&d.manualBounce?'Sprett / bom ✓':'Sprett / bom (0)';
+  bounce.style.cssText='padding:7px 9px;font-size:12px;min-height:32px';
+  bounce.setAttribute('aria-label','Registrer sprett eller bom som null poeng for pil '+(i+1));
+  bounce.addEventListener('click',()=>{
+   d.points=0;d.manualBounce=true;
+   update();say('Pil '+(i+1)+' markert som sprett/bom: 0 poeng. Bekreft rundesummen med Enter.');
+  });
+  label.append(note,input,bounce);host.append(label);
  });
 }
 function frame(videoEl){
