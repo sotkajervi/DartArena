@@ -83,6 +83,11 @@ async function init(){
  const {data:{session}}=await db.auth.getSession();
  if(!session){notice('Logg inn i DartArena før du bruker AI Rival.');$('rivalPlayer').innerHTML='<option>Innlogging kreves</option>';return}
  me=session.user.id;
+ try{
+  const {data:isOwner,error:roleError}=await db.rpc('is_owner');
+  const opt=$('rivalTrainingOption');
+  if(opt&&isOwner===true&&!roleError){opt.hidden=false;opt.style.display='flex'}
+ }catch{} // A missing/denied role check leaves the Owner control hidden.
  const {data,error}=await db.from('profiles').select('id,username').order('username');
  if(error){notice('Kunne ikke hente spillere: '+error.message);return}
  profiles=(data||[]).filter(p=>p.username&&!["d32a4234-68fa-4c94-a0b0-2aff4831344a","049fdb78-ee46-41cb-a25f-a48d90a028e5"].includes(p.id));
@@ -95,7 +100,7 @@ $('rivalFormat').addEventListener('change',()=>{if($('rivalPlayer').value)loadMo
 $('rivalStart').addEventListener('click',()=>{
  if(!model||model.count<30||!modelPlayer)return;
  const best=Number($('rivalLegs').value);
- location.href='ai-rival-501.html?player='+encodeURIComponent(modelPlayer.id)+'&format='+encodeURIComponent($('rivalFormat').value)+'&legs='+encodeURIComponent(best);
+ location.href='ai-rival-501.html?player='+encodeURIComponent(modelPlayer.id)+'&format='+encodeURIComponent($('rivalFormat').value)+'&legs='+encodeURIComponent(best)+(($('rivalTrainingOption')?.hidden===false&&$('rivalTrainingEnable')?.checked)?'&training=1':'');
 });
 
 function throwScore(){
