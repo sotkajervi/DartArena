@@ -21,6 +21,14 @@ function roundKey(s){
  const count=(s.visits||[]).filter(v=>v.player===0&&v.leg===s.leg&&(v.set||1)===(s.currentSet||1)).length;
  return [s.id,s.currentSet||1,s.leg,count].join(':');
 }
+function publishReview(i,d){
+ const s=state();if(!s)return;
+ const detail={matchId:s.id,setNo:s.currentSet||1,legNo:s.leg,
+  roundIndex:(s.visits||[]).filter(v=>v.player===0&&v.leg===s.leg&&(v.set||1)===(s.currentSet||1)).length,
+  dartNo:i+1,corrected:!!d.corrected,aiSuggestedScore:d.originalPoints,finalScore:d.points,
+  tipX:d.tip?.x,tipY:d.tip?.y};
+ window.dispatchEvent(new CustomEvent('dartarena:owner-tip-review-update',{detail}));
+}
 function update(){
  const sum=darts.reduce((a,d)=>a+d.points,0);
  $('ownerAiTotal').textContent=sum+' poeng';
@@ -35,7 +43,7 @@ function update(){
   input.addEventListener('change',()=>{
    const val=Number(input.value);
    if(!Number.isInteger(val)||val<0||val>60){input.value=String(d.points);say('Hver pil må ha et gyldig poengtall mellom 0 og 60.');return}
-   d.points=val;d.manualBounce=false;update();
+   d.points=val;d.manualBounce=false;d.corrected=d.points!==d.originalPoints;publishReview(i,d);update();
   });
   const bounce=document.createElement('button');
   bounce.type='button';bounce.className='outline';
@@ -43,7 +51,7 @@ function update(){
   bounce.style.cssText='padding:7px 9px;font-size:12px;min-height:32px';
   bounce.setAttribute('aria-label','Registrer sprett eller bom som null poeng for pil '+(i+1));
   bounce.addEventListener('click',()=>{
-   d.points=0;d.manualBounce=true;
+   d.points=0;d.manualBounce=true;d.corrected=d.points!==d.originalPoints;publishReview(i,d);
    update();say('Pil '+(i+1)+' markert som sprett/bom: 0 poeng. Bekreft rundesummen med Enter.');
   });
   label.append(note,input,bounce);host.append(label);
@@ -142,7 +150,8 @@ async function onHit(event){
   const point=await predict(crop(before,rect),crop(after,rect));
   const absolute={x:rect.x+point.x*rect.width/640,y:rect.y+point.y*rect.height/480};
   const score=segment(absolute,after.width,after.height);
-  darts.push(score);
+  score.originalPoints=score.points;score.tip=absolute;score.corrected=false;
+  darts.push(score);publishReview(darts.length-1,score);
   before=after;
   say('Pil '+darts.length+'/3: '+score.label+' ('+score.points+'). Kontroller forslagene før registrering.');
   update();
