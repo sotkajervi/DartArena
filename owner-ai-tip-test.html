@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DartArena · Owner AI Spiss-testzone</title>
+<link rel="stylesheet" href="./style.css?v=20261023-bulldown2">
+<link rel="stylesheet" href="./brand-header.css?v=20261009-mobile1">
+<style>
+:root{color-scheme:dark;--accent:#00eaf4}
+*{box-sizing:border-box}
+body{background:#071012!important;color:#e9f7fa;font-family:system-ui,sans-serif;margin:0;min-height:100vh}
+.tip-shell{max-width:1160px;margin:26px auto 70px;padding:0 18px}
+.tip-hero{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:20px}
+.tip-hero h1{font-size:clamp(25px,3.5vw,38px);margin:8px 0}
+.tip-hero p,.muted{color:#adccd1;font-size:14px;line-height:1.6}
+.tip-card{border:1px solid #28505a;background:#102225;border-radius:16px;padding:20px;margin-bottom:15px}
+.tip-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.8fr);gap:16px}
+.tip-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tip-btn{border:1px solid #315b63;background:#152c30;color:#eafcfe;padding:12px 15px;min-height:44px;border-radius:9px;font-size:13px;font-weight:750;cursor:pointer}
+.tip-btn.primary{background:#00d7e4;color:#04191e;border-color:#00d7e4}
+.tip-btn:disabled{opacity:.4;cursor:default}
+.tip-video,.tip-canvas{display:block;width:100%;background:#03090b;border-radius:10px;border:1px solid #34565b}
+.tip-video{aspect-ratio:16/9;object-fit:contain;cursor:crosshair}
+.tip-canvas{aspect-ratio:4/3;cursor:crosshair}
+.tip-status{min-height:20px;color:#78eaf2;font-size:13px}
+.tip-label{display:block;color:#c5e0e4;font-size:13px;font-weight:750;margin:8px 0}
+.tip-label input{width:100%;margin:8px 0 0;font:inherit}
+.tip-details{font-size:13px;color:#aecbd0;line-height:1.6}
+.tip-legend{display:flex;gap:15px;flex-wrap:wrap;font-size:12px;margin-top:10px}
+.tip-legend span:before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;background:currentColor}
+.cyan{color:#00f1fa}.orange{color:#ffaf35}.green{color:#61ff9e}
+.tip-error{border:1px solid #794443;color:#ffcccc;background:#2a191c;border-radius:10px;padding:18px;margin:25px auto;max-width:850px}
+.tip-status[role=alert]{color:#ffc2c2}
+[hidden]{display:none!important}
+@media(max-width:800px){.tip-grid{grid-template-columns:1fr}.tip-hero{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<header><div class="brand"><a href="./ai-rival.html"><img class="brand-logo" src="./assets/dartarena-logo.jpg" alt="DartArena" width="210"></a></div><div class="live">OWNER · AI-SPISS · TESTZONE</div></header>
+<main class="tip-shell">
+<div class="tip-hero"><div><small>SCORINGARENA / EKSPERIMENT</small><h1>AI-spiss · Før / etter</h1><p>Kun Owner. Test den trente før-/ettermodellen lokalt med kameraet. Ingen score registreres i kamper.</p></div><a href="./ai-rival.html" class="tip-btn">← Til AI Rival</a></div>
+<section id="tipDenied" class="tip-error" role="alert">Kontrollerer Owner-tilgang …</section>
+<div id="tipApp" hidden>
+<section class="tip-card">
+<h2>1. Last inn forsøksmodellen</h2>
+<p class="muted">Velg den nedlastede filen <strong>dartarena-foer-etter-modell-v1-browser.json</strong>. Modellen og bildene behandles på PC-en, uten å sendes til en AI-server. Chrome trenger nett til TensorFlow.js-biblioteket.</p>
+<label class="tip-label">Modellfil (.json)<input type="file" id="tipModel" accept=".json,application/json"></label>
+<p id="tipModelStatus" class="tip-status" role="status">Ingen modell valgt.</p>
+</section>
+<div class="tip-grid">
+<section class="tip-card">
+<h2>2. Kamera og før-bilde</h2>
+<p class="muted">Bruk det samme kameraet som er kalibrert i Zoom-cam / Cam-test. Start kameraet og trykk «Lagre før-bilde» når skiva er klar. Dette fungerer også for første pil på en tom skive.</p>
+<div class="tip-controls"><button id="tipStart" class="tip-btn primary">Start kamera</button><button id="tipBefore" class="tip-btn" disabled>Lagre før-bilde</button><button id="tipStop" class="tip-btn" disabled>Stopp kamera</button></div>
+<video id="tipVideo" class="tip-video" muted autoplay playsinline aria-label="Direktevideo fra dartskiva. Trykk for å velge området der pilen kom inn."></video>
+<p class="tip-details">Hvis modellen velger feil område: Klikk på videobildet nær den nye pilen før du analyserer. Modellen finner fortsatt selve spissen.</p>
+<p id="tipCameraStatus" class="tip-status" role="status">Kamera ikke startet.</p>
+</section>
+<section class="tip-card">
+<h2>3. Kast pilen og analyser</h2>
+<p class="muted">Når pilen sitter rolig: Trykk «Analyser ny pil». Før- og etterbildet beskjæres til nøyaktig samme område. Du kan markere korrekt spiss i utsnittet etterpå.</p>
+<div class="tip-controls"><button id="tipAfter" class="tip-btn primary" disabled>Analyser ny pil</button><button id="tipNext" class="tip-btn" disabled>Bruk etterbildet som nytt før-bilde</button></div>
+<canvas id="tipZoom" class="tip-canvas" width="640" height="480" aria-label="Utsnitt. Klikk pilspissen for å sammenligne med modellen."></canvas>
+<div class="tip-legend"><span class="cyan">AI-spiss</span><span class="orange">Bildeendring / manuell region</span><span class="green">Din korrigerte spiss</span></div>
+<p id="tipResult" class="tip-status" role="status">Ingen analyse ennå.</p>
+</section>
+</div>
+<section class="tip-card">
+<h2>4. Lagre en testbatch</h2>
+<p class="muted">Etter at AI har vist punktet, klikk på den riktige spissen i zoom-bildet. Da måler vi feilen. Last ned ZIP med før-/etterbilder og testpunkter som du kan sende hit.</p>
+<div class="tip-controls"><button id="tipExport" class="tip-btn primary" disabled>Last ned testbatch (.zip)</button><button id="tipClear" class="tip-btn" disabled>Nullstill testbatch</button><span id="tipCount" class="tip-details">0 tester</span></div>
+<p class="tip-details">Dette er kun en test. Ingen automatisk godkjenning, ingen lagring av kampstatistikk og ingen bilder lastes opp.</p>
+</section>
+</div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="./autozoom/tracker.js?v=20261024-tipzone1"></script>
+<script src="./autozoom/zoom-cam.js?v=20261024-tipzone1"></script>
+<script src="./autozoom/tip-bias.js?v=20261024-owner-bias1"></script>
+<script src="./autoscoring/zip-store.js"></script>
+<script src="./owner-ai-tip-test.js?v=20261024-tipzone1"></script>
+</body>
+</html>
