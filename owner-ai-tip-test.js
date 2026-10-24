@@ -98,7 +98,7 @@ function announce(id,text,error=false){
 function update(){
   const playing=authorized&&!!stream;
   $('tipBefore').disabled=!playing||busy;
-  $('tipAfter').disabled=!playing||!before||!ready||busy||(!!current&&!$('tipAuto').checked);
+  $('tipAfter').disabled=!playing||!before||!ready||busy||($('tipAuto').checked?!roundArmed:!!current);
   $('tipApproveAi').disabled=!playing||!current||busy||current.verification!=='unreviewed';
   $('tipNext').disabled=!playing||!after||!current||busy;
   $('tipPrevReview').disabled=reviewIndex<=0;
@@ -384,7 +384,7 @@ async function scan(){
   }finally{scanBusy=false}
 }
 async function analyze(frameOverride=null){
-  const automatic=!!frameOverride;
+  const automatic=!!frameOverride||$('tipAuto').checked;
   if(!authorized||!stream||!before||!ready||busy||(!automatic&&current))return;
   busy=true;update();
   try{
