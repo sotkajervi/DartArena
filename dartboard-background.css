@@ -12,8 +12,10 @@ body::before{
   height:min(782px,75vw) !important;
   border-radius:0 !important;
   opacity:.48 !important;
-  background:url('./assets/dartarena-bull-down-no-glow.avif?v=20261025-noglow1') center top / 100% 100% no-repeat !important;
-  filter:saturate(.58) brightness(.58) contrast(1.14) !important;
+  background:url('./assets/dartarena-heatmap-board.png?v=20261025-originalcrisp1') center bottom / 100% auto no-repeat !important;
+  filter:none !important;
+  /* Crop the original square PNG to the same bull-down rectangle, masking only the white outside the outer rim. */
+  clip-path:ellipse(49.44% 91.58% at 50% 6.5%) !important;
   -webkit-mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.98) 30%,rgba(0,0,0,.8) 57%,rgba(0,0,0,.42) 77%,transparent 96%) !important;
   mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.98) 30%,rgba(0,0,0,.8) 57%,rgba(0,0,0,.42) 77%,transparent 96%) !important;
 }
