@@ -9,7 +9,7 @@ const db=window.supabase?.createClient(
   'https://jqpxlbhwvskhjbqrbidk.supabase.co',
   'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
 );
-const T=window.DartArenaAutoZoom,Z=window.DartArenaZoomCam,Bias=window.DartArenaTipBias;
+const T=window.DartArenaAutoZoom,Z=window.DartArenaZoomCam,Bias=window.DartArenaTipBias,Online=window.DartArenaTipOnlineCalibration;
 const SIZE={width:640,height:480};
 let authorized=false,stream=null,config=null,before=null,after=null,video=$('tipVideo');
 let weights=[],ready=false,busy=false,zoomCrop=null,proposal=null,corrected=null;
@@ -226,20 +226,26 @@ function display(){
   if(!current)return;
   ctx.drawImage(current.afterImage,0,0,640,480);
   circle(ctx,current.changeZoom,'#ffaf35',7);
+  if(current.appliedAdjustment)circle(ctx,current.rawAiZoom,'#c5cbd0',5);
   circle(ctx,current.aiZoom,'#00effc',6);
   circle(ctx,current.correctedZoom,'#59ff93',6);
 }
 function resultText(){
   if(!current)return;
   const ai=current.aiZoom,p=current.correctedZoom;
-  let text='AI foreslår '+Math.round(ai.x)+', '+Math.round(ai.y)+
-    ' i zoom-bildet. Klikk den faktiske spissen for å måle feilen.';
+  let text=(current.appliedAdjustment?
+    'AI+ korrigert med '+current.appliedAdjustment.samples+' tidligere godkjente tester. ':
+    'Rå AI-forslag (tilpasning starter etter 5 kontrollerte tester). ')+
+    'Klikk den faktiske spissen for å måle feilen.';
   if(p){
     const err=Math.hypot(ai.x-p.x,ai.y-p.y);
     const old=current.changeZoom;
-    text='AI-feil: '+err.toFixed(1)+' px i zoom (ca. '+
-      (err*current.crop.width/640).toFixed(1)+' px i original).'+
-      (old?' Bildeendringspunktet: '+Math.hypot(old.x-p.x,old.y-p.y).toFixed(1)+' px i zoom.':'');
+    const rawErr=Math.hypot(current.rawAiZoom.x-p.x,current.rawAiZoom.y-p.y);
+    text=(current.appliedAdjustment?'AI+ feil: ':'AI-feil: ')+err.toFixed(1)+
+      ' px zoom (ca. '+(err*current.crop.width/640).toFixed(1)+' px original).'+
+      (current.appliedAdjustment?' Rå modell: '+rawErr.toFixed(1)+' px.':'')+
+      (old?' Bildeendring: '+Math.hypot(old.x-p.x,old.y-p.y).toFixed(1)+' px.':'')+
+      (rawErr>48?' Stor avvik: kontroller at modellen valgte den NYE pilen.':'');
   }
   $('tipResult').textContent=text;
 }
@@ -263,16 +269,20 @@ async function analyze(){
     const xy=await infer(inputTensor(earlierCrop,laterCrop));
     if(!(xy.x>=0&&xy.y>=0&&xy.x<=640&&xy.y<=480))
       throw Error('Modellen ga et ugyldig punkt.');
+    // Apply a small robust learned offset from PRIOR corrected tests only.
+    // Never use this dart's label to adjust its own prediction.
+    const appliedAdjustment=Online?.estimate(results,config,'DartArenaDiffNet_v1',rect.width)||null;
+    const calibrated=Online?.apply(xy,appliedAdjustment)||xy;
     const changeZoom={x:(hit.point.x-rect.x)*640/rect.width,
       y:(hit.point.y-rect.y)*480/rect.height};
     const [beforeBlob,afterBlob]=await Promise.all([toBlob(earlierCrop),toBlob(laterCrop)]);
-    after=next;zoomCrop=rect;proposal=xy;corrected=null;
+    after=next;zoomCrop=rect;proposal=calibrated;corrected=null;
     const record={
       id:crypto.randomUUID(),createdAt:new Date().toISOString(),
       model:'DartArenaDiffNet_v1',cameraWidth:next.width,cameraHeight:next.height,
       cameraCalibration:{...config},crop:rect,source:hit.source,
       beforeBlob,afterBlob,afterImage:laterCrop,
-      changeZoom,aiZoom:xy,correctedZoom:null
+      changeZoom,rawAiZoom:xy,aiZoom:calibrated,appliedAdjustment,correctedZoom:null
     };
     current=record;results.push(record);
     manualCenter=null;
@@ -321,9 +331,9 @@ async function exportBatch(){
       const beforeName='images/'+idx+'-before.jpg',afterName='images/'+idx+'-after.jpg';
       entries.push({name:beforeName,bytes:new Uint8Array(await r.beforeBlob.arrayBuffer())});
       entries.push({name:afterName,bytes:new Uint8Array(await r.afterBlob.arrayBuffer())});
-      const {id,createdAt,model,cameraWidth,cameraHeight,cameraCalibration,crop,source,changeZoom,aiZoom,correctedZoom}=r;
+      const {id,createdAt,model,cameraWidth,cameraHeight,cameraCalibration,crop,source,changeZoom,rawAiZoom,aiZoom,appliedAdjustment,correctedZoom}=r;
       metadata.push({id,createdAt,model,cameraWidth,cameraHeight,cameraCalibration,
-        crop,source,changeZoom,aiZoom,correctedZoom,
+        crop,source,changeZoom,rawAiZoom,aiZoom,appliedAdjustment,correctedZoom,
         beforeFile:beforeName,afterFile:afterName});
     }
     entries.unshift({name:'labels.json',bytes:new TextEncoder().encode(JSON.stringify({
