@@ -14,6 +14,7 @@ const SIZE={width:640,height:480};
 let authorized=false,stream=null,config=null,before=null,after=null,video=$('tipVideo');
 let weights=[],ready=false,busy=false,zoomCrop=null,proposal=null,corrected=null;
 let current=null,results=[],previousRecords=[],manualCenter=null;
+let scanTimer=null,scanBusy=false,roundCount=0,roundArmed=false,scanPrev=null,motionAt=0,quietCount=0,lastScanAt=0,reviewIndex=-1;
 const HISTORY_KEY='dartarena-owner-ai-tip-prior-labels-v1';
 let historyLabels=[];
 function minimalLabel(row){
@@ -97,16 +98,19 @@ function announce(id,text,error=false){
 function update(){
   const playing=authorized&&!!stream;
   $('tipBefore').disabled=!playing||busy;
-  $('tipAfter').disabled=!playing||!before||!ready||busy||!!current;
+  $('tipAfter').disabled=!playing||!before||!ready||busy||($('tipAuto').checked?!roundArmed:!!current);
   $('tipApproveAi').disabled=!playing||!current||busy||current.verification!=='unreviewed';
   $('tipNext').disabled=!playing||!after||!current||busy;
+  $('tipPrevReview').disabled=reviewIndex<=0;
+  $('tipNextReview').disabled=reviewIndex<0||reviewIndex>=results.length-1;
   $('tipStart').disabled=!authorized||playing||busy;
   $('tipStop').disabled=!playing;
 }
 function stop(){
+  stopScan();
   for(const track of stream?.getTracks()||[])track.stop();
   stream=null;video.pause();video.srcObject=null;
-  before=null;after=null;current=null;manualCenter=null;
+  before=null;after=null;current=null;manualCenter=null;roundArmed=false;roundCount=0;
   update();
 }
 window.addEventListener('pagehide',()=>{
@@ -201,6 +205,7 @@ async function start(){
     video.srcObject=s;await video.play();
     if(!video.videoWidth||!video.videoHeight)throw Error('Kameraet returnerte ikke videobilder.');
     previousRecords=await loadOwnerLabels();
+    startScan();
     announce('tipCameraStatus','Kamera klart ('+video.videoWidth+' × '+video.videoHeight+
       '). Tidligere godkjente spisser: '+previousRecords.length+'. Lagre et før-bilde.');
   }catch(e){
@@ -218,7 +223,9 @@ function snapshot(){
 }
 function storeBefore(frame){
   before=frame;after=null;zoomCrop=null;current=null;proposal=null;corrected=null;manualCenter=null;
-  $('tipResult').textContent='Før-bilde lagret. Kast én pil og trykk «Analyser ny pil».';
+  roundCount=0;roundArmed=true;scanPrev=null;motionAt=0;quietCount=0;reviewIndex=-1;
+  announce('tipAutoStatus',$('tipAuto').checked?'Auto klar: kast pil 1 av 3.':'Manuell modus: kast pilen og analyser.');
+  $('tipResult').textContent=$('tipAuto').checked?'Før-bilde lagret. Kast tre piler i vanlig tempo.':'Før-bilde lagret. Kast én pil og analyser.';
   const c=$('tipZoom');c.getContext('2d').clearRect(0,0,640,480);
   announce('tipCameraStatus','Før-bilde lagret ('+frame.width+' × '+frame.height+').');
   update();
@@ -337,11 +344,51 @@ function resultText(){
   $('tipResult').textContent=text;
 }
 function toBlob(c){return new Promise((ok,no)=>c.toBlob(b=>b?ok(b):no(Error('Kunne ikke lagre testbilde.')),'image/jpeg',.88))}
-async function analyze(){
-  if(!authorized||!stream||!before||!ready||busy||current)return;
+function stopScan(){if(scanTimer!==null)clearInterval(scanTimer);scanTimer=null;scanBusy=false;}
+function startScan(){
+  stopScan();
+  // Bounded, local camera polling. No server-side processing.
+  scanTimer=setInterval(()=>{void scan()},260);
+}
+async function scan(){
+  if(scanBusy||busy||!authorized||!stream||!before||!ready||
+     !$('tipAuto').checked||!roundArmed||roundCount>=3)return;
+  scanBusy=true;
+  try{
+    const now=performance.now(),frame=snapshot();
+    if(frame.width!==before.width||frame.height!==before.height){
+      roundArmed=false;announce('tipAutoStatus','Kameraformatet endret seg. Trykk Ny runde.',true);return;
+    }
+    // Compare consecutive frames to distinguish a flying/hand-moving dart
+    // from a dart that has settled into the board.
+    const sw=480,sh=Math.max(1,Math.round(sw*frame.height/frame.width));
+    const sampled=samples(frame,sw,sh);
+    const board={x:config.cx*sw,y:config.cy*sh,radius:config.radius*sw};
+    const opts={...T.sensitivityPreset(config.sensitivity),searchRadius:1.65};
+    if(!scanPrev){scanPrev=sampled;return}
+    const movement=T.motionRatio(scanPrev,sampled,sw,sh,board,{searchRadius:1.65});
+    scanPrev=sampled;
+    if(movement>.008){motionAt=now;quietCount=0;return}
+    if(!motionAt||now-motionAt<650||now-motionAt>5500)return;
+    quietCount++;
+    if(quietCount<3)return;
+    const base=samples(before,sw,sh);
+    const hit=T.findChange(base,sampled,sw,sh,board,{...opts,stride:1,maxRatio:.12});
+    if(!hit||hit.changedSamples<opts.minSamples)return;
+    // Consume this motion; prevent a single incoming dart becoming multiple
+    // captures. Each next event must include a fresh burst of physical motion.
+    motionAt=0;quietCount=0;scanPrev=null;
+    await analyze(frame);
+  }catch(e){
+    announce('tipAutoStatus','Automatisk analyse feilet: '+(e.message||String(e))+'. Prøv manuelt.',true);
+  }finally{scanBusy=false}
+}
+async function analyze(frameOverride=null){
+  const automatic=!!frameOverride||$('tipAuto').checked;
+  if(!authorized||!stream||!before||!ready||busy||(!automatic&&current))return;
   busy=true;update();
   try{
-    const next=snapshot();
+    const next=frameOverride||snapshot();
     if(next.width!==before.width||next.height!==before.height)
       throw Error('Kameraoppløsningen ble endret. Ta et nytt før-bilde.');
     const hit=findRegion(before,next);
@@ -372,14 +419,34 @@ async function analyze(){
       changeZoom,rawAiZoom:xy,aiZoom:calibrated,appliedAdjustment,correctedZoom:null,
       verification:'unreviewed',verifiedAt:null
     };
-    current=record;results.push(record);
+    current=record;results.push(record);reviewIndex=results.length-1;
     manualCenter=null;
+    if(automatic){
+      roundCount++;
+      before=next;roundArmed=roundCount<3;
+      scanPrev=null;motionAt=0;quietCount=0;
+      announce('tipAutoStatus',roundArmed?'Lagret pil '+roundCount+'/3. Kast pil '+(roundCount+1)+'.':
+        '3/3 piler lagret. Gjennomgå forslagene med Forrige/Neste, trekk pilene og trykk Ny runde.');
+    }
     display();resultText();counter();
     announce('tipCameraStatus','Analyse klar. AI-forslaget er markert i lyseblått. Korriger i bildet til høyre.');
   }catch(e){announce('tipResult','Kunne ikke analysere: '+(e.message||String(e)),true)}
   finally{busy=false;update()}
 }
 $('tipAfter').addEventListener('click',()=>{void analyze()});
+$('tipAuto').addEventListener('change',()=>{
+  roundArmed=!!before&&roundCount<3;
+  scanPrev=null;motionAt=0;quietCount=0;
+  announce('tipAutoStatus',$('tipAuto').checked?'Auto aktiv. Kast når skiva er klar.':'Auto slått av. Bruk manuell analyse.');
+  update();
+});
+function showRecorded(index){
+  if(index<0||index>=results.length)return;
+  reviewIndex=index;current=results[index];display();resultText();update();
+  announce('tipAutoStatus','Gjennomgang: pil '+(index+1)+' av '+results.length+'.');
+}
+$('tipPrevReview').addEventListener('click',()=>showRecorded(reviewIndex-1));
+$('tipNextReview').addEventListener('click',()=>showRecorded(reviewIndex+1));
 $('tipNext').addEventListener('click',()=>{
   if(!after||!current)return;
   storeBefore(after);
@@ -450,7 +517,7 @@ async function exportBatch(){
 $('tipExport').addEventListener('click',()=>{void exportBatch()});
 $('tipClear').addEventListener('click',()=>{
   if(!authorized||busy||!confirm('Nullstille alle testene som ikke er eksportert?'))return;
-  results=[];current=null;after=null;
+  results=[];current=null;after=null;reviewIndex=-1;
   display();counter();update();
   announce('tipResult','Testbatch nullstilt.');
 });
