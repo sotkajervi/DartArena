@@ -86,6 +86,7 @@
         <div class="ai-train-actions"><button id="aiTrainManual" class="outline" type="button">Ta bilde manuelt</button><button id="aiTrainRearm" class="outline" type="button">Tom skive / ny referanse</button><span id="aiTrainCount" class="ai-train-counter">0 / 3 piler</span></div>
       </div>
       <p id="aiTrainStatus" class="ai-train-status" role="status">Kontrollerer Owner-tilgang…</p>
+      <details id="aiTrainReviewDetails" class="ai-train-review-details"><summary>Gjennomgå og korriger lagrede bilder</summary>
       <div id="aiTrainReview" class="ai-train-review" hidden>
         <h4>Kontroller og korriger pilspiss</h4>
         <p id="aiTrainReviewNav" class="ai-train-counter">Ingen bilder ennå.</p>
@@ -98,6 +99,7 @@
         <p id="aiTrainMark" class="ai-train-warning">Klikk spissen i bildet til høyre.</p>
         <div class="ai-train-actions"><button id="aiTrainPrev" type="button" class="outline">← Forrige</button><button id="aiTrainApprove" type="button" class="primary">Godkjenn punkt</button><button id="aiTrainReject" type="button" class="outline">Avvis bilde</button><button id="aiTrainNext" type="button" class="outline">Neste →</button></div>
       </div>
+      </details>
       <div class="ai-train-actions"><button id="aiTrainExport" class="primary" type="button" disabled>Eksporter bilder + koordinater (.zip)</button><button id="aiTrainDelete" class="outline" type="button" disabled>Slett lokale bilder</button></div>
       <p class="ai-train-warning">Bildene lagres i denne nettleseren (IndexedDB). Eksporter ZIP før du sletter data eller bytter nettleser. Bare godkjente punkter skal brukes som fasit i trening.</p>
     </section>
