@@ -191,7 +191,7 @@ function showReview(){
   $('aiTrainCloseup').src=displayBlob(item.closeup);
   nav.textContent=(item.scoreCorrected?'POENG KORRIGERT · ':'')+'Bilde '+(selected+1)+' / '+records.length+' · Pil '+item.dartNo+
     ' · '+(item.score===null?'score ikke registrert':item.score+' poeng')+' · '+item.status;
-  $('aiTrainMark').textContent=item.proposal?
+  $('aiTrainMark').textContent=item.aiTip?'Lyseblått punkt: AI-spissforslag. Klikk på riktig spiss for finjustering, deretter Godkjenn punkt.':item.proposal?
     (item.proposalAdjustment?
       'Oransje: justert bildeendring fra '+item.proposalAdjustment.samples+' godkjente korrigeringer. Ikke en AI-spissdetektor. ':
       'Oransje: rå bildeendring, ikke AI. ')+
@@ -210,7 +210,7 @@ $('aiTrainZoom').addEventListener('click',event=>{
 });
 $('aiTrainApprove').addEventListener('click',async()=>{
   const item=records[selected];if(!item)return;
-  const point=proposed||item.corrected||item.proposal;
+  const point=proposed||item.corrected||item.aiTip||item.proposal;
   if(!point){say('Marker spissen i bildet før du godkjenner.',true);return}
   item.corrected={x:point.x,y:point.y};
   item.status='approved';
