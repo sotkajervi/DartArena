@@ -26,7 +26,7 @@
     "test:match-autozoom-share": "node --test autozoom/match-share.test.cjs",
     "test:zoom-cam": "node --test autozoom/zoom-cam.test.cjs",
     "test:fx": "node --test tests/fx-live.test.cjs tests/fx-match-bridge.test.cjs",
-    "test:zoom-tip": "node --test autozoom/tip-map.test.cjs",
+    "test:zoom-tip": "node --test autozoom/tip-map.test.cjs autozoom/tip-bias.test.cjs",
     "test:online-heatmap": "node --test tests/online-heatmap-beta.test.cjs",
     "test:d1-live": "node --test tests/d1-live-testzone.test.cjs"
   },
