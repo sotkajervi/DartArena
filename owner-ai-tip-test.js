@@ -98,7 +98,7 @@ function update(){
   const playing=authorized&&!!stream;
   $('tipBefore').disabled=!playing||busy;
   $('tipAfter').disabled=!playing||!before||!ready||busy||!!current;
-  $('tipApproveAi').disabled=!playing||!current||busy||current.verification==='accepted_ai';
+  $('tipApproveAi').disabled=!playing||!current||busy||current.verification!=='unreviewed';
   $('tipNext').disabled=!playing||!after||!current||busy;
   $('tipStart').disabled=!authorized||playing||busy;
   $('tipStop').disabled=!playing;
@@ -385,7 +385,7 @@ $('tipNext').addEventListener('click',()=>{
   storeBefore(after);
 });
 $('tipApproveAi').addEventListener('click',()=>{
-  if(!authorized||!current||busy)return;
+  if(!authorized||!current||busy||current.verification!=='unreviewed')return;
   // Intentional distinction: a visually accepted AI point is NOT manually
   // measured ground truth. Never fabricate correctedZoom or learn from it.
   current.verification='accepted_ai';
