@@ -58,7 +58,7 @@ body{background:#071012!important;color:#e9f7fa;font-family:system-ui,sans-serif
 <section class="tip-card">
 <h2>2. Kamera og før-bilde</h2>
 <p class="muted">Bruk det samme kameraet som er kalibrert i Zoom-cam / Cam-test. Start kameraet og trykk «Lagre før-bilde» når skiva er klar. Dette fungerer også for første pil på en tom skive.</p>
-<div class="tip-controls"><button id="tipStart" class="tip-btn primary">Start kamera</button><button id="tipBefore" class="tip-btn" disabled>Lagre før-bilde</button><button id="tipStop" class="tip-btn" disabled>Stopp kamera</button></div>
+<div class="tip-controls"><button id="tipStart" class="tip-btn primary">Start kamera</button><button id="tipBefore" class="tip-btn" disabled>Ny runde / lagre før-bilde</button><button id="tipStop" class="tip-btn" disabled>Stopp kamera</button></div><label class="tip-label" style="display:flex;gap:9px;align-items:center"><input id="tipAuto" type="checkbox" checked style="width:18px;height:18px;margin:0">Automatisk fangst – inntil 3 piler per runde</label><p class="muted">Trykk «Ny runde» én gang med tom skive. Kast tre piler uten å trykke noe mellom kastene. Se gjennom og godkjenn eller korriger bildene etterpå. Kameraet venter på rolig bilde før hvert forslag. Du kan slå av automatikk og bruke manuell analyse.</p><p id="tipAutoStatus" class="tip-status" role="status">Venter på ny runde.</p>
 <video id="tipVideo" class="tip-video" muted autoplay playsinline aria-label="Direktevideo fra dartskiva. Trykk for å velge området der pilen kom inn."></video>
 <p class="tip-details">Hvis modellen velger feil område: Klikk på videobildet nær den nye pilen før du analyserer. Modellen finner fortsatt selve spissen.</p>
 <p id="tipCameraStatus" class="tip-status" role="status">Kamera ikke startet.</p>
@@ -66,7 +66,7 @@ body{background:#071012!important;color:#e9f7fa;font-family:system-ui,sans-serif
 <section class="tip-card">
 <h2>3. Kast pilen og analyser</h2>
 <p class="muted">Når pilen sitter rolig: Trykk «Analyser ny pil». Før- og etterbildet beskjæres til nøyaktig samme område. Du kan markere korrekt spiss i utsnittet etterpå.</p>
-<div class="tip-controls"><button id="tipAfter" class="tip-btn primary" disabled>Analyser ny pil</button><button id="tipApproveAi" class="tip-btn primary" disabled type="button">Godkjenn AI-spiss ✓</button><button id="tipNext" class="tip-btn" disabled>Bruk etterbildet som nytt før-bilde</button></div>
+<div class="tip-controls"><button id="tipAfter" class="tip-btn primary" disabled>Analyser ny pil manuelt</button><button id="tipApproveAi" class="tip-btn primary" disabled type="button">Godkjenn AI-spiss ✓</button><button id="tipPrevReview" class="tip-btn" disabled type="button">← Forrige pil</button><button id="tipNextReview" class="tip-btn" disabled type="button">Neste pil →</button><button id="tipNext" class="tip-btn" disabled>Bruk etterbildet som nytt før-bilde (manuelt)</button></div>
 <p class="tip-details"><strong>Stemmer AI-punktet?</strong> Trykk «Godkjenn AI-spiss». Hvis det bommer, klikk den riktige spissen i bildet under. AI-godkjenning regnes ikke som en manuelt oppmålt koordinat.</p>
 <canvas id="tipZoom" class="tip-canvas" width="640" height="480" aria-label="Utsnitt. Klikk pilspissen for å sammenligne med modellen."></canvas>
 <div class="tip-legend"><span class="cyan">AI / AI+ forslag</span><span style="color:#c5cbd0">Rå AI når justert</span><span class="orange">Bildeendring</span><span class="green">Din markerte spiss</span></div>
@@ -89,6 +89,6 @@ body{background:#071012!important;color:#e9f7fa;font-family:system-ui,sans-serif
 <script src="./autozoom/tip-bias.js?v=20261024-owner-bias1"></script>
 <script src="./autoscoring/zip-store.js"></script>
 <script src="./autoscoring/tip-online-calibration.js?v=20261024-tiponline1"></script>
-<script src="./owner-ai-tip-test.js?v=20261024-approval1"></script>
+<script src="./owner-ai-tip-test.js?v=20261024-autocapture1"></script>
 </body>
 </html>
