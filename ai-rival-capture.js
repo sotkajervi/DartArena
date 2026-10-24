@@ -13,7 +13,7 @@ if(!db)return;
 const gameFormat=Number(qs.get('format'))||501;
 const key=gameFormat===501?'dartarena-ai-rival-501-state-v1':'dartarena-ai-rival-'+gameFormat+'-state-v1';
 const MAX=150;
-let authorized=false,raw=null,rawVideo=null,zoom=null,config=null,store=null;
+let authorized=false,raw=null,rawVideo=null,zoom=null,config=null,store=null,cameraStarting=false;
 let records=[],selected=-1,proposed=null,busy=false,previousVisitCount=null,currentMatch=null;
 let currentObjectUrls=[];
 const say=(s,err=false)=>{status.textContent=s;status.classList.toggle('is-error',err)};
@@ -110,9 +110,10 @@ async function syncGame(){
   setCounter();
 }
 async function startCamera(){
-  if(zoom)return;
+  if(zoom||cameraStarting)return;
   config=Z.loadConfig(localStorage);
   if(!config){say('Zoom-cam må kalibreres i Cam-test med dette kameraet først.',true);return}
+  cameraStarting=true;
   try{
     const candidate=await navigator.mediaDevices.getUserMedia({audio:false,video:{
       deviceId:{exact:config.deviceId},width:{ideal:1920},height:{ideal:1080}}});
@@ -129,7 +130,7 @@ async function startCamera(){
     zoom?.stop();zoom=null;
     for(const track of raw?.getTracks()||[])track.stop();raw=null;rawVideo=null;
     say('Kamera kunne ikke startes: '+(e?.message||String(e)),true);
-  }
+  }finally{cameraStarting=false}
   setCounter();
 }
 function clearUrls(){for(const url of currentObjectUrls)URL.revokeObjectURL(url);currentObjectUrls=[]}
@@ -231,9 +232,11 @@ window.addEventListener('dartarena:practice-save',()=>{void syncGame()});
     if(error||!session)throw new Error('Logg inn for å bruke treningsmodus.');
     const {data:isOwner,error:roleError}=await db.rpc('is_owner');
     if(roleError||isOwner!==true)throw new Error('Kun Owner har tilgang til treningsmodus.');
-    if(!indexedDB)throw new Error('Nettleseren støtter ikke lokal bildelagring.');
+    if(typeof indexedDB==='undefined')throw new Error('Nettleseren støtter ikke lokal bildelagring.');
     store=await openStore();
     records=(await loadAll()).sort((a,b)=>a.capturedAt.localeCompare(b.capturedAt));
+    selected=records.findIndex(item=>item.status==='pending');
+    if(selected<0&&records.length)selected=0;
     authorized=true;panel.hidden=false;
     say('Bildene lagres kun lokalt i nettleseren. Eksporter ZIP for sikkerhetskopi.');
     showReview();setCounter();await syncGame();
