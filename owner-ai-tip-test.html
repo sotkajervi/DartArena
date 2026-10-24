@@ -46,6 +46,13 @@ body{background:#071012!important;color:#e9f7fa;font-family:system-ui,sans-serif
 <p class="muted">Velg den nedlastede filen <strong>dartarena-foer-etter-modell-v1-browser.json</strong>. Modellen og bildene behandles på PC-en, uten å sendes til en AI-server. Chrome trenger nett til TensorFlow.js-biblioteket.</p>
 <label class="tip-label">Modellfil (.json)<input type="file" id="tipModel" accept=".json,application/json"></label>
 <p id="tipModelStatus" class="tip-status" role="status">Ingen modell valgt.</p>
+<div style="margin-top:17px;padding:13px;border:1px solid #2d5862;border-radius:10px;background:#09181c">
+<label class="tip-label">Valgfritt: Importer tidligere AI-spisstest (.zip) for å bruke godkjente punkter i AI+
+<input id="tipImportLabels" type="file" accept=".zip,application/zip"></label>
+<div class="tip-controls"><button id="tipForgetCalibration" class="tip-btn" type="button" disabled>Glem lagret AI+-korreksjon</button><span id="tipHistoryCount" class="tip-details">0 tidligere korrigeringer</span></div>
+<p class="muted" style="margin:6px 0 0">Bare koordinater lagres lokalt i nettleseren, ikke bilder. Korrigeringer fra samme kamera brukes som justering, ikke som modelltrening.</p>
+<p id="tipImportStatus" class="tip-status" role="status"></p>
+</div>
 </section>
 <div class="tip-grid">
 <section class="tip-card">
@@ -61,7 +68,8 @@ body{background:#071012!important;color:#e9f7fa;font-family:system-ui,sans-serif
 <p class="muted">Når pilen sitter rolig: Trykk «Analyser ny pil». Før- og etterbildet beskjæres til nøyaktig samme område. Du kan markere korrekt spiss i utsnittet etterpå.</p>
 <div class="tip-controls"><button id="tipAfter" class="tip-btn primary" disabled>Analyser ny pil</button><button id="tipNext" class="tip-btn" disabled>Bruk etterbildet som nytt før-bilde</button></div>
 <canvas id="tipZoom" class="tip-canvas" width="640" height="480" aria-label="Utsnitt. Klikk pilspissen for å sammenligne med modellen."></canvas>
-<div class="tip-legend"><span class="cyan">AI-spiss</span><span class="orange">Bildeendring / manuell region</span><span class="green">Din korrigerte spiss</span></div>
+<div class="tip-legend"><span class="cyan">AI / AI+ forslag</span><span style="color:#c5cbd0">Rå AI når justert</span><span class="orange">Bildeendring</span><span class="green">Din markerte spiss</span></div>
+<p class="tip-details">Etter 5 korrigerte tester fra samme kamera tilpasser AI+ forslagspunktet med tidligere korreksjoner. Dette endrer ikke modellvektene. Råforslaget lagres alltid for sammenligning.</p>
 <p id="tipResult" class="tip-status" role="status">Ingen analyse ennå.</p>
 </section>
 </div>
@@ -79,6 +87,7 @@ body{background:#071012!important;color:#e9f7fa;font-family:system-ui,sans-serif
 <script src="./autozoom/zoom-cam.js?v=20261024-tipzone1"></script>
 <script src="./autozoom/tip-bias.js?v=20261024-owner-bias1"></script>
 <script src="./autoscoring/zip-store.js"></script>
-<script src="./owner-ai-tip-test.js?v=20261024-tipzone1"></script>
+<script src="./autoscoring/tip-online-calibration.js?v=20261024-tiponline1"></script>
+<script src="./owner-ai-tip-test.js?v=20261024-tiponline1"></script>
 </body>
 </html>
