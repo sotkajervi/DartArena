@@ -1,0 +1,348 @@
+/* Owner-only live AI-tip experiment. No score writes or camera uploads.
+ * The torch weights are loaded from a local, user-selected JSON file and run
+ * through TensorFlow.js on the device. This page is separate from all matches.
+ */
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const db=window.supabase?.createClient(
+  'https://jqpxlbhwvskhjbqrbidk.supabase.co',
+  'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
+);
+const T=window.DartArenaAutoZoom,Z=window.DartArenaZoomCam,Bias=window.DartArenaTipBias;
+const SIZE={width:640,height:480};
+let authorized=false,stream=null,config=null,before=null,after=null,video=$('tipVideo');
+let weights=[],ready=false,busy=false,zoomCrop=null,proposal=null,corrected=null;
+let current=null,results=[],previousRecords=[],manualCenter=null;
+const counter=()=>{$('tipCount').textContent=results.length+' tester';$('tipExport').disabled=!results.length;$('tipClear').disabled=!results.length};
+function announce(id,text,error=false){
+  const node=$(id);node.textContent=text;node.setAttribute('role',error?'alert':'status');
+}
+function update(){
+  const playing=authorized&&!!stream;
+  $('tipBefore').disabled=!playing||busy;
+  $('tipAfter').disabled=!playing||!before||!ready||busy||!!current;
+  $('tipNext').disabled=!playing||!after||!current||busy;
+  $('tipStart').disabled=!authorized||playing||busy;
+  $('tipStop').disabled=!playing;
+}
+function stop(){
+  for(const track of stream?.getTracks()||[])track.stop();
+  stream=null;video.pause();video.srcObject=null;
+  before=null;after=null;current=null;manualCenter=null;
+  update();
+}
+window.addEventListener('pagehide',()=>{
+  stop();
+  for(const t of weights) {t.kernel.dispose();t.bias.dispose();}
+  weights=[];
+});
+async function ownerAuth(){
+  try{
+    if(!db)throw Error('Innlogging kunne ikke lastes.');
+    const {data:{user},error}=await db.auth.getUser();
+    if(error||!user)throw Error('Du må være innlogget.');
+    const owner=await db.rpc('is_owner');
+    if(owner.error||owner.data!==true)throw Error('Denne testsonen er kun for Owner.');
+    authorized=true;$('tipDenied').hidden=true;$('tipApp').hidden=false;
+    announce('tipCameraStatus','Start kameraet når du vil teste.');
+  }catch(e){
+    // Fail closed before any model, camera, local images or UI are activated.
+    authorized=false;$('tipApp').hidden=true;$('tipDenied').hidden=false;
+    $('tipDenied').textContent=e.message||'Kun Owner har tilgang.';
+  }
+}
+const shapeOk=(shape,expected)=>Array.isArray(shape)&&shape.length===expected.length&&
+  shape.every((v,i)=>v===expected[i]);
+function decodeFloat32(encoded,count){
+  const bin=atob(encoded);
+  if(bin.length!==count*4)throw Error('Modellfilen inneholder feil antall vekter.');
+  const bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+  // Official weight converter exports little-endian float32.
+  const reader=new DataView(bytes.buffer),arr=new Float32Array(count);
+  for(let i=0;i<count;i++)arr[i]=reader.getFloat32(i*4,true);
+  return arr;
+}
+async function loadModel(file){
+  if(!authorized)return;
+  busy=true;update();
+  const next=[];
+  try{
+    if(!window.tf)throw Error('TensorFlow.js ble ikke lastet. Kontroller internett og prøv igjen.');
+    const raw=JSON.parse(await file.text());
+    const expected=[[5,5,6,24],[3,3,24,48],[3,3,48,64],
+      [3,3,64,64],[3,3,64,64],[1,1,64,1]];
+    if(raw.format!=='dartarena-diffnet-v1-tfjs-f32'||
+      !shapeOk(raw.input,[120,160,6])||!shapeOk(raw.output,[30,40,1])||
+      !Array.isArray(raw.steps)||raw.steps.length!==expected.length)
+      throw Error('Velg DartArenas før-/ettermodell v1, ikke en annen JSON-fil.');
+    await tf.ready();
+    for(let i=0;i<expected.length;i++){
+      const layer=raw.steps[i],size=expected[i].reduce((a,b)=>a*b,1);
+      if(!shapeOk(layer.shape,expected[i])||
+        layer.stride!==(i<2?2:1)||
+        layer.activation!==(i===5?'linear':'relu')||
+        typeof layer.kernelB64!=='string'||typeof layer.biasB64!=='string')
+        throw Error('Modellfilen har ugyldige lag.');
+      next.push({
+        kernel:tf.tensor4d(decodeFloat32(layer.kernelB64,size),layer.shape),
+        bias:tf.tensor1d(decodeFloat32(layer.biasB64,expected[i][3])),
+        stride:layer.stride,activation:layer.activation
+      });
+    }
+    for(const layer of weights){layer.kernel.dispose();layer.bias.dispose();}
+    weights=next;ready=true;
+    announce('tipModelStatus','Modell klar: '+raw.name+' · '+tf.getBackend().toUpperCase()+
+      '. Velg før-bilde og kast en pil. Forslag godkjennes aldri automatisk.');
+  }catch(e){
+    for(const layer of next){layer.kernel.dispose();layer.bias.dispose();}
+    announce('tipModelStatus','Kunne ikke laste modell: '+(e.message||String(e)),true);
+  }finally{busy=false;update()}
+}
+$('tipModel').addEventListener('change',e=>{
+  const file=e.target.files?.[0];if(file)void loadModel(file);
+});
+async function start(){
+  if(!authorized||stream||busy)return;
+  config=Z.loadConfig(localStorage);
+  if(!config){announce('tipCameraStatus','Kalibrer dette kameraet i Cam-test / Zoom-cam først.',true);return}
+  busy=true;update();
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({audio:false,video:{
+      deviceId:{exact:config.deviceId},width:{ideal:1920},height:{ideal:1080}}});
+    stream=s;
+    const track=s.getVideoTracks()[0],settings=track.getSettings();
+    if(!Z.compatible(config,track,settings.width||1920,settings.height||1080))
+      throw Error('Kameraet stemmer ikke med Zoom-cam-kalibreringen. Kalibrer på nytt.');
+    video.srcObject=s;await video.play();
+    if(!video.videoWidth||!video.videoHeight)throw Error('Kameraet returnerte ikke videobilder.');
+    previousRecords=await loadOwnerLabels();
+    announce('tipCameraStatus','Kamera klart ('+video.videoWidth+' × '+video.videoHeight+
+      '). Tidligere godkjente spisser: '+previousRecords.length+'. Lagre et før-bilde.');
+  }catch(e){
+    stop();
+    announce('tipCameraStatus','Kameraet kunne ikke startes: '+(e.message||String(e)),true);
+  }finally{busy=false;update()}
+}
+$('tipStart').addEventListener('click',()=>{void start()});
+$('tipStop').addEventListener('click',()=>{stop();announce('tipCameraStatus','Kamera stoppet.')});
+function snapshot(){
+  if(!stream||!video.videoWidth||!video.videoHeight)throw Error('Kamerabildet er ikke klart.');
+  const c=document.createElement('canvas');c.width=video.videoWidth;c.height=video.videoHeight;
+  c.getContext('2d').drawImage(video,0,0,c.width,c.height);
+  return c;
+}
+function storeBefore(frame){
+  before=frame;after=null;zoomCrop=null;current=null;proposal=null;corrected=null;manualCenter=null;
+  $('tipResult').textContent='Før-bilde lagret. Kast én pil og trykk «Analyser ny pil».';
+  const c=$('tipZoom');c.getContext('2d').clearRect(0,0,640,480);
+  announce('tipCameraStatus','Før-bilde lagret ('+frame.width+' × '+frame.height+').');
+  update();
+}
+$('tipBefore').addEventListener('click',()=>{
+  try{storeBefore(snapshot())}catch(e){announce('tipCameraStatus',e.message,true)}
+});
+video.addEventListener('click',e=>{
+  if(!authorized||!stream)return;
+  const p=Z.pointer(video,e);
+  if(!p)return;
+  manualCenter=p;
+  announce('tipCameraStatus','Manuelt område valgt. Etter kastet kan du trykke «Analyser ny pil».');
+});
+function samples(canvas,w,h){
+  const scratch=document.createElement('canvas');scratch.width=w;scratch.height=h;
+  const cx=scratch.getContext('2d',{willReadFrequently:true});
+  cx.drawImage(canvas,0,0,w,h);
+  return cx.getImageData(0,0,w,h).data;
+}
+function findRegion(first,second){
+  if(manualCenter)return {point:manualCenter,source:'manually-selected'};
+  const sw=480,sh=Math.round(sw*second.height/second.width);
+  const b=samples(first,sw,sh),a=samples(second,sw,sh);
+  const board={x:config.cx*sw,y:config.cy*sh,radius:config.radius*sw};
+  const hit=T.findChange(b,a,sw,sh,board,{
+    ...T.sensitivityPreset(config.sensitivity),searchRadius:1.65,
+    maxRatio:.20,stride:1
+  });
+  if(!hit)throw Error('Fant ingen tydelig bildeendring. Klikk nær den nye pilen i videobildet og prøv på nytt.');
+  return {point:{x:hit.x*second.width/sw,y:hit.y*second.height/sh},source:'frame-difference'};
+}
+function cropFrame(frame,rect){
+  const c=document.createElement('canvas');c.width=640;c.height=480;
+  c.getContext('2d').drawImage(frame,rect.x,rect.y,rect.width,rect.height,0,0,640,480);
+  return c;
+}
+function inputTensor(first,second){
+  const older=samples(first,160,120),newer=samples(second,160,120);
+  const out=new Float32Array(120*160*6);
+  for(let i=0;i<120*160;i++){
+    const j=i*4,k=i*6;
+    for(let channel=0;channel<3;channel++){
+      const a=newer[j+channel]/255,b=older[j+channel]/255;
+      out[k+channel]=a;out[k+3+channel]=Math.min(1,Math.abs(a-b)*2);
+    }
+  }
+  return out;
+}
+function infer(input){
+  if(!ready||weights.length!==6)throw Error('Last inn modellen før du analyserer.');
+  const output=tf.tidy(()=>{
+    let x=tf.tensor4d(input,[1,120,160,6]);
+    for(const layer of weights){
+      const y=tf.conv2d(x,layer.kernel,layer.stride,'same').add(layer.bias);
+      x=layer.activation==='relu'?y.relu():y;
+    }
+    return x.reshape([1200]);
+  });
+  return output.data().then(logits=>{
+    output.dispose();
+    if(logits.length!==1200)throw Error('Modellen returnerte feil antall punkter.');
+    let max=-Infinity,idx=0;
+    for(let i=0;i<logits.length;i++)if(logits[i]>max){max=logits[i];idx=i}
+    const ix=idx%40,iy=Math.floor(idx/40);
+    let sx=0,sy=0,weight=0;
+    for(let y=Math.max(0,iy-1);y<=Math.min(29,iy+1);y++){
+      for(let x=Math.max(0,ix-1);x<=Math.min(39,ix+1);x++){
+        const w=Math.exp(logits[y*40+x]-max);
+        sx+=x*w;sy+=y*w;weight+=w;
+      }
+    }
+    if(!weight||!Number.isFinite(sx))throw Error('Ugyldig modelldata.');
+    return {x:16*(sx/weight+.5),y:16*(sy/weight+.5)};
+  },e=>{output.dispose();throw e});
+}
+function circle(ctx,p,color,size){
+  if(!p)return;
+  ctx.strokeStyle=color;ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(p.x,p.y,size,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(p.x-size-6,p.y);ctx.lineTo(p.x+size+6,p.y);
+  ctx.moveTo(p.x,p.y-size-6);ctx.lineTo(p.x,p.y+size+6);ctx.stroke();
+}
+function display(){
+  const c=$('tipZoom'),ctx=c.getContext('2d');
+  ctx.clearRect(0,0,640,480);
+  if(!current)return;
+  ctx.drawImage(current.afterImage,0,0,640,480);
+  circle(ctx,current.changeZoom,'#ffaf35',7);
+  circle(ctx,current.aiZoom,'#00effc',6);
+  circle(ctx,current.correctedZoom,'#59ff93',6);
+}
+function resultText(){
+  if(!current)return;
+  const ai=current.aiZoom,p=current.correctedZoom;
+  let text='AI foreslår '+Math.round(ai.x)+', '+Math.round(ai.y)+
+    ' i zoom-bildet. Klikk den faktiske spissen for å måle feilen.';
+  if(p){
+    const err=Math.hypot(ai.x-p.x,ai.y-p.y);
+    const old=current.changeZoom;
+    text='AI-feil: '+err.toFixed(1)+' px i zoom (ca. '+
+      (err*current.crop.width/640).toFixed(1)+' px i original).'+
+      (old?' Bildeendringspunktet: '+Math.hypot(old.x-p.x,old.y-p.y).toFixed(1)+' px i zoom.':'');
+  }
+  $('tipResult').textContent=text;
+}
+function toBlob(c){return new Promise((ok,no)=>c.toBlob(b=>b?ok(b):no(Error('Kunne ikke lagre testbilde.')),'image/jpeg',.88))}
+async function analyze(){
+  if(!authorized||!stream||!before||!ready||busy||current)return;
+  busy=true;update();
+  try{
+    const next=snapshot();
+    if(next.width!==before.width||next.height!==before.height)
+      throw Error('Kameraoppløsningen ble endret. Ta et nytt før-bilde.');
+    const hit=findRegion(before,next);
+    // For automatic change detection, use the Owner's verified, per-camera
+    // offset only for choosing the crop. The AI never receives this centroid.
+    const bias=hit.source==='frame-difference'&&Bias?
+      Bias.estimate(previousRecords,config,next.width,next.height):null;
+    const target=bias?Bias.adjust(hit.point,bias,next.width,next.height):hit.point;
+    const rect=T.zoomCrop(next.width,next.height,target.x,target.y,
+      config.radius*next.width,4/3);
+    const earlierCrop=cropFrame(before,rect),laterCrop=cropFrame(next,rect);
+    const xy=await infer(inputTensor(earlierCrop,laterCrop));
+    if(!(xy.x>=0&&xy.y>=0&&xy.x<=640&&xy.y<=480))
+      throw Error('Modellen ga et ugyldig punkt.');
+    const changeZoom={x:(hit.point.x-rect.x)*640/rect.width,
+      y:(hit.point.y-rect.y)*480/rect.height};
+    const [beforeBlob,afterBlob]=await Promise.all([toBlob(earlierCrop),toBlob(laterCrop)]);
+    after=next;zoomCrop=rect;proposal=xy;corrected=null;
+    const record={
+      id:crypto.randomUUID(),createdAt:new Date().toISOString(),
+      model:'DartArenaDiffNet_v1',cameraWidth:next.width,cameraHeight:next.height,
+      cameraCalibration:{...config},crop:rect,source:hit.source,
+      beforeBlob,afterBlob,afterImage:laterCrop,
+      changeZoom,aiZoom:xy,correctedZoom:null
+    };
+    current=record;results.push(record);
+    manualCenter=null;
+    display();resultText();counter();
+    announce('tipCameraStatus','Analyse klar. AI-forslaget er markert i lyseblått. Korriger i bildet til høyre.');
+  }catch(e){announce('tipResult','Kunne ikke analysere: '+(e.message||String(e)),true)}
+  finally{busy=false;update()}
+}
+$('tipAfter').addEventListener('click',()=>{void analyze()});
+$('tipNext').addEventListener('click',()=>{
+  if(!after||!current)return;
+  storeBefore(after);
+});
+$('tipZoom').addEventListener('click',e=>{
+  if(!current)return;
+  const rect=$('tipZoom').getBoundingClientRect();
+  if(!rect.width||!rect.height)return;
+  corrected={x:Math.max(0,Math.min(639,(e.clientX-rect.left)*640/rect.width)),
+    y:Math.max(0,Math.min(479,(e.clientY-rect.top)*480/rect.height))};
+  current.correctedZoom=corrected;
+  display();resultText();counter();
+});
+async function loadOwnerLabels(){
+  if(typeof indexedDB==='undefined')return [];
+  try{
+    const handle=await new Promise((ok,no)=>{
+      const req=indexedDB.open('dartarena-ai-rival-training-v1',1);
+      req.onsuccess=()=>ok(req.result);req.onerror=()=>no(req.error);
+      req.onupgradeneeded=()=>{const obj=req.result;if(!obj.objectStoreNames.contains('captures'))obj.createObjectStore('captures',{keyPath:'id'})};
+    });
+    if(!handle.objectStoreNames.contains('captures')){handle.close();return []}
+    const rows=await new Promise((ok,no)=>{
+      const req=handle.transaction('captures').objectStore('captures').getAll();
+      req.onsuccess=()=>ok(req.result);req.onerror=()=>no(req.error);
+    });
+    handle.close();return rows.filter(x=>x.status==='approved'&&x.corrected);
+  }catch{return []}
+}
+async function exportBatch(){
+  if(!authorized||!results.length||busy)return;
+  busy=true;update();
+  try{
+    const entries=[],metadata=[];
+    for(let i=0;i<results.length;i++){
+      const r=results[i],idx=String(i+1).padStart(3,'0');
+      const beforeName='images/'+idx+'-before.jpg',afterName='images/'+idx+'-after.jpg';
+      entries.push({name:beforeName,bytes:new Uint8Array(await r.beforeBlob.arrayBuffer())});
+      entries.push({name:afterName,bytes:new Uint8Array(await r.afterBlob.arrayBuffer())});
+      const {id,createdAt,model,cameraWidth,cameraHeight,cameraCalibration,crop,source,changeZoom,aiZoom,correctedZoom}=r;
+      metadata.push({id,createdAt,model,cameraWidth,cameraHeight,cameraCalibration,
+        crop,source,changeZoom,aiZoom,correctedZoom,
+        beforeFile:beforeName,afterFile:afterName});
+    }
+    entries.unshift({name:'labels.json',bytes:new TextEncoder().encode(JSON.stringify({
+      purpose:'Owner-only before-after model test. One newest dart per pair; correctedZoom is user supplied.',
+      createdAt:new Date().toISOString(),tests:metadata
+    },null,2))});
+    const blob=window.DartArenaLabZip.build(entries),url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;
+    a.download='dartarena-ai-spisstest-'+new Date().toISOString().slice(0,10)+'.zip';
+    document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+    announce('tipCameraStatus','Testbatch ZIP er laget. Kontroller nedlastingen før du nullstiller.');
+  }catch(e){announce('tipCameraStatus','Eksport feilet: '+(e.message||String(e)),true)}
+  finally{busy=false;update()}
+}
+$('tipExport').addEventListener('click',()=>{void exportBatch()});
+$('tipClear').addEventListener('click',()=>{
+  if(!authorized||busy||!confirm('Nullstille alle testene som ikke er eksportert?'))return;
+  results=[];current=null;after=null;
+  display();counter();update();
+  announce('tipResult','Testbatch nullstilt.');
+});
+counter();update();void ownerAuth();
+})();
