@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const qs=new URLSearchParams(location.search);
 if(qs.get('training')!=='1'||qs.has('tournamentAiMatch'))return;
 const reviewOnly=qs.get('review')==='1';
-const Z=window.DartArenaZoomCam, T=window.DartArenaAutoZoom, Zip=window.DartArenaLabZip;
+const Z=window.DartArenaZoomCam, T=window.DartArenaAutoZoom, Zip=window.DartArenaLabZip, TipBias=window.DartArenaTipBias;
 const panel=$('aiTrainingPanel'),view=$('aiTrainVideo'),status=$('aiTrainStatus');
 if(!Z||!T||!Zip||!panel||!view)return;
 const db=window.supabase?.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
@@ -57,8 +57,15 @@ async function capture(hit,source,manual=false){
     // Copy the full-resolution live frame synchronously before the video changes.
     const image=makeCanvas(w,h),ctx=image.getContext('2d');
     ctx.drawImage(source,0,0,w,h);
-    const x=hit&&Number.isFinite(hit.x)?hit.x:config.cx*w;
-    const y=hit&&Number.isFinite(hit.y)?hit.y:config.cy*h;
+    const rawPoint=hit&&Number.isFinite(hit.x)&&Number.isFinite(hit.y)?
+      {x:hit.x,y:hit.y}:null;
+    // Learn from verified Owner corrections on the SAME calibrated camera.
+    // Never treat an earlier uncorrected guess as ground truth.
+    const tipBias=rawPoint&&TipBias?TipBias.estimate(records,config,w,h):null;
+    const displayPoint=rawPoint&&TipBias?
+      TipBias.adjust(rawPoint,tipBias,w,h):rawPoint;
+    const x=displayPoint?.x??config.cx*w;
+    const y=displayPoint?.y??config.cy*h;
     const crop=T.zoomCrop(w,h,x,y,config.radius*w,4/3);
     const cropped=makeCanvas(640,480);
     cropped.getContext('2d').drawImage(image,crop.x,crop.y,crop.width,crop.height,0,0,640,480);
@@ -67,11 +74,13 @@ async function capture(hit,source,manual=false){
       id:crypto.randomUUID(),capturedAt:new Date().toISOString(),...round,dartNo,
       source:manual?'manual':'zoomcam-change-estimate',manual,
       original,closeup,width:w,height:h,crop,
-      proposal:hit?{x:hit.x,y:hit.y}:null,corrected:null,
+      // Preserve source centroid separately; future training needs the raw input.
+      rawProposal:rawPoint,proposal:displayPoint,
+      proposalAdjustment:tipBias,corrected:null,
       status:'pending',score:null,calibration:{...config}
     };
     await save(item);records.push(item);
-    say('Pil '+dartNo+' lagret. '+(hit?'Oransje punkt er bildeendring, ikke bekreftet spiss.':'Manuelt bilde uten forslag.')+' Kontroller senere.');
+    say('Pil '+dartNo+' lagret. '+(tipBias?'Forslaget er forskjøvet ut fra '+tipBias.samples+' tidligere godkjente punkter. ': 'Ingen innlært korreksjon ennå. ')+(hit?'Punktet er IKKE bekreftet pilspiss.':'Manuelt bilde uten forslag.')+' Kontroller manuelt.');
     selected=records.length-1;showReview();setCounter();
   }catch(e){say('Kunne ikke lagre pil '+dartNo+': '+(e?.message||String(e)),true)}
   finally{busy=false;setCounter()}
@@ -159,7 +168,11 @@ function showReview(){
   $('aiTrainCloseup').src=displayBlob(item.closeup);
   nav.textContent='Bilde '+(selected+1)+' / '+records.length+' · Pil '+item.dartNo+
     ' · '+(item.score===null?'score ikke registrert':item.score+' poeng')+' · '+item.status;
-  $('aiTrainMark').textContent=item.proposal?'Oransje: bildeendring, ikke AI. Klikk nøyaktig på spissen for å korrigere.':
+  $('aiTrainMark').textContent=item.proposal?
+    (item.proposalAdjustment?
+      'Oransje: justert bildeendring fra '+item.proposalAdjustment.samples+' godkjente korrigeringer. Ikke en AI-spissdetektor. ':
+      'Oransje: rå bildeendring, ikke AI. ')+
+      'Klikk nøyaktig på spissen for å korrigere.':
     'Ingen automatisk forslag. Klikk på riktig spiss i bildet til høyre.';
   renderDot(item,item.corrected||item.proposal);
 }
