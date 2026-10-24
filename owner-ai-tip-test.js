@@ -14,7 +14,7 @@ const SIZE={width:640,height:480};
 let authorized=false,stream=null,config=null,before=null,after=null,video=$('tipVideo');
 let weights=[],ready=false,busy=false,zoomCrop=null,proposal=null,corrected=null;
 let current=null,results=[],previousRecords=[],manualCenter=null;
-let scanTimer=null,scanBusy=false,roundCount=0,roundArmed=false,scanPrev=null,motionAt=0,quietCount=0,lastScanAt=0,reviewIndex=-1,stableCandidate=null;
+let scanTimer=null,scanBusy=false,roundCount=0,roundArmed=false,scanPrev=null,motionAt=0,quietCount=0,lastScanAt=0,reviewIndex=-1,stableCandidate=null,baselineReadyAt=0,referenceQuiet=0,seenCleanBaseline=false;
 const HISTORY_KEY='dartarena-owner-ai-tip-prior-labels-v1';
 let historyLabels=[];
 function minimalLabel(row){
@@ -224,6 +224,7 @@ function snapshot(){
 function storeBefore(frame){
   before=frame;after=null;zoomCrop=null;current=null;proposal=null;corrected=null;manualCenter=null;
   roundCount=0;roundArmed=true;scanPrev=null;motionAt=0;quietCount=0;stableCandidate=null;reviewIndex=-1;
+  baselineReadyAt=performance.now()+1500;referenceQuiet=0;seenCleanBaseline=false;
   announce('tipAutoStatus',$('tipAuto').checked?'Auto klar: kast pil 1 av 3.':'Manuell modus: kast pilen og analyser.');
   $('tipResult').textContent=$('tipAuto').checked?'Før-bilde lagret. Kast tre piler i vanlig tempo.':'Før-bilde lagret. Kast én pil og analyser.';
   const c=$('tipZoom');c.getContext('2d').clearRect(0,0,640,480);
@@ -370,12 +371,28 @@ async function scan(){
     const movement=T.motionRatio(scanPrev,sampled,sw,sh,board,{searchRadius:1.65});
     scanPrev=sampled;
     if(movement>.018){
-      stableCandidate=null;quietCount=0;return;
+      stableCandidate=null;quietCount=0;referenceQuiet=0;return;
     }
-    if(now-lastScanAt<850)return;
+    // Require a truly quiet reference period before opening the detection gate.
+    // A single-frame baseline can differ from subsequent frames due to camera
+    // auto-exposure / compression noise, creating a phantom first or third dart.
+    if(now<baselineReadyAt)return;
     const base=samples(before,sw,sh);
+    if(!seenCleanBaseline){
+      // No dart may be detected until repeated low-change frames are seen.
+      const baselineRatio=T.motionRatio(base,sampled,sw,sh,board,{searchRadius:1.65});
+      if(baselineRatio>.0025){referenceQuiet=0;return}
+      referenceQuiet++;
+      if(referenceQuiet>=3){seenCleanBaseline=true;lastScanAt=now;}
+      return;
+    }
+    if(now-lastScanAt<300)return;
     const hit=T.findChange(base,sampled,sw,sh,board,opts);
-    if(!hit||hit.changedSamples<opts.minSamples){
+    // Ignore camera noise: a valid new dart needs a localized, sustained
+    // cluster, not merely the minimal few changed pixels.
+    if(!hit||hit.changedSamples<Math.max(24,opts.minSamples*2)||
+      hit.localSamples<Math.max(10,opts.minLocal*1.5)||
+      hit.localSamples/hit.changedSamples<.38){
       stableCandidate=null;quietCount=0;return;
     }
     // Require the same new region over multiple quiet frames before accepting.
@@ -434,7 +451,8 @@ async function analyze(frameOverride=null){
     if(automatic){
       roundCount++;
       before=next;roundArmed=roundCount<3;
-      scanPrev=null;motionAt=0;quietCount=0;stableCandidate=null;lastScanAt=performance.now();
+      scanPrev=null;motionAt=0;quietCount=0;stableCandidate=null;
+      seenCleanBaseline=false;referenceQuiet=0;baselineReadyAt=performance.now()+1000;lastScanAt=performance.now();
       announce('tipAutoStatus',roundArmed?'Lagret pil '+roundCount+'/3. Kast pil '+(roundCount+1)+'.':
         '3/3 piler lagret. Gjennomgå forslagene med Forrige/Neste, trekk pilene og trykk Ny runde.');
     }
@@ -447,6 +465,7 @@ $('tipAfter').addEventListener('click',()=>{void analyze()});
 $('tipAuto').addEventListener('change',()=>{
   roundArmed=!!before&&roundCount<3;
   scanPrev=null;motionAt=0;quietCount=0;stableCandidate=null;
+  seenCleanBaseline=false;referenceQuiet=0;baselineReadyAt=performance.now()+1000;
   announce('tipAutoStatus',$('tipAuto').checked?'Auto aktiv. Kast når skiva er klar.':'Auto slått av. Bruk manuell analyse.');
   update();
 });
