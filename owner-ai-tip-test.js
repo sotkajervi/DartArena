@@ -14,6 +14,77 @@ const SIZE={width:640,height:480};
 let authorized=false,stream=null,config=null,before=null,after=null,video=$('tipVideo');
 let weights=[],ready=false,busy=false,zoomCrop=null,proposal=null,corrected=null;
 let current=null,results=[],previousRecords=[],manualCenter=null;
+const HISTORY_KEY='dartarena-owner-ai-tip-prior-labels-v1';
+let historyLabels=[];
+function minimalLabel(row){
+  const {id,model,cameraCalibration,crop,rawAiZoom,aiZoom,correctedZoom}=row;
+  if(typeof id!=='string'||!correctedZoom||!cameraCalibration?.deviceId)return null;
+  if(![correctedZoom.x,correctedZoom.y,(rawAiZoom||aiZoom)?.x,(rawAiZoom||aiZoom)?.y].every(Number.isFinite))return null;
+  return{id,model,cameraCalibration,
+    crop:{width:crop?.width},rawAiZoom:rawAiZoom||aiZoom,correctedZoom};
+}
+function mergeLabels(oldRows,newRows){
+  const m=new Map();
+  for(const row of [...oldRows,...newRows]){
+    const record=minimalLabel(row);
+    if(record)m.set(record.id,record);
+  }
+  return Array.from(m.values()).slice(-180);
+}
+function showHistory(){
+  $('tipHistoryCount').textContent=historyLabels.length+' lagrede AI+-korrigeringer';
+  $('tipForgetCalibration').disabled=!historyLabels.length;
+}
+function persistHistory(){
+  if(!authorized)return;
+  historyLabels=mergeLabels(historyLabels,results);
+  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(historyLabels))}
+  catch(e){announce('tipImportStatus','Kunne ikke lagre AI+-punkter i nettleseren: '+e.message,true)}
+  showHistory();
+}
+function previousApprovedForInference(){
+  return mergeLabels(historyLabels,results);
+}
+// The local, uncompressed Owner-export ZIP starts with labels.json.
+// Read only metadata; no old camera images are ever retained by this importer.
+async function readZipLabels(file){
+  if(file.size>64*1024*1024)throw Error('Test-ZIP er større enn 64 MB.');
+  const data=await file.arrayBuffer(),view=new DataView(data);
+  if(data.byteLength<30||view.getUint32(0,true)!==0x04034b50)
+    throw Error('Ukjent ZIP-format.');
+  const method=view.getUint16(8,true),size=view.getUint32(18,true);
+  const nameLength=view.getUint16(26,true),extraLength=view.getUint16(28,true);
+  const nameStart=30,begin=nameStart+nameLength+extraLength;
+  if(begin>data.byteLength||begin+size>data.byteLength||size>4*1024*1024||method!==0)
+    throw Error('ZIP-data eller komprimering støttes ikke.');
+  const decode=new TextDecoder();
+  const name=decode.decode(new Uint8Array(data,nameStart,nameLength));
+  if(name!=='labels.json')throw Error('Dette er ikke en AI-spisstest fra DartArena.');
+  const json=JSON.parse(decode.decode(new Uint8Array(data,begin,size)));
+  if(!Array.isArray(json.tests))throw Error('Finner ingen testpunkter i ZIP-filen.');
+  return json.tests;
+}
+$('tipImportLabels').addEventListener('change',async e=>{
+  if(!authorized)return;
+  const file=e.target.files?.[0];if(!file)return;
+  try{
+    const entries=await readZipLabels(file);
+    const before=historyLabels.length;
+    historyLabels=mergeLabels(historyLabels,entries);
+    localStorage.setItem(HISTORY_KEY,JSON.stringify(historyLabels));
+    showHistory();
+    announce('tipImportStatus',historyLabels.length-before+
+      ' nye godkjente testpunkter importert. Lagrede totalt: '+historyLabels.length+
+      '. AI+ brukes først når minst fem tidligere punkter passer kameraet.');
+  }catch(err){announce('tipImportStatus','Import feilet: '+(err.message||String(err)),true)}
+  finally{e.target.value=''}
+});
+$('tipForgetCalibration').addEventListener('click',()=>{
+  if(!authorized||!confirm('Glemme tidligere lagrede AI+-koordinater på denne PC-en? Testbildene og aktiv testbatch slettes ikke.'))return;
+  historyLabels=[];
+  try{localStorage.removeItem(HISTORY_KEY)}catch{}
+  showHistory();announce('tipImportStatus','Tidligere lagrede AI+-korrigeringer er slettet fra denne nettleseren.');
+});
 const counter=()=>{$('tipCount').textContent=results.length+' tester';$('tipExport').disabled=!results.length;$('tipClear').disabled=!results.length};
 function announce(id,text,error=false){
   const node=$(id);node.textContent=text;node.setAttribute('role',error?'alert':'status');
@@ -45,6 +116,11 @@ async function ownerAuth(){
     const owner=await db.rpc('is_owner');
     if(owner.error||owner.data!==true)throw Error('Denne testsonen er kun for Owner.');
     authorized=true;$('tipDenied').hidden=true;$('tipApp').hidden=false;
+    try{
+      const stored=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');
+      historyLabels=mergeLabels([],Array.isArray(stored)?stored:[]);
+    }catch{historyLabels=[]}
+    showHistory();
     update();
     announce('tipCameraStatus','Start kameraet når du vil teste.');
   }catch(e){
@@ -271,7 +347,7 @@ async function analyze(){
       throw Error('Modellen ga et ugyldig punkt.');
     // Apply a small robust learned offset from PRIOR corrected tests only.
     // Never use this dart's label to adjust its own prediction.
-    const appliedAdjustment=Online?.estimate(results,config,'DartArenaDiffNet_v1',rect.width)||null;
+    const appliedAdjustment=Online?.estimate(previousApprovedForInference(),config,'DartArenaDiffNet_v1',rect.width)||null;
     const calibrated=Online?.apply(xy,appliedAdjustment)||xy;
     const changeZoom={x:(hit.point.x-rect.x)*640/rect.width,
       y:(hit.point.y-rect.y)*480/rect.height};
@@ -303,6 +379,7 @@ $('tipZoom').addEventListener('click',e=>{
   corrected={x:Math.max(0,Math.min(639,(e.clientX-rect.left)*640/rect.width)),
     y:Math.max(0,Math.min(479,(e.clientY-rect.top)*480/rect.height))};
   current.correctedZoom=corrected;
+  persistHistory();
   display();resultText();counter();
 });
 async function loadOwnerLabels(){
