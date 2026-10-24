@@ -45,6 +45,7 @@ async function ownerAuth(){
     const owner=await db.rpc('is_owner');
     if(owner.error||owner.data!==true)throw Error('Denne testsonen er kun for Owner.');
     authorized=true;$('tipDenied').hidden=true;$('tipApp').hidden=false;
+    update();
     announce('tipCameraStatus','Start kameraet når du vil teste.');
   }catch(e){
     // Fail closed before any model, camera, local images or UI are activated.
