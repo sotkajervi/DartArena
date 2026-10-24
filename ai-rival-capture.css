@@ -1,0 +1,24 @@
+/* Owner-only AI Rival data collection, isolated from scoring. */
+.ai-training-panel{margin-top:14px;border:1px solid #235960;background:#091d21;display:grid;gap:12px}
+.ai-training-panel[hidden],.ai-train-review[hidden],.ai-train-dot[hidden],.ai-training-controls[hidden]{display:none!important}
+.ai-train-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.ai-train-head h3{margin:0;font-size:19px;color:#e1fbfd}
+.ai-train-tag{color:#00eaf4;font-weight:800;font-size:12px}
+.ai-train-video{display:block;width:100%;max-height:330px;object-fit:contain;border-radius:10px;background:#010607}
+.ai-train-status{font-size:12px;color:#b9d0d3;line-height:1.55;min-height:18px;margin:0}
+.ai-train-status.is-error{color:#ffb5a9}
+.ai-train-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.ai-train-actions button{padding:9px 11px;font-size:12px}
+.ai-train-counter{color:#b9e9e9;font-size:12px;font-weight:700}
+.ai-train-review{border-top:1px solid #275056;padding-top:12px}
+.ai-train-review h4{margin:4px 0 10px;font-size:15px}
+.ai-train-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.ai-train-pair figure{margin:0;min-width:0}
+.ai-train-pair figcaption{font-size:11px;color:#bdd0d2;margin-top:5px}
+.ai-train-frame{position:relative;overflow:hidden;border:1px solid #31545b;background:#01090a;border-radius:8px;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center}
+.ai-train-frame img{display:block;width:100%;height:100%;object-fit:contain}
+.ai-train-frame.clickable{cursor:crosshair;touch-action:manipulation}
+.ai-train-dot{position:absolute;width:15px;height:15px;background:#ff9500;border:2px solid #071012;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 0 0 2px #ff950099}
+.ai-train-dot.corrected{background:#00e676;box-shadow:0 0 0 2px #00e67699}
+.ai-train-warning{font-size:11px;color:#c9d4d5;line-height:1.5}
+@media(max-width:620px){.ai-train-pair{grid-template-columns:1fr}.ai-training-panel{padding:12px!important}}
