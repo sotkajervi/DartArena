@@ -66,7 +66,8 @@ body{background:#071012!important;color:#e9f7fa;font-family:system-ui,sans-serif
 <section class="tip-card">
 <h2>3. Kast pilen og analyser</h2>
 <p class="muted">Når pilen sitter rolig: Trykk «Analyser ny pil». Før- og etterbildet beskjæres til nøyaktig samme område. Du kan markere korrekt spiss i utsnittet etterpå.</p>
-<div class="tip-controls"><button id="tipAfter" class="tip-btn primary" disabled>Analyser ny pil</button><button id="tipNext" class="tip-btn" disabled>Bruk etterbildet som nytt før-bilde</button></div>
+<div class="tip-controls"><button id="tipAfter" class="tip-btn primary" disabled>Analyser ny pil</button><button id="tipApproveAi" class="tip-btn primary" disabled type="button">Godkjenn AI-spiss ✓</button><button id="tipNext" class="tip-btn" disabled>Bruk etterbildet som nytt før-bilde</button></div>
+<p class="tip-details"><strong>Stemmer AI-punktet?</strong> Trykk «Godkjenn AI-spiss». Hvis det bommer, klikk den riktige spissen i bildet under. AI-godkjenning regnes ikke som en manuelt oppmålt koordinat.</p>
 <canvas id="tipZoom" class="tip-canvas" width="640" height="480" aria-label="Utsnitt. Klikk pilspissen for å sammenligne med modellen."></canvas>
 <div class="tip-legend"><span class="cyan">AI / AI+ forslag</span><span style="color:#c5cbd0">Rå AI når justert</span><span class="orange">Bildeendring</span><span class="green">Din markerte spiss</span></div>
 <p class="tip-details">Etter 5 korrigerte tester fra samme kamera tilpasser AI+ forslagspunktet med tidligere korreksjoner. Dette endrer ikke modellvektene. Råforslaget lagres alltid for sammenligning.</p>
@@ -88,6 +89,6 @@ body{background:#071012!important;color:#e9f7fa;font-family:system-ui,sans-serif
 <script src="./autozoom/tip-bias.js?v=20261024-owner-bias1"></script>
 <script src="./autoscoring/zip-store.js"></script>
 <script src="./autoscoring/tip-online-calibration.js?v=20261024-tiponline1"></script>
-<script src="./owner-ai-tip-test.js?v=20261024-tiponline1"></script>
+<script src="./owner-ai-tip-test.js?v=20261024-approval1"></script>
 </body>
 </html>
