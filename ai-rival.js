@@ -86,7 +86,7 @@ async function init(){
  try{
   const {data:isOwner,error:roleError}=await db.rpc('is_owner');
   const opt=$('rivalTrainingOption');
-  if(opt&&isOwner===true&&!roleError){opt.hidden=false;opt.style.display='flex'}
+  if(opt&&isOwner===true&&!roleError){opt.hidden=false;opt.style.display='flex';const review=$('rivalTrainingReview');if(review){review.hidden=false;review.style.display='inline-flex'}}
  }catch{} // A missing/denied role check leaves the Owner control hidden.
  const {data,error}=await db.from('profiles').select('id,username').order('username');
  if(error){notice('Kunne ikke hente spillere: '+error.message);return}
