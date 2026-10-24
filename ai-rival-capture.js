@@ -13,7 +13,7 @@ const db=window.supabase?.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co
 if(!db)return;
 const gameFormat=Number(qs.get('format'))||501;
 const key=gameFormat===501?'dartarena-ai-rival-501-state-v1':'dartarena-ai-rival-'+gameFormat+'-state-v1';
-const MAX=150;
+const MAX=2000; // Safety cap; never silently discard at the former 150-image limit.
 let authorized=false,raw=null,rawVideo=null,zoom=null,config=null,store=null,cameraStarting=false;
 let records=[],selected=-1,proposed=null,busy=false,previousVisitCount=null,currentMatch=null;
 let currentObjectUrls=[];
@@ -43,7 +43,7 @@ function belongs(item,round){return item.matchId===round.matchId&&item.setNo===r
 function countRound(s){if(!s)return 0;const r=humanRound(s);return records.filter(item=>belongs(item,r)).length}
 function setCounter(){
   const s=readState(),n=countRound(s);
-  $('aiTrainCount').textContent=n+' / 3 piler · '+records.length+' bilder lagret';
+  $('aiTrainCount').textContent=n+' / 3 piler · '+records.length+' bilder lagret'+(records.length>=MAX?' · LAGRINGSGRENSE NÅDD':'');
   $('aiTrainManual').disabled=!isHumanTurn(s)||n>=3||records.length>=MAX||busy||!rawVideo?.videoWidth;
   $('aiTrainExport').disabled=!records.length;
   $('aiTrainDelete').disabled=!records.length;
@@ -52,7 +52,8 @@ function makeCanvas(w,h){const canvas=document.createElement('canvas');canvas.wi
 const toBlob=(canvas)=>new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Kunne ikke lagre bilde.')),'image/jpeg',.88));
 async function capture(hit,source,manual=false){
   const s=readState();
-  if(!isHumanTurn(s)||!source?.videoWidth||busy||records.length>=MAX||countRound(s)>=3)return;
+  if(!isHumanTurn(s)||!source?.videoWidth||busy||countRound(s)>=3)return;
+  if(records.length>=MAX){say('Lagringsgrense nådd ('+MAX+'). Eksporter ZIP og rydd i bilder før du fortsetter.',true);return}
   busy=true;setCounter();
   const round=humanRound(s),dartNo=countRound(s)+1;
   try{
