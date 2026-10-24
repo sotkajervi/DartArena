@@ -5,6 +5,7 @@
 const $=id=>document.getElementById(id);
 const qs=new URLSearchParams(location.search);
 if(qs.get('training')!=='1'||qs.has('tournamentAiMatch'))return;
+const reviewOnly=qs.get('review')==='1';
 const Z=window.DartArenaZoomCam, T=window.DartArenaAutoZoom, Zip=window.DartArenaLabZip;
 const panel=$('aiTrainingPanel'),view=$('aiTrainVideo'),status=$('aiTrainStatus');
 if(!Z||!T||!Zip||!panel||!view)return;
@@ -225,7 +226,25 @@ function stop(){
   view.srcObject=null;
 }
 window.addEventListener('pagehide',stop);
-window.addEventListener('dartarena:practice-save',()=>{void syncGame()});
+window.addEventListener('dartarena:practice-save',()=>{if(!reviewOnly)void syncGame()});
+// A completed local match shows a result overlay. Offer a direct, verified
+// Owner-only path to the stored images before the player leaves the page.
+function addResultReviewButton(){
+  if(reviewOnly||!authorized)return;
+  const actions=document.querySelector('#dartArenaResultOverlay .da-result-actions');
+  if(!actions||actions.querySelector('#daOwnerTrainReview'))return;
+  const button=document.createElement('button');
+  button.id='daOwnerTrainReview';
+  button.type='button';button.className='primary';
+  button.textContent='Se treningsbilder';
+  button.addEventListener('click',()=>{
+    location.href='./ai-rival-501.html?training=1&review=1';
+  });
+  actions.prepend(button);
+}
+const resultObserver=new MutationObserver(addResultReviewButton);
+resultObserver.observe(document.body,{childList:true});
+window.addEventListener('pagehide',()=>resultObserver.disconnect());
 (async()=>{
   try{
     const {data:{session},error}=await db.auth.getSession();
@@ -237,9 +256,23 @@ window.addEventListener('dartarena:practice-save',()=>{void syncGame()});
     records=(await loadAll()).sort((a,b)=>a.capturedAt.localeCompare(b.capturedAt));
     selected=records.findIndex(item=>item.status==='pending');
     if(selected<0&&records.length)selected=0;
-    authorized=true;panel.hidden=false;
-    say('Bildene lagres kun lokalt i nettleseren. Eksporter ZIP for sikkerhetskopi.');
-    showReview();setCounter();await syncGame();
+    authorized=true;
+    // The match view is hidden when the completed game was left in the lobby.
+    // Place the review panel outside that hidden match, and do not start a camera.
+    if(reviewOnly){
+      const match=$('localGame');
+      if(match)match.after(panel);
+      $('localSetup').hidden=true;
+      $('aiTrainControls').hidden=true;
+      $('aiTrainReviewDetails').open=true;
+    }
+    panel.hidden=false;
+    say(reviewOnly?
+      (records.length?records.length+' treningsbilde(r) funnet i denne nettleseren. Kontroller og eksporter nedenfor.':
+        'Ingen treningsbilder funnet i denne nettleseren. Kontroller at innsamling var aktivert under kampen.'):
+      'Bildene lagres kun lokalt i nettleseren. Eksporter ZIP for sikkerhetskopi.');
+    showReview();setCounter();
+    if(!reviewOnly){addResultReviewButton();await syncGame()}
   }catch(e){
     // Fail closed. Nobody without a verified Owner RPC response sees camera, controls or saved images.
     authorized=false;panel.hidden=true;

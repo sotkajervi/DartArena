@@ -79,6 +79,7 @@ body::after{display:none!important}
 <label>Best av<select id="rivalLegs"><option>1</option><option selected>3</option><option>5</option><option>7</option><option>9</option></select></label>
 <button class="rival-primary" id="rivalStart" disabled>Start AI-kamp →</button></div>
 <label id="rivalTrainingOption" hidden style="display:none;align-items:center;gap:11px;margin:16px 0;padding:14px;border:1px solid #20636a;border-radius:12px;background:#092429;font-size:14px;color:#e6fafb"><input type="checkbox" id="rivalTrainingEnable"><span><strong>Owner: Samle AI-treningsbilder med Zoom-cam</strong><small style="display:block;color:#bdd6d9;font-size:12px;margin-top:4px">Lagres kun lokalt. Inntil 3 bilder per runde. Korriger spiss og eksporter ZIP.</small></span></label>
+<a id="rivalTrainingReview" hidden href="./ai-rival-501.html?training=1&amp;review=1" style="display:none;align-items:center;gap:8px;margin:0 0 16px;color:#00eaf4;font-size:13px;font-weight:800;text-decoration:underline">Se og korriger lagrede treningsbilder →</a>
 <div class="rival-info"><p><strong>Spill som AI Rival støtter:</strong> 170 Double Out, 301 Double In/Double Out, 501 Double Out og 1001 Double Out. I turneringspuljer kan AI Rival brukes i 170, 501 og 1001. 301 DI/DO er foreløpig kun tilgjengelig som egen AI-kamp.</p><p id="rivalModel">Laster spillerstatistikk…</p><p id="rivalNotice" role="status"></p></div>
 </section>
 <section id="rivalGame" class="rival-hidden">
@@ -92,5 +93,5 @@ body::after{display:none!important}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
 <script src="./local-h2h-engine.js?v=20261011-online-parity1"></script>
 <script src="./ai-rival-model.js?v=20261022-x01modes1"></script>
-<script src="./ai-rival.js?v=20261022-x01modes1"></script>
+<script src="./ai-rival.js?v=20261024-review2"></script>
 </body></html>
