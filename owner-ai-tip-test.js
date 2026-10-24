@@ -14,7 +14,7 @@ const SIZE={width:640,height:480};
 let authorized=false,stream=null,config=null,before=null,after=null,video=$('tipVideo');
 let weights=[],ready=false,busy=false,zoomCrop=null,proposal=null,corrected=null;
 let current=null,results=[],previousRecords=[],manualCenter=null;
-let scanTimer=null,scanBusy=false,roundCount=0,roundArmed=false,scanPrev=null,motionAt=0,quietCount=0,lastScanAt=0,reviewIndex=-1;
+let scanTimer=null,scanBusy=false,roundCount=0,roundArmed=false,scanPrev=null,motionAt=0,quietCount=0,lastScanAt=0,reviewIndex=-1,stableCandidate=null;
 const HISTORY_KEY='dartarena-owner-ai-tip-prior-labels-v1';
 let historyLabels=[];
 function minimalLabel(row){
@@ -223,7 +223,7 @@ function snapshot(){
 }
 function storeBefore(frame){
   before=frame;after=null;zoomCrop=null;current=null;proposal=null;corrected=null;manualCenter=null;
-  roundCount=0;roundArmed=true;scanPrev=null;motionAt=0;quietCount=0;reviewIndex=-1;
+  roundCount=0;roundArmed=true;scanPrev=null;motionAt=0;quietCount=0;stableCandidate=null;reviewIndex=-1;
   announce('tipAutoStatus',$('tipAuto').checked?'Auto klar: kast pil 1 av 3.':'Manuell modus: kast pilen og analyser.');
   $('tipResult').textContent=$('tipAuto').checked?'Før-bilde lagret. Kast tre piler i vanlig tempo.':'Før-bilde lagret. Kast én pil og analyser.';
   const c=$('tipZoom');c.getContext('2d').clearRect(0,0,640,480);
@@ -359,25 +359,35 @@ async function scan(){
     if(frame.width!==before.width||frame.height!==before.height){
       roundArmed=false;announce('tipAutoStatus','Kameraformatet endret seg. Trykk Ny runde.',true);return;
     }
-    // Compare consecutive frames to distinguish a flying/hand-moving dart
-    // from a dart that has settled into the board.
+    // Compare current still frame with the last accepted dart, not only
+    // consecutive frames. Fast thrown darts can miss the motion threshold entirely.
     const sw=480,sh=Math.max(1,Math.round(sw*frame.height/frame.width));
     const sampled=samples(frame,sw,sh);
     const board={x:config.cx*sw,y:config.cy*sh,radius:config.radius*sw};
-    const opts={...T.sensitivityPreset(config.sensitivity),searchRadius:1.65};
+    const opts={...T.sensitivityPreset(config.sensitivity),searchRadius:1.65,
+      stride:1,maxRatio:.12};
     if(!scanPrev){scanPrev=sampled;return}
     const movement=T.motionRatio(scanPrev,sampled,sw,sh,board,{searchRadius:1.65});
     scanPrev=sampled;
-    if(movement>.008){motionAt=now;quietCount=0;return}
-    if(!motionAt||now-motionAt<650||now-motionAt>5500)return;
-    quietCount++;
-    if(quietCount<3)return;
+    if(movement>.018){
+      stableCandidate=null;quietCount=0;return;
+    }
+    if(now-lastScanAt<850)return;
     const base=samples(before,sw,sh);
-    const hit=T.findChange(base,sampled,sw,sh,board,{...opts,stride:1,maxRatio:.12});
-    if(!hit||hit.changedSamples<opts.minSamples)return;
-    // Consume this motion; prevent a single incoming dart becoming multiple
-    // captures. Each next event must include a fresh burst of physical motion.
-    motionAt=0;quietCount=0;scanPrev=null;
+    const hit=T.findChange(base,sampled,sw,sh,board,opts);
+    if(!hit||hit.changedSamples<opts.minSamples){
+      stableCandidate=null;quietCount=0;return;
+    }
+    // Require the same new region over multiple quiet frames before accepting.
+    // This cannot duplicate a dart: analyze() immediately sets before=frame.
+    if(stableCandidate&&Math.hypot(hit.x-stableCandidate.x,hit.y-stableCandidate.y)<9){
+      quietCount++;
+    }else{
+      quietCount=1;
+    }
+    stableCandidate=hit;
+    if(quietCount<3)return;
+    stableCandidate=null;quietCount=0;
     await analyze(frame);
   }catch(e){
     announce('tipAutoStatus','Automatisk analyse feilet: '+(e.message||String(e))+'. Prøv manuelt.',true);
@@ -424,7 +434,7 @@ async function analyze(frameOverride=null){
     if(automatic){
       roundCount++;
       before=next;roundArmed=roundCount<3;
-      scanPrev=null;motionAt=0;quietCount=0;
+      scanPrev=null;motionAt=0;quietCount=0;stableCandidate=null;lastScanAt=performance.now();
       announce('tipAutoStatus',roundArmed?'Lagret pil '+roundCount+'/3. Kast pil '+(roundCount+1)+'.':
         '3/3 piler lagret. Gjennomgå forslagene med Forrige/Neste, trekk pilene og trykk Ny runde.');
     }
@@ -436,7 +446,7 @@ async function analyze(frameOverride=null){
 $('tipAfter').addEventListener('click',()=>{void analyze()});
 $('tipAuto').addEventListener('change',()=>{
   roundArmed=!!before&&roundCount<3;
-  scanPrev=null;motionAt=0;quietCount=0;
+  scanPrev=null;motionAt=0;quietCount=0;stableCandidate=null;
   announce('tipAutoStatus',$('tipAuto').checked?'Auto aktiv. Kast når skiva er klar.':'Auto slått av. Bruk manuell analyse.');
   update();
 });
