@@ -236,3 +236,83 @@
   body.match-page .video-grid:not(.opponent-throwing),
   body.match-page .video-grid.opponent-throwing{height:98px}
 }
+
+
+/* Half-It DartCounter: phone-only compact rounds and explanatory color dots.
+   Desktop, Half-It Standard and scoring/score validation are not affected. */
+@media screen and (max-width:700px){
+  body.local-special-page.local-half-dartcounter-playing .local-h2h-heading{
+    margin:2px 0 5px;align-items:center;
+  }
+  body.local-special-page.local-half-dartcounter-playing .local-h2h-heading small,
+  body.local-special-page.local-half-dartcounter-playing .local-h2h-heading .muted{
+    display:none;
+  }
+  body.local-special-page.local-half-dartcounter-playing .local-game-top{
+    margin:2px 0 6px;
+  }
+  body.local-special-page.local-half-dartcounter-playing .special-entry{
+    padding:8px 9px;margin-top:6px;
+  }
+  body.local-special-page.local-half-dartcounter-playing #specialInfo{
+    font-size:10px;margin-bottom:4px;
+  }
+  body.local-special-page.local-half-dartcounter-playing .special-half-controls{
+    gap:5px;
+  }
+  body.local-special-page.local-half-dartcounter-playing .special-half-controls .special-numbers{
+    display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;
+  }
+  body.local-special-page.local-half-dartcounter-playing .special-half-controls .special-numbers .special-choice{
+    min-height:44px;padding:5px 1px;font-size:clamp(12px,3.7vw,15px);
+    display:flex;align-items:center;justify-content:center;gap:4px;
+  }
+  body.local-special-page.local-half-dartcounter-playing .special-half-mobile-guide{
+    display:grid;gap:5px;
+    padding:7px 8px;
+    border:1px solid rgba(0,234,244,.25);
+    border-radius:9px;
+    background:rgba(0,234,244,.045);
+  }
+  body.local-special-page.local-half-dartcounter-playing .special-half-mobile-guide-text{
+    display:flex;align-items:baseline;justify-content:space-between;gap:6px;
+    flex-wrap:wrap;line-height:1.3;
+  }
+  body.local-special-page.local-half-dartcounter-playing .special-half-mobile-guide-text strong{
+    color:var(--cyan);font-size:12px;font-weight:900;
+  }
+  body.local-special-page.local-half-dartcounter-playing .special-half-mobile-guide-text span{
+    color:#d1e1e3;font-size:11px;
+  }
+  body.local-special-page.local-half-dartcounter-playing .special-half-color-key{
+    display:flex;justify-content:flex-start;align-items:center;flex-wrap:wrap;gap:5px 10px;
+  }
+  body.local-special-page.local-half-dartcounter-playing .special-half-color-item{
+    display:inline-flex;align-items:center;gap:4px;
+    color:#dce8e8;font-size:10px;font-weight:750;
+  }
+  body.local-special-page.local-half-dartcounter-playing .special-half-color-dot{
+    display:inline-block;flex:0 0 11px;width:11px;height:11px;
+    border-radius:50%;vertical-align:middle;border:1px solid rgba(255,255,255,.75);
+  }
+  body.local-special-page.local-half-dartcounter-playing .special-half-color-dot.is-black{
+    background:#0c1011;border-color:#b2c1c4;
+  }
+  body.local-special-page.local-half-dartcounter-playing .special-half-color-dot.is-white{
+    background:#f6f9f9;border-color:#82989d;
+  }
+  body.local-special-page.local-half-dartcounter-playing .special-half-color-dot.is-red{
+    background:#e53942;border-color:#fb6f74;
+  }
+  body.local-special-page.local-half-dartcounter-playing .special-half-color-dot.is-green{
+    background:#19ba67;border-color:#76ecaa;
+  }
+  body.local-special-page.local-half-dartcounter-playing .special-half-classic-hint{
+    margin:3px 0 0;font-size:10px;line-height:1.35;
+  }
+}
+@media screen and (max-width:365px){
+  body.local-special-page.local-half-dartcounter-playing .special-half-controls .special-numbers{
+    grid-template-columns:repeat(5,minmax(0,1fr));
+  }
+}
