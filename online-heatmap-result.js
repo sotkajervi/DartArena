@@ -88,8 +88,8 @@ function configure(){
  return true;
 }
 function ownTurn(){
- return $('matchStatus')?.textContent?.trim()==='Pågår'&&
-   $('matchScoreInput')?.disabled===false;
+ // Match state, not translated label, determines camera sampling.
+ return m?.status==='playing'&&$('matchScoreInput')?.disabled===false;
 }
 function record(frame,w,h,hit,small){
  const point=H.infer(reference,frame,w,h,hit,small);
