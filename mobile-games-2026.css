@@ -75,10 +75,14 @@
   body.local-special-page .special-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
   body.local-special-page .special-actions button{min-width:0;min-height:46px;padding:8px 5px;font-size:12px;white-space:normal}
   body.local-special-page .special-actions .da-key{display:none}
+  /* Half-It double/treble has 20 (double has 21) choices:
+     5 compact columns keep the whole keypad on mobile, no seven-row scroll. */
   body.local-special-page .special-half-controls .special-numbers{
-    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;
+    display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;
   }
-  body.local-special-page .special-half-controls .special-choice,
+  body.local-special-page .special-half-controls .special-numbers .special-choice{
+    min-height:44px;padding:6px 2px;font-size:14px;
+  }
   body.local-special-page .special-choice-row button{min-height:45px}
   body.local-special-page .special-numbers{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
   body.local-special-page .special-numbers button{min-height:44px}
