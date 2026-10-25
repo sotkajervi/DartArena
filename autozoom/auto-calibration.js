@@ -25,12 +25,15 @@ function detect(image){
   return ix>=0&&iy>=0&&ix<w&&iy<h?mask[iy*w+ix]:0;
  }
  function annulus(cx,cy,r,ratio){
+  // Small distant boards have only 1-2 pixels across each colored ring.
+  // Sample a slightly wider radial band there, without blurring video.
+  const band=r<Math.min(w,h)*.19?.035:.017;
   let hits=0;
   for(let k=0;k<ANGLES;k++){
    const x=cs[k],y=sn[k];
-   if(at(cx+x*r*(ratio-.017),cy+y*r*(ratio-.017))||
+   if(at(cx+x*r*(ratio-band),cy+y*r*(ratio-.017))||
       at(cx+x*r*ratio,cy+y*r*ratio)||
-      at(cx+x*r*(ratio+.017),cy+y*r*(ratio+.017)))hits++;
+      at(cx+x*r*(ratio+band),cy+y*r*(ratio+.017)))hits++;
   }
   return hits/ANGLES;
  }
