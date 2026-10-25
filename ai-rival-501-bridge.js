@@ -16,6 +16,16 @@ if(start)start.disabled=true;
 const notice=document.createElement('p');notice.className='muted compact';notice.id='aiRivalModelInfo';
 form.after(notice);
 notice.textContent='Laster AI Rival fra DartArena-historikken…';
+let currentSummary=null;
+function renderSummary(){
+ if(!currentSummary)return;
+ const {name,visits,avg,level,checkouts,format}=currentSummary;
+ const en=window.DartArenaI18n?.getLanguage?.()==='en';
+ notice.textContent=en
+ ?'AI Rival: '+name+' · '+visits+' valid 501 visits · historical 3-dart average '+avg.toFixed(2)+' · simulated level '+level.toFixed(2)+' · '+checkouts+' checkouts. The model uses 501 match history'+(format!==501?' to estimate '+format:'')+(format===301?' (Double In estimated from double out)':'')+'. The result is saved locally.'
+ :'AI Rival: '+name+' · '+visits+' gyldige 501-runder · historisk 3-dart-snitt '+avg.toFixed(2)+' · simulert nivå '+level.toFixed(2)+' · '+checkouts+' checkouts. Modellen bruker 501-historikk'+(format!==501?' som estimat for '+format:'')+(format===301?' (Double In er estimert fra dobbel-ut)':'')+'. Resultatet lagres lokalt.';
+}
+document.addEventListener('dartarena:languagechange',renderSummary);
 const Model=window.DartArenaRivalModel;
 if(!Model)return;
 const selector=$('rivalHistoryPlayer');
@@ -25,6 +35,7 @@ let loading=false;
 async function loadRival(id,{autoStart=false}={}){
  if(loading)return;
  loading=true;
+ currentSummary=null;
  if(start)start.disabled=true;
  notice.textContent='Laster spillerhistorikk…';
  try{
@@ -54,7 +65,8 @@ async function loadRival(id,{autoStart=false}={}){
   $('localMode').dispatchEvent(new Event('change',{bubbles:true}));
   const best=$('localBestOf');
   if(autoStart&&[...best.options].some(o=>Number(o.value)===requestedLegs))best.value=String(requestedLegs);
-  notice.textContent='AI Rival: '+player.username+' · '+model.historyVisits+' gyldige 501-runder · historisk 3-dart-snitt '+model.historyAverage.toFixed(2)+' · simulert nivå '+model.estimatedAverage.toFixed(2)+' · '+model.historyCheckouts+' checkouts. Modellen bruker 501-historikk'+(selectedFormat!==501?' som estimat for '+selectedFormat:'')+(selectedFormat===301?' (Double In er estimert fra dobbel-ut)':'')+'. Resultatet lagres lokalt.';
+  currentSummary={name:player.username,visits:model.historyVisits,avg:model.historyAverage,level:model.estimatedAverage,checkouts:model.historyCheckouts,format:selectedFormat};
+  renderSummary();
   if(start)start.disabled=false;
   if(autoStart&&$('localGame')?.hidden)form.requestSubmit();
  }catch(error){
