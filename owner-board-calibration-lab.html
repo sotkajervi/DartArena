@@ -1,26 +1,68 @@
 <!doctype html>
 <html lang="no"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>DartArena · Owner kalibreringsmodell-test</title>
-<link rel="stylesheet" href="./style.css">
 <style>
-:root{color-scheme:dark}body{background:#071012!important;color:#e9f7fa}
-#lab{max-width:1100px;margin:25px auto 55px;padding:0 16px}h1{font-size:clamp(23px,3vw,32px)}p{line-height:1.5;color:#a9c9ce}
-section{background:#101f23;border:1px solid #29535b;border-radius:14px;padding:17px;margin:12px 0}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}label{display:block;font-weight:700;margin:12px 0;color:#d8f0f2}
-input[type=file]{display:block;max-width:100%;width:100%;margin-top:7px;padding:10px;border:1px solid #2b5960;border-radius:8px;background:#0a181b}
-button{padding:10px 14px;min-height:42px;border:1px solid #2d6066;border-radius:9px;background:#102b31;color:white;font-weight:800}
-button.primary{background:#00d9e7;color:#041216}button:disabled{opacity:.45}
-#visual{display:block;width:100%;height:auto;max-height:72vh;object-fit:contain;background:#040c0d;border:1px solid #37616a;border-radius:9px}
-#status{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;color:#9ef0f4}
-#results{font-family:ui-monospace,monospace;font-size:12px;white-space:pre-wrap;overflow:auto;max-height:320px;color:#bbd5da}
-[hidden]{display:none!important}
+:root{color-scheme:dark;--cyan:#00eaf4;--bg:#071114;--panel:#102327;--line:#28515a}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg)!important;color:#edf9fa;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+body::before,body::after{display:none!important;content:none!important}
+header{position:relative;z-index:1;background:#08181b;border-bottom:1px solid var(--line);min-height:68px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px max(20px,calc((100vw - 1100px)/2))}
+header img{display:block;max-height:45px;width:auto;max-width:200px;object-fit:contain}
+header small{color:var(--cyan);font-size:12px;font-weight:850;letter-spacing:.07em}
+main#lab{max-width:1100px;margin:25px auto 70px;padding:0 18px;position:relative;z-index:1}
+h1{font-size:clamp(24px,3.2vw,36px);margin:8px 0}h2{font-size:19px;margin:0 0 10px}
+p{line-height:1.55;color:#c2d5d9;margin:10px 0}strong{color:#e9fcfe}
+section{display:block;background:var(--panel)!important;border:1px solid #35626b;border-radius:15px;
+  padding:20px;margin:15px 0;box-shadow:none!important;backdrop-filter:none!important;opacity:1!important}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+label{display:block;font-weight:720;margin:12px 0;color:#e2f4f6;font-size:14px}
+input[type=file]{display:block;max-width:100%;width:100%;margin-top:8px;padding:12px;border:1px solid #426b74;
+  border-radius:8px;background:#07181b;color:#f2feff}
+input[type=file]::file-selector-button{border:1px solid #46949d;background:#17373c;color:#f2feff;
+  padding:8px 12px;border-radius:6px;margin-right:10px}
+select{padding:10px;border:1px solid #42757a;border-radius:8px;background:#0a1b1e;color:#eaf9fa}
+button{font:inherit;cursor:pointer;padding:11px 15px;min-height:44px;border:1px solid #447e86;
+  border-radius:8px;background:#19373c;color:#f1feff;font-weight:750}
+button.primary{background:var(--cyan);color:#03181d;border-color:var(--cyan)}
+button:disabled{opacity:.46;cursor:not-allowed}
+button:not(:disabled):hover{border-color:var(--cyan)}
+#visual{display:block;width:100%;height:auto;max-height:69vh;object-fit:contain;
+  background:#071216;border:1px solid #37616a;border-radius:10px;margin-top:12px}
+#camera{display:block;width:min(100%,600px);margin:12px 0;border:1px solid #427880;border-radius:10px}
+#status{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.55;color:#a8f3f8;margin:5px 0}
+#runState{background:#0b262b;border:1px solid #2f8e99;border-radius:12px;padding:14px 17px;margin:15px 0}
+#runState[data-level=error]{background:#311b20;border-color:#aa565d}
+#runState[data-level=error] #status{color:#ffd2d2}
+#runState[data-level=success]{border-color:#44b6a2}
+#runState strong{display:block;margin-bottom:7px;color:#e7fdff}
+#results{font-family:ui-monospace,monospace;font-size:12px;line-height:1.6;
+  white-space:pre-wrap;overflow:auto;max-height:300px;color:#d5edf0;background:#071519;
+  padding:14px;border:1px solid #2a5057;border-radius:9px}
+#denied{color:#c7e8ec}#app[hidden], [hidden]{display:none!important}
+.stepHelp{font-size:12px;color:#b8cfd4}
+.subhead{color:var(--cyan);text-transform:uppercase;font-size:12px;letter-spacing:.1em;font-weight:900}
+.cardGrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cardGrid section{margin:0}
+#cameraState{color:#b7d6dc;font-size:12px;margin-left:4px}
+@media(max-width:780px){
+ .cardGrid{grid-template-columns:1fr}
+ header{padding:12px 18px}
+ header img{width:140px}
+ header small{font-size:10px}
+ main#lab{margin-top:14px;padding:0 12px}
+ section{padding:15px}
+ button{max-width:100%}
+}
 </style></head><body>
 <header><div class="brand"><a href="./"><img src="./assets/dartarena-logo.jpg" alt="DartArena" width="180"></a></div><small>OWNER · KALIBRERING · EKSPERIMENT</small></header>
 <main id="lab">
-<h1>Test av avansert skivekalibrering</h1>
-<p>Privat diagnostikk for Owner. Vi tester om en lokal TFLite-detektor finner skivepunkter også når kameraet står skjevt. Denne siden endrer <strong>ikke</strong> Zoom-cam-kalibreringen eller scoren, og sender ikke APK, modell eller kamerabilde til DartArena.</p>
+<div class="subhead">SCORINGARENA / OWNER / KAMERATEST</div><h1>Kalibreringstest</h1>
+<p>Eksperimentell test av kalibreringsmodell på PC-en din. Ingen opplasting, ingen endring av Zoom-cam-kalibrering eller score. <a href="./" style="color:#00eaf4">Tilbake til DartArena</a>.</p>
+<div id="runState" data-level="info"><strong>Teststatus</strong><p id="status" role="status">Velg en lokal modellfil og et skivebilde for å starte.</p><div class="row"><button id="copyDiagnostic" type="button" style="font-size:12px;min-height:36px">Kopier teststatus</button><span id="runtimeState" class="stepHelp"></span></div></div>
 <section id="denied" role="status">Kontrollerer Owner-tilgang …</section>
 <div id="app" hidden>
+<div class="cardGrid">
 <section>
 <h2>1. Velg modell fra en fil på enheten din</h2>
 <p>Du kan velge din egen DartsKey-APK (ca. 155 MB). Testsonen trekker ut kalibreringsmodellen direkte i nettleseren, uten å laste den opp. Du kan alternativt velge en lokal <code>.tflite</code>-fil. Modellen er ikke del av DartArenas offentlige kildekode.</p>
@@ -30,20 +72,22 @@ button.primary{background:#00d9e7;color:#041216}button:disabled{opacity:.45}
 <section>
 <h2>2. Velg skivebilde</h2>
 <label>Skjermbilde eller bilde av skiva<input id="imageFile" type="file" accept="image/*"></label>
-<div class="row"><button id="startCamera" type="button">Start kamera</button><button id="takeFrame" type="button" disabled>Ta bilde</button><button id="stopCamera" type="button" disabled>Stopp kamera</button></div>
-<video id="camera" muted autoplay playsinline style="width:100%;max-width:500px;margin:10px 0;border-radius:8px" hidden></video>
-<canvas id="visual" width="960" height="720" aria-label="Bilde med modellens foreslåtte objekter og kalibreringspunkter"></canvas>
+<div class="row"><button id="startCamera" type="button">Start kamera</button><button id="takeFrame" type="button" disabled>Ta bilde</button><button id="stopCamera" type="button" disabled>Stopp kamera</button><span id="cameraState">Kamera avslått</span></div>
+<video id="camera" muted autoplay playsinline hidden></video>
+<p id="imageState" class="stepHelp">Ingen skivebilder valgt.</p>
 <div class="row" style="margin:12px 0"><button id="analyze" class="primary" disabled type="button">Analyser bildet</button>
 <label style="margin:0">Minste sikkerhet <select id="threshold"><option value=".35">35 %</option><option value=".5" selected>50 %</option><option value=".65">65 %</option></select></label>
 <button id="saveOverlay" type="button" disabled>Lagre resultatbilde (.png)</button></div>
 </section>
-<section><h2>3. Resultat</h2><p id="status" role="status">Velg lokal modell og bilde for å starte.</p>
-<p>Merk: Klassene vises først som C0–C20. Vi må kontrollere hva de faktisk representerer før vi kan beregne perspektiv eller lagre en kalibrering. Dette er en modelltest, ikke ferdig autokalibrering.</p>
-<pre id="results"></pre></section>
+</div>
+<section><h2>3. Analyser og se resultat</h2>
+<canvas id="visual" width="960" height="720" hidden aria-label="Bilde med modellens foreslåtte objekter og kalibreringspunkter"></canvas>
+<p class="stepHelp">DartsKeys modellklasser vises foreløpig som C0–C20. Vi har ikke verifisert klassene eller nettleserstøtten, så dette er diagnostikk og ikke ferdig autokalibrering. <a href="./" style="color:#00eaf4">Manuell kalibrering finnes fortsatt i Cam-test.</a></p>
+<pre id="results" hidden></pre></section>
 </div></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.22.0/dist/tf-core.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.22.0/dist/tf-backend-cpu.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite@0.0.1-alpha.10/dist/tf-tflite.min.js"></script>
-<script src="./owner-board-calibration-lab.js?v=20261025-localmodel1"></script>
+<script src="./owner-board-calibration-lab.js?v=20261025-repair2"></script>
 </body></html>
