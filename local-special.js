@@ -154,10 +154,30 @@ function cricketBoard(){
    '<div class="special-cricket-head"><span>'+esc(state.players[0])+'</span><strong>FELT</strong><span>'+esc(state.players[1])+'</span></div>'+
    rows+'</div><p class="muted compact special-cricket-hint">Trykk én gang per merke, f.eks. 20 fire ganger = 4 merker. Maks tre piler per tur. Trykk Enter for å registrere.</p>';
 }
+function halfDartCounterMobileGuide(rule){
+ if(state.game!=='half_dartcounter'||!w.matchMedia('(max-width: 700px)').matches)return '';
+ const colorNames={black:'Svart',white:'Hvit',red:'Rød',green:'Grønn'};
+ const legend=['black','white','red','green'].map(color=>
+  '<span class="special-half-color-item"><i class="special-half-color-dot is-'+color+'" aria-hidden="true"></i>'+colorNames[color]+'</span>'
+ ).join('');
+ let title='',hint='',showLegend=false;
+ if(rule==='same'){title='Samme farge';hint='Alle 3 pilene må treffe samme farge.';showLegend=true;}
+ else if(rule==='different'){title='Forskjellige farger';hint='Treff 3 forskjellige farger med 3 piler.';showLegend=true;}
+ else if(rule==='exact'){title='Eksakt score';hint='Velg en poengsum. Treff nøyaktig målet (121: minst 121).';}
+ else if(rule==='double'){title='Dobbel';hint='Bare treff i dobbelringen teller.';}
+ else if(rule==='treble'){title='Trippel';hint='Bare treff i trippelringen teller.';}
+ else if(rule==='bull'){title='Bull';hint='Grønn bull gir 25, rød bull gir 50.';showLegend=false;}
+ else if(typeof rule==='number'){title='Treff '+rule;hint='Kun dette tallet teller. Enkel, dobbel eller trippel.';}
+ return '<div class="special-half-mobile-guide" role="note">'+
+  '<div class="special-half-mobile-guide-text"><strong>'+title+'</strong><span>'+hint+'</span></div>'+
+  (showLegend?'<div class="special-half-color-key" aria-label="Farger på dartskiven">'+legend+'</div>':'')+
+  '</div>';
+}
 function halfPad(){
  const rule=E.halfRule(state),choice=rule==='exact'?
   '<div class="special-choice-row">'+state.exactOptions.map(x=>'<button class="'+(state.exactChoice===x?'primary':'outline')+'" type="button" data-exact="'+x+'">'+x+'</button>').join('')+'</div>':'';
- if(rule===41)return '<div class="special-half-controls"><div class="special-choice-row">'+
+ const guide=halfDartCounterMobileGuide(rule);
+ if(rule===41)return '<div class="special-half-controls">'+guide+'<div class="special-choice-row">'+
   '<button type="button" class="primary" data-half41="hit">TREFF (+41) <span class="da-key">T</span></button>'+
   '<button type="button" class="outline" data-half41="bust">BUST (halver score) <span class="da-key">B</span></button>'+
   '</div></div>';
@@ -170,8 +190,18 @@ function halfPad(){
  }
  const multis=['same','different','exact',41].includes(rule)?'<div class="special-choice-row">'+
   [1,2,3].map(m=>'<button type="button" class="'+(selectedMult===m?'primary':'outline')+'" data-mult="'+m+'">'+({1:'SINGLE',2:'DOBBEL',3:'TRIPPEL'})[m]+' <span class="da-key">'+m+'</span></button>').join('')+'</div>':'';
- return '<div class="special-half-controls">'+choice+multis+
-  '<div class="special-numbers">'+keys.map(d=>'<button type="button" class="outline special-choice" data-n="'+d.n+'" data-m="'+d.mult+'">'+labelDart(d)+(typeof rule==='number'&&rule!==41?' <span class="da-key">'+d.mult+'</span>':'')+'</button>').join('')+'</div></div>'+
+ const showColors=state.game==='half_dartcounter'&&w.matchMedia('(max-width: 700px)').matches&&['same','different'].includes(rule);
+ const colors={black:'svart',white:'hvit',red:'rød',green:'grønn'};
+ const pad=keys.map(d=>{
+   const color=showColors?E.dartColor(d):null;
+   const value=labelDart(d);
+   const dot=color?'<i class="special-half-color-dot is-'+color+'" aria-hidden="true"></i>':'';
+   const aria=color?' aria-label="'+value+', '+colors[color]+' felt"':'';
+   return '<button type="button" class="outline special-choice" data-n="'+d.n+'" data-m="'+d.mult+'"'+aria+'>'+value+
+    dot+(typeof rule==='number'&&rule!==41?' <span class="da-key">'+d.mult+'</span>':'')+'</button>';
+ }).join('');
+ return '<div class="special-half-controls">'+guide+choice+multis+
+  '<div class="special-numbers">'+pad+'</div></div>'+
   '<p class="muted compact special-half-classic-hint">Velg treff og trykk Enter for å avslutte turen. Ubrukte piler regnes som MISS. Bare Enter = tre bom.</p>';
 }
 function jdcPad(){
@@ -307,6 +337,7 @@ function renderHistory(){
 function render(){
  dom.setup.hidden=!!state;dom.game.hidden=!state;
  document.body.classList.toggle('local-cricket-playing',state?.game==='cricket');
+ document.body.classList.toggle('local-half-dartcounter-playing',state?.game==='half_dartcounter'&&state?.status==='playing');
  document.body.classList.toggle('local-special-finished',state?.status==='finished');
  if(!state){window.DartArenaLocalResults?.syncSpecial(null,newGame);return;}
  if(state.game==='cricket'&&!cricketDisclosureInitialized){
@@ -498,6 +529,8 @@ const stored=(()=>{try{return E.restore(JSON.parse(localStorage.getItem(storageK
 if(stored){state=stored;window.DartArenaLocalNameHistory?.remember(state.players);message='Kamp gjenopprettet fra denne nettleseren.'}
 if(!state)dom.mode.value=chosen;
 setupVisibility();render();
+const halfViewport=w.matchMedia('(max-width: 700px)');
+halfViewport.addEventListener('change',()=>{if(state?.game==='half_dartcounter')renderPad()});
 setInterval(()=>{
  if(state?.game==='sixty_one'&&state.status==='playing'){
    if(!state.paused){const next=E.tick(state);if(next!==state){state=next;store()}}
