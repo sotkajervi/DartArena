@@ -58,29 +58,19 @@ test('D20 orientation click snaps to previously detected double ring for rotated
   assert.equal(Detector.snapD20(c,{x:200,y:150},r),null);
   assert.equal(Detector.snapD20(c,{x:900,y:150},r),null);
 });
-test('auto calibration forbids Apply before selecting actual D20 direction',()=>{
-  const ui=fs.readFileSync(path.join(__dirname,'camera-calibration.js'),'utf8');
-  const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
-  assert.match(ui,/autoD20Verified=false/);
-  assert.match(ui,/autoD20Verified=true/);
-  assert.match(ui,/autoEditTarget\|\|!autoD20Verified/);
-  assert.match(ui,/beginAutoEdit\('d20'\)/);
-  assert.match(ui,/autoD20Verified\?\[\[bull/,'The unconfirmed guessed D20 is not drawn as verified');
-  assert.match(index,/autozoom\/auto-calibration\.js\?v=20261025-d20-angle1/);
-  assert.match(index,/autozoom\/camera-calibration\.js\?v=20261025-d20-angle1/);
-});
-test('Cam-test offers editable auto Bull and D20, explicit save, and manual fallback',()=>{
-  const ui=fs.readFileSync(path.join(__dirname,'camera-calibration.js'),'utf8');
-  const css=fs.readFileSync(path.join(__dirname,'camera-calibration.css'),'utf8');
-  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-  assert.match(ui,/id="camZoomAuto"/);
-  assert.match(ui,/id="camAutoEditBull"/);
-  assert.match(ui,/id="camAutoEditD20"/);
-  assert.match(ui,/id="camAutoApply"/);
-  assert.match(ui,/Z\.framedPointer\(video,preview,event,framing\)/);
-  assert.match(ui,/autoEditTarget/);
-  assert.match(ui,/autoApply\.addEventListener\('click'/);
-  assert.match(ui,/id="camZoomCalibrate"/,'Manual calibration remains available');
-  assert.match(css,/\.cam-auto-edit-layer\[hidden\]/);
-  assert.match(html,/autozoom\/camera-calibration\.js\?v=20261025-autocal-adjust1/);
+test('Cam-test is manual-only for tonight: Bull then D20, no auto script or button',()=>{
+ const ui=fs.readFileSync(path.join(__dirname,'camera-calibration.js'),'utf8');
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ const css=fs.readFileSync(path.join(__dirname,'camera-calibration.css'),'utf8');
+ assert.match(ui,/id="camZoomCalibrate"/);
+ assert.match(ui,/id="camZoomPreview"/);
+ assert.match(ui,/id="camZoomClear"/);
+ assert.match(ui,/Klikk midt i Bull/);
+ assert.match(ui,/Klikk midt i D20/);
+ assert.match(ui,/Z\.loadConfig\(localStorage\)/);
+ assert.match(ui,/Z\.saveConfig\(localStorage/);
+ assert.doesNotMatch(ui,/camZoomAuto|camAuto|autoProposal|autoGuide/);
+ assert.doesNotMatch(css,/cam-auto/);
+ assert.doesNotMatch(html,/src="autozoom\/auto-calibration\.js/);
+ assert.match(html,/autozoom\/camera-calibration\.js\?v=20261025-manual-restore1/);
 });
