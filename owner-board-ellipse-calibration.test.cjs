@@ -4,46 +4,62 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const E=require('./autozoom/ellipse-calibration.js');
-function board({w=480,h=320,cx=245,cy=155,major=116,minor=96,angle=.22,light=1,inner=true}={}){
+function board({w=480,h=320,cx=240,cy=160,major=126,minor=112,angle=0,light=1,
+  hasBull=true,hasTriple=true,hasDouble=true}={}){
  const data=new Uint8ClampedArray(w*h*4),co=Math.cos(angle),si=Math.sin(angle);
  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
-  const i=(y*w+x)*4,dx=x-cx,dy=y-cy,ex=(dx*co+dy*si)/major,ey=(-dx*si+dy*co)/minor;
-  const distance=Math.hypot(ex,ey);
-  const ring=Math.abs(distance-.976)<.019||(inner&&Math.abs(distance-.606)<.021);
-  const alt=Math.round(20*(Math.atan2(ey,ex)+Math.PI)/(2*Math.PI))%2;
-  const rgb=ring?(alt?[210,40,32]:[40,210,50]):[25,25,25];
+  const i=(y*w+x)*4,dx=x-cx,dy=y-cy;
+  const xx=(dx*co+dy*si)/major,yy=(-dx*si+dy*co)/minor;
+  const radius=Math.hypot(xx,yy);
+  const colored=(hasDouble&&Math.abs(radius-.976)<.026)||
+    (hasTriple&&Math.abs(radius-.606)<.023);
+  const bull=hasBull&&radius<.075;
+  const green=(Math.floor((Math.atan2(yy,xx)+Math.PI)/(Math.PI/10))%2)===0;
+  const rgb=colored?(green?[45,220,55]:[230,45,36]):bull?[50,215,65]:[20,20,20];
   data[i]=Math.round(rgb[0]*light);data[i+1]=Math.round(rgb[1]*light);
   data[i+2]=Math.round(rgb[2]*light);data[i+3]=255;
  }
  return{width:w,height:h,data};
 }
-test('fits an elliptic dartboard ring without the TFLite model',()=>{
+test('v2 uses an independent Bull location rather than colored ring centroid',()=>{
  const found=E.estimate(board());
- assert.ok(found);
- assert.ok(Math.abs(found.cx-245)<5&&Math.abs(found.cy-155)<5);
- assert.ok(Math.abs(found.major-116)<10&&Math.abs(found.minor-96)<10);
- assert.ok(found.coverage>=.9);
- assert.equal(found.orientationKnown,false,'Color rings do not identify D20');
+ assert.ok(found,'Bull and rings must be recognized');
+ assert.ok(Math.hypot(found.cx-240,found.cy-160)<3);
+ assert.ok(found.fit.medianError<2);
+ assert.ok(found.fit.p90Error<4);
+ assert.equal(found.fit.validationAngles,36);
+ assert.equal(found.orientationKnown,false,'D20 cannot be inferred from ring colors');
 });
-test('locates tilted and moderately dim ellipse',()=>{
- const found=E.estimate(board({major:90,minor:62,angle:.7,light:.65}));
+test('v2 handles shifted and rotated ellipse under moderately dim light',()=>{
+ const input=board({cx:210,cy:168,major:136,minor:95,angle:.65,light:.65});
+ const found=E.estimate(input);
  assert.ok(found);
- assert.ok(Math.abs(found.cx-245)<5&&Math.abs(found.cy-155)<5);
- assert.ok(Math.abs(found.major-90)<10&&Math.abs(found.minor-62)<10);
+ assert.ok(Math.hypot(found.cx-210,found.cy-168)<4);
+ assert.ok(found.fit.p90Error<5);
 });
-test('rejects frames without both clear colored rings',()=>{
- assert.equal(E.estimate(board({inner:false})),null);
+test('v2 handles smaller boards with clearly visible Bull and rings',()=>{
+ const found=E.estimate(board({cx:215,cy:153,major:53,minor:45}));
+ assert.ok(found);
+ assert.ok(Math.hypot(found.cx-215,found.cy-153)<3);
+});
+test('v2 rejects missing Bull, triple ring, double ring and cropped boards',()=>{
+ for(const image of [
+  board({hasBull:false}),board({hasTriple:false}),
+  board({hasDouble:false}),board({cx:60,cy:35})
+ ])assert.equal(E.estimate(image),null);
  const black=new Uint8ClampedArray(480*320*4);
  assert.equal(E.estimate({width:480,height:320,data:black}),null);
 });
-test('Owner lab connects read-only no-model analysis to image and camera flow',()=>{
+test('Owner test remains read-only with explicit quality/status information',()=>{
  const html=fs.readFileSync(path.join(__dirname,'owner-board-calibration-lab.html'),'utf8');
  const js=fs.readFileSync(path.join(__dirname,'owner-board-calibration-lab.js'),'utf8');
  assert.match(html,/id="ellipseAnalyze"/);
- assert.match(html,/autozoom\/ellipse-calibration\.js\?v=20261025-ellipse1/);
+ assert.match(html,/autozoom\/ellipse-calibration\.js\?v=20261025-bullringv2/);
  assert.match(js,/DartArenaEllipseCalibration/);
- assert.match(js,/ellipseAnalyze'\)\.addEventListener/);
- assert.match(js,/getImageData\(0,0,width,height\)/);
- assert.match(js,/Ingen innstillinger er endret/);
+ assert.match(js,/found\.fit\.validationAngles/);
+ assert.match(js,/found\.fit\.p90Error/);
+ assert.match(js,/IKKE GODKJENT KALIBRERING/);
+ assert.match(js,/closePath\(\);ctx\.stroke/);
  assert.doesNotMatch(js,/saveConfig\(|localStorage\.setItem\(/);
+ assert.doesNotMatch(html,/src=".*\.tflite/);
 });
