@@ -80,6 +80,17 @@ function detect(image){
   assumption:'20-up',method:'local-ring-colors'
  };
 }
-root.DartArenaAutoCalibration={detect};
+// A colored ring identifies centre and radius, not which of the 20 sectors
+// is D20. The user must point at the printed 20/D20 to fix orientation.
+// Snap that angle onto the detected outer double-ring radius.
+function snapD20(bull,click,radius){
+ const dx=Number(click?.x)-Number(bull?.x),dy=Number(click?.y)-Number(bull?.y);
+ const dist=Math.hypot(dx,dy);
+ if(!Number.isFinite(radius)||radius<=0||!Number.isFinite(dist)||
+    dist<radius*.55||dist>radius*1.55)return null;
+ const scale=radius*.976/dist;
+ return{x:bull.x+dx*scale,y:bull.y+dy*scale};
+}
+root.DartArenaAutoCalibration={detect,snapD20};
 if(typeof module==='object'&&module.exports)module.exports=root.DartArenaAutoCalibration;
 })(typeof window!=='undefined'?window:globalThis);
