@@ -863,7 +863,44 @@
   "Kampen er ferdig, men historikken kunne ikke lagres her. Oppdater siden.": "The match ended, but its history could not be saved here. Refresh the page.",
   "Botfeil:": "Bot error:",
   "Hvis kameraet registrerer en pil som ikke er der, start runden på nytt. Spissforslag nær skivens metalltråd må alltid kontrolleres.": "If the camera detects a dart that isn't there, restart the visit. Always verify tip suggestions near the dartboard wire.",
-  "Hvor mange piler brukte du på å sjekke ut? Trykk 1, 2 eller 3.": "How many darts did you use to check out? Press 1, 2 or 3."
+  "Hvor mange piler brukte du på å sjekke ut? Trykk 1, 2 eller 3.": "How many darts did you use to check out? Press 1, 2 or 3.",
+  "Kamphistorikken er synkronisert med Supabase.": "Match history is synced with Supabase.",
+  "Synkronisering av kamphistorikk venter (": "Match history sync pending (",
+  "Logg inn for å lagre treningskamper i Supabase. Den lokale kopien beholdes.": "Log in to save practice matches to Supabase. Your local copy will be kept.",
+  "Skyhistorikk synkronisert med Supabase.": "Match history is synced with Supabase.",
+  "Skyhistorikk": "Cloud history",
+  "Synkronisering": "Synchronization",
+  "nettverksfeil": "network error",
+  "Lokalt eksemplar beholdes.": "Your local copy will be kept.",
+  "Kamphistorikk i Supabase": "Match history in Supabase",
+  "Egen historikk for denne spilltypen. Ingen påvirkning på online- eller turneringsstatistikk.": "Separate history for this game type. Does not affect online or tournament statistics.",
+  "Ingen lagrede kamper ennå.": "No saved matches yet.",
+  "Formkurven vises når du har fullført en kamp.": "The form chart appears after you complete a match.",
+  "Mine ferdige kamper:": "My completed matches:",
+  "3-dart-snitt:": "3-dart average:",
+  "(basert på viste kamper)": "(based on displayed matches)",
+  "Pågående": "In progress",
+  "PÅGÅENDE KAMP": "MATCH IN PROGRESS",
+  "Kamp": "Match",
+  "Snitt": "Average",
+  "Siste": "Last",
+  "Erstatte pågående lokal kamp med kampen fra Supabase?": "Replace the active local match with the match from Supabase?",
+  "Denne AI Rival-kampen mangler spillerreferanse og kan ikke gjenopptas på ny enhet.": "This AI Rival match has no player reference and cannot be resumed on another device.",
+  "Lokal kamp tilhører en annen DartArena-konto. Den blir ikke lastet opp. Logg inn på riktig konto for å hente den.": "This local match belongs to another DartArena account and will not be uploaded. Log in to the correct account to retrieve it.",
+  "Siste kamp": "Latest match",
+  "Nyeste kamp": "Most recent match",
+  "LAGRINGSGRENSE NÅDD": "STORAGE LIMIT REACHED",
+  "Spiss godkjent": "Tip approved",
+  "Bilde avvist": "Image rejected",
+  "Venter på spisskontroll": "Awaiting tip review",
+  "Klikk nøyaktig på spissen for å korrigere.": "Select the precise tip location to correct it.",
+  "Korrigert punkt valgt. Trykk Godkjenn for å lagre.": "Corrected point selected. Press Approve to save.",
+  "Ny referanse valgt. Vent et øyeblikk før neste pil. Bruk bare når pilene er fjernet.": "New reference selected. Wait briefly before the next dart. Use only after removing the darts.",
+  "ZIP-eksport startet. Kontroller at filen er lastet ned før du sletter bilder.": "ZIP export started. Confirm the file is saved before deleting images.",
+  "Slette ALLE lokalt lagrede treningsbilder? Eksporter ZIP først.": "Delete ALL locally saved training images? Export ZIP first.",
+  "Logg inn for å bruke treningsmodus.": "Log in to use training mode.",
+  "Du har lagret": "You have saved",
+  "Korrigeringen kunne ikke lagres.": "Could not save the correction."
 });
   let lang='no';
   try{lang=localStorage.getItem(KEY)==='en'?'en':'no'}catch{}
@@ -893,6 +930,14 @@
     [/^Utsjekk: (\d+) poeng$/i,m=>'Checkout: '+m[1]+' points'],
     [/^(\d+) (?:\/|av) 3 piler$/i,m=>m[1]+' / 3 darts'],
     [/^(\d+) piler? brukt$/i,m=>m[1]+' '+(m[1]==='1'?'dart':'darts')+' used'],
+    [/^Nyeste kamp · (\d+) piler, i kastrekkefølge$/i,m=>'Most recent match · '+m[1]+' darts, in throw order'],
+    [/^Alle kamper · (\d+) bilder, eldste først$/i,m=>'All matches · '+m[1]+' images, oldest first'],
+    [/^(\d+) \/ 3 piler · (\d+) bilder lagret(.*)$/i,m=>m[1]+' / 3 darts · '+m[2]+' images saved'+m[3].replace('LAGRINGSGRENSE NÅDD','STORAGE LIMIT REACHED')],
+    [/^Siste (\d+) kamper · Høyeste checkout: (\d+) · Raskeste leg: (.*)$/i,m=>'Last '+m[1]+' matches · highest checkout: '+m[2]+' · fastest leg: '+m[3]],
+    [/^Mine ferdige kamper: (\d+) · 3-dart-snitt: ([\d.,]+)(.*)$/i,m=>'My completed matches: '+m[1]+' · 3-dart average: '+m[2]+m[3].replace('basert på viste kamper','based on displayed matches')],
+    [/^Kamp (\d+) · Snitt ([\d.,]+) · Høyeste checkout (.*)$/i,m=>'Match '+m[1]+' · average '+m[2]+' · highest checkout '+m[3]],
+    [/^Korrigert punkt valgt\. Trykk Godkjenn for å lagre\.$/i,m=>'Corrected point selected. Press Approve to save.'],
+
     [/^(.+?) · (\d+) ferdige onlinekamper$/i,m=>m[1]+' · '+m[2]+' completed online matches'],
     [/^Registrert (\d+) runder?$/i,m=>'Recorded '+m[1]+' visits'],
     [/^([\wÆØÅæøå ]+) · (\d+) igjen$/i,m=>m[1]+' · '+m[2]+' remaining'],
@@ -958,7 +1003,7 @@
     if(!value||!value.trim())return;
     const prior=originals.get(node);
     const source=prior&&prior.rendered===value?prior.source:value;
-    const correctedSource=source.replace(/Skårene/g,'Poengsummene').replace(/skårene/g,'poengsummene');
+    const correctedSource=source.replace(/Skårene/g,'Poengsummene').replace(/skårene/g,'poengsummene').replace(/Scorene/g,'Poengsummene').replace(/scorene/g,'poengsummene');
     const next=preserveSpace(correctedSource,x=>{
       if(lang==='en'&&x==='Registrer'&&node.parentElement.closest('.score-entry,.rival-entry,.sa-entry,.score-input,.scoring-input'))return 'Submit score';
       return translatePhrase(x);
