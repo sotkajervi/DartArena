@@ -621,7 +621,7 @@
   function mountSelector(){
     if(selector)return;
     const header=document.querySelector('body > header');
-    if(!header)return;
+    if(!document.body)return;
     selector=document.createElement('div');
     selector.className='da-language-switch';
     selector.setAttribute('role','group');
@@ -638,7 +638,8 @@
       button.addEventListener('click',()=>setLanguage(code));
       selector.appendChild(button);
     }
-    header.appendChild(selector);
+    if(header)header.appendChild(selector);
+    else{selector.classList.add('da-language-floating');document.body.appendChild(selector)}
     updateButtons();
   }
   const sheet=document.createElement('style');
@@ -650,6 +651,13 @@
     'header .da-language-switch .da-language-button:hover{opacity:1}',
     'header .da-language-switch .da-language-button:focus-visible{outline:2px solid #00eaf4;outline-offset:2px}',
     '@media(max-width:650px){header .da-language-switch{gap:1px;margin-left:4px;padding:2px}header .da-language-switch .da-language-button{min-width:25px;min-height:26px;height:26px;padding:1px 2px;font-size:16px}}'
+  ].join('\n');
+  // Password recovery has no site header; keep language choice available there.
+  sheet.textContent+=[
+    '.da-language-floating{position:fixed;z-index:999;right:12px;top:12px;display:inline-flex;gap:3px;padding:3px;border:1px solid rgba(255,255,255,.12);border-radius:9px;background:#071012}',
+    '.da-language-floating .da-language-button{appearance:none;display:grid;place-items:center;min-width:31px;min-height:29px;height:29px;padding:2px 4px;border:1px solid transparent;border-radius:6px;background:transparent;color:#fff;box-shadow:none;font-size:18px;line-height:1;cursor:pointer;opacity:.65}',
+    '.da-language-floating .da-language-button.active{opacity:1;border-color:#00eaf4;background:rgba(0,234,244,.12)}',
+    '.da-language-floating .da-language-button:focus-visible{outline:2px solid #00eaf4;outline-offset:2px}'
   ].join('\n');
   document.head.appendChild(sheet);
   const pending=new Set();
