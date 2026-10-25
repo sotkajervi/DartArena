@@ -67,13 +67,13 @@ async function sync(){
     localStorage.setItem(migratedKey,JSON.stringify([...uploaded].slice(-500)));
    }
   }
-  status.textContent='Skyhistorikk synkronisert med Supabase.';
- }catch(err){status.textContent='Skyhistorikk: synkronisering venter ('+(err.message||'nettverksfeil')+'). Lokalt eksemplar beholdes.'}
+  status.textContent='Kamphistorikken er synkronisert med Supabase.';
+ }catch(err){status.textContent='Synkronisering av kamphistorikk venter ('+(err.message||'nettverksfeil')+'). Lokalt eksemplar beholdes.'}
  finally{working=false;if(queued){queued=false;sync()}}
 }
 async function init(){
  const {data:{session}}=await db.auth.getSession();
- if(!session){status.textContent='Logg inn for å lagre praksiskamper i Supabase. Lokalt eksemplar beholdes.';return}
+ if(!session){status.textContent='Logg inn for å lagre treningskamper i Supabase. Den lokale kopien beholdes.';return}
  uid=session.user.id;
  const {data:role}=await db.from('user_roles').select('role').eq('user_id',uid).maybeSingle();
  staff=['admin','owner'].includes(role?.role);
