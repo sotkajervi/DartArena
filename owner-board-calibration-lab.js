@@ -310,9 +310,10 @@ function wireAuditStatus(){
   'Median absolutt radialavvik: '+median.toFixed(1)+' px\n'+
   'Største absolutt radialavvik: '+maximum.toFixed(1)+' px\n'+
   'Signerte avvik: '+auditPoints.map((p,i)=>String(i+1)+': '+p.errorPx.toFixed(1)+'px').join(' | ');
- say('MÅLT FEIL MOT MANUELT MARKERT YTTERTRÅD: median '+
-  median.toFixed(1)+' px, største '+maximum.toFixed(1)+
-  ' px. Fremdeles IKKE en godkjent autokalibrering.','info');
+ const failed=median>2.5||maximum>4;
+ say((failed?'AVVIST – FOR STORT AVVIK MOT YTTERTRÅD. ':'Referansemåling utført. ')+
+  'Median '+median.toFixed(1)+' px, største '+maximum.toFixed(1)+
+  ' px. Dette er ikke nok til å godkjenne full autokalibrering.',''+(failed?'error':'info'));
 }
 $('wireAuditStart').addEventListener('click',()=>{
  if(!allowed||!lastEllipse)return;
