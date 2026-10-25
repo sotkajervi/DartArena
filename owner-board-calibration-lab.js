@@ -35,6 +35,17 @@ const db=window.supabase?.createClient(
   'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
 );
 let allowed=false,runner=null,source=null,stream=null,loading=false,analyzing=false,lastBoxes=[],lastEllipse=null;
+let auditPoints=[],auditActive=false;
+const auditAngles=Array.from({length:8},(_,i)=>-Math.PI/2+i*Math.PI/4);
+const auditDirections=['øverst','oppe til høyre','til høyre','nede til høyre','nederst','nede til venstre','til venstre','oppe til venstre'];
+function radial(coeffs,t){return coeffs[0]+coeffs[1]*Math.cos(t)+coeffs[2]*Math.sin(t)+coeffs[3]*Math.cos(2*t)+coeffs[4]*Math.sin(2*t)}
+function outerPoint(e,t){const r=radial(e.boundaries.outer,t);return{x:e.cx+r*Math.cos(t)*e.sampleScaleX,y:e.cy+r*Math.sin(t)*e.sampleScaleY}}
+function resetAudit(hide=false){
+ auditPoints=[];auditActive=false;
+ $('wireAudit').hidden=hide;$('wireAuditStart').textContent='Start kontroll (8 punkt)';
+ $('wireAuditUndo').disabled=true;$('wireAuditReset').disabled=true;
+ $('wireAuditStatus').textContent='Ingen manuelle referansepunkter ennå.';
+}
 const view=$('visual'),ctx=view.getContext('2d'),status=$('status');
 const report=$('results'),video=$('camera');
 function say(s,level='info'){
@@ -150,18 +161,33 @@ function paint(){
   const sx=view.width/source.width,sy=view.height/source.height;
   ctx.textBaseline='top';
   if(lastEllipse){
-    const e=lastEllipse,c=e.coeffs;
-    ctx.save();ctx.strokeStyle='#ff51e1';ctx.lineWidth=2.5;ctx.beginPath();
-    for(let i=0;i<=240;i++){
-      const angle=2*Math.PI*i/240,co=Math.cos(angle),si=Math.sin(angle);
-      const r=c[0]+c[1]*co+c[2]*si+c[3]*Math.cos(2*angle)+c[4]*Math.sin(2*angle);
-      const x=(e.cx+r*co*e.sampleScaleX)*sx,y=(e.cy+r*si*e.sampleScaleY)*sy;
-      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    const e=lastEllipse;
+    ctx.save();ctx.lineWidth=2.2;
+    for(const [coeffs,color] of [[e.boundaries.outer,'#ffbf48'],[e.boundaries.inner,'#00ddff']]){
+      ctx.strokeStyle=color;ctx.beginPath();
+      for(let i=0;i<=240;i++){
+        const a=2*Math.PI*i/240,r=radial(coeffs,a);
+        const x=(e.cx+r*Math.cos(a)*e.sampleScaleX)*sx;
+        const y=(e.cy+r*Math.sin(a)*e.sampleScaleY)*sy;
+        if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+      }
+      ctx.closePath();ctx.stroke();
     }
-    ctx.closePath();ctx.stroke();ctx.strokeStyle='#43ffa0';ctx.lineWidth=3;
-    const x=e.cx*sx,y=e.cy*sy;
-    ctx.beginPath();ctx.moveTo(x-12,y);ctx.lineTo(x+12,y);
-    ctx.moveTo(x,y-12);ctx.lineTo(x,y+12);ctx.stroke();ctx.restore();
+    ctx.strokeStyle='#43ffa0';ctx.lineWidth=3;
+    const bx=e.cx*sx,by=e.cy*sy;
+    ctx.beginPath();ctx.moveTo(bx-12,by);ctx.lineTo(bx+12,by);
+    ctx.moveTo(bx,by-12);ctx.lineTo(bx,by+12);ctx.stroke();
+    for(let i=0;i<auditPoints.length;i++){
+      const p=auditPoints[i];ctx.strokeStyle='#ffffff';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(p.x*sx,p.y*sy,5,0,Math.PI*2);ctx.stroke();
+    }
+    if(auditActive&&auditPoints.length<8){
+      const mark=outerPoint(e,auditAngles[auditPoints.length]);
+      ctx.strokeStyle='#ffe048';ctx.lineWidth=2;ctx.beginPath();
+      ctx.moveTo(mark.x*sx-12,mark.y*sy);ctx.lineTo(mark.x*sx+12,mark.y*sy);
+      ctx.moveTo(mark.x*sx,mark.y*sy-12);ctx.lineTo(mark.x*sx,mark.y*sy+12);ctx.stroke();
+    }
+    ctx.restore();
   }
   for(const b of lastBoxes){
     const x=b.x*sx,y=b.y*sy,w=b.w*sx,h=b.h*sy;
