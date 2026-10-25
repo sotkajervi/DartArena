@@ -650,7 +650,21 @@
   "Mot": "Against",
   "motstander": "opponent",
   "Tilskuere": "Spectators",
-  "Tilskuer": "Spectator"
+  "Tilskuer": "Spectator",
+  "PÅ": "ON",
+  "Gå tilbake til hovedlobbyen.": "Return to the main lobby.",
+  "Resultatene teller ikke i puljetabellen og påvirker ikke cup eller seeding.": "Results do not count toward group standings and do not affect knockout or seeding.",
+  "Påmelding åpen": "Registration open",
+  "Klargjør puljer": "Prepare groups",
+  "Klargjør cup": "Prepare knockout",
+  "Turneringen kunne ikke lastes akkurat nå.": "The tournament could not be loaded right now.",
+  "Kunne ikke overføre lederrollen:": "Could not transfer organizer role:",
+  "Turneringsleder • Påmeldt": "Tournament organizer • Registered",
+  "Starte puljespillet med denne trekningen? Etter start er puljene låst.": "Start group stage with this draw? Groups are locked after the start.",
+  "Kampen pågår fortsatt. Gå tilbake til turneringen?": "The match is still in progress. Return to tournament?",
+  "HELE KAMPEN": "FULL MATCH",
+  "Turneringen er ferdig. Puljer, kampresultater, sluttspill og sluttstatistikk kan åpnes herfra.": "The tournament is complete. Groups, match results, knockout stage and final statistics can be accessed here.",
+  "Turneringen er ferdig. Cup, kampresultater og sluttstatistikk kan åpnes herfra.": "The tournament is complete. Knockout, match results and final statistics can be accessed here."
 });
   let lang='no';
   try{lang=localStorage.getItem(KEY)==='en'?'en':'no'}catch{}
