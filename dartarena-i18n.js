@@ -727,8 +727,8 @@
        'høyeste checkout':'highest checkout','raskeste leg':'fastest leg'
     }[m[1]]||m[1])],
     [/^(\d+) (kamp|kamper) • nyeste først$/i,m=>m[1]+' '+(m[1]==='1'?'match':'matches')+' • newest first'],
-    [/^(\d+) piler\s*[·•]\s*checkout\s+(\d+)$/i,m=>m[1]+' darts · checkout '+m[2]],
-    [/^(\d+) piler$/i,m=>m[1]+' darts'],
+    [/^(\d+) piler\s*[·•]\s*checkout\s+(\d+)$/i,m=>m[1]+' '+(m[1]==='1'?'dart':'darts')+' · checkout '+m[2]],
+    [/^(\d+) piler$/i,m=>m[1]+' '+(m[1]==='1'?'dart':'darts')],
     // Composite tournament metadata is a single text node assembled at runtime.
     // Preserve dates, tournament names and winner names verbatim.
     [/^(Puljer \+ cup|Ren cup) • (.+?) • Ferdig (.+?) • (\d+) deltakere • Vinner: (.*)$/i,m=>
