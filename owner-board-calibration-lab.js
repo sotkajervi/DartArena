@@ -84,7 +84,7 @@ $('modelFile').addEventListener('change',update);
 $('load').addEventListener('click',async()=>{
   if(!allowed||loading)return;
   const file=$('modelFile').files?.[0];if(!file)return;
-  loading=true;update();lastBoxes=[];say('Leser modellen lokalt fra filen. Dette kan ta litt tid …');
+  loading=true;$('load').textContent='Laster modell …';update();lastBoxes=[];say('Leser modellen lokalt fra filen. Dette kan ta litt tid …');
   try{
     if(!runtimeStatus())throw Error('TensorFlow Lite er ikke tilgjengelig. Sjekk nettforbindelsen eller prøv Chrome.');
     const bytes=await readModelFile(file);
@@ -109,7 +109,7 @@ $('load').addEventListener('click',async()=>{
     report.hidden=false;report.textContent=String(e?.stack||e);
     console.warn(e);
   }
-  finally{loading=false;update()}
+  finally{loading=false;$('load').textContent='Last lokal modell';update()}
 });
 function paint(){
   if(!source)return;
@@ -209,7 +209,7 @@ function bboxToImage(b,scale,padX,padY,normalized,imgW,imgH){
 }
 $('analyze').addEventListener('click',async()=>{
   if(!allowed||!runner||!source||analyzing)return;
-  analyzing=true;lastBoxes=[];update();say('Analyserer skiva lokalt med TFLite. Dette kan bruke litt tid …');
+  analyzing=true;$('analyze').textContent='Analyserer …';lastBoxes=[];update();say('Analyserer skiva lokalt med TFLite. Dette kan bruke litt tid …');
   let input=null,output=null;
   try{
     // Typical YOLO letterbox; the exact APK preprocessor is not yet verified.
@@ -243,7 +243,7 @@ $('analyze').addEventListener('click',async()=>{
     if(output?.dispose)output.dispose();
     else if(Array.isArray(output))output.forEach(t=>t?.dispose?.());
     else if(output)Object.values(output).forEach(t=>t?.dispose?.());
-    analyzing=false;update();
+    analyzing=false;$('analyze').textContent='Analyser bildet';update();
   }
 });
 $('threshold').addEventListener('change',()=>{if(source&&lastBoxes.length)paint()});
