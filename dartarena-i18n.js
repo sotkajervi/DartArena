@@ -941,6 +941,17 @@
     [/^(.+?) · (\d+) ferdige onlinekamper$/i,m=>m[1]+' · '+m[2]+' completed online matches'],
     [/^Registrert (\d+) runder?$/i,m=>'Recorded '+m[1]+' visits'],
     [/^([\wÆØÅæøå ]+) · (\d+) igjen$/i,m=>m[1]+' · '+m[2]+' remaining'],
+    [/^BUST – (.+) beholder (\d+)\.$/i,m=>'BUST – '+m[1]+' stays on '+m[2]+'.'],
+    [/^(.+): bekreft at siste pil traff en dobbel\.$/i,m=>m[1]+': confirm the final dart hit a double.'],
+    [/^Utsjekk med (\d+) piler?$/i,m=>'Checkout using '+m[1]+' '+(m[1]==='1'?'dart':'darts')],
+    [/^Leg (\d+) · Utsjekk med (\d+) piler?$/i,m=>'Leg '+m[1]+' · Checkout with '+m[2]+' '+(m[2]==='1'?'dart':'darts')],
+    [/^Leg (\d+) · (\d+) igjen$/i,m=>'Leg '+m[1]+' · '+m[2]+' remaining'],
+    [/^Leg (\d+) · (\d+) poeng$/i,m=>'Leg '+m[1]+' · '+m[2]+' points'],
+    [/^Adaptive AI: nivå ([\d.,]+) etter (\d+) kamper\. Justeres mellom kampene\. Botnavnet endrer ikke styrken\.$/i,m=>'Adaptive AI: level '+m[1]+' after '+m[2]+' matches. Adjusts between matches. Bot name does not affect difficulty.'],
+    [/^([\d.,]+) \/ 3 piler$/i,m=>m[1]+' / 3 darts'],
+    [/^(\d+) historiske checkouts \(501\)$/i,m=>m[1]+' historical checkouts (501)'],
+    [/^Kamp (\d+) · Snitt ([\d.,]+) · Høyeste checkout (.*)$/i,m=>'Match '+m[1]+' · average '+m[2]+' · highest checkout '+m[3]],
+
 
     // Numeric and date-dependent UI text from player directory and profile.
     [/^(\d+) registrerte spillere$/i,m=>m[1]+' registered players'],
