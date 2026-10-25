@@ -729,7 +729,7 @@
   "Skriv score og trykk Enter.": "Enter a score and press Enter.",
   "Test Test starter første leg.": "Test Test starts the first leg.",
   "Siste kast i dette leget": "Latest throws in this leg",
-  "Trykk på score for å korrigere": "Select a score to correct it",
+  "Trykk på score for å korrigere": "Select the score to correct it",
   "Ingen kast ennå": "No throws yet",
   "Ingen kast registrert ennå.": "No throws recorded yet.",
   "Siste kast": "Latest throws",
@@ -838,7 +838,30 @@
   "Kan ikke gå tilbake før kampresultatet er registrert. Kontroller meldingen og prøv igjen.": "You cannot go back until the match result is recorded. Check the message and try again.",
   "Minimer": "Minimize",
   "Poengsummene er registrert": "Scores have been recorded.",
-  "Kampen er ferdig": "Match finished"
+  "Kampen er ferdig": "Match finished",
+  "170 Double Out, 301 Double In/Double Out, 501 Double Out og 1001 Double Out. I turneringspuljer kan AI Rival brukes i 170, 501 og 1001. 301 DI/DO er foreløpig kun tilgjengelig som egen AI-kamp.": "170 Double Out, 301 Double In/Double Out, 501 Double Out and 1001 Double Out. In tournament groups, AI Rival supports 170, 501 and 1001. 301 DI/DO is currently available only as a standalone AI match.",
+  "Boten simulerer hvert pilkast. Adaptive AI justerer nivået mellom fullførte kamper og lagres lokalt.": "The bot simulates each dart. Adaptive AI adjusts its level between completed matches and stores it locally.",
+  "Trykk på poengsummen for å korrigere": "Select the score to correct it",
+  "FORSØK": "ATTEMPTS",
+  "33 mål • Shanghai og doubles": "33 targets • Shanghai and doubles",
+  "Utsjekk med": "Checkout with",
+  "poengsum": "score",
+  "poengsummen": "the score",
+  "poengsummene": "the scores",
+  "Poengsummene": "Scores",
+  "Laster AI Rival fra DartArena-historikken…": "Loading AI Rival from DartArena history…",
+  "Velg en DartArena-spiller som AI Rival.": "Choose a DartArena player as AI Rival.",
+  "Fant ikke spilleren.": "Player not found.",
+  "Kunne ikke hente din profil.": "Could not retrieve your profile.",
+  "Kunne ikke lese spillerens registrerte runder.": "Could not read the player's recorded visits.",
+  "Velg AI Rival…": "Choose AI Rival…",
+  " (deg selv)": " (yourself)",
+  "Modellen bruker 501-historikk": "The model uses 501 history",
+  "Resultatet lagres lokalt.": "The result is saved locally.",
+  "Double In er estimert fra dobbel-ut": "Double In is estimated from double out",
+  "Kunne ikke laste AI Rival.": "Could not load AI Rival.",
+  "Kampen er ferdig, men historikken kunne ikke lagres her. Oppdater siden.": "The match ended, but its history could not be saved here. Refresh the page.",
+  "Botfeil:": "Bot error:"
 });
   let lang='no';
   try{lang=localStorage.getItem(KEY)==='en'?'en':'no'}catch{}
@@ -847,7 +870,7 @@
   const ignored='script,style,svg,canvas,code,pre,textarea,[contenteditable],[data-no-i18n],.brand,.brand-logo,.chat-message,.chat-bubble,.chat-msg,.da-chat-message,.dart-chat-message,.dart-chat-meta,.dart-chat-body,.player-name,.da-welcome-user,.da-result-stat-name,.premium-player-name,.tournament-name';
   const dynamic=[
     [/^(.+) · (\d+) gyldige 501-runder · historisk 3-dart-snitt ([\d.,]+) · simulert nivå ([\d.,]+)(.*)$/i,m=>m[1]+' · '+m[2]+' valid 501 visits · historical 3-dart average '+m[3]+' · simulated level '+m[4]+m[5]],
-    [/^(.+) - (\d+) registrerte 501-runder · historisk 3-dart-snitt ([\d.,]+) · simulert (\d+)-snitt ([\d.,]+) · (\d+) historiske checkouts \(501\)(.*)$/i,m=>
+    [/^(.+) [·-] (\d+) registrerte 501-runder · historisk 3-dart-snitt ([\d.,]+) · simulert (\d+)-snitt ([\d.,]+) · (\d+) historiske checkouts \(501\)(.*)$/i,m=>
       m[1]+' - '+m[2]+' recorded 501 visits · historical 3-dart average '+m[3]+' · simulated '+m[4]+' average '+m[5]+' · '+m[6]+' historical checkouts (501)'+m[7].replace('Double In er estimert','Double In is estimated').replace('501-historikk brukt som grunnlag','501 history used as basis')],
     [/^([^\n]+?) (kaster|tenker…) · (\d+) igjen$/i,m=>m[1]+' '+(m[2]==='kaster'?'is throwing':'is thinking…')+' · '+m[3]+' remaining'],
     [/^([^\n]+?) kaster · (\d+) igjen$/i,m=>m[1]+' is throwing · '+m[2]+' remaining'],
