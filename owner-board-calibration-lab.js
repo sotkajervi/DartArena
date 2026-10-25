@@ -34,7 +34,7 @@ const db=window.supabase?.createClient(
   'https://jqpxlbhwvskhjbqrbidk.supabase.co',
   'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
 );
-let allowed=false,runner=null,source=null,stream=null,loading=false,analyzing=false,lastBoxes=[];
+let allowed=false,runner=null,source=null,stream=null,loading=false,analyzing=false,lastBoxes=[],lastEllipse=null;
 const view=$('visual'),ctx=view.getContext('2d'),status=$('status');
 const report=$('results'),video=$('camera');
 function say(s,level='info'){
@@ -56,10 +56,11 @@ $('copyDiagnostic').addEventListener('click',async()=>{
 function update(){
   $('load').disabled=!allowed||loading||!$('modelFile').files.length;
   $('analyze').disabled=!allowed||analyzing||loading||!runner||!source;
+  $('ellipseAnalyze').disabled=!allowed||analyzing||!source;
   $('takeFrame').disabled=!allowed||!stream;
   $('stopCamera').disabled=!allowed||!stream;
   $('startCamera').disabled=!allowed||!!stream;
-  $('saveOverlay').disabled=!allowed||!lastBoxes.length;
+  $('saveOverlay').disabled=!allowed||(!lastBoxes.length&&!lastEllipse);
   runtimeStatus();
 }
 function zipModelBytes(apk){
@@ -148,6 +149,15 @@ function paint(){
   ctx.drawImage(source,0,0,view.width,view.height);
   const sx=view.width/source.width,sy=view.height/source.height;
   ctx.textBaseline='top';
+  if(lastEllipse){
+    const e=lastEllipse;
+    ctx.save();ctx.translate(e.cx*sx,e.cy*sy);ctx.rotate(e.angle);
+    ctx.strokeStyle='#00eaf4';ctx.lineWidth=2.5;
+    ctx.setLineDash([8,5]);ctx.beginPath();ctx.ellipse(0,0,e.major*sx,e.minor*sy,0,0,Math.PI*2);ctx.stroke();
+    ctx.setLineDash([]);ctx.strokeStyle='#43ffa0';ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(-13,0);ctx.lineTo(13,0);ctx.moveTo(0,-13);ctx.lineTo(0,13);ctx.stroke();
+    ctx.restore();
+  }
   for(const b of lastBoxes){
     const x=b.x*sx,y=b.y*sy,w=b.w*sx,h=b.h*sy;
     ctx.lineWidth=2.3;ctx.strokeStyle='#00ebf4';ctx.strokeRect(x-w/2,y-h/2,w,h);
@@ -174,7 +184,7 @@ function imageFromFile(file){
 $('imageFile').addEventListener('change',async()=>{
   if(!allowed||!$('imageFile').files?.[0])return;
   try{
-    source=await imageFromFile($('imageFile').files[0]);lastBoxes=[];paint();
+    source=await imageFromFile($('imageFile').files[0]);lastBoxes=[];lastEllipse=null;paint();
     $('imageState').textContent='Bilde klart: '+source.width+' × '+source.height;
     say('Skivebildet klart ('+source.width+' × '+source.height+'). '+(runner?'Trykk Analyser bildet.':'Last inn en modell for analyse.'));
     report.textContent='';report.hidden=true;
@@ -199,8 +209,43 @@ $('takeFrame').addEventListener('click',()=>{
   if(!stream||!video.videoWidth)return;
   source=document.createElement('canvas');source.width=video.videoWidth;source.height=video.videoHeight;
   source.getContext('2d').drawImage(video,0,0);
-  lastBoxes=[];paint();$('imageState').textContent='Kamerabilde klart: '+source.width+' × '+source.height;
+  lastBoxes=[];lastEllipse=null;paint();$('imageState').textContent='Kamerabilde klart: '+source.width+' × '+source.height;
   say('Kamerabilde tatt. '+(runner?'Trykk Analyser bildet.':'Last modellen for å analysere.'));update();
+});
+// Local, independent ellipse estimate that still works when browser TFLite
+// cannot start. Read-only: users must validate before any future calibration.
+$('ellipseAnalyze').addEventListener('click',()=>{
+ if(!allowed||!source||analyzing)return;
+ analyzing=true;lastBoxes=[];lastEllipse=null;update();
+ $('ellipseAnalyze').textContent='Måler ringer …';
+ try{
+  const E=window.DartArenaEllipseCalibration;
+  if(!E?.estimate)throw Error('Ellipsedetektoren ble ikke lastet.');
+  const sampled=document.createElement('canvas');
+  const width=Math.min(480,source.width),height=Math.round(width*source.height/source.width);
+  sampled.width=width;sampled.height=height;
+  const c=sampled.getContext('2d',{willReadFrequently:true});
+  c.drawImage(source,0,0,width,height);
+  const found=E.estimate(c.getImageData(0,0,width,height));
+  if(!found)throw Error('Fant ikke to tydelige røde/grønne ringer rundt hele skiva. Velg et bilde der skiva er godt synlig, gjerne med bedre lys.');
+  const scaleX=source.width/width,scaleY=source.height/height;
+  lastEllipse={cx:found.cx*scaleX,cy:found.cy*scaleY,
+    major:found.major*scaleX,minor:found.minor*scaleY,angle:found.angle};
+  paint();
+  report.hidden=false;
+  report.textContent='Metode: '+found.method+' (uten modell)\n'+
+    'Anslått Bull: ('+lastEllipse.cx.toFixed(1)+', '+lastEllipse.cy.toFixed(1)+')\n'+
+    'Dobbelring ellipse akser: '+(2*lastEllipse.major).toFixed(1)+' × '+(2*lastEllipse.minor).toFixed(1)+' px\n'+
+    'Ringdekning: '+Math.round(found.coverage*100)+' %\n'+
+    'D20-retning: IKKE FUNNET\n'+
+    'Dette er et forsøksestimat, ikke godkjent kalibrering.';
+  say('Ringestimat klart. Turkis stiplet ellipse = foreslått dobbelring; grønt kryss = Bull.\n'+
+    'Kontroller om ringen følger skiva hele veien. D20-retning og full perspektivkorrigering er IKKE beregnet. Ingenting er lagret.','success');
+ }catch(e){
+  paint();say('Ringtest feilet: '+e.message+'\nIngen innstillinger er endret.','error');
+ }finally{
+  analyzing=false;$('ellipseAnalyze').textContent='Test ring/ellipse uten modell';update();
+ }
 });
 function decodeModelOutput(output,layout,minConfidence){
   const shape=output.shape,data=output.dataSync();
@@ -237,7 +282,7 @@ function bboxToImage(b,scale,padX,padY,normalized,imgW,imgH){
 }
 $('analyze').addEventListener('click',async()=>{
   if(!allowed||!runner||!source||analyzing)return;
-  analyzing=true;$('analyze').textContent='Analyserer …';lastBoxes=[];update();say('Analyserer skiva lokalt med TFLite. Dette kan bruke litt tid …');
+  analyzing=true;$('analyze').textContent='Analyserer …';lastBoxes=[];lastEllipse=null;update();say('Analyserer skiva lokalt med TFLite. Dette kan bruke litt tid …');
   let input=null,output=null;
   try{
     // Typical YOLO letterbox; the exact APK preprocessor is not yet verified.
@@ -274,11 +319,11 @@ $('analyze').addEventListener('click',async()=>{
     analyzing=false;$('analyze').textContent='Analyser bildet';update();
   }
 });
-$('threshold').addEventListener('change',()=>{if(source&&lastBoxes.length)paint()});
+$('threshold').addEventListener('change',()=>{if(source&&(lastBoxes.length||lastEllipse))paint()});
 $('saveOverlay').addEventListener('click',()=>{
-  if(!lastBoxes.length)return;
+  if(!lastBoxes.length&&!lastEllipse)return;
   view.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download='dartarena-lokal-kalibreringsanalyse.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
+    const a=document.createElement('a');a.href=url;a.download=lastEllipse?'dartarena-ring-ellipse-test.png':'dartarena-lokal-kalibreringsanalyse.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
   },'image/png');
 });
 window.addEventListener('pagehide',stopCamera);
