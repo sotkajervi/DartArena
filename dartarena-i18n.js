@@ -847,7 +847,7 @@
   "Utsjekk med": "Checkout with",
   "poengsum": "score",
   "poengsummen": "the score",
-  "poengsummene": "the scores",
+  "poengsummene": "scores",
   "Poengsummene": "Scores",
   "Laster AI Rival fra DartArena-historikken…": "Loading AI Rival from DartArena history…",
   "Velg en DartArena-spiller som AI Rival.": "Choose a DartArena player as AI Rival.",
@@ -861,7 +861,9 @@
   "Double In er estimert fra dobbel-ut": "Double In is estimated from double out",
   "Kunne ikke laste AI Rival.": "Could not load AI Rival.",
   "Kampen er ferdig, men historikken kunne ikke lagres her. Oppdater siden.": "The match ended, but its history could not be saved here. Refresh the page.",
-  "Botfeil:": "Bot error:"
+  "Botfeil:": "Bot error:",
+  "Hvis kameraet registrerer en pil som ikke er der, start runden på nytt. Spissforslag nær skivens metalltråd må alltid kontrolleres.": "If the camera detects a dart that isn't there, restart the visit. Always verify tip suggestions near the dartboard wire.",
+  "Hvor mange piler brukte du på å sjekke ut? Trykk 1, 2 eller 3.": "How many darts did you use to check out? Press 1, 2 or 3."
 });
   let lang='no';
   try{lang=localStorage.getItem(KEY)==='en'?'en':'no'}catch{}
