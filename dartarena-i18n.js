@@ -583,6 +583,10 @@
   const ignored='script,style,svg,canvas,code,pre,textarea,[contenteditable],[data-no-i18n],.brand,.brand-logo,.chat-message,.chat-bubble,.chat-msg,.da-chat-message';
   const dynamic=[
     [/^(\d+) registrerte? treff$/i,(m)=>m[1]+' recorded hits'],
+    [/^Best av (\d+) (legs|sets)$/i,m=>'Best of '+m[1]+' '+m[2]],
+    [/^Best av (\d+)$/i,m=>'Best of '+m[1]],
+    [/^Leg (\d+) av (\d+)$/i,m=>'Leg '+m[1]+' of '+m[2]],
+    [/^Runde (\d+) av (\d+)$/i,m=>'Round '+m[1]+' of '+m[2]],
     [/^(\d+) spissforslag \(beta\)$/i,(m)=>m[1]+' tip suggestions (beta)'],
     [/^Leg (\d+)$/,m=>'Leg '+m[1]],
     [/^(\d+) ser på$/,m=>m[1]+' watching'],
@@ -613,7 +617,10 @@
     if(!value||!value.trim())return;
     const prior=originals.get(node);
     const source=prior&&prior.rendered===value?prior.source:value;
-    const next=preserveSpace(source,x=>translatePhrase(x));
+    const next=preserveSpace(source,x=>{
+      if(lang==='en'&&x==='Registrer'&&node.parentElement.closest('.score-entry,.rival-entry,.sa-entry,.score-input,.scoring-input'))return 'Submit score';
+      return translatePhrase(x);
+    });
     originals.set(node,{source,rendered:next});
     if(next!==value)node.nodeValue=next;
   }
