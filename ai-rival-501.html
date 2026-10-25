@@ -34,7 +34,7 @@
           <label class="field">3-dart-snitt (20–120)<input id="localBotAverage" type="number" min="20" max="120" step="1" value="55"></label>
           <label class="field">Spillestil<select id="localBotProfile"><option value="steady">Jevn</option><option value="erratic">Ustabil</option><option value="scorer">Power Scorer</option><option value="finisher">Finisher</option></select></label>
           <label class="field">Botnavn<select id="localBotName" aria-label="Velg botnavn"></select></label>
-          <p class="muted compact" id="localBotHint">Botten simulerer individuelle piler. Adaptive AI justerer nivået mellom fullførte kamper og lagres lokalt.</p>
+          <p class="muted compact" id="localBotHint">Boten simulerer hvert pilkast. Adaptive AI justerer nivået mellom fullførte kamper og lagres lokalt.</p>
         </div>
       </fieldset>
       <label class="field">Spilltype<select id="localFormat"><option value="501" selected>501</option><option value="301">301 DI/DO</option><option value="170">170</option><option value="1001">1001</option></select></label>
@@ -89,7 +89,7 @@
         <button id="ownerAiApplyScore" type="button" class="primary" disabled>Før sum til scorefelt</button>
         <strong id="ownerAiTotal">0 poeng</strong>
       </div>
-      <p style="font-size:12px;color:#c0d5da;margin-top:9px">Om kameraet registrerer falsk pil, start runden på nytt. Spissforslag nær wire må alltid kontrolleres.</p>
+      <p style="font-size:12px;color:#c0d5da;margin-top:9px">Hvis kameraet registrerer en pil som ikke er der, start runden på nytt. Spissforslag nær skivens metalltråd må alltid kontrolleres.</p>
     </section>
     <section id="aiTrainingPanel" class="card ai-training-panel" hidden aria-label="Owner AI-treningsbilder">
       <div class="ai-train-head"><h3>AI Rival · treningsbilder</h3><span class="ai-train-tag">OWNER · LOKALT</span></div>
@@ -123,7 +123,7 @@
       <p class="ai-train-warning">Bildene lagres i denne nettleseren (IndexedDB). Eksporter ZIP før du sletter data eller bytter nettleser. Bare godkjente punkter skal brukes som fasit i trening.</p>
     </section>
     <section class="card local-corrections" id="localCorrections" aria-label="Korriger nylige kast">
-      <div class="local-corrections-header"><strong>Siste kast i dette leget</strong><small>Trykk på score for å korrigere</small></div>
+      <div class="local-corrections-header"><strong>Siste kast i dette leget</strong><small>Trykk på poengsummen for å korrigere</small></div>
       <div class="local-correction-line"><span id="localThrowsName0" class="local-correction-name">Spiller 1</span><div id="localThrows0" class="local-correction-chips"></div></div>
       <div class="local-correction-line"><span id="localThrowsName1" class="local-correction-name">Spiller 2</span><div id="localThrows1" class="local-correction-chips"></div></div>
     </section>
@@ -182,7 +182,7 @@
   <form id="localCheckoutForm" class="card local-modal-card">
     <small>DOBBEL-UT</small><h2 id="localCheckoutTitle">Bekreft utsjekk</h2>
     <p id="localCheckoutText"></p>
-    <p class="muted compact">Hvor mange piler brukte du på å lukke? Trykk 1, 2 eller 3.</p><div id="localCheckoutChoices" class="checkout-darts-buttons" role="group" aria-label="Piler brukt i checkout"></div><select id="localCheckoutDarts" hidden aria-label="Antall piler brukt i checkout"></select>
+    <p class="muted compact">Hvor mange piler brukte du på å sjekke ut? Trykk 1, 2 eller 3.</p><div id="localCheckoutChoices" class="checkout-darts-buttons" role="group" aria-label="Piler brukt i checkout"></div><select id="localCheckoutDarts" hidden aria-label="Antall piler brukt i checkout"></select>
     <p class="muted compact">Bekreft bare hvis siste pil traff en dobbel (bull 50 teller som dobbel).</p>
     <div class="local-checkout-actions"><button id="localCheckoutCancel" class="outline" type="button">Avbryt</button><button id="localCheckoutBust" class="outline" type="button">Ikke dobbel / BUST</button><button id="localCheckoutConfirm" class="primary" type="submit">Bekreft utsjekk</button></div>
   </form>
