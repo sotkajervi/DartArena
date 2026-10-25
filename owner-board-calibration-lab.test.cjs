@@ -33,7 +33,7 @@ test('Owner gate and no modification to real calibration, media sends or scoring
   assert.match(js,/window\.addEventListener\('pagehide',stopCamera\)/);
 });
 test('Current page has versioned script and JS parses',()=>{
-  assert.match(html,/owner-board-calibration-lab\.js\?v=20261025-wasm-path1/);
+  assert.match(html,/owner-board-calibration-lab\.js\?v=20261025-wireaudit1/);
   assert.doesNotThrow(()=>new Function(js));
 });
 

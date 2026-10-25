@@ -35,6 +35,17 @@ const db=window.supabase?.createClient(
   'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
 );
 let allowed=false,runner=null,source=null,stream=null,loading=false,analyzing=false,lastBoxes=[],lastEllipse=null;
+let auditPoints=[],auditActive=false;
+const auditAngles=Array.from({length:8},(_,i)=>-Math.PI/2+i*Math.PI/4);
+const auditDirections=['øverst','oppe til høyre','til høyre','nede til høyre','nederst','nede til venstre','til venstre','oppe til venstre'];
+function radial(coeffs,t){return coeffs[0]+coeffs[1]*Math.cos(t)+coeffs[2]*Math.sin(t)+coeffs[3]*Math.cos(2*t)+coeffs[4]*Math.sin(2*t)}
+function outerPoint(e,t){const r=radial(e.boundaries.outer,t);return{x:e.cx+r*Math.cos(t)*e.sampleScaleX,y:e.cy+r*Math.sin(t)*e.sampleScaleY}}
+function resetAudit(hide=false){
+ auditPoints=[];auditActive=false;
+ $('wireAudit').hidden=hide;$('wireAuditStart').textContent='Start kontroll (8 punkt)';
+ $('wireAuditUndo').disabled=true;$('wireAuditReset').disabled=true;
+ $('wireAuditStatus').textContent='Ingen manuelle referansepunkter ennå.';
+}
 const view=$('visual'),ctx=view.getContext('2d'),status=$('status');
 const report=$('results'),video=$('camera');
 function say(s,level='info'){
@@ -150,18 +161,33 @@ function paint(){
   const sx=view.width/source.width,sy=view.height/source.height;
   ctx.textBaseline='top';
   if(lastEllipse){
-    const e=lastEllipse,c=e.coeffs;
-    ctx.save();ctx.strokeStyle='#ff51e1';ctx.lineWidth=2.5;ctx.beginPath();
-    for(let i=0;i<=240;i++){
-      const angle=2*Math.PI*i/240,co=Math.cos(angle),si=Math.sin(angle);
-      const r=c[0]+c[1]*co+c[2]*si+c[3]*Math.cos(2*angle)+c[4]*Math.sin(2*angle);
-      const x=(e.cx+r*co*e.sampleScaleX)*sx,y=(e.cy+r*si*e.sampleScaleY)*sy;
-      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    const e=lastEllipse;
+    ctx.save();ctx.lineWidth=2.2;
+    for(const [coeffs,color] of [[e.boundaries.outer,'#ffbf48'],[e.boundaries.inner,'#00ddff']]){
+      ctx.strokeStyle=color;ctx.beginPath();
+      for(let i=0;i<=240;i++){
+        const a=2*Math.PI*i/240,r=radial(coeffs,a);
+        const x=(e.cx+r*Math.cos(a)*e.sampleScaleX)*sx;
+        const y=(e.cy+r*Math.sin(a)*e.sampleScaleY)*sy;
+        if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+      }
+      ctx.closePath();ctx.stroke();
     }
-    ctx.closePath();ctx.stroke();ctx.strokeStyle='#43ffa0';ctx.lineWidth=3;
-    const x=e.cx*sx,y=e.cy*sy;
-    ctx.beginPath();ctx.moveTo(x-12,y);ctx.lineTo(x+12,y);
-    ctx.moveTo(x,y-12);ctx.lineTo(x,y+12);ctx.stroke();ctx.restore();
+    ctx.strokeStyle='#43ffa0';ctx.lineWidth=3;
+    const bx=e.cx*sx,by=e.cy*sy;
+    ctx.beginPath();ctx.moveTo(bx-12,by);ctx.lineTo(bx+12,by);
+    ctx.moveTo(bx,by-12);ctx.lineTo(bx,by+12);ctx.stroke();
+    for(let i=0;i<auditPoints.length;i++){
+      const p=auditPoints[i];ctx.strokeStyle='#ffffff';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(p.x*sx,p.y*sy,5,0,Math.PI*2);ctx.stroke();
+    }
+    if(auditActive&&auditPoints.length<8){
+      const mark=outerPoint(e,auditAngles[auditPoints.length]);
+      ctx.strokeStyle='#ffe048';ctx.lineWidth=2;ctx.beginPath();
+      ctx.moveTo(mark.x*sx-12,mark.y*sy);ctx.lineTo(mark.x*sx+12,mark.y*sy);
+      ctx.moveTo(mark.x*sx,mark.y*sy-12);ctx.lineTo(mark.x*sx,mark.y*sy+12);ctx.stroke();
+    }
+    ctx.restore();
   }
   for(const b of lastBoxes){
     const x=b.x*sx,y=b.y*sy,w=b.w*sx,h=b.h*sy;
@@ -189,7 +215,7 @@ function imageFromFile(file){
 $('imageFile').addEventListener('change',async()=>{
   if(!allowed||!$('imageFile').files?.[0])return;
   try{
-    source=await imageFromFile($('imageFile').files[0]);lastBoxes=[];lastEllipse=null;paint();
+    source=await imageFromFile($('imageFile').files[0]);lastBoxes=[];lastEllipse=null;resetAudit(true);paint();
     $('imageState').textContent='Bilde klart: '+source.width+' × '+source.height;
     say('Skivebildet klart ('+source.width+' × '+source.height+'). '+(runner?'Trykk Analyser bildet.':'Last inn en modell for analyse.'));
     report.textContent='';report.hidden=true;
@@ -214,14 +240,14 @@ $('takeFrame').addEventListener('click',()=>{
   if(!stream||!video.videoWidth)return;
   source=document.createElement('canvas');source.width=video.videoWidth;source.height=video.videoHeight;
   source.getContext('2d').drawImage(video,0,0);
-  lastBoxes=[];lastEllipse=null;paint();$('imageState').textContent='Kamerabilde klart: '+source.width+' × '+source.height;
+  lastBoxes=[];lastEllipse=null;resetAudit(true);paint();$('imageState').textContent='Kamerabilde klart: '+source.width+' × '+source.height;
   say('Kamerabilde tatt. '+(runner?'Trykk Analyser bildet.':'Last modellen for å analysere.'));update();
 });
 // Local, independent ellipse estimate that still works when browser TFLite
 // cannot start. Read-only: users must validate before any future calibration.
 $('ellipseAnalyze').addEventListener('click',()=>{
  if(!allowed||!source||analyzing)return;
- analyzing=true;lastBoxes=[];lastEllipse=null;update();
+ analyzing=true;lastBoxes=[];lastEllipse=null;resetAudit(true);update();
  $('ellipseAnalyze').textContent='Måler ringer …';
  try{
   const E=window.DartArenaEllipseCalibration;
@@ -235,7 +261,8 @@ $('ellipseAnalyze').addEventListener('click',()=>{
   if(!found)throw Error('AVVIST: Bull og skiveringene ble ikke funnet med tilstrekkelig sikkerhet. Ingen kalibrering foreslås.');
   const scaleX=source.width/width,scaleY=source.height/height;
   lastEllipse={cx:found.cx*scaleX,cy:found.cy*scaleY,
-    coeffs:found.coeffs,sampleScaleX:scaleX,sampleScaleY:scaleY,fit:found.fit};
+    coeffs:found.coeffs,boundaries:found.boundaries,sampleScaleX:scaleX,sampleScaleY:scaleY,fit:found.fit};
+  resetAudit(false);
   paint();
   report.hidden=false;
   const scale=(scaleX+scaleY)/2;
@@ -245,19 +272,90 @@ $('ellipseAnalyze').addEventListener('click',()=>{
     'Fargering-sektorer: '+found.fit.angles+' / 72\n'+
     'Sektorer holdt utenfor tilpasningen: '+found.fit.validationAngles+'\n'+
     'Avvik mot utelatte FARGEPUNKTER: median '+median.toFixed(1)+' px, 90-persentil '+p90.toFixed(1)+' px\n'+
-    'Dette er IKKE uavhengig målt treffnøyaktighet.\n'+
+    'Intern fargefeil er IKKE målt avvik mot metalltrådene.\n'+
+    'Gult = anslått ytre fargegrense; blått = anslått indre fargegrense.\n'+
+    'Bruk kontrollen under bildet for å måle mot den faktiske yttertråden.\n'+
     'D20-retning: UKJENT · Full perspektivkorrigering: IKKE FERDIG.\n'+
     'KUN TEST. Ingen innstillinger eller scoring er endret.';
   say('TEST – IKKE GODKJENT KALIBRERING.\n'+
-    'Rosa kontur er ringforslaget; grønt kryss er funnet Bull.\n'+
+    'Gult og blått er anslåtte fargegrenser, ikke verifiserte metalltråder. Grønt kryss er anslått Bull.\n'+
     '90-persentil for utelatte fargepunkter: '+p90.toFixed(1)+' px. '+
     'Kontroller visuelt at konturen følger dobbelringen hele veien. Ingenting lagres.','info');
  }catch(e){
   paint();say('Ringtest feilet: '+e.message+'\nIngen innstillinger er endret.','error');
  }finally{
-  analyzing=false;$('ellipseAnalyze').textContent='Test ringmodell v2 (Owner)';update();
+  analyzing=false;$('ellipseAnalyze').textContent='Test dobbelringens to kanter';update();
  }
 });
+
+function wireAuditStatus(){
+ const n=auditPoints.length;
+ $('wireAuditUndo').disabled=n===0;
+ $('wireAuditReset').disabled=n===0&&!auditActive;
+ if(auditActive&&n<8){
+  $('wireAuditStatus').textContent='Punkt '+(n+1)+'/8: Klikk på YTTERSTE metalltråd '+
+   auditDirections[n]+', nær det gule krysset. Ikke klikk midt i fargefeltet.';
+  return;
+ }
+ if(n!==8)return;
+ const absolute=auditPoints.map(p=>Math.abs(p.errorPx)).sort((a,b)=>a-b);
+ const median=(absolute[3]+absolute[4])/2;
+ const maximum=absolute[7];
+ $('wireAuditStatus').textContent=
+  '8 punkter målt på faktiske tråder: median '+median.toFixed(1)+
+  ' px, største '+maximum.toFixed(1)+' px radialt i kamerabildet. '+
+  'Dette er manuelle referansepunkter; ikke en godkjent automatisk kalibrering.';
+ report.hidden=false;
+ report.textContent+='\n\nMANUELLE REFERANSEPUNKT – faktisk yttertråd:\n'+
+  'Median absolutt radialavvik: '+median.toFixed(1)+' px\n'+
+  'Største absolutt radialavvik: '+maximum.toFixed(1)+' px\n'+
+  'Signerte avvik: '+auditPoints.map((p,i)=>String(i+1)+': '+p.errorPx.toFixed(1)+'px').join(' | ');
+ const failed=median>2.5||maximum>4;
+ say((failed?'AVVIST – FOR STORT AVVIK MOT YTTERTRÅD. ':'Referansemåling utført. ')+
+  'Median '+median.toFixed(1)+' px, største '+maximum.toFixed(1)+
+  ' px. Dette er ikke nok til å godkjenne full autokalibrering.',''+(failed?'error':'info'));
+}
+$('wireAuditStart').addEventListener('click',()=>{
+ if(!allowed||!lastEllipse)return;
+ auditPoints=[];auditActive=true;
+ $('wireAuditStart').textContent='Start på nytt';
+ wireAuditStatus();paint();
+});
+$('wireAuditUndo').addEventListener('click',()=>{
+ if(!lastEllipse||!auditPoints.length)return;
+ auditPoints.pop();auditActive=true;wireAuditStatus();paint();
+});
+$('wireAuditReset').addEventListener('click',()=>{
+ if(!lastEllipse)return;
+ resetAudit(false);paint();
+});
+view.addEventListener('click',event=>{
+ if(!allowed||!auditActive||!source||!lastEllipse||auditPoints.length>=8)return;
+ const rect=view.getBoundingClientRect();
+ const scale=Math.min(rect.width/view.width,rect.height/view.height);
+ if(scale<=0)return;
+ const padX=(rect.width-view.width*scale)/2;
+ const padY=(rect.height-view.height*scale)/2;
+ const px=(event.clientX-rect.left-padX)/scale;
+ const py=(event.clientY-rect.top-padY)/scale;
+ if(px<0||py<0||px>view.width||py>view.height)return;
+ const x=px*source.width/view.width,y=py*source.height/view.height;
+ const e=lastEllipse,dx=(x-e.cx)/e.sampleScaleX,dy=(y-e.cy)/e.sampleScaleY;
+ const theta=Math.atan2(dy,dx),expected=auditAngles[auditPoints.length];
+ const angleError=Math.atan2(Math.sin(theta-expected),Math.cos(theta-expected));
+ const actualR=Math.hypot(dx,dy);
+ const predictedR=radial(e.boundaries.outer,theta);
+ if(Math.abs(angleError)>.36||Math.abs(actualR-predictedR)>Math.max(25,predictedR*.19)){
+  $('wireAuditStatus').textContent='Klikk nær det gule krysset, på faktisk metalltråd '+
+   auditDirections[auditPoints.length]+'.';
+  return;
+ }
+ const errorPx=(actualR-predictedR)*(e.sampleScaleX+e.sampleScaleY)/2;
+ auditPoints.push({x,y,theta,errorPx});
+ if(auditPoints.length===8)auditActive=false;
+ wireAuditStatus();paint();
+});
+
 function decodeModelOutput(output,layout,minConfidence){
   const shape=output.shape,data=output.dataSync();
   // YOLO-style output [1, 4+C, N], not a guaranteed class mapping.
