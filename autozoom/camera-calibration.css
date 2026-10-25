@@ -20,14 +20,3 @@
 .cam-zoom-guide-toggle input{width:17px;height:17px;accent-color:#00eaf4}
 .cam-zoom-framing p{font-size:11px;line-height:1.45}
 @media(max-width:520px){.cam-zoom-framing-header{flex-wrap:wrap}.cam-zoom-framing-controls{grid-template-columns:1fr}.cam-zoom-framing-controls button{justify-self:start}.cam-zoom-inset-guide span{font-size:8px;padding:3px}}
-
-/* Isolated opt-in auto-calibration preview. The raw camera remains unchanged. */
-.cam-auto-panel{margin:8px 0;padding:10px 12px;border:1px solid rgba(0,234,244,.30);border-radius:9px;background:rgba(0,234,244,.035)}
-.cam-auto-panel[hidden],.cam-auto-guide-canvas[hidden]{display:none!important}
-.cam-auto-panel strong{display:block;font-size:11px;letter-spacing:.08em;color:#00eaf4}
-.cam-auto-panel p{margin:7px 0 9px!important;font-size:12px;line-height:1.45;color:#d5e7e9}
-.cam-auto-panel .cam-zoom-row{margin:0}
-.cam-test-preview .cam-auto-guide-canvas{position:absolute;inset:0;z-index:7;width:100%;height:100%;pointer-events:none}
-/* Active only while adjusting the auto-detected Bull or D20. */
-.cam-test-preview .cam-auto-edit-layer{position:absolute;inset:0;z-index:9;cursor:crosshair;background:rgba(0,234,244,.035);touch-action:manipulation}
-.cam-test-preview .cam-auto-edit-layer[hidden]{display:none!important}
