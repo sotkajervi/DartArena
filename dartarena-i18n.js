@@ -658,6 +658,20 @@
   const originalAttrs=new WeakMap();
   const ignored='script,style,svg,canvas,code,pre,textarea,[contenteditable],[data-no-i18n],.brand,.brand-logo,.chat-message,.chat-bubble,.chat-msg,.da-chat-message,.dart-chat-message,.dart-chat-meta,.dart-chat-body,.player-name,.da-welcome-user,.da-result-stat-name,.premium-player-name,.tournament-name';
   const dynamic=[
+    // Composite tournament metadata is a single text node assembled at runtime.
+    // Preserve dates, tournament names and winner names verbatim.
+    [/^(Puljer \+ cup|Ren cup) • (.+?) • Ferdig (.+?) • (\d+) deltakere • Vinner: (.*)$/i,m=>
+      (m[1]==='Puljer + cup'?'Groups + knockout':'Knockout only')+' • '+
+      m[2].replace(/Puljer:/g,'Groups:').replace(/Cup:/g,'Knockout:')+
+      ' • Finished '+m[3]+' • '+m[4]+' participants • Winner: '+m[5]],
+    [/^(Puljer \+ cup|Ren cup) • (.+?) • (.+?) • (\d+) påmeldt$/i,m=>
+      (m[1]==='Puljer + cup'?'Groups + knockout':'Knockout only')+' • '+
+      m[2].replace(/Puljer:/g,'Groups:').replace(/Cup:/g,'Knockout:')+
+      ' • '+m[3]+' • '+m[4]+' registered'],
+    [/^Se alle turneringer \((\d+)\)$/i,m=>'View all tournaments ('+m[1]+')'],
+    [/^Vis færre turneringer \((\d+)\)$/i,m=>'Show fewer tournaments ('+m[1]+')'],
+    [/^(\d+) deltakere$/i,m=>m[1]+' participants'],
+    [/^(\d+) påmeldt$/i,m=>m[1]+' registered'],
     [/^(\d+) registrerte? treff$/i,(m)=>m[1]+' recorded hits'],
     [/^Best av (\d+) (legs|sets)$/i,m=>'Best of '+m[1]+' '+m[2]],
     [/^Best av (\d+)$/i,m=>'Best of '+m[1]],
