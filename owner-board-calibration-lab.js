@@ -5,6 +5,7 @@
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
+const tf=window.tf,tflite=window.tflite;
 const APK_ENTRY='assets/flutter_assets/assets/models/dart_calibration_w7s.tflite';
 const MAX_MODEL=80*1024*1024,MAX_APK=260*1024*1024;
 const STAGE=1024;
