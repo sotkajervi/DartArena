@@ -718,16 +718,16 @@
   const ignored='script,style,svg,canvas,code,pre,textarea,[contenteditable],[data-no-i18n],.brand,.brand-logo,.chat-message,.chat-bubble,.chat-msg,.da-chat-message,.dart-chat-message,.dart-chat-meta,.dart-chat-body,.player-name,.da-welcome-user,.da-result-stat-name,.premium-player-name,.tournament-name';
   const dynamic=[
     // Numeric and date-dependent UI text from player directory and profile.
-    [/^(\\d+) registrerte spillere$/i,m=>m[1]+' registered players'],
-    [/^(\\d+) treff$/i,m=>m[1]+' results'],
-    [/^Registrert\\s+(.+)$/i,m=>'Registered '+m[1]],
-    [/^Registrert\\s+(.+?) • (\\d+) ferdige onlinekamper$/i,m=>'Registered '+m[1]+' • '+m[2]+' completed online matches'],
-    [/^Sortert på\\s+(.+)$/i,m=>'Sorted by '+({
+    [/^(\d+) registrerte spillere$/i,m=>m[1]+' registered players'],
+    [/^(\d+) treff$/i,m=>m[1]+' results'],
+    [/^Registrert\s+(.+?) • (\d+) ferdige onlinekamper$/i,m=>'Registered '+m[1]+' • '+m[2]+' completed online matches'],
+    [/^Registrert\s+(.+)$/i,m=>'Registered '+m[1]],
+    [/^Sortert på\s+(.+)$/i,m=>'Sorted by '+({
        'navn A–Å':'name A–Z','seiersprosent':'win rate','kamper':'matches',
        'høyeste checkout':'highest checkout','raskeste leg':'fastest leg'
     }[m[1]]||m[1])],
-    [/^(\\d+) (kamp|kamper) • nyeste først$/i,m=>m[1]+' '+(m[1]==='1'?'match':'matches')+' • newest first'],
-    [/^(\\d+) piler$/i,m=>m[1]+' darts'],
+    [/^(\d+) (kamp|kamper) • nyeste først$/i,m=>m[1]+' '+(m[1]==='1'?'match':'matches')+' • newest first'],
+    [/^(\d+) piler$/i,m=>m[1]+' darts'],
     // Composite tournament metadata is a single text node assembled at runtime.
     // Preserve dates, tournament names and winner names verbatim.
     [/^(Puljer \+ cup|Ren cup) • (.+?) • Ferdig (.+?) • (\d+) deltakere • Vinner: (.*)$/i,m=>
