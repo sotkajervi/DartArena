@@ -664,7 +664,52 @@
   "Kampen pågår fortsatt. Gå tilbake til turneringen?": "The match is still in progress. Return to tournament?",
   "HELE KAMPEN": "FULL MATCH",
   "Turneringen er ferdig. Puljer, kampresultater, sluttspill og sluttstatistikk kan åpnes herfra.": "The tournament is complete. Groups, match results, knockout stage and final statistics can be accessed here.",
-  "Turneringen er ferdig. Cup, kampresultater og sluttstatistikk kan åpnes herfra.": "The tournament is complete. Knockout, match results and final statistics can be accessed here."
+  "Turneringen er ferdig. Cup, kampresultater og sluttstatistikk kan åpnes herfra.": "The tournament is complete. Knockout, match results and final statistics can be accessed here.",
+  "Seier": "Win rate",
+  "SEIER": "WIN",
+  "Seire": "Wins",
+  "TAP": "LOSS",
+  "UAVGJORT": "DRAW",
+  "Seiersprosent": "Win rate",
+  "kamper": "matches",
+  "kamp": "match",
+  "registrerte spillere": "registered players",
+  "treff": "results",
+  "Skriv navn…": "Enter a name…",
+  "Sortert på": "Sorted by",
+  "navn A–Å": "name A–Z",
+  "seiersprosent": "win rate",
+  "høyeste checkout": "highest checkout",
+  "raskeste leg": "fastest leg",
+  "Spiller ikke funnet": "Player not found",
+  "Denne spillerprofilen finnes ikke.": "This player profile does not exist.",
+  "Ingen spillere matcher søket.": "No players match your search.",
+  "Kunne ikke laste spillerlisten.": "Could not load the player directory.",
+  "Profilene viser ferdige onlinekamper og turneringskamper. Oppvarming, trening og slettede kamper er ikke med. Ingen e-post eller kontoinformasjon vises.": "Profiles include completed online and tournament matches. Warm-ups, practice and deleted matches are excluded. Email addresses and account information are never shown.",
+  "DartArena • Spillerprofil": "DartArena • Player profile",
+  "SPILLERPROFIL": "PLAYER PROFILE",
+  "KARRIERESTATISTIKK": "CAREER STATISTICS",
+  "Til spillerlisten": "Back to player directory",
+  "Laster statistikk…": "Loading statistics…",
+  "Onlinekamper": "Online matches",
+  "ferdige onlinekamper": "completed online matches",
+  "Beste kamp-AVG": "Best match AVG",
+  "X01 KARRIERE": "X01 CAREER",
+  "X01-kamper": "X01 matches",
+  "Total poeng": "Total points",
+  "Total piler": "Total darts",
+  "CRICKET KARRIERE": "CRICKET CAREER",
+  "Beste MPR": "Best MPR",
+  "Totalene inkluderer ferdige online- og turneringskamper. Chicago vises i kamphistorikken, men påvirker ikke vanlig X01- eller Cricket-karrierestatistikk. Oppvarming, trening og slettede kamper teller ikke.": "Totals include completed online and tournament matches. Chicago appears in match history but does not affect regular X01 or Cricket career statistics. Warm-ups, practice and deleted matches do not count.",
+  "Alle kamper": "All matches",
+  "Vanlig online": "Regular online",
+  "nyeste først": "newest first",
+  "Ingen kamper i dette utvalget.": "No matches for this filter.",
+  "Se statistikk": "View statistics",
+  "Raskeste": "Fastest",
+  "Pulje": "Group",
+  "Kunne ikke laste spillerstatistikken.": "Could not load player statistics.",
+  "Kunne ikke laste kamphistorikken.": "Could not load match history."
 });
   let lang='no';
   try{lang=localStorage.getItem(KEY)==='en'?'en':'no'}catch{}
@@ -672,6 +717,17 @@
   const originalAttrs=new WeakMap();
   const ignored='script,style,svg,canvas,code,pre,textarea,[contenteditable],[data-no-i18n],.brand,.brand-logo,.chat-message,.chat-bubble,.chat-msg,.da-chat-message,.dart-chat-message,.dart-chat-meta,.dart-chat-body,.player-name,.da-welcome-user,.da-result-stat-name,.premium-player-name,.tournament-name';
   const dynamic=[
+    // Numeric and date-dependent UI text from player directory and profile.
+    [/^(\\d+) registrerte spillere$/i,m=>m[1]+' registered players'],
+    [/^(\\d+) treff$/i,m=>m[1]+' results'],
+    [/^Registrert\\s+(.+)$/i,m=>'Registered '+m[1]],
+    [/^Registrert\\s+(.+?) • (\\d+) ferdige onlinekamper$/i,m=>'Registered '+m[1]+' • '+m[2]+' completed online matches'],
+    [/^Sortert på\\s+(.+)$/i,m=>'Sorted by '+({
+       'navn A–Å':'name A–Z','seiersprosent':'win rate','kamper':'matches',
+       'høyeste checkout':'highest checkout','raskeste leg':'fastest leg'
+    }[m[1]]||m[1])],
+    [/^(\\d+) (kamp|kamper) • nyeste først$/i,m=>m[1]+' '+(m[1]==='1'?'match':'matches')+' • newest first'],
+    [/^(\\d+) piler$/i,m=>m[1]+' darts'],
     // Composite tournament metadata is a single text node assembled at runtime.
     // Preserve dates, tournament names and winner names verbatim.
     [/^(Puljer \+ cup|Ren cup) • (.+?) • Ferdig (.+?) • (\d+) deltakere • Vinner: (.*)$/i,m=>
