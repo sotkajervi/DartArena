@@ -58,7 +58,7 @@ button:not(:disabled):hover{border-color:var(--cyan)}
 <header><div class="brand"><a href="./"><img src="./assets/dartarena-logo.jpg" alt="DartArena" width="180"></a></div><small>OWNER · KALIBRERING · EKSPERIMENT</small></header>
 <main id="lab">
 <div class="subhead">SCORINGARENA / OWNER / KAMERATEST</div><h1>Kalibreringstest</h1>
-<p>Eksperimentell test av kalibreringsmodell på PC-en din. Ingen opplasting, ingen endring av Zoom-cam-kalibrering eller score. <a href="./" style="color:#00eaf4">Tilbake til DartArena</a>.</p>
+<p>Test skivegjenkjenning på PC-en din. Ring/ellipse fungerer uten modellfil. DartsKey-modellen kan fortsatt prøves separat. Ingen opplasting, ingen endring av Zoom-cam-kalibrering eller score. <a href="./" style="color:#00eaf4">Tilbake til DartArena</a>.</p>
 <div id="runState" data-level="info"><strong>Teststatus</strong><p id="status" role="status">Velg en lokal modellfil og et skivebilde for å starte.</p><div class="row"><button id="copyDiagnostic" type="button" style="font-size:12px;min-height:36px">Kopier teststatus</button><span id="runtimeState" class="stepHelp"></span></div></div>
 <section id="denied" role="status">Kontrollerer Owner-tilgang …</section>
 <div id="app" hidden>
@@ -75,19 +75,20 @@ button:not(:disabled):hover{border-color:var(--cyan)}
 <div class="row"><button id="startCamera" type="button">Start kamera</button><button id="takeFrame" type="button" disabled>Ta bilde</button><button id="stopCamera" type="button" disabled>Stopp kamera</button><span id="cameraState">Kamera avslått</span></div>
 <video id="camera" muted autoplay playsinline hidden></video>
 <p id="imageState" class="stepHelp">Ingen skivebilder valgt.</p>
-<div class="row" style="margin:12px 0"><button id="analyze" class="primary" disabled type="button">Analyser bildet</button>
+<div class="row" style="margin:12px 0"><button id="ellipseAnalyze" class="primary" disabled type="button">Test ring/ellipse uten modell</button><button id="analyze" disabled type="button">Analyser med TFLite</button>
 <label style="margin:0">Minste sikkerhet <select id="threshold"><option value=".35">35 %</option><option value=".5" selected>50 %</option><option value=".65">65 %</option></select></label>
 <button id="saveOverlay" type="button" disabled>Lagre resultatbilde (.png)</button></div>
 </section>
 </div>
 <section><h2>3. Analyser og se resultat</h2>
 <canvas id="visual" width="960" height="720" hidden aria-label="Bilde med modellens foreslåtte objekter og kalibreringspunkter"></canvas>
-<p class="stepHelp">DartsKeys modellklasser vises foreløpig som C0–C20. Vi har ikke verifisert klassene eller nettleserstøtten, så dette er diagnostikk og ikke ferdig autokalibrering. <a href="./" style="color:#00eaf4">Manuell kalibrering finnes fortsatt i Cam-test.</a></p>
+<p class="stepHelp">Ring/ellipse er en uavhengig beregning av sentrum og fargeringer, ikke DartsKey-AI. Den retter ikke perspektivet fullt ut eller finner hvilken sektor som er D20. Ingen kalibrering lagres. DartsKeys modellklasser vises som C0–C20 dersom TFLite-motoren kan kjøre. <a href="./" style="color:#00eaf4">Manuell kalibrering finnes fortsatt i Cam-test.</a></p>
 <pre id="results" hidden></pre></section>
 </div></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.22.0/dist/tf-core.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.22.0/dist/tf-backend-cpu.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite@0.0.1-alpha.10/dist/tf-tflite.min.js"></script>
-<script src="./owner-board-calibration-lab.js?v=20261025-wasm-path1"></script>
+<script src="./autozoom/ellipse-calibration.js?v=20261025-ellipse1"></script>
+<script src="./owner-board-calibration-lab.js?v=20261025-ellipse1"></script>
 </body></html>
