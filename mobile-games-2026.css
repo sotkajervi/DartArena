@@ -1,0 +1,234 @@
+/* DartArena 2026-10 mobile game layout.
+   Entire stylesheet is gated to <=700 CSS px. Never change desktop geometry.
+   Mobile-only presentation: existing game state, scoring, logos and colors stay intact. */
+@media screen and (max-width:700px){
+  /* Shared responsive shell; preserve site branding and all game buttons. */
+  body.local-h2h-page,body.match-page,body.half-it-solo-page,body.training-61-page{
+    overflow-x:clip;
+  }
+  body.local-h2h-page .local-h2h-shell,body.match-page .shell,
+  body.half-it-solo-page .shell,body.training-61-page .shell{
+    width:calc(100% - 16px);
+    max-width:100%;
+    margin-left:auto;margin-right:auto;
+    min-width:0;
+  }
+  body.local-h2h-page button,body.match-page button,
+  body.half-it-solo-page button,body.training-61-page button{
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  /* Head-to-Head and local variants: same dark cards, more score space,
+     larger scoring controls and no competing desktop-only stats panel. */
+  body.local-h2h-page .local-h2h-heading{gap:7px;margin:3px 0 8px}
+  body.local-h2h-page .local-h2h-heading h1{font-size:20px;line-height:1.1}
+  body.local-h2h-page .local-game-top{margin:3px 0 7px;gap:6px}
+  body.local-h2h-page .local-game-top>div{gap:4px}
+  body.local-h2h-page .local-game-top .local-pill{padding:4px 6px;font-size:10px}
+  body.local-h2h-page .local-game-actions{gap:5px}
+  body.local-h2h-page .local-game-actions button{min-height:36px;padding:7px 9px;font-size:11px}
+  body.local-h2h-page .local-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  body.local-h2h-page .local-player{min-width:0;padding:9px 7px;border-radius:13px}
+  body.local-h2h-page .local-player-top{gap:3px}
+  body.local-h2h-page .local-player-top small{font-size:9px;letter-spacing:0}
+  body.local-h2h-page .local-player .local-current-marker{font-size:9px}
+  body.local-h2h-page .local-player h2{font-size:clamp(13px,3.8vw,17px);line-height:1.2;min-height:0;margin:5px 0 2px;overflow-wrap:anywhere}
+  body.local-h2h-page .local-score-band{grid-template-columns:32px minmax(0,1fr) 38px;gap:3px;margin:6px 0 4px}
+  body.local-h2h-page .local-player .local-score-band .local-score{
+    font-size:clamp(37px,11vw,61px);line-height:1.02;letter-spacing:-.055em;
+  }
+  body.local-h2h-page .local-score-band .local-live-darts,
+  body.local-h2h-page .local-score-band .local-avg{
+    min-height:41px;min-width:0;padding:5px 1px;border-radius:7px;gap:2px;
+  }
+  body.local-h2h-page .local-score-band .local-live-darts b,
+  body.local-h2h-page .local-score-band .local-avg b{font-size:12px;line-height:1}
+  body.local-h2h-page .local-score-band .local-live-darts span,
+  body.local-h2h-page .local-score-band .local-avg span{font-size:7px;letter-spacing:0}
+  body.local-h2h-page .local-leg-label{margin:4px 0 0;font-size:12px!important}
+  body.local-h2h-page .local-leg-label strong{font-size:15px!important}
+  body.local-h2h-page .local-entry-card{margin:7px 0 0;padding:10px 9px;border-radius:12px}
+  body.local-h2h-page .local-turn{font-size:clamp(16px,4.5vw,21px);margin:2px 0 7px;line-height:1.2}
+  body.local-h2h-page .local-entry-controls{min-width:0;gap:6px}
+  body.local-h2h-page .local-entry-controls #localScoreInput{
+    min-height:51px;height:51px;font-size:26px;max-width:none;
+  }
+  body.local-h2h-page .local-entry-controls #localBust{
+    min-height:51px;height:51px;padding:8px 6px;font-size:13px;
+  }
+  body.local-h2h-page .local-mobile-keypad{gap:6px;margin-top:8px}
+  body.local-h2h-page .local-mobile-keypad button{
+    min-height:clamp(52px,8.5dvh,70px);
+    font-size:clamp(25px,7vw,33px);border-radius:11px;
+  }
+  body.local-h2h-page .local-mobile-keypad .local-keypad-enter{font-size:18px}
+  body.local-h2h-page .local-corrections{margin:6px 0 0;padding:8px 9px}
+  body.local-h2h-page .local-corrections-header{margin-bottom:3px}
+  body.local-h2h-page .local-correction-line{gap:5px;margin-top:4px}
+  body.local-h2h-page .local-history-card{margin:7px 0 0}
+  body.local-h2h-page.local-match-active #localGame .local-stats-card{display:none!important}
+  /* Special local games use the same player scoreboard; keep their own scoring controls. */
+  body.local-special-page .local-player .local-score-band .local-score{
+    font-size:clamp(32px,10vw,54px);
+  }
+  body.local-special-page .special-entry{min-width:0}
+  body.local-special-page .special-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  body.local-special-page .special-actions button{min-width:0;min-height:46px;padding:8px 5px;font-size:12px;white-space:normal}
+  body.local-special-page .special-actions .da-key{display:none}
+  body.local-special-page .special-half-controls .special-numbers{
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;
+  }
+  body.local-special-page .special-half-controls .special-choice,
+  body.local-special-page .special-choice-row button{min-height:45px}
+  body.local-special-page .special-numbers{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  body.local-special-page .special-numbers button{min-height:44px}
+  body.local-special-page .special-cricket-keypad{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+  body.local-special-page .special-cricket-keypad .special-choice{min-height:43px;font-size:12px}
+  body.local-special-page .special-x01-input{max-width:100%}
+  body.local-special-page .special-x01-input input{width:100%;min-height:48px;font-size:22px}
+  /* Online X01 / cricket / half-it / 61: two legible player cards,
+     then an uncramped input zone. Keep cameras available but compact. */
+  body.match-page .shell{padding:6px 0 18px}
+  body.match-page .match-head{flex-wrap:wrap;gap:5px;margin:0 0 7px}
+  body.match-page .match-head h1{font-size:18px}
+  body.match-page .match-head .top-actions{gap:5px;flex-wrap:wrap}
+  body.match-page .top-actions button{min-height:37px;padding:7px 8px;font-size:11px}
+  body.match-page .video-grid,
+  body.match-page .video-grid:not(.opponent-throwing),
+  body.match-page .video-grid.opponent-throwing{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    min-height:0;height:clamp(105px,18dvh,170px);gap:6px;margin-bottom:7px;
+  }
+  body.match-page .video-grid .video-card{min-height:0;height:100%;border-radius:10px}
+  body.match-page .match-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:7px}
+  body.match-page .score-card{display:block;min-width:0;padding:10px}
+  body.match-page .match-info{min-width:0;padding:9px}
+  body.match-page .match-players{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  body.match-page .match-player{min-width:0;padding:10px 7px;border-radius:11px}
+  body.match-page .match-name{font-size:clamp(12px,3.8vw,16px);overflow-wrap:anywhere}
+  body.match-page .match-score{font-size:clamp(45px,12vw,66px);line-height:1.07;margin:6px 0;font-variant-numeric:tabular-nums}
+  body.match-page .match-legs,body.match-page .match-sets{font-size:12px}
+  body.match-page .turn-text{font-size:clamp(15px,4vw,19px);margin:8px 0}
+  body.match-page .score-entry{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px}
+  body.match-page .score-entry input{width:100%;min-width:0;min-height:52px;padding:9px;font-size:25px}
+  body.match-page .score-entry button{min-height:52px;min-width:100px;padding:9px 12px;font-size:14px}
+  /* Online X01 mobile-only on-screen keypad. */
+  body.match-page .da-mobile-x01-pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:8px}
+  body.match-page .da-mobile-x01-pad button{
+    min-width:0;min-height:clamp(53px,8.5dvh,68px);padding:8px;
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid rgba(117,159,164,.25);border-radius:10px;
+    background:linear-gradient(155deg,#102124,#0a1618);
+    color:#f3fafa;font-size:clamp(25px,7vw,34px);font-weight:850;
+    font-variant-numeric:tabular-nums;
+  }
+  body.match-page .da-mobile-x01-pad button:active{background:#153a40;border-color:var(--cyan)}
+  body.match-page .da-mobile-x01-pad button[data-action="enter"]{
+    font-size:18px;background:#00dce7;color:#041314;border-color:#00eaf4;
+  }
+  body.match-page .da-mobile-x01-pad button:disabled{opacity:.4;pointer-events:none}
+  /* Cricket: overturn the explicit desktop-only keypad hiding and min widths. */
+  body.match-page:has(#cricketBoard) .match-grid{grid-template-columns:minmax(0,1fr)}
+  body.match-page:has(#cricketBoard) .cricket-play-grid{
+    display:grid;grid-template-columns:minmax(0,1fr);
+    grid-template-areas:"summary" "board" "entry";gap:8px;
+  }
+  body.match-page:has(#cricketBoard) .cricket-play-grid>div:first-child{display:contents}
+  body.match-page:has(#cricketBoard) .cricket-summary{grid-area:summary;gap:7px}
+  body.match-page:has(#cricketBoard) .cricket-player{padding:8px;min-width:0}
+  body.match-page:has(#cricketBoard) .cricket-player-name{font-size:13px}
+  body.match-page:has(#cricketBoard) .cricket-player-stats{gap:4px;flex-wrap:wrap}
+  body.match-page:has(#cricketBoard) .cricket-mpr{margin-left:auto}
+  body.match-page:has(#cricketBoard) .cricket-board{
+    grid-area:board;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));width:100%;
+  }
+  body.match-page:has(#cricketBoard) .cricket-row{
+    display:grid;grid-template-columns:minmax(0,1fr);
+    grid-template-rows:25px 21px 25px;min-height:71px;
+  }
+  body.match-page:has(#cricketBoard) .cricket-target{font-size:13px}
+  body.match-page:has(#cricketBoard) .cricket-mark{font-size:19px}
+  body.match-page:has(#cricketBoard) .cricket-entry-card{
+    grid-area:entry;display:grid;min-width:0;
+    grid-template-columns:1fr;grid-template-areas:"title" "turn" "darts" "keypad" "actions" "help";
+    gap:6px;padding:9px;
+  }
+  body.match-page:has(#cricketBoard) .cricket-entry-card>small{grid-area:title}
+  body.match-page:has(#cricketBoard) .cricket-entry-card #turnText{grid-area:turn;white-space:normal}
+  body.match-page:has(#cricketBoard) .cricket-darts{grid-area:darts;min-height:24px;flex-wrap:wrap}
+  body.match-page:has(#cricketBoard) .cricket-keypad{
+    display:grid!important;grid-area:keypad;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;
+  }
+  body.match-page:has(#cricketBoard) .cricket-key-row{
+    display:grid;grid-template-columns:34px repeat(3,minmax(0,1fr));gap:3px;
+  }
+  body.match-page:has(#cricketBoard) .cricket-key-row.bull{
+    grid-template-columns:34px repeat(2,minmax(0,1fr));
+  }
+  body.match-page:has(#cricketBoard) .cricket-key-label{min-height:45px;font-size:11px}
+  body.match-page:has(#cricketBoard) .cricket-hit{min-height:45px;padding:5px 1px;font-size:13px}
+  body.match-page:has(#cricketBoard) .cricket-entry-actions{
+    grid-area:actions;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;
+  }
+  body.match-page:has(#cricketBoard) .cricket-entry-actions button{
+    min-width:0;min-height:45px;padding:6px 4px;font-size:12px;white-space:normal;
+  }
+  body.match-page:has(#cricketBoard) .cricket-help{grid-area:help}
+  body.match-page:has(#cricketBoard) .cricket-history-list{max-height:130px;overflow:auto}
+  body.match-page:has(#cricketBoard) .cricket-history-row{
+    grid-template-columns:50px minmax(0,1fr) 48px;gap:5px;
+  }
+  body.match-page:has(#cricketBoard) .cricket-history-marks,
+  body.match-page:has(#cricketBoard) .cricket-history-edit{grid-column:2/-1}
+  /* Half-It: large S/D/T & number buttons, no narrow multi-column controls. */
+  body.half-it-page .half-grid{grid-template-columns:minmax(0,1fr);gap:9px;margin-top:8px}
+  body.half-it-page .half-scoreboard{gap:7px;margin-bottom:8px}
+  body.half-it-page .half-player{padding:8px}
+  body.half-it-page .half-target-card{padding:10px;margin-bottom:8px}
+  body.half-it-page .half-target-card h2{font-size:35px}
+  body.half-it-page .half-entry{padding:9px}
+  body.half-it-page .half-quick{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  body.half-it-page .half-number-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  body.half-it-page .half-number-grid button,
+  body.half-it-page .half-quick button,
+  body.half-it-page .half-multiplier button{min-height:46px;min-width:0;padding:6px}
+  body.half-it-page .half-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  body.half-it-page .half-actions button{min-height:46px}
+  body.half-it-page #halfSubmitBtn{grid-column:1/-1}
+  body.half-it-solo-page .solo-exact-choices button{min-height:48px}
+  /* 61: retain both players on one row and emphasize hit/miss actions. */
+  body.sixty-one-match-page .sixty-one-layout{grid-template-columns:minmax(0,1fr);gap:8px}
+  body.sixty-one-match-page .sixty-one-scoreboard{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  body.sixty-one-match-page .sixty-one-player{min-width:0;padding:9px}
+  body.sixty-one-match-page .sixty-one-player-name{padding-right:0;white-space:normal;overflow-wrap:anywhere}
+  body.sixty-one-match-page .sixty-one-highout{position:static;text-align:left;margin-top:4px}
+  body.sixty-one-match-page .sixty-one-player-target{font-size:clamp(36px,11vw,49px)}
+  body.sixty-one-match-page .sixty-one-control-top{gap:6px}
+  body.sixty-one-match-page .sixty-one-main-actions{gap:7px}
+  body.sixty-one-match-page .sixty-one-main-actions button{min-height:72px;font-size:clamp(18px,5vw,25px);padding:7px}
+  body.sixty-one-match-page .sixty-one-clock{font-size:38px}
+  body.sixty-one-match-page .sixty-one-timer-card .sixty-one-pause-btn{min-height:45px}
+  /* JDC: force desktop's two-column online grid to be a single mobile column. */
+  body.jdc-match-page .jdc-online-grid{grid-template-columns:minmax(0,1fr)!important}
+  body.jdc-match-page .jdc-video-grid{grid-template-columns:repeat(2,minmax(0,1fr));height:clamp(110px,18dvh,170px);gap:6px}
+  body.jdc-match-page .jdc-video-grid .video-card{aspect-ratio:auto;height:100%}
+  body.jdc-match-page .jdc-online-scoreboard{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+  body.jdc-match-page .jdc-online-player{padding:8px!important;grid-template-columns:minmax(0,1fr) auto}
+  body.jdc-match-page .jdc-online-player strong{font-size:26px}
+  body.jdc-match-page .jdc-online-actions button,
+  body.jdc-match-page .jdc-online-utility button{min-height:46px}
+}
+@media screen and (max-width:370px){
+  body.local-h2h-page .local-score-band{grid-template-columns:28px minmax(0,1fr) 32px;gap:2px}
+  body.local-h2h-page .local-player .local-score-band .local-score{font-size:35px}
+  body.local-h2h-page .local-mobile-keypad button{min-height:49px}
+  body.match-page:has(#cricketBoard) .cricket-keypad{grid-template-columns:1fr}
+}
+@media screen and (max-width:700px) and (max-height:690px){
+  body.local-h2h-page .local-mobile-keypad button,
+  body.match-page .da-mobile-x01-pad button{min-height:47px}
+  body.local-h2h-page .local-player{padding:7px 6px}
+  body.match-page .video-grid,
+  body.match-page .video-grid:not(.opponent-throwing),
+  body.match-page .video-grid.opponent-throwing{height:98px}
+}
