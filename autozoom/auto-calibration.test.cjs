@@ -45,6 +45,30 @@ test('rejects blank/noisy boards and only one colored ring',()=>{
   assert.equal(Detector.detect(blank),null);
   assert.equal(Detector.detect(boardFrame({triple:false})),null);
 });
+test('D20 orientation click snaps to previously detected double ring for rotated boards',()=>{
+  const c={x:200,y:150},r=100;
+  const direct=Detector.snapD20(c,{x:310,y:150},r);
+  assert.ok(direct);
+  assert.ok(Math.abs(direct.x-(200+r*.976))<.001);
+  assert.ok(Math.abs(direct.y-150)<.001);
+  // Click on printed "20" just outside double ring and obtain same angle.
+  const printed=Detector.snapD20(c,{x:320,y:150},r);
+  assert.ok(Math.abs(printed.x-direct.x)<.001);
+  assert.ok(Math.abs(printed.y-direct.y)<.001);
+  assert.equal(Detector.snapD20(c,{x:200,y:150},r),null);
+  assert.equal(Detector.snapD20(c,{x:900,y:150},r),null);
+});
+test('auto calibration forbids Apply before selecting actual D20 direction',()=>{
+  const ui=fs.readFileSync(path.join(__dirname,'camera-calibration.js'),'utf8');
+  const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
+  assert.match(ui,/autoD20Verified=false/);
+  assert.match(ui,/autoD20Verified=true/);
+  assert.match(ui,/autoEditTarget\|\|!autoD20Verified/);
+  assert.match(ui,/beginAutoEdit\('d20'\)/);
+  assert.match(ui,/autoD20Verified\?\[\[bull/,'The unconfirmed guessed D20 is not drawn as verified');
+  assert.match(index,/autozoom\/auto-calibration\.js\?v=20261025-d20-angle1/);
+  assert.match(index,/autozoom\/camera-calibration\.js\?v=20261025-d20-angle1/);
+});
 test('Cam-test offers editable auto Bull and D20, explicit save, and manual fallback',()=>{
   const ui=fs.readFileSync(path.join(__dirname,'camera-calibration.js'),'utf8');
   const css=fs.readFileSync(path.join(__dirname,'camera-calibration.css'),'utf8');
