@@ -287,6 +287,74 @@ $('ellipseAnalyze').addEventListener('click',()=>{
   analyzing=false;$('ellipseAnalyze').textContent='Test dobbelringens to kanter';update();
  }
 });
+
+function wireAuditStatus(){
+ const n=auditPoints.length;
+ $('wireAuditUndo').disabled=n===0;
+ $('wireAuditReset').disabled=n===0&&!auditActive;
+ if(auditActive&&n<8){
+  $('wireAuditStatus').textContent='Punkt '+(n+1)+'/8: Klikk på YTTERSTE metalltråd '+
+   auditDirections[n]+', nær det gule krysset. Ikke klikk midt i fargefeltet.';
+  return;
+ }
+ if(n!==8)return;
+ const absolute=auditPoints.map(p=>Math.abs(p.errorPx)).sort((a,b)=>a-b);
+ const median=(absolute[3]+absolute[4])/2;
+ const maximum=absolute[7];
+ $('wireAuditStatus').textContent=
+  '8 punkter målt på faktiske tråder: median '+median.toFixed(1)+
+  ' px, største '+maximum.toFixed(1)+' px radialt i kamerabildet. '+
+  'Dette er manuelle referansepunkter; ikke en godkjent automatisk kalibrering.';
+ report.hidden=false;
+ report.textContent+='\n\nMANUELLE REFERANSEPUNKT – faktisk yttertråd:\n'+
+  'Median absolutt radialavvik: '+median.toFixed(1)+' px\n'+
+  'Største absolutt radialavvik: '+maximum.toFixed(1)+' px\n'+
+  'Signerte avvik: '+auditPoints.map((p,i)=>String(i+1)+': '+p.errorPx.toFixed(1)+'px').join(' | ');
+ say('MÅLT FEIL MOT MANUELT MARKERT YTTERTRÅD: median '+
+  median.toFixed(1)+' px, største '+maximum.toFixed(1)+
+  ' px. Fremdeles IKKE en godkjent autokalibrering.','info');
+}
+$('wireAuditStart').addEventListener('click',()=>{
+ if(!allowed||!lastEllipse)return;
+ auditPoints=[];auditActive=true;
+ $('wireAuditStart').textContent='Start på nytt';
+ wireAuditStatus();paint();
+});
+$('wireAuditUndo').addEventListener('click',()=>{
+ if(!lastEllipse||!auditPoints.length)return;
+ auditPoints.pop();auditActive=true;wireAuditStatus();paint();
+});
+$('wireAuditReset').addEventListener('click',()=>{
+ if(!lastEllipse)return;
+ resetAudit(false);paint();
+});
+view.addEventListener('click',event=>{
+ if(!allowed||!auditActive||!source||!lastEllipse||auditPoints.length>=8)return;
+ const rect=view.getBoundingClientRect();
+ const scale=Math.min(rect.width/view.width,rect.height/view.height);
+ if(scale<=0)return;
+ const padX=(rect.width-view.width*scale)/2;
+ const padY=(rect.height-view.height*scale)/2;
+ const px=(event.clientX-rect.left-padX)/scale;
+ const py=(event.clientY-rect.top-padY)/scale;
+ if(px<0||py<0||px>view.width||py>view.height)return;
+ const x=px*source.width/view.width,y=py*source.height/view.height;
+ const e=lastEllipse,dx=(x-e.cx)/e.sampleScaleX,dy=(y-e.cy)/e.sampleScaleY;
+ const theta=Math.atan2(dy,dx),expected=auditAngles[auditPoints.length];
+ const angleError=Math.atan2(Math.sin(theta-expected),Math.cos(theta-expected));
+ const actualR=Math.hypot(dx,dy);
+ const predictedR=radial(e.boundaries.outer,theta);
+ if(Math.abs(angleError)>.36||Math.abs(actualR-predictedR)>Math.max(25,predictedR*.19)){
+  $('wireAuditStatus').textContent='Klikk nær det gule krysset, på faktisk metalltråd '+
+   auditDirections[auditPoints.length]+'.';
+  return;
+ }
+ const errorPx=(actualR-predictedR)*(e.sampleScaleX+e.sampleScaleY)/2;
+ auditPoints.push({x,y,theta,errorPx});
+ if(auditPoints.length===8)auditActive=false;
+ wireAuditStatus();paint();
+});
+
 function decodeModelOutput(output,layout,minConfidence){
   const shape=output.shape,data=output.dataSync();
   // YOLO-style output [1, 4+C, N], not a guaranteed class mapping.
