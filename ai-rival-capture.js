@@ -17,9 +17,43 @@ const MAX=2000; // Safety cap; never silently discard at the former 150-image li
 let authorized=false,raw=null,rawVideo=null,zoom=null,config=null,store=null,cameraStarting=false;
 let records=[],selected=-1,proposed=null,busy=false,previousVisitCount=null,currentMatch=null;
 let currentObjectUrls=[];
+let reviewScope='latest'; // Latest match, in throw order, by default.
 const reviewUpdates=new Map();
 const reviewKey=(r,n)=>[r.matchId,r.setNo,r.legNo,r.roundIndex,n].join(':');
-function reviewOrder(){return records.map((_,i)=>i).sort((x,y)=>Number(!!records[y].scoreCorrected)-Number(!!records[x].scoreCorrected)||Date.parse(records[y].capturedAt)-Date.parse(records[x].capturedAt))}
+function latestMatchId(){
+  const newest=records.reduce((prev,item)=>{
+    if(!item.matchId)return prev;
+    return !prev||Date.parse(item.capturedAt)>Date.parse(prev.capturedAt)?item:prev;
+  },null);
+  return newest?.matchId||null;
+}
+function reviewOrder(){
+  const latest=latestMatchId();
+  return records.map((_,i)=>i)
+    .filter(i=>reviewScope==='all'||!latest||records[i].matchId===latest)
+    .sort((x,y)=>{
+      const a=records[x],b=records[y];
+      // Start at first dart of the latest match; never jump around because
+      // a score or tip was corrected. Older records remain available in All.
+      if(reviewScope==='latest'){
+        for(const field of ['setNo','legNo','roundIndex','dartNo']){
+          const diff=(Number(a[field])||0)-(Number(b[field])||0);
+          if(diff)return diff;
+        }
+      }
+      return Date.parse(a.capturedAt)-Date.parse(b.capturedAt)||x-y;
+    });
+}
+function updateReviewScope(){
+  const order=reviewOrder(),latest=latestMatchId();
+  const label=$('aiTrainReviewScope');
+  if(label)label.textContent=reviewScope==='latest'?
+    'Nyeste kamp · '+order.length+' piler, i kastrekkefølge':
+    'Alle kamper · '+order.length+' bilder, eldste først';
+  $('aiTrainLatest').disabled=reviewScope==='latest';
+  $('aiTrainAll').disabled=reviewScope==='all';
+  return order;
+}
 const say=(s,err=false)=>{status.textContent=s;status.classList.toggle('is-error',err)};
 const readState=()=>{try{return JSON.parse(localStorage.getItem(key)||'null')}catch{return null}};
 const request=req=>new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
@@ -86,7 +120,8 @@ async function capture(hit,source,manual=false){
     Object.assign(item,reviewUpdates.get(reviewKey(round,dartNo))||{});
     await save(item);records.push(item);
     say('Pil '+dartNo+' lagret. '+(tipBias?'Forslaget er forskjøvet ut fra '+tipBias.samples+' tidligere godkjente punkter. ': 'Ingen innlært korreksjon ennå. ')+(hit?'Punktet er IKKE bekreftet pilspiss.':'Manuelt bilde uten forslag.')+' Kontroller manuelt.');
-    selected=records.length-1;showReview();setCounter();
+    if(reviewScope==='latest')selected=reviewOrder()[0]??-1;
+    showReview();setCounter();
   }catch(e){say('Kunne ikke lagre pil '+dartNo+': '+(e?.message||String(e)),true)}
   finally{busy=false;setCounter()}
 }
@@ -183,15 +218,23 @@ function renderDot(item,p){
 function showReview(){
   clearUrls();
   const nav=$('aiTrainReviewNav'),review=$('aiTrainReview');
-  if(selected<0||!records[selected]){
-    review.hidden=true;nav.textContent='Ingen bilder ennå.';return;
+  const order=updateReviewScope();
+  const position=order.indexOf(selected);
+  if(selected<0||!records[selected]||position<0){
+    review.hidden=true;nav.textContent='Ingen bilder i dette utvalget.';return;
   }
   review.hidden=false;
+  $('aiTrainPrev').disabled=position===0;
+  $('aiTrainNext').disabled=position===order.length-1;
   const item=records[selected];proposed=null;
   $('aiTrainOriginal').src=displayBlob(item.original);
   $('aiTrainCloseup').src=displayBlob(item.closeup);
-  nav.textContent=(item.scoreCorrected?'POENG KORRIGERT · ':'')+'Bilde '+(selected+1)+' / '+records.length+' · Pil '+item.dartNo+
-    ' · '+(item.score===null?'score ikke registrert':item.score+' poeng')+' · '+item.status;
+  const edit=item.scoreCorrected?' · POENG RETTET: AI '+(item.aiSuggestedScore??'?')+' → '+(item.finalDartScore??'?'):'';
+  const outcome=item.status==='approved'?'Spiss godkjent':item.status==='rejected'?'Bilde avvist':'Venter på spisskontroll';
+  nav.textContent='Bilde '+(position+1)+' av '+order.length+
+    ' · Sett '+(item.setNo||1)+' · Leg '+(item.legNo||1)+
+    ' · Runde '+((Number(item.roundIndex)||0)+1)+' · PIL '+(item.dartNo||'?')+'/3'+
+    edit+' · '+outcome;
   $('aiTrainMark').textContent=item.aiTip?'Lyseblått punkt: AI-spissforslag. Klikk på riktig spiss for finjustering, deretter Godkjenn punkt.':item.proposal?
     (item.proposalAdjustment?
       'Oransje: justert bildeendring fra '+item.proposalAdjustment.samples+' godkjente korrigeringer. Ikke en AI-spissdetektor. ':
@@ -224,8 +267,24 @@ $('aiTrainReject').addEventListener('click',async()=>{
   try{await save(item);say('Bilde avvist – ekskluderes fra trening.');goReview(1)}
   catch(e){say('Avvisning ble ikke lagret: '+e.message,true)}
 });
-function goReview(step){const order=reviewOrder();if(!order.length)return;const pos=order.indexOf(selected);selected=order[(Math.max(0,pos)+step+order.length)%order.length];showReview()}
-$('aiTrainPriority').addEventListener('click',()=>{selected=reviewOrder()[0]??-1;showReview()});
+function goReview(step){
+  const order=reviewOrder(),pos=order.indexOf(selected);
+  if(!order.length||pos<0)return;
+  const next=pos+step;
+  // No wrap-around: the last dart means the review is finished.
+  if(next<0||next>=order.length){
+    if(step>0)say('Siste pil i utvalget er gjennomgått. Alle bilder er beholdt.');
+    return;
+  }
+  selected=order[next];showReview();
+}
+function setReviewScope(next){
+  reviewScope=next;
+  selected=reviewOrder()[0]??-1;
+  showReview();
+}
+$('aiTrainLatest').addEventListener('click',()=>setReviewScope('latest'));
+$('aiTrainAll').addEventListener('click',()=>setReviewScope('all'));
 $('aiTrainPrev').addEventListener('click',()=>goReview(-1));
 $('aiTrainNext').addEventListener('click',()=>goReview(1));
 $('aiTrainManual').addEventListener('click',()=>{if(rawVideo)void capture(null,rawVideo,true)});
