@@ -99,9 +99,15 @@
         <div class="ai-train-actions"><button id="aiTrainManual" class="outline" type="button">Ta bilde manuelt</button><button id="aiTrainRearm" class="outline" type="button">Tom skive / ny referanse</button><span id="aiTrainCount" class="ai-train-counter">0 / 3 piler</span></div>
       </div>
       <p id="aiTrainStatus" class="ai-train-status" role="status">Kontrollerer Owner-tilgang…</p>
-      <details id="aiTrainReviewDetails" class="ai-train-review-details"><summary>Gjennomgå og korriger lagrede bilder</summary>
+      <details id="aiTrainReviewDetails" class="ai-train-review-details"><summary>Gjennomgå og korriger piler, én etter én</summary>
+      <div class="ai-train-actions" style="margin:12px 0 8px;align-items:center;flex-wrap:wrap">
+        <button id="aiTrainLatest" type="button" class="primary" disabled>Siste kamp</button>
+        <button id="aiTrainAll" type="button" class="outline">Alle bilder</button>
+        <span id="aiTrainReviewScope" class="ai-train-counter">Siste kamp · kastrekkefølge</span>
+      </div>
+      <p class="muted compact">Start ved runde 1, pil 1. Gå kronologisk fra pil til pil; korrigerte poeng er tydelig merket. Ingen bilder slettes.</p>
       <div id="aiTrainReview" class="ai-train-review" hidden>
-        <h4>Kontroller og korriger pilspiss</h4>
+        <h4>Kontroller spiss – én pil om gangen</h4>
         <p id="aiTrainReviewNav" class="ai-train-counter">Ingen bilder ennå.</p>
         <div class="ai-train-pair">
           <figure><div class="ai-train-frame"><img id="aiTrainOriginal" alt="Originalt kamerabilde av dartskiven"></div><figcaption>Originalbilde</figcaption></figure>
@@ -110,7 +116,7 @@
           </div><figcaption>Zoom-cam · klikk på riktig spiss</figcaption></figure>
         </div>
         <p id="aiTrainMark" class="ai-train-warning">Klikk spissen i bildet til høyre.</p>
-        <div class="ai-train-actions"><button id="aiTrainPriority" type="button" class="outline">Korrigerte først</button><button id="aiTrainPrev" type="button" class="outline">← Forrige</button><button id="aiTrainApprove" type="button" class="primary">Godkjenn punkt</button><button id="aiTrainReject" type="button" class="outline">Avvis bilde</button><button id="aiTrainNext" type="button" class="outline">Neste →</button></div>
+        <div class="ai-train-actions"><button id="aiTrainPrev" type="button" class="outline">← Forrige pil</button><button id="aiTrainApprove" type="button" class="primary">Godkjenn punkt</button><button id="aiTrainReject" type="button" class="outline">Avvis bilde</button><button id="aiTrainNext" type="button" class="outline">Neste pil →</button></div>
       </div>
       </details>
       <div class="ai-train-actions"><button id="aiTrainExport" class="primary" type="button" disabled>Eksporter bilder + koordinater (.zip)</button><button id="aiTrainDelete" class="outline" type="button" disabled>Slett lokale bilder</button></div>
@@ -212,7 +218,7 @@
 <script src="./autozoom/zoom-cam.js?v=20261024-owner1"></script>
 <script src="./autoscoring/zip-store.js?v=20261024-owner1"></script>
 <script src="./autozoom/tip-bias.js?v=20261024-owner-bias1"></script>
-<script src="./ai-rival-capture.js?v=20261024-capfix1"></script>
+<script src="./ai-rival-capture.js?v=20261025-linear-review1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <script src="./ai-rival-owner-score-assist.js?v=20261024-review1"></script>
 </body>
