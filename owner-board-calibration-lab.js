@@ -150,13 +150,18 @@ function paint(){
   const sx=view.width/source.width,sy=view.height/source.height;
   ctx.textBaseline='top';
   if(lastEllipse){
-    const e=lastEllipse;
-    ctx.save();ctx.translate(e.cx*sx,e.cy*sy);ctx.rotate(e.angle);
-    ctx.strokeStyle='#00eaf4';ctx.lineWidth=2.5;
-    ctx.setLineDash([8,5]);ctx.beginPath();ctx.ellipse(0,0,e.major*sx,e.minor*sy,0,0,Math.PI*2);ctx.stroke();
-    ctx.setLineDash([]);ctx.strokeStyle='#43ffa0';ctx.lineWidth=3;
-    ctx.beginPath();ctx.moveTo(-13,0);ctx.lineTo(13,0);ctx.moveTo(0,-13);ctx.lineTo(0,13);ctx.stroke();
-    ctx.restore();
+    const e=lastEllipse,c=e.coeffs;
+    ctx.save();ctx.strokeStyle='#ff51e1';ctx.lineWidth=2.5;ctx.beginPath();
+    for(let i=0;i<=240;i++){
+      const angle=2*Math.PI*i/240,co=Math.cos(angle),si=Math.sin(angle);
+      const r=c[0]+c[1]*co+c[2]*si+c[3]*Math.cos(2*angle)+c[4]*Math.sin(2*angle);
+      const x=(e.cx+r*co*e.sampleScaleX)*sx,y=(e.cy+r*si*e.sampleScaleY)*sy;
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.closePath();ctx.stroke();ctx.strokeStyle='#43ffa0';ctx.lineWidth=3;
+    const x=e.cx*sx,y=e.cy*sy;
+    ctx.beginPath();ctx.moveTo(x-12,y);ctx.lineTo(x+12,y);
+    ctx.moveTo(x,y-12);ctx.lineTo(x,y+12);ctx.stroke();ctx.restore();
   }
   for(const b of lastBoxes){
     const x=b.x*sx,y=b.y*sy,w=b.w*sx,h=b.h*sy;
@@ -227,24 +232,30 @@ $('ellipseAnalyze').addEventListener('click',()=>{
   const c=sampled.getContext('2d',{willReadFrequently:true});
   c.drawImage(source,0,0,width,height);
   const found=E.estimate(c.getImageData(0,0,width,height));
-  if(!found)throw Error('Fant ikke to tydelige røde/grønne ringer rundt hele skiva. Velg et bilde der skiva er godt synlig, gjerne med bedre lys.');
+  if(!found)throw Error('AVVIST: Bull og skiveringene ble ikke funnet med tilstrekkelig sikkerhet. Ingen kalibrering foreslås.');
   const scaleX=source.width/width,scaleY=source.height/height;
   lastEllipse={cx:found.cx*scaleX,cy:found.cy*scaleY,
-    major:found.major*scaleX,minor:found.minor*scaleY,angle:found.angle};
+    coeffs:found.coeffs,sampleScaleX:scaleX,sampleScaleY:scaleY,fit:found.fit};
   paint();
   report.hidden=false;
+  const scale=(scaleX+scaleY)/2;
+  const median=found.fit.medianError*scale,p90=found.fit.p90Error*scale;
   report.textContent='Metode: '+found.method+' (uten modell)\n'+
-    'Anslått Bull: ('+lastEllipse.cx.toFixed(1)+', '+lastEllipse.cy.toFixed(1)+')\n'+
-    'Dobbelring ellipse akser: '+(2*lastEllipse.major).toFixed(1)+' × '+(2*lastEllipse.minor).toFixed(1)+' px\n'+
-    'Ringdekning: '+Math.round(found.coverage*100)+' %\n'+
-    'D20-retning: IKKE FUNNET\n'+
-    'Dette er et forsøksestimat, ikke godkjent kalibrering.';
-  say('Ringestimat klart. Turkis stiplet ellipse = foreslått dobbelring; grønt kryss = Bull.\n'+
-    'Kontroller om ringen følger skiva hele veien. D20-retning og full perspektivkorrigering er IKKE beregnet. Ingenting er lagret.','success');
+    'Bull: ('+lastEllipse.cx.toFixed(1)+', '+lastEllipse.cy.toFixed(1)+')\n'+
+    'Fargering-sektorer: '+found.fit.angles+' / 72\n'+
+    'Sektorer holdt utenfor tilpasningen: '+found.fit.validationAngles+'\n'+
+    'Avvik mot utelatte FARGEPUNKTER: median '+median.toFixed(1)+' px, 90-persentil '+p90.toFixed(1)+' px\n'+
+    'Dette er IKKE uavhengig målt treffnøyaktighet.\n'+
+    'D20-retning: UKJENT · Full perspektivkorrigering: IKKE FERDIG.\n'+
+    'KUN TEST. Ingen innstillinger eller scoring er endret.';
+  say('TEST – IKKE GODKJENT KALIBRERING.\n'+
+    'Rosa kontur er ringforslaget; grønt kryss er funnet Bull.\n'+
+    '90-persentil for utelatte fargepunkter: '+p90.toFixed(1)+' px. '+
+    'Kontroller visuelt at konturen følger dobbelringen hele veien. Ingenting lagres.','info');
  }catch(e){
   paint();say('Ringtest feilet: '+e.message+'\nIngen innstillinger er endret.','error');
  }finally{
-  analyzing=false;$('ellipseAnalyze').textContent='Test ring/ellipse uten modell';update();
+  analyzing=false;$('ellipseAnalyze').textContent='Test ringmodell v2 (Owner)';update();
  }
 });
 function decodeModelOutput(output,layout,minConfidence){
