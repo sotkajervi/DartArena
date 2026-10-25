@@ -5,6 +5,7 @@
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
+const tf=window.tf,tflite=window.tflite;
 const APK_ENTRY='assets/flutter_assets/assets/models/dart_calibration_w7s.tflite';
 const MAX_MODEL=80*1024*1024,MAX_APK=260*1024*1024;
 const STAGE=1024;
@@ -15,7 +16,21 @@ const db=window.supabase?.createClient(
 let allowed=false,runner=null,source=null,stream=null,loading=false,analyzing=false,lastBoxes=[];
 const view=$('visual'),ctx=view.getContext('2d'),status=$('status');
 const report=$('results'),video=$('camera');
-function say(s){status.textContent=s}
+function say(s,level='info'){
+  status.textContent=String(s);
+  $('runState').dataset.level=level;
+}
+function runtimeStatus(){
+  const ready=!!window.tf&&!!window.tflite;
+  $('runtimeState').textContent=ready?'TFLite: lastet':
+    (!window.tf?'TensorFlow.js mangler':'TFLite-motoren mangler');
+  return ready;
+}
+$('copyDiagnostic').addEventListener('click',async()=>{
+  const msg='DartArena kalibreringstest\n'+status.textContent+'\n'+report.textContent+'\n'+$('runtimeState').textContent;
+  try{await navigator.clipboard.writeText(msg);$('copyDiagnostic').textContent='Kopiert ✓'}
+  catch{say('Kunne ikke kopiere automatisk. Marker feilmeldingen og kopier den.', 'error')}
+});
 function update(){
   $('load').disabled=!allowed||loading||!$('modelFile').files.length;
   $('analyze').disabled=!allowed||analyzing||loading||!runner||!source;
@@ -23,6 +38,7 @@ function update(){
   $('stopCamera').disabled=!allowed||!stream;
   $('startCamera').disabled=!allowed||!!stream;
   $('saveOverlay').disabled=!allowed||!lastBoxes.length;
+  runtimeStatus();
 }
 function zipModelBytes(apk){
   const needle=new TextEncoder().encode(APK_ENTRY);
@@ -68,24 +84,36 @@ $('modelFile').addEventListener('change',update);
 $('load').addEventListener('click',async()=>{
   if(!allowed||loading)return;
   const file=$('modelFile').files?.[0];if(!file)return;
-  loading=true;update();lastBoxes=[];say('Leser modellen lokalt fra filen. Dette kan ta litt tid …');
+  loading=true;$('load').textContent='Laster modell …';update();lastBoxes=[];say('Leser modellen lokalt fra filen. Dette kan ta litt tid …');
   try{
-    if(!window.tf||!window.tflite)throw Error('Nettleseren fikk ikke lastet TensorFlow Lite-biblioteket fra CDN.');
+    if(!runtimeStatus())throw Error('TensorFlow Lite er ikke tilgjengelig. Sjekk nettforbindelsen eller prøv Chrome.');
     const bytes=await readModelFile(file);
     say('TFLite funnet ('+(bytes.byteLength/1048576).toFixed(1)+' MB). Starter lokal WASM-kjøring …');
     await tf.setBackend('cpu');await tf.ready();
-    const instance=await tflite.loadTFLiteModel(bytes,{numThreads:1});
+    const instance=await Promise.race([
+      tflite.loadTFLiteModel(bytes,{numThreads:1}),
+      new Promise((_,reject)=>setTimeout(
+        ()=>reject(Error('Modellinnlasting tok mer enn 45 sekunder. Denne modellen støttes kanskje ikke av nettleseren.')),45000))
+    ]);
     if(typeof instance.predict!=='function')throw Error('Modellen kunne ikke startes av denne nettleseren.');
     if(runner&&typeof runner.dispose==='function')runner.dispose();
     runner=instance;
     const ins=runner.inputs||[],outs=runner.outputs||[];
+    report.hidden=false;
     report.textContent='Modellens innganger: '+JSON.stringify(ins)+'\nUtganger: '+JSON.stringify(outs);
-    say('Modellen er lastet lokalt. Velg skivebilde og trykk Analyser bildet.');
-  }catch(e){say('Modellen kunne ikke startes: '+(e?.message||String(e))+'\nDette kan skyldes at modellens TFLite-operasjoner ikke støttes av WASM-testmiljøet. Ingen DartArena-innstillinger er endret.');console.warn(e)}
-  finally{loading=false;update()}
+    say('Modellen er lastet. Velg skivebilde eller Ta bilde, og trykk deretter Analyser bildet.','success');
+  }catch(e){
+    runner=null;
+    say('Modellen kunne ikke startes: '+(e?.message||String(e))+
+      '\nIngen kalibrering er endret. Modellen kan kreve TFLite-operasjoner nettleseren ikke støtter.','error');
+    report.hidden=false;report.textContent=String(e?.stack||e);
+    console.warn(e);
+  }
+  finally{loading=false;$('load').textContent='Last lokal modell';update()}
 });
 function paint(){
   if(!source)return;
+  view.hidden=false;
   const factor=Math.min(1440/source.width,1080/source.height,1);
   view.width=Math.max(1,Math.round(source.width*factor));
   view.height=Math.max(1,Math.round(source.height*factor));
@@ -117,26 +145,34 @@ function imageFromFile(file){
 }
 $('imageFile').addEventListener('change',async()=>{
   if(!allowed||!$('imageFile').files?.[0])return;
-  try{source=await imageFromFile($('imageFile').files[0]);lastBoxes=[];paint();say('Skivebildet klart ('+source.width+' × '+source.height+').');report.textContent=''}
-  catch(e){say(e.message)}update();
+  try{
+    source=await imageFromFile($('imageFile').files[0]);lastBoxes=[];paint();
+    $('imageState').textContent='Bilde klart: '+source.width+' × '+source.height;
+    say('Skivebildet klart ('+source.width+' × '+source.height+'). '+(runner?'Trykk Analyser bildet.':'Last inn en modell for analyse.'));
+    report.textContent='';report.hidden=true;
+  }
+  catch(e){say(e.message,'error')}update();
 });
 $('startCamera').addEventListener('click',async()=>{
   if(!allowed||stream)return;
   try{stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720}},audio:false});
     video.srcObject=stream;video.hidden=false;await video.play();
+    $('cameraState').textContent='Kamera aktivt';
     say('Kamera startet. Trykk Ta bilde når hele skiva vises.');
-  }catch(e){say('Kunne ikke starte kamera: '+e.message)}
+  }catch(e){say('Kunne ikke starte kamera: '+e.message,'error')}
   update();
 });
 function stopCamera(){
-  stream?.getTracks().forEach(t=>t.stop());stream=null;video.pause();video.srcObject=null;video.hidden=true;update();
+  stream?.getTracks().forEach(t=>t.stop());stream=null;video.pause();video.srcObject=null;video.hidden=true;
+  $('cameraState').textContent='Kamera avslått';update();
 }
 $('stopCamera').addEventListener('click',stopCamera);
 $('takeFrame').addEventListener('click',()=>{
   if(!stream||!video.videoWidth)return;
   source=document.createElement('canvas');source.width=video.videoWidth;source.height=video.videoHeight;
   source.getContext('2d').drawImage(video,0,0);
-  lastBoxes=[];paint();say('Kamerabilde tatt lokalt. Trykk Analyser bildet.');update();
+  lastBoxes=[];paint();$('imageState').textContent='Kamerabilde klart: '+source.width+' × '+source.height;
+  say('Kamerabilde tatt. '+(runner?'Trykk Analyser bildet.':'Last modellen for å analysere.'));update();
 });
 function decodeModelOutput(output,layout,minConfidence){
   const shape=output.shape,data=output.dataSync();
@@ -173,7 +209,7 @@ function bboxToImage(b,scale,padX,padY,normalized,imgW,imgH){
 }
 $('analyze').addEventListener('click',async()=>{
   if(!allowed||!runner||!source||analyzing)return;
-  analyzing=true;lastBoxes=[];update();say('Analyserer skiva lokalt med TFLite. Dette kan bruke litt tid …');
+  analyzing=true;$('analyze').textContent='Analyserer …';lastBoxes=[];update();say('Analyserer skiva lokalt med TFLite. Dette kan bruke litt tid …');
   let input=null,output=null;
   try{
     // Typical YOLO letterbox; the exact APK preprocessor is not yet verified.
@@ -193,16 +229,21 @@ $('analyze').addEventListener('click',async()=>{
     paint();
     const counts=new Map();
     lastBoxes.forEach(b=>counts.set(b.classId,(counts.get(b.classId)||0)+1));
-    say('Ferdig: '+lastBoxes.length+' synlige forslag ('+result.rawCount+' over terskel før gruppering).\nKlassene C0–C20 må tolkes før vi kan bruke dette som kalibrering. Ingen koordinater er lagret.');
+    say('Ferdig: '+lastBoxes.length+' punktforslag. Modellklassene er ennå ikke identifisert. Ingen kalibrering er lagret.','success');
+    report.hidden=false;
     report.textContent='Utgang: '+JSON.stringify(result.props)+'\nKlasser: '+JSON.stringify(Object.fromEntries([...counts].sort((a,b)=>a[0]-b[0])))+
       '\n\nToppforslag:\n'+lastBoxes.slice(0,30).map(b=>'C'+b.classId+' '+(b.conf*100).toFixed(1)+'% ved ('+b.x.toFixed(1)+', '+b.y.toFixed(1)+')').join('\n');
-  }catch(e){say('Modellanalyse feilet: '+(e?.message||String(e))+' – dette er en separat test, og ingen kalibrering er endret.');console.warn(e)}
+  }catch(e){
+    say('Modellanalyse feilet: '+(e?.message||String(e))+'\nIngen kalibrering er endret.','error');
+    report.hidden=false;report.textContent=String(e?.stack||e);
+    console.warn(e);
+  }
   finally{
     if(input?.dispose)input.dispose();
     if(output?.dispose)output.dispose();
     else if(Array.isArray(output))output.forEach(t=>t?.dispose?.());
     else if(output)Object.values(output).forEach(t=>t?.dispose?.());
-    analyzing=false;update();
+    analyzing=false;$('analyze').textContent='Analyser bildet';update();
   }
 });
 $('threshold').addEventListener('change',()=>{if(source&&lastBoxes.length)paint()});
@@ -221,6 +262,8 @@ window.addEventListener('pagehide',stopCamera);
     const {data,isOwnerError,error:rpcError}=await db.rpc('is_owner');
     if(rpcError||data!==true)throw Error('Kun Owner kan bruke dette laboratoriet.');
     allowed=true;$('denied').hidden=true;$('app').hidden=false;update();
-  }catch(e){$('denied').textContent='Ingen tilgang: '+e.message}
+    if(!runtimeStatus())say('Owner bekreftet, men TensorFlow Lite-biblioteket mangler. Modellanalyse er utilgjengelig. Kamerabilder kan fortsatt tas.','error');
+    else say('Owner bekreftet. Velg modellfil og skivebilde.');
+  }catch(e){$('denied').textContent='Ingen tilgang: '+e.message;say('Kan ikke åpne testsiden: '+e.message,'error')}
 })();
 })();
