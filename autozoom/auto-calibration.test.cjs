@@ -30,6 +30,13 @@ test('auto-detects centered Bull and D20 from two colored dartboard rings',()=>{
   assert.ok(p.d20.y<p.y);
   assert.equal(p.assumption,'20-up','Outer rings alone cannot determine the rotation');
 });
+test('finds a smaller distant dartboard in a webcam frame',()=>{
+  const p=Detector.detect(boardFrame({radius:40}));
+  assert.ok(p,'The board must still be detectable when it occupies a smaller frame area');
+  assert.ok(Math.abs(p.x-206)<=6);
+  assert.ok(Math.abs(p.y-150)<=6);
+  assert.ok(Math.abs(p.radius-40)<=8);
+});
 test('accepts a moderately dim camera image if colored rings remain visible',()=>{
   assert.ok(Detector.detect(boardFrame({brightness:.55})));
 });
