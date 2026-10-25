@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="no"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DartArena · Owner kalibreringsmodell-test</title>
+<link rel="stylesheet" href="./style.css">
+<style>
+:root{color-scheme:dark}body{background:#071012!important;color:#e9f7fa}
+#lab{max-width:1100px;margin:25px auto 55px;padding:0 16px}h1{font-size:clamp(23px,3vw,32px)}p{line-height:1.5;color:#a9c9ce}
+section{background:#101f23;border:1px solid #29535b;border-radius:14px;padding:17px;margin:12px 0}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}label{display:block;font-weight:700;margin:12px 0;color:#d8f0f2}
+input[type=file]{display:block;max-width:100%;width:100%;margin-top:7px;padding:10px;border:1px solid #2b5960;border-radius:8px;background:#0a181b}
+button{padding:10px 14px;min-height:42px;border:1px solid #2d6066;border-radius:9px;background:#102b31;color:white;font-weight:800}
+button.primary{background:#00d9e7;color:#041216}button:disabled{opacity:.45}
+#visual{display:block;width:100%;height:auto;max-height:72vh;object-fit:contain;background:#040c0d;border:1px solid #37616a;border-radius:9px}
+#status{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;color:#9ef0f4}
+#results{font-family:ui-monospace,monospace;font-size:12px;white-space:pre-wrap;overflow:auto;max-height:320px;color:#bbd5da}
+[hidden]{display:none!important}
+</style></head><body>
+<header><div class="brand"><a href="./"><img src="./assets/dartarena-logo.jpg" alt="DartArena" width="180"></a></div><small>OWNER · KALIBRERING · EKSPERIMENT</small></header>
+<main id="lab">
+<h1>Test av avansert skivekalibrering</h1>
+<p>Privat diagnostikk for Owner. Vi tester om en lokal TFLite-detektor finner skivepunkter også når kameraet står skjevt. Denne siden endrer <strong>ikke</strong> Zoom-cam-kalibreringen eller scoren, og sender ikke APK, modell eller kamerabilde til DartArena.</p>
+<section id="denied" role="status">Kontrollerer Owner-tilgang …</section>
+<div id="app" hidden>
+<section>
+<h2>1. Velg modell fra en fil på enheten din</h2>
+<p>Du kan velge din egen DartsKey-APK (ca. 155 MB). Testsonen trekker ut kalibreringsmodellen direkte i nettleseren, uten å laste den opp. Du kan alternativt velge en lokal <code>.tflite</code>-fil. Modellen er ikke del av DartArenas offentlige kildekode.</p>
+<label>APK eller TFLite-fil<input id="modelFile" type="file" accept=".apk,.tflite,application/vnd.android.package-archive,application/octet-stream"></label>
+<button id="load" class="primary" type="button">Last lokal modell</button>
+</section>
+<section>
+<h2>2. Velg skivebilde</h2>
+<label>Skjermbilde eller bilde av skiva<input id="imageFile" type="file" accept="image/*"></label>
+<div class="row"><button id="startCamera" type="button">Start kamera</button><button id="takeFrame" type="button" disabled>Ta bilde</button><button id="stopCamera" type="button" disabled>Stopp kamera</button></div>
+<video id="camera" muted autoplay playsinline style="width:100%;max-width:500px;margin:10px 0;border-radius:8px" hidden></video>
+<canvas id="visual" width="960" height="720" aria-label="Bilde med modellens foreslåtte objekter og kalibreringspunkter"></canvas>
+<div class="row" style="margin:12px 0"><button id="analyze" class="primary" disabled type="button">Analyser bildet</button>
+<label style="margin:0">Minste sikkerhet <select id="threshold"><option value=".35">35 %</option><option value=".5" selected>50 %</option><option value=".65">65 %</option></select></label>
+<button id="saveOverlay" type="button" disabled>Lagre resultatbilde (.png)</button></div>
+</section>
+<section><h2>3. Resultat</h2><p id="status" role="status">Velg lokal modell og bilde for å starte.</p>
+<p>Merk: Klassene vises først som C0–C20. Vi må kontrollere hva de faktisk representerer før vi kan beregne perspektiv eller lagre en kalibrering. Dette er en modelltest, ikke ferdig autokalibrering.</p>
+<pre id="results"></pre></section>
+</div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.22.0/dist/tf-core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.22.0/dist/tf-backend-cpu.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite@0.0.1-alpha.10/dist/tf-tflite.min.js"></script>
+<script src="./owner-board-calibration-lab.js?v=20261025-localmodel1"></script>
+</body></html>
