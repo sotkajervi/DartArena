@@ -29,6 +29,20 @@ function store(gameToDelete){
 }
 function resetPending(){pending=[];selectedMult=1;editingIndex=null;dom.checkout.hidden=true}
 function cricketMobile(){return state?.game==='cricket'&&!!w.matchMedia?.('(max-width: 700px)')?.matches}
+function mobileSpecialStats(){
+ return (state?.game==='cricket'||(state?.game==='half_standard'&&state?.status==='playing'))&&
+  !!w.matchMedia?.('(max-width: 700px)')?.matches;
+}
+// The mobile Standard Half-It scoring screen prioritizes the scorepad.
+// Reuse the existing stats modal to keep the full cast history available.
+function syncHalfHistoryPlacement(){
+ const panel=$('specialStatsPanel'),history=document.querySelector('.local-history-card');
+ if(!panel||!history)return;
+ const inDialog=state?.game==='half_standard'&&state?.status==='playing'&&
+  !!w.matchMedia?.('(max-width: 700px)')?.matches;
+ if(inDialog&&history.parentElement!==panel)panel.appendChild(history);
+ else if(!inDialog&&history.parentElement===panel)dom.game.appendChild(history);
+}
 function closeCricketStats(){
  document.body.classList.remove('special-cricket-stats-open');
  $('specialStatsBackdrop').hidden=true;
@@ -37,7 +51,7 @@ function closeCricketStats(){
  $('specialStatsPanel').removeAttribute('aria-modal');
 }
 function openCricketStats(){
- if(!cricketMobile())return;
+ if(!mobileSpecialStats())return;
  document.body.classList.add('special-cricket-stats-open');
  $('specialStatsBackdrop').hidden=false;
  $('specialStatsOpen').setAttribute('aria-expanded','true');
@@ -337,6 +351,8 @@ function renderHistory(){
 function render(){
  dom.setup.hidden=!!state;dom.game.hidden=!state;
  document.body.classList.toggle('local-cricket-playing',state?.game==='cricket');
+ document.body.classList.toggle('local-half-standard-playing',state?.game==='half_standard'&&state?.status==='playing');
+ syncHalfHistoryPlacement();
  document.body.classList.toggle('local-half-dartcounter-playing',state?.game==='half_dartcounter'&&state?.status==='playing');
  document.body.classList.toggle('local-special-finished',state?.status==='finished');
  if(!state){window.DartArenaLocalResults?.syncSpecial(null,newGame);return;}
@@ -530,7 +546,13 @@ if(stored){state=stored;window.DartArenaLocalNameHistory?.remember(state.players
 if(!state)dom.mode.value=chosen;
 setupVisibility();render();
 const halfViewport=w.matchMedia('(max-width: 700px)');
-halfViewport.addEventListener('change',()=>{if(state?.game==='half_dartcounter')renderPad()});
+halfViewport.addEventListener('change',()=>{
+ if(state?.game==='half_dartcounter')renderPad();
+ if(state?.game==='half_standard'){
+  if(!halfViewport.matches&&document.body.classList.contains('special-cricket-stats-open'))closeCricketStats();
+  syncHalfHistoryPlacement();
+ }
+});
 setInterval(()=>{
  if(state?.game==='sixty_one'&&state.status==='playing'){
    if(!state.paused){const next=E.tick(state);if(next!==state){state=next;store()}}
