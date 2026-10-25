@@ -85,11 +85,11 @@ function estimate(image){
   const center=total/count;
   const nearby=ringSamples[j].filter(r=>Math.abs(r-center)<Math.max(6,R*.060))
     .sort((a,b)=>a-b);
-  if(nearby.length<14)continue;
+  if(nearby.length<Math.max(5,Math.round(R*.065)))continue;
   const lower=nearby[Math.floor((nearby.length-1)*.035)];
   const upper=nearby[Math.floor((nearby.length-1)*.965)];
   const thickness=upper-lower;
-  if(thickness<R*.022||thickness>R*.14)continue;
+  if(thickness<Math.max(.8,R*.013)||thickness>R*.14)continue;
   obs.push({theta:-Math.PI+(j+.5)*Math.PI*2/sectors,
     r:center,colorInner:lower,colorOuter:upper,sector:j});
  }
@@ -135,7 +135,7 @@ function estimate(image){
    Math.abs(o.colorOuter-at(outer,o.theta)))).sort((a,b)=>a-b);
  const edge90=edgeErrors[Math.floor(edgeErrors.length*.9)];
  const thickness=outer[0]-inner[0];
- if(thickness<R*.021||thickness>R*.13||edge90>Math.max(7,R*.040))return null;
+ if(thickness<Math.max(.8,R*.013)||thickness>R*.13||edge90>Math.max(7,R*.040))return null;
  for(let angle=0;angle<Math.PI*2;angle+=Math.PI/18){
    const innerAt=at(inner,angle),outerAt=at(outer,angle);
    if(outerAt<=innerAt+R*.01||outerAt>=R*1.23||innerAt<R*.73)return null;
