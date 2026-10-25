@@ -17,19 +17,33 @@ const autoButton=tools.querySelector('#camZoomAuto');
 const autoPanel=document.createElement('div');
 autoPanel.className='cam-auto-panel';
 autoPanel.hidden=true;
-autoPanel.innerHTML='<strong>TEST AV AUTOKALIBRERING</strong><p id="camAutoStatus" role="status" aria-live="polite"></p><div class="cam-zoom-row"><button type="button" class="primary" id="camAutoApply" disabled>Bruk forslaget</button><button type="button" class="outline" id="camAutoCancel">Avbryt</button></div>';
+autoPanel.innerHTML='<strong>TEST AV AUTOKALIBRERING</strong><p id="camAutoStatus" role="status" aria-live="polite"></p><div class="cam-zoom-row"><button type="button" class="outline" id="camAutoEditBull" disabled>Juster Bull</button><button type="button" class="outline" id="camAutoEditD20" disabled>Juster D20</button><button type="button" class="primary" id="camAutoApply" disabled>Bruk forslaget</button><button type="button" class="outline" id="camAutoCancel">Avbryt</button></div>';
 tools.appendChild(autoPanel);
 const autoStatus=autoPanel.querySelector('#camAutoStatus');
 const autoApply=autoPanel.querySelector('#camAutoApply');
 const autoCancel=autoPanel.querySelector('#camAutoCancel');
+const autoEditBull=autoPanel.querySelector('#camAutoEditBull');
+const autoEditD20=autoPanel.querySelector('#camAutoEditD20');
 const autoGuide=document.createElement('canvas');
 autoGuide.className='cam-auto-guide-canvas';
 autoGuide.hidden=true;
 preview.appendChild(autoGuide);
-let autoProposal=null;
+const autoEditLayer=document.createElement('div');
+autoEditLayer.className='cam-auto-edit-layer';
+autoEditLayer.hidden=true;
+autoEditLayer.title='Klikk på skiven for å finjustere valgt punkt';
+preview.appendChild(autoEditLayer);
+let autoProposal=null,autoEditTarget=null;
+function stopAutoEdit(){
+  autoEditTarget=null;
+  autoEditLayer.hidden=true;
+}
 function clearAuto(){
+  stopAutoEdit();
   autoProposal=null;
   autoApply.disabled=true;
+  autoEditBull.disabled=true;
+  autoEditD20.disabled=true;
   autoGuide.hidden=true;
   autoGuide.getContext('2d')?.clearRect(0,0,autoGuide.width,autoGuide.height);
 }
@@ -62,6 +76,37 @@ function drawAutoGuide(){
   }
   autoGuide.hidden=false;
 }
+function beginAutoEdit(target){
+  if(!autoProposal||!video.videoWidth||!track())return;
+  autoEditTarget=target;
+  autoEditLayer.hidden=false;
+  autoApply.disabled=true;
+  autoStatus.textContent='Klikk på '+(target==='bull'?'midt i Bull':'midten av D20 på dobbelringen')+
+    ' i kamerabildet. Dette endrer kun forslaget; ingenting lagres før du trykker Bruk forslaget.';
+}
+autoEditBull.addEventListener('click',()=>beginAutoEdit('bull'));
+autoEditD20.addEventListener('click',()=>beginAutoEdit('d20'));
+autoEditLayer.addEventListener('click',event=>{
+  if(!autoEditTarget||!autoProposal)return;
+  const p=Z.framedPointer(video,preview,event,framing);
+  if(!p){autoStatus.textContent='Klikk innenfor kamerabildet for å korrigere punktet.';return}
+  if(autoProposal.deviceId!==deviceId()||autoProposal.width!==video.videoWidth||
+     autoProposal.height!==video.videoHeight){
+    clearAuto();autoStatus.textContent='Kamera eller oppløsning ble endret. Analyser på nytt.';return;
+  }
+  const proposal={...autoProposal,[autoEditTarget]:{x:p.x,y:p.y}};
+  if(!Z.calibration(video,proposal.bull,proposal.d20,proposal.deviceId)){
+    autoStatus.textContent='Punktet gir ugyldig kalibrering. Klikk et annet sted på skiven.';return;
+  }
+  proposal.radius=Math.hypot(proposal.d20.x-proposal.bull.x,
+    proposal.d20.y-proposal.bull.y)/.976;
+  const adjusted=autoEditTarget==='bull'?'Bull':'D20';
+  autoProposal=proposal;
+  stopAutoEdit();
+  autoApply.disabled=false;
+  drawAutoGuide();
+  autoStatus.textContent=adjusted+' justert. Sjekk begge kryssene og den stiplede ringlinjen. Trykk Bruk forslaget først når alt stemmer.';
+});
 autoButton.addEventListener('click',async()=>{
   if(!video.videoWidth||!video.videoHeight||!track()){
     autoPanel.hidden=false;autoStatus.textContent='Start kameraet først.';return;
@@ -93,14 +138,17 @@ autoButton.addEventListener('click',async()=>{
     const config=Z.calibration(video,autoProposal.bull,autoProposal.d20,startedDevice);
     if(!config)throw new Error('Skiven kunne ikke kalibreres med forslaget.');
     autoApply.disabled=false;
+    autoEditBull.disabled=false;
+    autoEditD20.disabled=false;
     drawAutoGuide();
-    autoStatus.textContent='Grønt kryss: Bull. Gult kryss: foreslått D20. Linjen viser dobbelringen. Forutsetter at 20 er øverst og skiven står relativt rett. Kontroller markørene før du lagrer, ellers bruk manuell kalibrering.';
+    autoStatus.textContent='Grønt kryss: Bull. Gult kryss: foreslått D20. Stiplet linje: dobbelringen. 20 antas å være rett opp. Juster Bull eller D20 direkte i bildet hvis forslaget er feil. Ingen endring lagres før du trykker Bruk forslaget.';
   }catch(error){
     clearAuto();
     autoStatus.textContent='Autokalibrering feilet: '+String(error?.message||error);
   }finally{autoButton.disabled=false}
 });
 autoApply.addEventListener('click',()=>{
+  if(autoEditTarget){autoStatus.textContent='Fullfør punktjusteringen først.';return}
   const p=autoProposal;
   if(!p||!track()||p.deviceId!==deviceId()||p.width!==video.videoWidth||p.height!==video.videoHeight){
     clearAuto();autoStatus.textContent='Kamera eller oppløsning ble endret. Test på nytt.';return;
