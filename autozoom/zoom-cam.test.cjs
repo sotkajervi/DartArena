@@ -266,7 +266,7 @@ test('Cam-test offers zoom, draggable positioning, reset and optional inset guid
 
 test('Cam-test picture controls load after calibration and stay separate from detection',()=>{
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-  const i=html.indexOf('autozoom/camera-calibration.js?v=20261023-picture1');
+  const i=html.indexOf('autozoom/camera-calibration.js?v=20261025-autocal-adjust1');
   const pic=html.indexOf('camera-picture.js?v=20261023-picture2');
   assert.ok(i>0&&pic>i);
   assert.match(html,/camera-test\.css\?v=20261023-picture1/);
