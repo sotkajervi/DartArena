@@ -1083,7 +1083,8 @@
   "Bruk den eksisterende kampfanen.": "Use the existing match tab.",
   "Ingen fullførte botkamper ennå. Første adaptive kamp starter på valgt snitt.": "No completed bot matches yet. The first adaptive match uses the selected average.",
   "Minst to spillere må gå videre til cup.": "At least two players must advance to the knockout stage.",
-  "Alle offisielle puljekamper må være ferdige, og minst to ekte spillere må delta.": "All official group matches must be completed, and at least two human players must participate."
+  "Alle offisielle puljekamper må være ferdige, og minst to ekte spillere må delta.": "All official group matches must be completed, and at least two human players must participate.",
+  "170 Double Out, 501 Double Out og 1001 Double Out. AI er en ekstra treningsmotstander: resultatene teller ikke i puljetabell, kvalifisering eller cupseeding. 301 Double In/Double Out finnes som egen AI-kamp, men støttes ikke i puljer. Cricket og Chicago Style har foreløpig ikke AI Rival.": "170 Double Out, 501 Double Out and 1001 Double Out. AI is an optional practice opponent: results do not count toward group standings, qualification or knockout seeding. 301 Double In/Double Out is available in standalone AI matches but not in group play. AI Rival does not currently support Cricket or Chicago Style."
 });
   let lang='no';
   try{lang=localStorage.getItem(KEY)==='en'?'en':'no'}catch{}
