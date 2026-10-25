@@ -795,7 +795,7 @@
   "Starter leget": "Starts the leg",
   "Antall piler brukt i checkout": "Darts used for checkout",
   "AI Rival krever minst 30 gyldige 501-runder og 3 fullførte legs for å estimere spillerstyrke.": "AI Rival needs at least 30 valid 501 visits and 3 completed legs to estimate player strength.",
-  "Skårene er registrert": "Poengsummene er registrert",
+  "Skårene er registrert": "Scores have been recorded.",
   "Kampen kjører, men kunne ikke lagres i denne nettleseren.": "The match is running but could not be saved in this browser.",
   "Adaptive AI starter på valgt nivå og lærer mellom fullførte kamper. Botnavnet endrer ikke styrken.": "Adaptive AI starts at the selected level and learns between completed matches. Bot name does not affect difficulty.",
   "Standard: valgt snitt er et langsiktig mål. Velg et botnavn for spillestilen.": "Standard: the selected average is a long-term target. Choose a bot name for its playing style.",
@@ -836,7 +836,9 @@
   "Logg inn for å spille turneringskamp.": "Log in to play a tournament match.",
   "Denne turneringens spillformat er ikke støttet av AI Rival.": "This tournament's game format is not supported by AI Rival.",
   "Kan ikke gå tilbake før kampresultatet er registrert. Kontroller meldingen og prøv igjen.": "You cannot go back until the match result is recorded. Check the message and try again.",
-  "Minimer": "Minimize"
+  "Minimer": "Minimize",
+  "Poengsummene er registrert": "Scores have been recorded.",
+  "Kampen er ferdig": "Match finished"
 });
   let lang='no';
   try{lang=localStorage.getItem(KEY)==='en'?'en':'no'}catch{}
@@ -844,6 +846,32 @@
   const originalAttrs=new WeakMap();
   const ignored='script,style,svg,canvas,code,pre,textarea,[contenteditable],[data-no-i18n],.brand,.brand-logo,.chat-message,.chat-bubble,.chat-msg,.da-chat-message,.dart-chat-message,.dart-chat-meta,.dart-chat-body,.player-name,.da-welcome-user,.da-result-stat-name,.premium-player-name,.tournament-name';
   const dynamic=[
+    [/^(.+) · (\d+) gyldige 501-runder · historisk 3-dart-snitt ([\d.,]+) · simulert nivå ([\d.,]+)(.*)$/i,m=>m[1]+' · '+m[2]+' valid 501 visits · historical 3-dart average '+m[3]+' · simulated level '+m[4]+m[5]],
+    [/^(.+) - (\d+) registrerte 501-runder · historisk 3-dart-snitt ([\d.,]+) · simulert (\d+)-snitt ([\d.,]+) · (\d+) historiske checkouts \(501\)(.*)$/i,m=>
+      m[1]+' - '+m[2]+' recorded 501 visits · historical 3-dart average '+m[3]+' · simulated '+m[4]+' average '+m[5]+' · '+m[6]+' historical checkouts (501)'+m[7].replace('Double In er estimert','Double In is estimated').replace('501-historikk brukt som grunnlag','501 history used as basis')],
+    [/^([^\n]+?) (kaster|tenker…) · (\d+) igjen$/i,m=>m[1]+' '+(m[2]==='kaster'?'is throwing':'is thinking…')+' · '+m[3]+' remaining'],
+    [/^([^\n]+?) kaster · (\d+) igjen$/i,m=>m[1]+' is throwing · '+m[2]+' remaining'],
+    [/^([^\n]+?) starter første leg\.$/i,m=>m[1]+' starts the first leg.'],
+    [/^([^\n]+?) starter neste (sett|leg)\.$/i,m=>m[1]+' starts the next '+(m[2]==='sett'?'set':'leg')+'.'],
+    [/^([^\n]+?) vant (sett|leg) (\d+)$/i,m=>m[1]+' won '+(m[2]==='sett'?'set':'leg')+' '+m[3]],
+    [/^Leg (\d+) ferdig$/i,m=>'Leg '+m[1]+' finished'],
+    [/^Start neste (sett|leg)$/i,m=>'Start next '+(m[1]==='sett'?'set':'leg')],
+    [/^Neste (sett|leg) startet\.$/i,m=>'Next '+(m[1]==='sett'?'set':'leg')+' started.'],
+    [/^Best av (\d+) sets · (\d+) legs$/i,m=>'Best of '+m[1]+' sets · '+m[2]+' legs'],
+    [/^Best av (\d+) legs$/i,m=>'Best of '+m[1]+' legs'],
+    [/^(\d+) piler · checkout (\d+)$/i,m=>m[1]+' '+(m[1]==='1'?'dart':'darts')+' · checkout '+m[2]],
+    [/^(\d+) poeng$/i,m=>m[1]+' points'],
+    [/^Registrert: (\d+) poeng\.$/i,m=>'Recorded: '+m[1]+' points.'],
+    [/^Kast korrigert til (\d+) poeng\.$/i,m=>'Throw corrected to '+m[1]+' points.'],
+    [/^([^\n]+?) sjekket ut (\d+) med (\d+) piler?\.$/i,m=>m[1]+' checked out '+m[2]+' with '+m[3]+' '+(m[3]==='1'?'dart':'darts')+'.'],
+    [/^([^\n]+?) · leg (\d+) · tidligere (\d+) poeng$/i,m=>m[1]+' · leg '+m[2]+' · previously '+m[3]+' points'],
+    [/^Utsjekk: (\d+) poeng$/i,m=>'Checkout: '+m[1]+' points'],
+    [/^(\d+) (?:\/|av) 3 piler$/i,m=>m[1]+' / 3 darts'],
+    [/^(\d+) piler? brukt$/i,m=>m[1]+' '+(m[1]==='1'?'dart':'darts')+' used'],
+    [/^(.+?) · (\d+) ferdige onlinekamper$/i,m=>m[1]+' · '+m[2]+' completed online matches'],
+    [/^Registrert (\d+) runder?$/i,m=>'Recorded '+m[1]+' visits'],
+    [/^([\wÆØÅæøå ]+) · (\d+) igjen$/i,m=>m[1]+' · '+m[2]+' remaining'],
+
     // Numeric and date-dependent UI text from player directory and profile.
     [/^(\d+) registrerte spillere$/i,m=>m[1]+' registered players'],
     [/^(\d+) treff$/i,m=>m[1]+' results'],
@@ -905,11 +933,12 @@
     if(!value||!value.trim())return;
     const prior=originals.get(node);
     const source=prior&&prior.rendered===value?prior.source:value;
-    const next=preserveSpace(source,x=>{
+    const correctedSource=source.replace(/Skårene/g,'Poengsummene').replace(/skårene/g,'poengsummene');
+    const next=preserveSpace(correctedSource,x=>{
       if(lang==='en'&&x==='Registrer'&&node.parentElement.closest('.score-entry,.rival-entry,.sa-entry,.score-input,.scoring-input'))return 'Submit score';
       return translatePhrase(x);
     });
-    originals.set(node,{source,rendered:next});
+    originals.set(node,{source:correctedSource,rendered:next});
     if(next!==value)node.nodeValue=next;
   }
   const ATTRS=['placeholder','title','aria-label'];
