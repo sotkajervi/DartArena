@@ -54,6 +54,7 @@ function estimate(image){
  const R=radii[Math.round(radii.length*.71)];
  if(R<24||R>Math.min(w,h)*.52)return null;
  const sectors=72,binStep=Math.max(1.6,R*.009),nb=Math.ceil((1.21-.67)*R/binStep);
+ const ringSamples=Array.from({length:sectors},()=>[]);
  const hist=Array.from({length:sectors},()=>new Uint16Array(nb));
  const sum=Array.from({length:sectors},()=>new Float64Array(nb));
  const counts=Array.from({length:sectors},()=>new Uint16Array(nb));
@@ -64,6 +65,7 @@ function estimate(image){
   if(r<R*.67||r>R*1.21)continue;
   const a=Math.atan2(dy,dx),sector=Math.floor((a+Math.PI)/(Math.PI*2)*sectors)%sectors;
   const k=Math.floor((r-R*.67)/binStep);
+  if(r>R*.72&&r<R*1.18)ringSamples[sector].push(r);
   if(k>=0&&k<nb){hist[sector][k]++;sum[sector][k]+=r;counts[sector][k]++}
  }
  if(triple<n*.04)return null;
@@ -80,7 +82,16 @@ function estimate(image){
    count+=counts[j][k];total+=sum[j][k];
   }
   if(count<4)continue;
-  obs.push({theta:-Math.PI+(j+.5)*Math.PI*2/sectors,r:total/count,sector:j});
+  const center=total/count;
+  const nearby=ringSamples[j].filter(r=>Math.abs(r-center)<Math.max(6,R*.060))
+    .sort((a,b)=>a-b);
+  if(nearby.length<14)continue;
+  const lower=nearby[Math.floor((nearby.length-1)*.035)];
+  const upper=nearby[Math.floor((nearby.length-1)*.965)];
+  const thickness=upper-lower;
+  if(thickness<R*.022||thickness>R*.14)continue;
+  obs.push({theta:-Math.PI+(j+.5)*Math.PI*2/sectors,
+    r:center,colorInner:lower,colorOuter:upper,sector:j});
  }
  if(obs.length<sectors*.75)return null;
  const basis=t=>[1,Math.cos(t),Math.sin(t),Math.cos(2*t),Math.sin(2*t)];
@@ -113,9 +124,26 @@ function estimate(image){
  const errors=heldout.map(o=>Math.abs(o.r-radiusAt(o.theta))).sort((a,b)=>a-b);
  const p50=errors[Math.floor(errors.length*.5)],p90=errors[Math.floor(errors.length*.90)];
  if(p50>Math.max(3.5,R*.014)||p90>Math.max(6,R*.027)||Math.hypot(coeffs[3],coeffs[4])>R*.33)return null;
+ // Two separate candidate wire boundaries, estimated from the colored
+ // segment band. They are NOT independent metal-wire measurements.
+ const inner=linearFit(fitting.map(o=>({theta:o.theta,r:o.colorInner})));
+ const outer=linearFit(fitting.map(o=>({theta:o.theta,r:o.colorOuter})));
+ if(!inner||!outer)return null;
+ const at=(c,t)=>basis(t).reduce((sum,v,k)=>sum+v*c[k],0);
+ const edgeErrors=heldout.map(o=>Math.max(
+   Math.abs(o.colorInner-at(inner,o.theta)),
+   Math.abs(o.colorOuter-at(outer,o.theta)))).sort((a,b)=>a-b);
+ const edge90=edgeErrors[Math.floor(edgeErrors.length*.9)];
+ const thickness=outer[0]-inner[0];
+ if(thickness<R*.021||thickness>R*.13||edge90>Math.max(7,R*.040))return null;
+ for(let angle=0;angle<Math.PI*2;angle+=Math.PI/18){
+   const innerAt=at(inner,angle),outerAt=at(outer,angle);
+   if(outerAt<=innerAt+R*.01||outerAt>=R*1.23||innerAt<R*.73)return null;
+ }
  return {cx:bull.x,cy:bull.y,radius:coeffs[0],coeffs,
+  boundaries:{inner,outer,edgeP90:edge90,thickness},
   fit:{medianError:p50,p90Error:p90,angles:obs.length,validationAngles:heldout.length},
-  coverage:obs.length/sectors,method:'bull-sector-ring-fit-v2',orientationKnown:false};
+  coverage:obs.length/sectors,method:'bull-ring-edges-experiment',orientationKnown:false};
 }
 root.DartArenaEllipseCalibration={estimate};
 if(typeof module==='object'&&module.exports)module.exports=root.DartArenaEllipseCalibration;
