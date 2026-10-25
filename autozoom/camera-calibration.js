@@ -17,7 +17,7 @@ const autoButton=tools.querySelector('#camZoomAuto');
 const autoPanel=document.createElement('div');
 autoPanel.className='cam-auto-panel';
 autoPanel.hidden=true;
-autoPanel.innerHTML='<strong>TEST AV AUTOKALIBRERING</strong><p id="camAutoStatus" role="status" aria-live="polite"></p><div class="cam-zoom-row"><button type="button" class="outline" id="camAutoEditBull" disabled>Juster Bull</button><button type="button" class="outline" id="camAutoEditD20" disabled>Juster D20</button><button type="button" class="primary" id="camAutoApply" disabled>Bruk forslaget</button><button type="button" class="outline" id="camAutoCancel">Avbryt</button></div>';
+autoPanel.innerHTML='<strong>AUTOKALIBRERING · KONTROLLER 20-RETNINGEN</strong><p id="camAutoStatus" role="status" aria-live="polite"></p><div class="cam-zoom-row"><button type="button" class="outline" id="camAutoEditBull" disabled>Juster Bull</button><button type="button" class="outline" id="camAutoEditD20" disabled>Juster D20</button><button type="button" class="primary" id="camAutoApply" disabled>Bruk forslaget</button><button type="button" class="outline" id="camAutoCancel">Avbryt</button></div>';
 tools.appendChild(autoPanel);
 const autoStatus=autoPanel.querySelector('#camAutoStatus');
 const autoApply=autoPanel.querySelector('#camAutoApply');
@@ -33,7 +33,7 @@ autoEditLayer.className='cam-auto-edit-layer';
 autoEditLayer.hidden=true;
 autoEditLayer.title='Klikk på skiven for å finjustere valgt punkt';
 preview.appendChild(autoEditLayer);
-let autoProposal=null,autoEditTarget=null;
+let autoProposal=null,autoEditTarget=null,autoD20Verified=false;
 function stopAutoEdit(){
   autoEditTarget=null;
   autoEditLayer.hidden=true;
@@ -41,6 +41,7 @@ function stopAutoEdit(){
 function clearAuto(){
   stopAutoEdit();
   autoProposal=null;
+  autoD20Verified=false;
   autoApply.disabled=true;
   autoEditBull.disabled=true;
   autoEditD20.disabled=true;
@@ -66,7 +67,8 @@ function drawAutoGuide(){
   ctx.strokeStyle='rgba(0,234,244,.92)';
   ctx.beginPath();ctx.arc(bull.x,bull.y,rad,0,Math.PI*2);ctx.stroke();
   ctx.setLineDash([]);
-  for(const [p,color] of [[bull,'#00ef95'],[d20,'#ffcc49']]){
+  // Before D20 has been confirmed, no yellow cross must impersonate a found D20.
+  for(const [p,color] of (autoD20Verified?[[bull,'#00ef95'],[d20,'#ffcc49']]:[[bull,'#00ef95']])){
     ctx.strokeStyle='#031114';ctx.lineWidth=5;
     ctx.beginPath();ctx.moveTo(p.x-13,p.y);ctx.lineTo(p.x+13,p.y);
     ctx.moveTo(p.x,p.y-13);ctx.lineTo(p.x,p.y+13);ctx.stroke();
@@ -81,8 +83,9 @@ function beginAutoEdit(target){
   autoEditTarget=target;
   autoEditLayer.hidden=false;
   autoApply.disabled=true;
-  autoStatus.textContent='Klikk på '+(target==='bull'?'midt i Bull':'midten av D20 på dobbelringen')+
-    ' i kamerabildet. Dette endrer kun forslaget; ingenting lagres før du trykker Bruk forslaget.';
+  autoStatus.textContent=target==='bull'?
+    'Klikk midt i Bull. Etterpå må du markere D20 igjen. Ingenting lagres før du bekrefter.':
+    'Skiven kan være rotert. Klikk D20 på den virkelige skiven (eller 20-tallet på ytterringen). Gult kryss vises først når du har valgt riktig retning. Ingenting lagres automatisk.';
 }
 autoEditBull.addEventListener('click',()=>beginAutoEdit('bull'));
 autoEditD20.addEventListener('click',()=>beginAutoEdit('d20'));
@@ -94,18 +97,37 @@ autoEditLayer.addEventListener('click',event=>{
      autoProposal.height!==video.videoHeight){
     clearAuto();autoStatus.textContent='Kamera eller oppløsning ble endret. Analyser på nytt.';return;
   }
-  const proposal={...autoProposal,[autoEditTarget]:{x:p.x,y:p.y}};
+  const editing=autoEditTarget,proposal={...autoProposal};
+  if(editing==='bull'){
+    // The detector already found the rings: keep the measured radius while
+    // moving the centre. D20 must be re-confirmed after centre adjustment.
+    const distance=Math.hypot(p.x-proposal.bull.x,p.y-proposal.bull.y);
+    if(distance>proposal.radius*.4){
+      autoStatus.textContent='Bull-korreksjonen er for langt fra funnet sentrum. Klikk midt i Bull.';return;
+    }
+    proposal.bull={x:p.x,y:p.y};
+    proposal.d20={x:p.x,y:p.y-proposal.radius*.976};
+    autoD20Verified=false;
+  }else{
+    const snapped=window.DartArenaAutoCalibration?.snapD20(proposal.bull,p,proposal.radius);
+    if(!snapped){
+      autoStatus.textContent='Klikk nær D20 eller 20-tallet ute på skiva, ikke i Bull.';return;
+    }
+    proposal.d20=snapped;
+    autoD20Verified=true;
+  }
   if(!Z.calibration(video,proposal.bull,proposal.d20,proposal.deviceId)){
     autoStatus.textContent='Punktet gir ugyldig kalibrering. Klikk et annet sted på skiven.';return;
   }
-  proposal.radius=Math.hypot(proposal.d20.x-proposal.bull.x,
-    proposal.d20.y-proposal.bull.y)/.976;
-  const adjusted=autoEditTarget==='bull'?'Bull':'D20';
   autoProposal=proposal;
   stopAutoEdit();
-  autoApply.disabled=false;
   drawAutoGuide();
-  autoStatus.textContent=adjusted+' justert. Sjekk begge kryssene og den stiplede ringlinjen. Trykk Bruk forslaget først når alt stemmer.';
+  if(editing==='bull'){
+    beginAutoEdit('d20');
+  }else{
+    autoApply.disabled=false;
+    autoStatus.textContent='Bull og D20 er valgt. Se at grønt kryss treffer Bull, gult kryss D20 og den stiplede ringen dobbelringen. Trykk «Bruk forslaget» for å lagre.';
+  }
 });
 autoButton.addEventListener('click',async()=>{
   if(!video.videoWidth||!video.videoHeight||!track()){
@@ -137,18 +159,21 @@ autoButton.addEventListener('click',async()=>{
       radius:found.radius*sx};
     const config=Z.calibration(video,autoProposal.bull,autoProposal.d20,startedDevice);
     if(!config)throw new Error('Skiven kunne ikke kalibreres med forslaget.');
-    autoApply.disabled=false;
+    // Ring colors are rotationally symmetric. Never enable Apply while
+    // the guessed upright D20 is still unverified.
+    autoD20Verified=false;
+    autoApply.disabled=true;
     autoEditBull.disabled=false;
     autoEditD20.disabled=false;
     drawAutoGuide();
-    autoStatus.textContent='Grønt kryss: Bull. Gult kryss: foreslått D20. Stiplet linje: dobbelringen. 20 antas å være rett opp. Juster Bull eller D20 direkte i bildet hvis forslaget er feil. Ingen endring lagres før du trykker Bruk forslaget.';
+    beginAutoEdit('d20');
   }catch(error){
     clearAuto();
     autoStatus.textContent='Autokalibrering feilet: '+String(error?.message||error);
   }finally{autoButton.disabled=false}
 });
 autoApply.addEventListener('click',()=>{
-  if(autoEditTarget){autoStatus.textContent='Fullfør punktjusteringen først.';return}
+  if(autoEditTarget||!autoD20Verified){autoStatus.textContent='Du må markere riktig D20 på skiven før kalibreringen kan lagres.';return}
   const p=autoProposal;
   if(!p||!track()||p.deviceId!==deviceId()||p.width!==video.videoWidth||p.height!==video.videoHeight){
     clearAuto();autoStatus.textContent='Kamera eller oppløsning ble endret. Test på nytt.';return;
