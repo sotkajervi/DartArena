@@ -3,7 +3,16 @@
 const $=id=>document.getElementById(id);
 const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
 const notice=t=>$('rivalNotice').textContent=t;
-let me=null,profiles=[],game=null,model=null,modelPlayer=null;
+let me=null,profiles=[],game=null,model=null,modelPlayer=null,modelSummary=null;
+const inEnglish=()=>window.DartArenaI18n?.getLanguage?.()==='en';
+function renderModelSummary(){
+ if(!modelSummary||!$('rivalModel'))return;
+ const v=modelSummary,{username,visits,historyAverage,format,estimatedAverage,checkouts}=v;
+ $('rivalModel').textContent=inEnglish()
+ ?username+' · '+visits+' recorded 501 visits · historical 3-dart average '+historyAverage.toFixed(2)+' · simulated '+format+' average '+estimatedAverage.toFixed(2)+' · '+checkouts+' historical checkouts (501)'+(format===301?' · Double In is estimated':format!==501?' · Based on 501 match history':'')+'.'
+ :username+' · '+visits+' registrerte 501-runder · historisk 3-dart-snitt '+historyAverage.toFixed(2)+' · simulert '+format+'-snitt '+estimatedAverage.toFixed(2)+' · '+checkouts+' historiske checkouts (501)'+(format===301?' · Double In er estimert':format!==501?' · 501-historikk brukt som grunnlag':'')+'.';
+}
+document.addEventListener('dartarena:languagechange',renderModelSummary);
 const random=()=>Math.random();
 const sample=(arr)=>arr[Math.floor(random()*arr.length)];
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
@@ -75,7 +84,8 @@ async function loadModel(id){
   const format=Number($('rivalFormat').value);
   const trained=window.DartArenaRivalModel.build(data||[],window.DartArenaLocalH2HEngine,{format,doubleIn:format===301});
   model={...modelFrom(data||[]),count:trained.historyVisits,checkoutCount:trained.historyCheckouts,avg:trained.historyAverage};
-  $('rivalModel').textContent=modelPlayer.username+' · '+trained.historyVisits+' registrerte 501-runder · historisk 3-dart-snitt '+trained.historyAverage.toFixed(2)+' · simulert '+format+'-snitt '+trained.estimatedAverage.toFixed(2)+' · '+trained.historyCheckouts+' historiske checkouts (501)'+(format===301?' · Double In er estimert':(format!==501?' · 501-historikk brukt som grunnlag':''))+'.';
+  modelSummary={username:modelPlayer.username,visits:trained.historyVisits,historyAverage:trained.historyAverage,format,estimatedAverage:trained.estimatedAverage,checkouts:trained.historyCheckouts};
+  renderModelSummary();
  }catch(e){model=null;$('rivalModel').textContent=e.message||'Kunne ikke bygge AI-modellen.';return}
  $('rivalStart').disabled=false;
 }
