@@ -575,8 +575,8 @@ $('localCheckoutBust').addEventListener('click',()=>{
 async function newMatch(){
   if(state&&state.status!=='finished'){
     const confirmed=await window.DartArenaDialog.confirm('Avslutte denne lokale kampen? Resultatet kan ikke gjenopprettes etterpå.',{
-      kicker:'LOKAL HEAD-TO-HEAD',title:'Starte ny kamp?',tone:'warning',
-      confirmText:'Avslutt og start ny',cancelText:'Fortsett kampen'
+      title:'Starte ny kamp?',
+      confirmText:'Start ny kamp',cancelText:'Fortsett kampen'
     });
     if(!confirmed)return;
   }
