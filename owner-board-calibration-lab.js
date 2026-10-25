@@ -9,6 +9,27 @@ const tf=window.tf,tflite=window.tflite;
 const APK_ENTRY='assets/flutter_assets/assets/models/dart_calibration_w7s.tflite';
 const MAX_MODEL=80*1024*1024,MAX_APK=260*1024*1024;
 const STAGE=1024;
+// TensorFlow.js TFLite uses a separate WebAssembly module, not the TFJS CPU
+// backend. The CDN source script alone does not initialize that runtime.
+const TFLITE_WASM_DIR='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite@0.0.1-alpha.10/dist/';
+let wasmPathConfigured=false,wasmModelLoaded=false;
+function ensureWasmPath(){
+  if(wasmPathConfigured)return;
+  if(typeof tflite?.setWasmPath!=='function')
+    throw Error('TFLite-biblioteket mangler setWasmPath. Nettlesermotoren er ikke riktig lastet.');
+  tflite.setWasmPath(TFLITE_WASM_DIR);
+  wasmPathConfigured=true;
+}
+function modelErrorMessage(error){
+  const message=String(error?.message||error);
+  if(/_malloc|wasm|WebAssembly|EmscriptenModuleLoader|instantiate/i.test(message)){
+    return 'WebAssembly-motoren startet ikke: '+message+
+      '\nTFLite JavaScript kan være tilgjengelig selv når WASM-filen feiler. '+
+      'Kontroller nettverk/innholdsblokkering mot jsDelivr. '+ 
+      'Dette sier ennå ingenting om selve DartsKey-modellen.';
+  }
+  return 'Modellen kunne ikke startes: '+message;
+}
 const db=window.supabase?.createClient(
   'https://jqpxlbhwvskhjbqrbidk.supabase.co',
   'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
@@ -22,8 +43,9 @@ function say(s,level='info'){
 }
 function runtimeStatus(){
   const ready=!!window.tf&&!!window.tflite;
-  $('runtimeState').textContent=ready?'TFLite: lastet':
-    (!window.tf?'TensorFlow.js mangler':'TFLite-motoren mangler');
+  $('runtimeState').textContent=wasmModelLoaded?'TFLite WASM: startet':ready?
+    (wasmPathConfigured?'TFLite JS: lastet · WASM: ikke verifisert':'TFLite JS: lastet · WASM: ikke startet'):
+    (!window.tf?'TensorFlow.js mangler':'TFLite JavaScript mangler');
   return ready;
 }
 $('copyDiagnostic').addEventListener('click',async()=>{
@@ -90,6 +112,11 @@ $('load').addEventListener('click',async()=>{
     const bytes=await readModelFile(file);
     say('TFLite funnet ('+(bytes.byteLength/1048576).toFixed(1)+' MB). Starter lokal WASM-kjøring …');
     await tf.setBackend('cpu');await tf.ready();
+    // The _malloc failure is caused by an absent native WASM module, not
+    // by TFLite model classification. Pin its URL explicitly before loading.
+    ensureWasmPath();
+    say('Modell lest lokalt. Laster WebAssembly fra '+TFLITE_WASM_DIR+
+      ' (TFLite JS alene er ikke tilstrekkelig) …');
     const instance=await Promise.race([
       tflite.loadTFLiteModel(bytes,{numThreads:1}),
       new Promise((_,reject)=>setTimeout(
@@ -98,14 +125,15 @@ $('load').addEventListener('click',async()=>{
     if(typeof instance.predict!=='function')throw Error('Modellen kunne ikke startes av denne nettleseren.');
     if(runner&&typeof runner.dispose==='function')runner.dispose();
     runner=instance;
+    wasmModelLoaded=true;
     const ins=runner.inputs||[],outs=runner.outputs||[];
     report.hidden=false;
     report.textContent='Modellens innganger: '+JSON.stringify(ins)+'\nUtganger: '+JSON.stringify(outs);
     say('Modellen er lastet. Velg skivebilde eller Ta bilde, og trykk deretter Analyser bildet.','success');
   }catch(e){
-    runner=null;
-    say('Modellen kunne ikke startes: '+(e?.message||String(e))+
-      '\nIngen kalibrering er endret. Modellen kan kreve TFLite-operasjoner nettleseren ikke støtter.','error');
+    runner=null;wasmModelLoaded=false;
+    say(modelErrorMessage(e)+
+      '\nIngen kalibrering er endret. WASM-adresse: '+TFLITE_WASM_DIR,'error');
     report.hidden=false;report.textContent=String(e?.stack||e);
     console.warn(e);
   }

@@ -33,6 +33,14 @@ test('Owner gate and no modification to real calibration, media sends or scoring
   assert.match(js,/window\.addEventListener\('pagehide',stopCamera\)/);
 });
 test('Current page has versioned script and JS parses',()=>{
-  assert.match(html,/owner-board-calibration-lab\.js\?v=20261025-repair2/);
+  assert.match(html,/owner-board-calibration-lab\.js\?v=20261025-wasm-path1/);
   assert.doesNotThrow(()=>new Function(js));
+});
+
+test('TFLite WebAssembly path must be set before model load',()=>{
+  assert.match(js,/const TFLITE_WASM_DIR='https:\/\/cdn\.jsdelivr\.net\/npm\/@tensorflow\/tfjs-tflite@0\.0\.1-alpha\.10\/dist\//);
+  assert.match(js,/tflite\.setWasmPath\(TFLITE_WASM_DIR\)/);
+  assert.ok(js.indexOf('ensureWasmPath();')<js.indexOf('tflite.loadTFLiteModel(bytes'));
+  assert.match(js,/WebAssembly-motoren startet ikke/);
+  assert.match(js,/TFLite JS: lastet · WASM: ikke startet/);
 });
