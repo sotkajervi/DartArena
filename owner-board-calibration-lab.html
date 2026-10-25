@@ -75,20 +75,30 @@ button:not(:disabled):hover{border-color:var(--cyan)}
 <div class="row"><button id="startCamera" type="button">Start kamera</button><button id="takeFrame" type="button" disabled>Ta bilde</button><button id="stopCamera" type="button" disabled>Stopp kamera</button><span id="cameraState">Kamera avslått</span></div>
 <video id="camera" muted autoplay playsinline hidden></video>
 <p id="imageState" class="stepHelp">Ingen skivebilder valgt.</p>
-<div class="row" style="margin:12px 0"><button id="ellipseAnalyze" class="primary" disabled type="button">Test ringmodell v2 (Owner)</button><button id="analyze" disabled type="button">Analyser med TFLite</button>
+<div class="row" style="margin:12px 0"><button id="ellipseAnalyze" class="primary" disabled type="button">Test dobbelringens to kanter</button><button id="analyze" disabled type="button">Analyser med TFLite</button>
 <label style="margin:0">Minste sikkerhet <select id="threshold"><option value=".35">35 %</option><option value=".5" selected>50 %</option><option value=".65">65 %</option></select></label>
 <button id="saveOverlay" type="button" disabled>Lagre resultatbilde (.png)</button></div>
 </section>
 </div>
 <section><h2>3. Analyser og se resultat</h2>
-<canvas id="visual" width="960" height="720" hidden aria-label="Bilde med modellens foreslåtte objekter og kalibreringspunkter"></canvas>
-<p class="stepHelp">V2 finner Bull separat og kontrollerer 72 ringretninger. Resultater med for stort avvik avvises. Denne testen finner fortsatt ikke D20 eller full perspektivkorrigering og lagrer ingen kalibrering. DartsKeys modellklasser vises som C0–C20 dersom TFLite-motoren kan kjøre. <a href="./" style="color:#00eaf4">Manuell kalibrering finnes fortsatt i Cam-test.</a></p>
+<canvas id="visual" width="960" height="720" hidden aria-label="Bilde med estimert indre og ytre dobbelring og manuelle kontrollpunkter"></canvas>
+<div id="wireAudit" hidden style="background:#081a1e;border:1px solid #41666c;border-radius:10px;margin:14px 0;padding:14px">
+  <strong style="display:block;color:#eaffff;margin-bottom:7px">Kontroll mot faktisk yttertråd · 8 punkter</strong>
+  <p class="stepHelp">Fargefeltene er ikke metalltrådene. For å måle den reelle feilen: Trykk «Start kontroll», og klikk på <strong>ytterste metalltråd rundt dobbelringen</strong> ved hver markert retning. Dette gjøres kun for kvalitetstesting, ikke hver gang du spiller.</p>
+  <div class="row">
+    <button id="wireAuditStart" type="button" class="primary">Start kontroll (8 punkt)</button>
+    <button id="wireAuditUndo" type="button" disabled>Angre siste</button>
+    <button id="wireAuditReset" type="button" disabled>Nullstill</button>
+  </div>
+  <p id="wireAuditStatus" role="status" class="stepHelp">Ingen uavhengige referansepunkter ennå.</p>
+</div>
+<p class="stepHelp">Testen anslår de to fargegrensene på dobbelringen. De kan ligge et stykke fra metalltrådene. Vi krever kontrollpunkter på faktisk tråd før vi kan vurdere presisjonen. Denne testen finner fortsatt ikke D20 eller full perspektivkorrigering og lagrer ingen kalibrering. DartsKeys modellklasser vises som C0–C20 dersom TFLite-motoren kan kjøre. <a href="./" style="color:#00eaf4">Manuell kalibrering finnes fortsatt i Cam-test.</a></p>
 <pre id="results" hidden></pre></section>
 </div></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.22.0/dist/tf-core.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.22.0/dist/tf-backend-cpu.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite@0.0.1-alpha.10/dist/tf-tflite.min.js"></script>
-<script src="./autozoom/ellipse-calibration.js?v=20261025-bullringv2"></script>
-<script src="./owner-board-calibration-lab.js?v=20261025-bullringv2"></script>
+<script src="./autozoom/ellipse-calibration.js?v=20261025-wireaudit1"></script>
+<script src="./owner-board-calibration-lab.js?v=20261025-wireaudit1"></script>
 </body></html>
