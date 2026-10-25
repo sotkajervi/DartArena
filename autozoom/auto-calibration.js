@@ -47,7 +47,7 @@ function detect(image){
   return {cx,cy,r,score,outer,triple,gap,bull};
  }
  let best=null;
- const side=Math.min(w,h),r0=Math.max(29,Math.round(side*.18)),r1=Math.floor(side*.47);
+ const side=Math.min(w,h),r0=Math.max(26,Math.round(side*.12)),r1=Math.floor(side*.47);
  for(let r=r0;r<=r1;r+=6){
   const pad=r+3;
   for(let cy=pad;cy<h-pad;cy+=12){
