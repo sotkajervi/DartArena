@@ -215,7 +215,7 @@ function imageFromFile(file){
 $('imageFile').addEventListener('change',async()=>{
   if(!allowed||!$('imageFile').files?.[0])return;
   try{
-    source=await imageFromFile($('imageFile').files[0]);lastBoxes=[];lastEllipse=null;paint();
+    source=await imageFromFile($('imageFile').files[0]);lastBoxes=[];lastEllipse=null;resetAudit(true);paint();
     $('imageState').textContent='Bilde klart: '+source.width+' × '+source.height;
     say('Skivebildet klart ('+source.width+' × '+source.height+'). '+(runner?'Trykk Analyser bildet.':'Last inn en modell for analyse.'));
     report.textContent='';report.hidden=true;
@@ -240,14 +240,14 @@ $('takeFrame').addEventListener('click',()=>{
   if(!stream||!video.videoWidth)return;
   source=document.createElement('canvas');source.width=video.videoWidth;source.height=video.videoHeight;
   source.getContext('2d').drawImage(video,0,0);
-  lastBoxes=[];lastEllipse=null;paint();$('imageState').textContent='Kamerabilde klart: '+source.width+' × '+source.height;
+  lastBoxes=[];lastEllipse=null;resetAudit(true);paint();$('imageState').textContent='Kamerabilde klart: '+source.width+' × '+source.height;
   say('Kamerabilde tatt. '+(runner?'Trykk Analyser bildet.':'Last modellen for å analysere.'));update();
 });
 // Local, independent ellipse estimate that still works when browser TFLite
 // cannot start. Read-only: users must validate before any future calibration.
 $('ellipseAnalyze').addEventListener('click',()=>{
  if(!allowed||!source||analyzing)return;
- analyzing=true;lastBoxes=[];lastEllipse=null;update();
+ analyzing=true;lastBoxes=[];lastEllipse=null;resetAudit(true);update();
  $('ellipseAnalyze').textContent='Måler ringer …';
  try{
   const E=window.DartArenaEllipseCalibration;
@@ -261,7 +261,8 @@ $('ellipseAnalyze').addEventListener('click',()=>{
   if(!found)throw Error('AVVIST: Bull og skiveringene ble ikke funnet med tilstrekkelig sikkerhet. Ingen kalibrering foreslås.');
   const scaleX=source.width/width,scaleY=source.height/height;
   lastEllipse={cx:found.cx*scaleX,cy:found.cy*scaleY,
-    coeffs:found.coeffs,sampleScaleX:scaleX,sampleScaleY:scaleY,fit:found.fit};
+    coeffs:found.coeffs,boundaries:found.boundaries,sampleScaleX:scaleX,sampleScaleY:scaleY,fit:found.fit};
+  resetAudit(false);
   paint();
   report.hidden=false;
   const scale=(scaleX+scaleY)/2;
@@ -271,17 +272,19 @@ $('ellipseAnalyze').addEventListener('click',()=>{
     'Fargering-sektorer: '+found.fit.angles+' / 72\n'+
     'Sektorer holdt utenfor tilpasningen: '+found.fit.validationAngles+'\n'+
     'Avvik mot utelatte FARGEPUNKTER: median '+median.toFixed(1)+' px, 90-persentil '+p90.toFixed(1)+' px\n'+
-    'Dette er IKKE uavhengig målt treffnøyaktighet.\n'+
+    'Intern fargefeil er IKKE målt avvik mot metalltrådene.\n'+
+    'Gult = anslått ytre fargegrense; blått = anslått indre fargegrense.\n'+
+    'Bruk kontrollen under bildet for å måle mot den faktiske yttertråden.\n'+
     'D20-retning: UKJENT · Full perspektivkorrigering: IKKE FERDIG.\n'+
     'KUN TEST. Ingen innstillinger eller scoring er endret.';
   say('TEST – IKKE GODKJENT KALIBRERING.\n'+
-    'Rosa kontur er ringforslaget; grønt kryss er funnet Bull.\n'+
+    'Gult og blått er anslåtte fargegrenser, ikke verifiserte metalltråder. Grønt kryss er anslått Bull.\n'+
     '90-persentil for utelatte fargepunkter: '+p90.toFixed(1)+' px. '+
     'Kontroller visuelt at konturen følger dobbelringen hele veien. Ingenting lagres.','info');
  }catch(e){
   paint();say('Ringtest feilet: '+e.message+'\nIngen innstillinger er endret.','error');
  }finally{
-  analyzing=false;$('ellipseAnalyze').textContent='Test ringmodell v2 (Owner)';update();
+  analyzing=false;$('ellipseAnalyze').textContent='Test dobbelringens to kanter';update();
  }
 });
 function decodeModelOutput(output,layout,minConfidence){
