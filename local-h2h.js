@@ -572,8 +572,14 @@ $('localCheckoutBust').addEventListener('click',()=>{
   const score=pendingCheckout.score,name=player(state.turn);
   commit(()=>E.submit(state,score,{bust:true}),'BUST for '+name+'.','submit');
 });
-function newMatch(){
-  if(state&&state.status!=='finished'&&!window.confirm('Avslutte denne lokale kampen? Resultatet kan ikke gjenopprettes etterpå.'))return;
+async function newMatch(){
+  if(state&&state.status!=='finished'){
+    const confirmed=await window.DartArenaDialog.confirm('Avslutte denne lokale kampen? Resultatet kan ikke gjenopprettes etterpå.',{
+      kicker:'LOKAL HEAD-TO-HEAD',title:'Starte ny kamp?',tone:'warning',
+      confirmText:'Avslutt og start ny',cancelText:'Fortsett kampen'
+    });
+    if(!confirmed)return;
+  }
   clearTimeout(betweenTimer);betweenTimer=null;
   cancelBot();
   const oldPlayers=state?.players||[],wasBot=!!botConfig;
