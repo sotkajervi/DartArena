@@ -134,7 +134,7 @@ $('load').addEventListener('click',async()=>{
   }catch(e){
     runner=null;wasmModelLoaded=false;
     say(modelErrorMessage(e)+
-      '\nIngen kalibrering er endret. WASM-adresse: '+TFLITE_WASM_DIR,'error');
+      '\nDu kan fortsatt teste fargeringene med «Test ring/ellipse uten modell». Ingen kalibrering er endret. WASM-adresse: '+TFLITE_WASM_DIR,'error');
     report.hidden=false;report.textContent=String(e?.stack||e);
     console.warn(e);
   }
@@ -335,7 +335,7 @@ window.addEventListener('pagehide',stopCamera);
     const {data,isOwnerError,error:rpcError}=await db.rpc('is_owner');
     if(rpcError||data!==true)throw Error('Kun Owner kan bruke dette laboratoriet.');
     allowed=true;$('denied').hidden=true;$('app').hidden=false;update();
-    if(!runtimeStatus())say('Owner bekreftet, men TensorFlow Lite-biblioteket mangler. Modellanalyse er utilgjengelig. Kamerabilder kan fortsatt tas.','error');
+    if(!runtimeStatus())say('Ring/ellipse-testen er klar uten modellfil. TFLite er utilgjengelig, men du kan ta et kamerabilde og bruke «Test ring/ellipse uten modell».');
     else say('Owner bekreftet. Velg modellfil og skivebilde.');
   }catch(e){$('denied').textContent='Ingen tilgang: '+e.message;say('Kan ikke åpne testsiden: '+e.message,'error')}
 })();
