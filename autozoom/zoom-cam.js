@@ -108,7 +108,7 @@ function create(raw,config,{fps=25,video=null,
   const speed=tracker.speedPreset(config.speed);
   const gate=tracker.createChangeGate({stableFrames:speed.stableFrames,motionWindowMs:4000,cooldownMs:speed.cooldownMs});
   const sampled=document.createElement('canvas'),sampleCtx=sampled.getContext('2d',{willReadFrequently:true});
-  let lastAnalysis=0,resetResumeAt=0;
+  let lastAnalysis=0,resetResumeAt=0,lastRenderErrorAt=-Infinity;
   function resetToT20(){
     if(stopped)return false;
     // Go straight back to the 20-bed after a recorded visit. Do not treat
@@ -124,7 +124,10 @@ function create(raw,config,{fps=25,video=null,
   }
   function tick(now){
     if(stopped)return;
-    if(video.videoWidth&&video.videoHeight){
+    try{
+    // Some browsers report dimensions before the first drawable video frame.
+    // A transient drawImage/getImageData failure must never kill the live track.
+    if(video.videoWidth&&video.videoHeight&&video.readyState>=2){
       const w=canvas.width||1280,h=canvas.height||720;
       const sw=video.videoWidth,sh=video.videoHeight;
       const framed=framingCrop(sw,sh,config);
@@ -177,7 +180,15 @@ function create(raw,config,{fps=25,video=null,
       setDrawFilter('none');
       ctx.strokeStyle='#00eaf4';ctx.lineWidth=Math.max(2,w/450);ctx.strokeRect(ix-2,iy-2,insetW+4,insetH+4);
     }
-    loop=requestAnimationFrame(tick);
+    }catch(error){
+      setDrawFilter('none');
+      if(now-lastRenderErrorAt>5000){
+        console.warn('Zoom-cam frame unavailable, retrying',error);
+        lastRenderErrorAt=now;
+      }
+    }finally{
+      if(!stopped)loop=requestAnimationFrame(tick);
+    }
   }
   let capture;
   try{
