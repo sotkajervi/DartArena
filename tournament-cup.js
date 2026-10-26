@@ -168,6 +168,29 @@
     }
     return out;
   }
+  async function loadCupLiveLegs(cupMatches){
+    // Tournament matches only hold the final result. While a cup match is
+    // running, its current leg score lives on the linked online match.
+    const liveIds=[...new Set(cupMatches
+      .filter(match=>match.status==='live'&&match.live_match_id)
+      .map(match=>match.live_match_id))];
+    if(!liveIds.length)return;
+    const {data:liveRows,error}=await db.from('matches')
+      .select('id,player1_legs,player2_legs')
+      .in('id',liveIds);
+    if(error){
+      console.warn('Could not load live cup leg scores',error);
+      return;
+    }
+    const byId=new Map((liveRows||[]).map(match=>[match.id,match]));
+    cupMatches.forEach(match=>{
+      if(match.status!=='live')return;
+      const live=byId.get(match.live_match_id);
+      if(!live)return;
+      match._live_player1_legs=Number(live.player1_legs||0);
+      match._live_player2_legs=Number(live.player2_legs||0);
+    });
+  }
   async function finishTournamentIfNeeded(final,matches){
     if(!final?.winner_id||tournament?.status!=='cup'||tournament?.owner_id!==me)return;
     const max=Math.max(...matches.map(m=>Number(m.round_no||0))),last=matches.filter(m=>Number(m.round_no||0)===max);
@@ -181,6 +204,7 @@
     setup.classList.toggle('hidden',tournament.status!=='cup_setup');lobby.classList.toggle('hidden',!['cup','finished'].includes(tournament.status));
     if(tournament.status==='cup_setup'){const allDone=d.players.length>=2&&d.gm.every(done),q=allDone?qualifiers(d):[];$('cupSetupInfo').textContent=allDone?`${q.length} spillere er klare for sluttspillet. Cupen bruker NDF-oppsett der dette er definert, og viser puljeplassering som 1P1, 2P1 osv.`:'Cupen kan opprettes når alle puljekampene er ferdige.';$('buildCupBtn').disabled=!allDone;if(allDone&&q.length>=2)renderCupFormat(q);return}
     if(!d.cm.length)return;const advancementBlocked=await advanceWinners(d.cm);const ids=[...new Set(d.cm.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))],missing=ids.filter(x=>!names[x]);if(missing.length){const {data:p}=await db.from('profiles').select('id,username').in('id',missing);Object.assign(names,Object.fromEntries((p||[]).map(x=>[x.id,x.username])))}
+    await loadCupLiveLegs(d.cm);
     const seedById=new Map(qualifiers(d).map(p=>[p.id,p.seedLabel]));
     const matchAverages=await cupMatchAverages(d.cm);
     const max=Math.max(...d.cm.map(m=>m.round_no));
