@@ -4,7 +4,7 @@
  */
 (function(root){
   'use strict';
-  const one='╱', two='×', closed='○';
+  const one='╱', two='×', closed='◯';
   const normalizeTarget=t=>String(t||'').toUpperCase()==='BULL'?'B':String(t||'').toUpperCase();
   function basic(value){
     const n=Math.max(0,Math.min(3,Number(value)||0));
