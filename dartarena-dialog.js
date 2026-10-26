@@ -76,6 +76,7 @@
         input=document.createElement('input');
         input.className='da-dialog-input';
         input.type=options.inputType||'text';
+        if(options.inputMode)input.inputMode=options.inputMode;
         input.value=String(options.value??'');
         input.placeholder=options.placeholder||'';
         input.autocomplete='off';
@@ -129,7 +130,7 @@
       backdrop.addEventListener('click',()=>{if(options.backdropCancel!==false&&hasCancel)cancel();});
 
       requestAnimationFrame(()=>{
-        if(input){input.focus();input.select();}
+        if(input){input.focus();try{input.select()}catch{/* Some input types, such as number, cannot be selected. */}}
         else confirmBtn.focus();
       });
     });
