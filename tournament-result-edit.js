@@ -62,22 +62,25 @@
       const needed=targetWins(match.best_of);
       const current=match.status==='pending'?'':`${Number(match.player1_legs||0)}-${Number(match.player2_legs||0)}`;
       const dialog=await getDialog();
+      if(!dialog?.prompt)throw new Error('DartArena-dialogen kunne ikke lastes. Oppdater turneringen og prøv igjen.');
       const unit=isChicago?'games':'legs';
       const promptMessage=`${n1} vs ${n2}\n${isChicago?'Chicago Style':'Best av '+match.best_of} • vinner må ha ${needed} ${unit}\n\nSkriv nytt resultat (${n1}-${n2}):`;
-      const input=dialog
-        ?await dialog.prompt(promptMessage,{title:match.status==='pending'?'Registrer resultat':'Korriger resultat',value:current,inputLabel:'NYTT RESULTAT',confirmText:'Lagre resultat'})
-        :prompt(`Registrer kampresultat\n${promptMessage}`,current);
+      const input=await dialog.prompt(promptMessage,{
+        title:match.status==='pending'?'Registrer resultat':'Korriger resultat',
+        kicker:'DARTARENA · TURNERING',
+        value:current,inputLabel:'NYTT RESULTAT',confirmText:'Lagre resultat'
+      });
       if(input===null)return;
 
       const parsed=input.trim().match(/^(\d+)\s*[-–:]\s*(\d+)$/);
-      if(!parsed){if(dialog)await dialog.alert('Skriv resultatet som for eksempel 3-1.',{title:'Ugyldig resultat',tone:'warning'});else alert('Skriv resultatet som for eksempel 3-1.');return;}
+      if(!parsed){await dialog.alert('Skriv resultatet som for eksempel 3-1.',{title:'Ugyldig resultat',tone:'warning'});return;}
 
       const p1=Number(parsed[1]),p2=Number(parsed[2]);
       if(!((p1===needed&&p2<needed)||(p2===needed&&p1<needed))){
         const text=isChicago
           ?`Ugyldig resultat. I Chicago Style må vinneren ha ${needed} games.`
           :`Ugyldig resultat. I Best av ${match.best_of} må vinneren ha ${needed} legs.`;
-        if(dialog)await dialog.alert(text,{title:'Ugyldig resultat',tone:'warning'});else alert(text);
+        await dialog.alert(text,{title:'Ugyldig resultat',tone:'warning'});
         return;
       }
 
@@ -86,7 +89,7 @@
         const winnerName=newWinner===match.player1_id?n1:n2;
         const oldWinnerName=match.winner_id===match.player1_id?n1:n2;
         const text=`Dette endrer vinner fra ${oldWinnerName} til ${winnerName}.\n\nHvis dette er en cupkamp, oppdateres neste runde automatisk dersom den ikke har startet. Fortsette?`;
-        const ok=dialog?await dialog.confirm(text,{title:'Bytt kampvinner?',tone:'warning',confirmText:'Fortsett'}):confirm(text);
+        const ok=await dialog.confirm(text,{title:'Bytt kampvinner?',tone:'warning',confirmText:'Fortsett'});
         if(!ok)return;
       }
 
@@ -98,14 +101,15 @@
       if(rpcError)throw rpcError;
 
       await refreshTournament();
-      if(dialog)await dialog.alert('Resultatet er korrigert.',{title:'Resultat lagret',tone:'success'});else alert('Resultatet er korrigert.');
+      await dialog.alert('Resultatet er korrigert.',{title:'Resultat lagret',tone:'success'});
     }catch(error){
       const message=String(error?.message||'Kunne ikke endre resultatet.')
         .replace('Cannot change cup winner because the next match has already started','Kan ikke bytte vinner fordi neste cupkamp allerede har startet.')
         .replace('Next-round bracket slot no longer matches the old winner','Neste cuprunde er allerede endret og kan ikke overskrives automatisk.')
         .replace('Group results are locked after the cup has been created','Puljeresultater kan ikke endres etter at cupen er opprettet.');
       const dialog=await getDialog();
-      if(dialog)await dialog.alert(message,{title:'Kunne ikke endre resultatet',tone:'danger'});else alert(message);
+      if(dialog?.alert)await dialog.alert(message,{title:'Kunne ikke endre resultatet',tone:'danger'});
+      else {const status=document.getElementById('tInfo');if(status)status.textContent=message;console.error('Tournament correction dialog unavailable',message)}
     }finally{
       button.disabled=false;
       button.textContent=oldText;
