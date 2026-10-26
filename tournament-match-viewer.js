@@ -19,7 +19,7 @@ function cricketLiveStats(rows,pid){
   return{visits:mine.length,points,mpr:mine.length?marks/mine.length:0};
 }
 const CRICKET_TARGETS=['20','19','18','17','16','15','B'];
-function cricketMarkGlyph(n){const x=Math.max(0,Math.min(3,Number(n)||0));return x===0?'–':x===1?'╱':x===2?'×':'⊗'}
+function cricketMarkGlyph(n){const x=Math.max(0,Math.min(3,Number(n)||0));return x===0?'–':x===1?'╱':x===2?'×':'◯'}
 function isViewerCricketStage(){
   if(!live)return false;
   const chicago=String(live.game_config?.chicago??'false').toLowerCase()==='true';
@@ -45,12 +45,14 @@ function renderSpectatorCricketBoard(){
   const legNo=chicago?2:Number(live?.current_leg||1);
   const a=cricketMarksFor(cricketStatsRows||[],tm.player1_id,legNo);
   const b=cricketMarksFor(cricketStatsRows||[],tm.player2_id,legNo);
+  const activeVisits=(cricketStatsRows||[]).filter(v=>Number(v.leg_no||1)===legNo);
+  const mark=(n,player,target)=>window.DartArenaCricketMarkHistory?.display(activeVisits,player,target,n)??cricketMarkGlyph(n);
   const n1=statsEsc(names[tm.player1_id]||'Spiller 1'),n2=statsEsc(names[tm.player2_id]||'Spiller 2');
   const p1=Number(live?.player1_score||0),p2=Number(live?.player2_score||0);
   host.innerHTML=`<div class="spectator-cricket-head"><span>${n1}<br><strong>${p1} poeng</strong></span><span>CRICKET</span><span>${n2}<br><strong>${p2} poeng</strong></span></div>`+
     CRICKET_TARGETS.map(t=>{
       const am=Number(a[t]||0),bm=Number(b[t]||0),both=am>=3&&bm>=3;
-      return `<div class="spectator-cricket-row${both?' both-closed':''}"><div class="spectator-cricket-mark${am>=3?' closed':''}">${cricketMarkGlyph(am)}</div><div class="spectator-cricket-target">${t==='B'?'BULL':t}</div><div class="spectator-cricket-mark${bm>=3?' closed':''}">${cricketMarkGlyph(bm)}</div></div>`;
+      return `<div class="spectator-cricket-row${both?' both-closed':''}"><div class="spectator-cricket-mark${am>=3?' closed':''}">${mark(am,tm.player1_id,t)}</div><div class="spectator-cricket-target">${t==='B'?'BULL':t}</div><div class="spectator-cricket-mark${bm>=3?' closed':''}">${mark(bm,tm.player2_id,t)}</div></div>`;
     }).join('');
   host.classList.add('active');
 }
