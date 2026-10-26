@@ -97,6 +97,7 @@ async function loadViewerStats(){
   }catch(error){if(request!==statsRequest||matchId!==statsMatchId)return;statsError=true;console.error('Spectator statistics failed',error)}
   renderViewerStats();
   renderSpectatorCricketBoard();
+  if(!statsError)window.DartArenaSpectatorFX?.visits(statsRows||[]);
 }
 function syncViewerStats(){
   const next=tm?.live_match_id||null;
@@ -125,13 +126,42 @@ function render(){
   $('p1').textContent=n1;$('p2').textContent=n2;$('p1VideoName').textContent=n1;$('p2VideoName').textContent=n2;
   if(live){const chicago=String(live.game_config?.chicago??'false').toLowerCase()==='true',unit=chicago?'games':'legs';$('s1').textContent=Number(live.player1_score??501);$('s2').textContent=Number(live.player2_score??501);$('l1').textContent=`${Number(live.player1_legs||0)} ${unit}`;$('l2').textContent=`${Number(live.player2_legs||0)} ${unit}`}
   else{$('s1').textContent='–';$('s2').textContent='–';$('l1').textContent=`${Number(tm.player1_legs||0)} legs`;$('l2').textContent=`${Number(tm.player2_legs||0)} legs`}
-  $('status').textContent=tm.status==='live'?'Kampen pågår live':tm.status==='finished'?'Kampen er ferdig':tm.status==='wo'?'Kampen er avgjort på WO':'Kampen er ikke startet ennå';
+  const playing=tm.status==='live'&&live?.status==='playing';
+  document.body.classList.toggle('spectator-tv-live',playing);
+  if(!playing)document.body.classList.remove('spectator-stats-open');
+  const statsToggle=$('viewerStatsToggle');
+  if(statsToggle){
+    statsToggle.setAttribute('aria-expanded',String(playing&&document.body.classList.contains('spectator-stats-open')));
+    statsToggle.textContent=document.body.classList.contains('spectator-stats-open')?'Til kamp':'Statistikk';
+  }
+  const cricket=isViewerCricketStage();
+  const isChicago=String(live?.game_config?.chicago??'false').toLowerCase()==='true';
+  const stage=Number(live?.game_config?.chicago_stage||live?.current_leg||1);
+  const start=isChicago?(stage===1?301:stage===3?501:null):Number(live?.game||501);
+  for(let p=1;p<=2;p++){
+    const playerId=p===1?tm.player1_id:tm.player2_id;
+    const active=playing&&live?.turn_player_id===playerId;
+    const label=$('p'+p+'TurnLabel');
+    if(label)label.textContent=active?'● KASTER NÅ':' ';
+    const progress=$('p'+p+'Progress');
+    const remaining=Number(live?.['player'+p+'_score']);
+    const showCountdown=!cricket&&Number.isInteger(start)&&start>0&&Number.isFinite(remaining)&&remaining>=0;
+    if(progress){
+      progress.parentElement.hidden=!showCountdown;
+      progress.style.transform='scaleX('+(showCountdown?Math.max(0,Math.min(1,(start-remaining)/start)):0)+')';
+    }
+  }
+  $('status').textContent=playing
+    ?(live?.turn_player_id===tm.player1_id?'KASTER NÅ: '+n1:live?.turn_player_id===tm.player2_id?'KASTER NÅ: '+n2:'Kampen pågår live')
+    :tm.status==='finished'||live?.status==='finished'?'Kampen er ferdig'
+    :tm.status==='wo'?'Kampen er avgjort på WO':'Kampen er ikke startet ennå';
   const throwing=tm.status==='live'&&live?.status==='playing'?live.turn_player_id:null;
   $('p1PlayerCard')?.classList.toggle('active-turn',throwing===tm.player1_id);
   $('p2PlayerCard')?.classList.toggle('active-turn',throwing===tm.player2_id);
   $('p1VideoCard')?.classList.toggle('active-turn',throwing===tm.player1_id);
   $('p2VideoCard')?.classList.toggle('active-turn',throwing===tm.player2_id);
   renderSpectatorCricketBoard();
+  if(live)window.DartArenaSpectatorFX?.snapshot(live);
 }
 function videoTarget(pid){return pid===tm?.player1_id?{video:$('p1Video'),placeholder:$('p1Placeholder')}:{video:$('p2Video'),placeholder:$('p2Placeholder')}}
 async function subscribePublication(pid,publication){
@@ -172,6 +202,12 @@ async function boot(){
 }
 function closeViewer(){try{window.opener?.focus()}catch{};window.close();setTimeout(()=>{if(!window.closed&&tournamentId)location.href=`tournament.html?id=${encodeURIComponent(tournamentId)}`},120)}
 $('closeBtn').onclick=closeViewer;
-function cleanup(){++statsRequest;clearInterval(statsTimer);if(statsChannel){db.removeChannel(statsChannel);statsChannel=null}if(cricketStatsChannel){db.removeChannel(cricketStatsChannel);cricketStatsChannel=null}clearInterval(mediaRequestTimer);try{presence?.untrack()}catch{};for(const x of subscriptions.values()){try{x.client.close()}catch{}}subscriptions.clear();for(const ch of [mediaChannel,presence,liveChannel,tournamentChannel]){try{if(ch)db.removeChannel(ch)}catch{}}}
+$('viewerStatsToggle')?.addEventListener('click',()=>{
+  const body=document.body;
+  const visible=body.classList.toggle('spectator-stats-open');
+  $('viewerStatsToggle').setAttribute('aria-expanded',String(visible));
+  $('viewerStatsToggle').textContent=visible?'Til kamp':'Statistikk';
+});
+function cleanup(){window.DartArenaSpectatorFX?.destroy();++statsRequest;clearInterval(statsTimer);if(statsChannel){db.removeChannel(statsChannel);statsChannel=null}if(cricketStatsChannel){db.removeChannel(cricketStatsChannel);cricketStatsChannel=null}clearInterval(mediaRequestTimer);try{presence?.untrack()}catch{};for(const x of subscriptions.values()){try{x.client.close()}catch{}}subscriptions.clear();for(const ch of [mediaChannel,presence,liveChannel,tournamentChannel]){try{if(ch)db.removeChannel(ch)}catch{}}}
 window.addEventListener('pagehide',cleanup);
 boot().catch(e=>{console.error('Tilskuervisningen kunne ikke starte:',e);$('status').textContent='Kunne ikke starte tilskuervisningen.'});
