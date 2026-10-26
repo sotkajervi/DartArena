@@ -14,6 +14,7 @@
   let channel=null;
   let startedFor=null;
   let sending=false;
+  let currentState='';
   let messages=new Map();
   const names={};
 
@@ -86,7 +87,7 @@
     return section;
   }
 
-  function setState(text){const el=document.getElementById('dartChatState');if(el)el.textContent=text}
+  function setState(text){currentState=text;const el=document.getElementById('dartChatState');if(el)el.textContent=text}
   function setEnabled(enabled){
     const input=document.getElementById('dartChatInput'),send=document.getElementById('dartChatSend');
     if(input)input.disabled=!enabled;
@@ -196,7 +197,7 @@
         await ensureNames([row.sender_id]);removeEmptyState();renderMessage(row);
       })
       .subscribe(status=>{
-        if(status==='SUBSCRIBED'&&document.getElementById('dartChatState')?.textContent==='Kobler til…')setState(tournamentPage?'Denne turneringen':'Hovedlobby');
+        if(status==='SUBSCRIBED'&&currentState==='Kobler til…')setState(tournamentPage?'Denne turneringen':'Hovedlobby');
       });
   }
 
