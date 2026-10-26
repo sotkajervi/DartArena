@@ -38,6 +38,17 @@ function framedPointer(video,preview,event,settings={}){
   if(x<0||y<0||x>crop.width||y>crop.height)return null;
   return {x:crop.x+x,y:crop.y+y};
 }
+function hitOffsetOf(settings={}){
+  return {
+    hitOffsetX:clamp(Number(settings?.hitOffsetX)||0,-1,1),
+    hitOffsetY:clamp(Number(settings?.hitOffsetY)||0,-1,1)
+  };
+}
+function offsetHit(point,boardRadius,settings={}){
+  if(!point)return null;
+  const {hitOffsetX,hitOffsetY}=hitOffsetOf(settings);
+  return {x:point.x+boardRadius*hitOffsetX,y:point.y+boardRadius*hitOffsetY};
+}
 function insetRect(width,height){
   const w=Math.round(width*.33),h=Math.round(w*3/4),pad=Math.round(width*.016);
   return {x:width-w-pad,y:pad,width:w,height:h};
@@ -46,7 +57,7 @@ function saveConfig(storage,data){
   if(!data||typeof data.deviceId!=='string'||!data.deviceId)return false;
   if(![data.cx,data.cy,data.radius,data.rotation,data.aspect].every(Number.isFinite))return false;
   if(data.cx<0||data.cx>1||data.cy<0||data.cy>1||data.radius<.03||data.radius>.65||data.aspect<.5||data.aspect>3)return false;
-  storage.setItem(CONFIG_KEY,JSON.stringify({...data,...framingOf(data),
+  storage.setItem(CONFIG_KEY,JSON.stringify({...data,...framingOf(data),...hitOffsetOf(data),
     speed:['fast','normal','smooth'].includes(data.speed)?data.speed:'normal',
     sensitivity:['low','normal','high'].includes(data.sensitivity)?data.sensitivity:'normal',
     version:1}));
@@ -58,7 +69,7 @@ function loadConfig(storage){
     if(!data||data.version!==1||typeof data.deviceId!=='string'||!data.deviceId)return null;
     if(![data.cx,data.cy,data.radius,data.rotation,data.aspect].every(Number.isFinite)
       ||data.cx<0||data.cx>1||data.cy<0||data.cy>1||data.radius<.03||data.radius>.65||data.aspect<.5||data.aspect>3)return null;
-    return {...data,...framingOf(data)};
+    return {...data,...framingOf(data),...hitOffsetOf(data)};
   }catch{return null}
 }
 function selected(storage){return storage.getItem(MODE_KEY)==='zoom'}
@@ -161,7 +172,11 @@ function create(raw,config,{fps=25,video=null,
         const hit=now<resetResumeAt?null:gate.observe(still>=speed.quietFrames?tracker.findChange(ref,frame,sampled.width,sampled.height,small,opts):null,
           {movement:motion>.008||!!moved,now,radius:small.radius});
         if(hit){
-          target={x:hit.x*sw/sampled.width,y:hit.y*sh/sampled.height};
+          // A camera-specific presentation correction compensates for shaft/flight
+          // centroids landing above the actual tip. It never changes hit detection,
+          // calibration, scoring or the raw coordinates provided to observers.
+          target=offsetHit({x:hit.x*sw/sampled.width,y:hit.y*sh/sampled.height},
+            board.radius,config);
           ref=new Uint8ClampedArray(frame);still=0;
           // Optional observer for experimental capture; normal Zoom-cam is unchanged.
           if(typeof onStableHit==='function'){
@@ -211,7 +226,7 @@ function create(raw,config,{fps=25,video=null,
     }
   };
 }
-root.DartArenaZoomCam={CONFIG_KEY,MODE_KEY,ZOOM_VALUE,saveConfig,loadConfig,
+root.DartArenaZoomCam={CONFIG_KEY,MODE_KEY,ZOOM_VALUE,saveConfig,loadConfig,hitOffsetOf,offsetHit,
   selected,setSelected,compatible,pointer,framingOf,framingCrop,framedPointer,insetRect,calibration,create};
 if(typeof module==='object'&&module.exports)module.exports=root.DartArenaZoomCam;
 })(typeof window!=='undefined'?window:globalThis);
