@@ -10,17 +10,18 @@ const isOfferer=()=>profile?.id===m?.player1_id;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function debug(extra=''){const e=$('webrtcDebug');if(!e)return;e.textContent=`VIDEO DEBUG • RT:${channel?'ON':'OFF'} | Local:${localReady?'YES':'NO'} | Remote:${remoteReady?'YES':'NO'} | Role:${isOfferer()?'OFFER':'ANSWER'} | Peer:${pc?.connectionState||'none'} | ICE:${pc?.iceConnectionState||'none'} | Signal:${pc?.signalingState||'none'} | Gen:${generation} | Last:${lastSignal}${extra?' | '+extra:''}`}
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function markGlyph(n){const x=Math.max(0,Math.min(3,Number(n)||0));return x===0?'–':x===1?'╱':x===2?'×':'⊗'}
+function markGlyph(n,visits=[],playerId='',target=''){return window.DartArenaCricketMarkHistory?.display(visits,playerId,target,n)??(Number(n)>=3?'◯':Number(n)===2?'×':Number(n)===1?'╱':'–')}
 function emptyMarks(){return {'20':0,'19':0,'18':0,'17':0,'16':0,'15':0,'B':0}}
 function labelDart(d){if(d.target==='MISS')return'MISS';const prefix=d.mult===1?'S':d.mult===2?'D':'T';return `${prefix}${d.target==='B'?'BULL':d.target}`}
 async function loadState(){const{data,error}=await db.from('cricket_match_state').select('*').eq('match_id',matchId).maybeSingle();if(error)throw error;state=data||{match_id:matchId,player1_marks:emptyMarks(),player2_marks:emptyMarks()}}
 function renderBoard(){
   if(!state)return;
   const board=$('cricketBoard'),a=state.player1_marks||emptyMarks(),b=state.player2_marks||emptyMarks();
+  const visits=(window.DartArenaCricketVisitHistory?.()||[]).filter(v=>Number(v.leg_no)===Number(m?.current_leg));
   const myTurn=!!m&&m.status==='playing'&&m.turn_player_id===profile?.id;
   board.classList.toggle('my-turn-p1',myTurn&&profile?.id===m?.player1_id);
   board.classList.toggle('my-turn-p2',myTurn&&profile?.id===m?.player2_id);
-  board.innerHTML=TARGETS.map(t=>{const am=Number(a[t]||0),bm=Number(b[t]||0),closed=am>=3&&bm>=3;return `<div class="cricket-row${closed?' both-closed':''}"><div class="cricket-mark${am>=3?' closed':''}">${markGlyph(am)}</div><div class="cricket-target">${t==='B'?'BULL':t}</div><div class="cricket-mark${bm>=3?' closed':''}">${markGlyph(bm)}</div></div>`}).join('')
+  board.innerHTML=TARGETS.map(t=>{const am=Number(a[t]||0),bm=Number(b[t]||0),closed=am>=3&&bm>=3;return `<div class="cricket-row${closed?' both-closed':''}"><div class="cricket-mark${am>=3?' closed':''}">${markGlyph(am,visits,m.player1_id,t)}</div><div class="cricket-target">${t==='B'?'BULL':t}</div><div class="cricket-mark${bm>=3?' closed':''}">${markGlyph(bm,visits,m.player2_id,t)}</div></div>`}).join('')
 }
 function buildKeypad(){const host=$('cricketKeypad');const shortKey={20:'0',19:'9',18:'8',17:'7',16:'6',15:'5',B:'B'};host.innerHTML=TARGETS.map(t=>{if(t==='B')return `<div class="cricket-key-row bull"><div class="cricket-key-label">BULL <span class="da-key">${shortKey[t]}</span></div><button class="outline cricket-hit" data-target="B" data-mult="1">S</button><button class="outline cricket-hit" data-target="B" data-mult="2">D</button></div>`;return `<div class="cricket-key-row"><div class="cricket-key-label">${t} <span class="da-key">${shortKey[t]}</span></div><button class="outline cricket-hit" data-target="${t}" data-mult="1">S</button><button class="outline cricket-hit" data-target="${t}" data-mult="2">D</button><button class="outline cricket-hit" data-target="${t}" data-mult="3">T</button></div>`}).join('');host.querySelectorAll('.cricket-hit').forEach(b=>b.onclick=()=>addDart(b.dataset.target,Number(b.dataset.mult)))}
 function addDart(target,mult){if(!canThrow()||selectedDarts.length>=3)return;selectedDarts.push({target,mult});renderEntry()}
