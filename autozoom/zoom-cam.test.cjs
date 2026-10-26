@@ -96,14 +96,14 @@ test('Zoom-cam has fallback when captureStream is unsupported',()=>{
 });
 test('main lobby Cam-test includes calibration code and the physical camera selector',()=>{
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-  assert.match(html,/autozoom\/camera-calibration\.js\?v=20261023-picture1/);
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261023-picture1/);
+  assert.match(html,/autozoom\/camera-calibration\.js\?v=20261026-startup1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261026-startup1/);
   assert.match(html,/id="cameraTestCameraSelect"/);
 });
 test('waiting room includes calibrated Zoom-cam selection and real sender.replaceTrack',()=>{
   const html=fs.readFileSync(path.join(root,'room.html'),'utf8');
   const js=fs.readFileSync(path.join(root,'room-device-selector.js'),'utf8');
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261023-picture1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261026-startup1/);
   assert.match(js,/ZOOM_VALUE/);
   assert.match(js,/option\.textContent='Zoom-cam \(kalibrert\)'/);
   assert.match(js,/sender\.replaceTrack\(next\.track\)/);
@@ -113,7 +113,7 @@ test('waiting room includes calibrated Zoom-cam selection and real sender.replac
 test('X01 match reloads physical input and composes actual outbound video',()=>{
   const html=fs.readFileSync(path.join(root,'match.html'),'utf8');
   const js=fs.readFileSync(path.join(root,'match.js'),'utf8');
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261023-picture1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261026-startup1/);
   assert.match(js,/Z\.create\(raw,config\)/);
   assert.match(js,/stream=zoomCamSession\.stream/);
   assert.match(js,/deviceId:\{exact:config\.deviceId\}/);
@@ -261,18 +261,76 @@ test('Cam-test offers zoom, draggable positioning, reset and optional inset guid
   assert.match(ui,/pointermove/);
   assert.match(ui,/\.\.\.settings,\.\.\.framing/);
   const match=fs.readFileSync(path.join(root,'match.html'),'utf8');
-  assert.match(match,/autozoom\/zoom-cam\.js\?v=20261023-picture1/);
+  assert.match(match,/autozoom\/zoom-cam\.js\?v=20261026-startup1/);
 });
 
 test('Cam-test picture controls load after calibration and stay separate from detection',()=>{
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-  const i=html.indexOf('autozoom/camera-calibration.js?v=20261025-manual-restore1');
+  const i=html.indexOf('autozoom/camera-calibration.js?v=20261026-explicit-activate1');
   const pic=html.indexOf('camera-picture.js?v=20261023-picture2');
   assert.ok(i>0&&pic>i);
-  assert.match(html,/camera-test\.css\?v=20261023-picture1/);
+  assert.match(html,/camera-test\.css\?v=20261026-startup1/);
   const calibration=fs.readFileSync(path.join(root,'autozoom','camera-calibration.js'),'utf8');
   assert.match(calibration,/picture:false/);
   const zoom=fs.readFileSync(path.join(root,'autozoom','zoom-cam.js'),'utf8');
   assert.match(zoom,/P\.cssFilter/);
   assert.match(zoom,/sampleCtx\.drawImage\(video/);
+});
+
+test('experimental auto calibration is not loaded in the user-facing Cam-test',()=>{
+  const home=fs.readFileSync(path.join(root,'index.html'),'utf8');
+  const calibrationUi=fs.readFileSync(path.join(root,'autozoom','camera-calibration.js'),'utf8');
+  assert.doesNotMatch(home,/src="autozoom\/auto-calibration\.js/);
+  assert.match(calibrationUi,/id="camZoomUseInMatch"/);
+  assert.match(calibrationUi,/Z\.setSelected\(localStorage,true\)/);
+  assert.match(calibrationUi,/Z\.setSelected\(localStorage,false\)/);
+});
+test('online match reports whether Zoom-cam was actually used',()=>{
+  const match=fs.readFileSync(path.join(root,'match.js'),'utf8');
+  assert.match(match,/zoomCamNotice\('Zoom-cam valgt og startet i kamp\.'/);
+  assert.match(match,/zoomCamNotice\('Zoom-cam kunne ikke startes\./);
+  assert.match(match,/zoomCamNotice\('Zoom-cam er kalibrert, men ikke valgt\./);
+});
+test('Zoom-cam retries after delayed startup frame and a temporary draw failure',()=>{
+  const source={kind:'video',readyState:'live',getSettings:()=>({deviceId:'webcam-1',width:1280,height:720})};
+  const outgoing={kind:'video',readyState:'live',stop(){this.readyState='ended'}};
+  class FakeStream{
+    constructor(tracks){this.tracks=tracks}
+    getVideoTracks(){return this.tracks.filter(t=>t.kind==='video')}
+    getAudioTracks(){return this.tracks.filter(t=>t.kind==='audio')}
+  }
+  let failDraw=true,drawCount=0;
+  const context=()=>({
+    fillRect(){},strokeRect(){},
+    drawImage(){if(failDraw){failDraw=false;throw Error('video frame not ready')}drawCount++},
+    getImageData(){return{data:new Uint8ClampedArray(480*270*4)}}
+  });
+  const canvas={width:0,height:0,getContext:context,captureStream:()=>new FakeStream([outgoing])};
+  const video={videoWidth:1280,videoHeight:720,readyState:1,play:async()=>{},pause(){},srcObject:null};
+  const frames=[];
+  const old={media:global.MediaStream,raf:global.requestAnimationFrame,
+    cancel:global.cancelAnimationFrame,doc:global.document};
+  try{
+    global.MediaStream=FakeStream;
+    global.requestAnimationFrame=fn=>{frames.push(fn);return frames.length};
+    global.cancelAnimationFrame=()=>{};
+    global.document={createElement:()=>({width:0,height:0,getContext:context})};
+    const session=Z.create(new FakeStream([source]),sample,{video,canvas,tracker:T});
+    assert.equal(frames.length,1);
+    frames.shift()(100);
+    assert.equal(drawCount,0,'No frame drawn before playback is ready');
+    assert.equal(frames.length,1,'Next animation frame still scheduled');
+    video.readyState=2;
+    const oldWarn=console.warn;
+    console.warn=()=>{};
+    try{frames.shift()(200)}finally{console.warn=oldWarn}
+    assert.equal(frames.length,1,'A drawing error does not kill the compositor');
+    frames.shift()(300);
+    assert.ok(drawCount>=2,'Composite continues after the error');
+    assert.equal(session.track,outgoing,'Outbound video remains the same track');
+    session.stop();
+  }finally{
+    global.MediaStream=old.media;global.requestAnimationFrame=old.raf;
+    global.cancelAnimationFrame=old.cancel;global.document=old.doc;
+  }
 });
