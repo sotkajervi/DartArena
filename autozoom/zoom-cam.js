@@ -120,6 +120,11 @@ function create(raw,config,{fps=25,video=null,
   const gate=tracker.createChangeGate({stableFrames:speed.stableFrames,motionWindowMs:4000,cooldownMs:speed.cooldownMs});
   const sampled=document.createElement('canvas'),sampleCtx=sampled.getContext('2d',{willReadFrequently:true});
   let lastAnalysis=0,resetResumeAt=0,lastRenderErrorAt=-Infinity;
+  function setFraming(next){
+    if(stopped)return false;
+    Object.assign(config,framingOf(next));
+    return true;
+  }
   function setHitOffset(next){
     if(stopped)return false;
     const values=hitOffsetOf(next);
@@ -232,7 +237,7 @@ function create(raw,config,{fps=25,video=null,
   }catch(error){out?.stop();video.srcObject=null;throw error}
   return{
     track:out,sourceTrack,stream:new MediaStream([out,...raw.getAudioTracks()]),
-    resetToT20,setHitOffset,
+    resetToT20,setHitOffset,setFraming,
     stop(){
       if(stopped)return;stopped=true;
       if(loop)cancelAnimationFrame(loop);
