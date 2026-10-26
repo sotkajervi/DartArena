@@ -127,7 +127,7 @@ function create(raw,config,{fps=25,video=null,
     try{
     // Some browsers report dimensions before the first drawable video frame.
     // A transient drawImage/getImageData failure must never kill the live track.
-    if(video.videoWidth&&video.videoHeight&&video.readyState>=2){
+    if(video.videoWidth&&video.videoHeight&&(typeof video.readyState!=='number'||video.readyState>=2)){
       const w=canvas.width||1280,h=canvas.height||720;
       const sw=video.videoWidth,sh=video.videoHeight;
       const framed=framingCrop(sw,sh,config);
