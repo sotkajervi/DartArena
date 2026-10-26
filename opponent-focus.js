@@ -27,15 +27,24 @@
   }
 
   function dockLocal(){
-    if(!localCard||!matchInfo)return;
-    if(localCard.parentElement!==matchInfo)matchInfo.appendChild(localCard);
-    localCard.classList.add('focus-local-docked');
+    if(!localCard)return;
+    // X01: keep own camera visible as a small inset over the opponent video.
+    // The former location beneath Match Status could fall below the sidebar
+    // viewport on laptops, making a working camera appear missing.
+    // Cricket keeps its existing sidebar layout.
+    const target=isCricket?matchInfo:grid;
+    if(!target)return;
+    if(localCard.parentElement!==target)target.appendChild(localCard);
+    localCard.classList.toggle('focus-local-docked',isCricket);
+    localCard.classList.toggle('focus-local-pip',!isCricket);
   }
 
   function restoreLocal(){
     if(!localCard||!remoteCard)return;
-    localCard.classList.remove('focus-local-docked');
-    if(localCard.parentElement!==grid)grid.insertBefore(localCard,remoteCard);
+    localCard.classList.remove('focus-local-docked','focus-local-pip');
+    if(localCard.parentElement!==grid||localCard.nextElementSibling!==remoteCard){
+      grid.insertBefore(localCard,remoteCard);
+    }
   }
 
   function restoreEntry(){
