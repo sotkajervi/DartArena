@@ -71,7 +71,8 @@
       + (hasBackslash ? svgPart.backslash : '');
     return '<svg class="da-cricket-symbol" width="32" height="32" viewBox="0 0 40 40" '
       + 'fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" '
-      + 'stroke-linejoin="round" aria-hidden="true" focusable="false" '
+      + 'stroke-linejoin="round" style="display:block;margin:0 auto;max-width:100%" '
+      + 'aria-hidden="true" focusable="false" '
       + 'data-mark-kind="' + symbol + '">' + shapes + '</svg>';
   }
 
