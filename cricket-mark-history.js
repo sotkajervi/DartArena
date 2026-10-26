@@ -4,22 +4,30 @@
  */
 (function(root){
   'use strict';
-  const one='╱', two='×', closed='◯';
+  const one='╱', two='×', closed='○';
   const normalizeTarget=t=>String(t||'').toUpperCase()==='BULL'?'B':String(t||'').toUpperCase();
   function basic(value){
     const n=Math.max(0,Math.min(3,Number(value)||0));
     return n===0?'–':n===1?one:n===2?two:closed;
   }
+  // Accept a named config in tests and positional arguments in match views.
   function display(visits,player,target,current){
-    const expected=Math.max(0,Math.min(3,Number(current)||0));
+    const cfg=player&&typeof player==='object'?player:null;
+    const playerKey=cfg?cfg.player:player;
+    const markTarget=cfg?cfg.target:target;
+    const leg=cfg?.leg;
+    const stage=cfg?.stage;
+    const expected=Math.max(0,Math.min(3,Number(cfg?cfg.fallback:current)||0));
     if(!expected)return '–';
     let total=0;
     const parts=[];
     for(const visit of Array.isArray(visits)?visits:[]){
-      if(String(visit?.player??visit?.player_id)!==String(player))continue;
+      if(String(visit?.player??visit?.player_id)!==String(playerKey))continue;
+      if(leg!==undefined&&Number(visit?.leg??visit?.leg_no)!==Number(leg))continue;
+      if(stage!==undefined&&Number(visit?.stage)!==Number(stage))continue;
       let earned=0;
       for(const dart of Array.isArray(visit?.darts)?visit.darts:[]){
-        if(normalizeTarget(dart?.target)!==normalizeTarget(target))continue;
+        if(normalizeTarget(dart?.target)!==normalizeTarget(markTarget))continue;
         const marks=Math.max(0,Math.min(3,Number(dart?.mult)||0));
         const contribution=Math.min(marks,3-total-earned);
         earned+=Math.max(0,contribution);
