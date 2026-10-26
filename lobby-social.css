@@ -1,0 +1,144 @@
+/* Chat-first DartArena lobby. Scoped to #daSocialLobby: does not affect
+   tournament lobby chat, waiting rooms, match cameras or scoring pages. */
+#lobbyView .da-social-lobby{
+  display:grid;grid-template-columns:minmax(0,1.8fr) minmax(305px,1fr);
+  gap:18px;align-items:stretch;min-width:0;margin:0 0 16px;
+}
+#lobbyView #daSocialLobby>.dart-chat-card{
+  grid-column:1;grid-row:1;
+  display:flex;flex-direction:column;min-width:0;min-height:455px;
+  margin:0;padding:18px 20px;border:1px solid rgba(0,234,244,.24);
+  background:linear-gradient(145deg,rgba(5,19,23,.96),rgba(5,13,16,.95));
+}
+#lobbyView #daSocialLobby>#daOnlinePlayers{
+  grid-column:2;grid-row:1;display:flex;flex-direction:column;min-width:0;
+  margin:0;padding:16px;border:1px solid rgba(0,234,244,.18);
+  background:linear-gradient(145deg,rgba(5,19,23,.92),rgba(5,13,16,.94));
+}
+#lobbyView #daSocialLobby .dart-chat-heading{margin:0 0 12px;align-items:center}
+#lobbyView #daSocialLobby .dart-chat-heading h2{font-size:clamp(19px,2vw,24px)}
+#lobbyView #daSocialLobby .dart-chat-messages,
+#lobbyView #daSocialLobby .dart-chat-card.da-chat-empty .dart-chat-messages,
+#lobbyView #daSocialLobby .dart-chat-card.da-chat-expanded .dart-chat-messages{
+  flex:1 1 auto!important;
+  box-sizing:border-box;
+  height:clamp(360px,48vh,680px)!important;
+  min-height:360px!important;
+  max-height:680px!important;
+  overflow-y:auto;
+  scrollbar-width:thin;
+  background:rgba(2,10,13,.78);
+  border:1px solid rgba(0,234,244,.16);
+}
+#lobbyView #daSocialLobby .da-chat-expand{display:none!important}
+#lobbyView #daSocialLobby .dart-chat-card .dart-chat-message{max-width:85%}
+#lobbyView #daSocialLobby .dart-chat-form{margin-top:13px;flex:0 0 auto}
+#lobbyView #daSocialLobby #daOnlinePlayers .heading{margin-bottom:5px}
+#lobbyView #daSocialLobby #daOnlinePlayers .heading h2{font-size:clamp(19px,1.9vw,23px)}
+#lobbyView #daSocialLobby .da-player-count{display:block;color:var(--cyan,#00eaf4);font-weight:750;font-size:12px;margin:0 0 8px}
+#lobbyView #daSocialLobby #daOnlinePlayers>p.muted.compact{font-size:11px;line-height:1.35;margin:0 0 9px}
+#lobbyView #daSocialLobby .da-player-controls{display:grid;gap:9px;margin:0 0 11px}
+#lobbyView #daSocialLobby .da-player-search-label{
+  font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  font-weight:850;color:var(--muted,#8da3a6);
+}
+#lobbyView #daSocialLobby .da-player-search{
+  box-sizing:border-box;display:block;width:100%;min-height:40px;
+  padding:9px 11px;border-radius:10px;border:1px solid rgba(0,234,244,.3);
+  background:rgba(2,11,14,.92);color:#f4f8f8;
+  font-size:14px;outline:none;
+}
+#lobbyView #daSocialLobby .da-player-search:focus{
+  border-color:#00eaf4;box-shadow:0 0 0 2px rgba(0,234,244,.14);
+}
+#lobbyView #daSocialLobby .da-player-filters{
+  display:flex;gap:5px;flex-wrap:wrap;
+}
+#lobbyView #daSocialLobby .da-player-filter{
+  min-height:31px;padding:5px 9px;border-radius:8px;
+  border:1px solid rgba(255,255,255,.12);
+  background:#0b2023;color:#bdd4d7;font-size:11px;font-weight:800;
+  cursor:pointer;white-space:nowrap;
+}
+#lobbyView #daSocialLobby .da-player-filter.active,
+#lobbyView #daSocialLobby .da-player-filter[aria-pressed="true"]{
+  background:#00eaf4;border-color:#00eaf4;color:#061113;
+}
+#lobbyView #daSocialLobby .da-player-filter:focus-visible,
+#lobbyView #daSocialLobby .da-social-tab:focus-visible{outline:2px solid #00eaf4;outline-offset:2px}
+#lobbyView #daSocialLobby #playerList{
+  display:flex;flex-direction:column;gap:7px;flex:1 1 auto;
+  min-height:190px;max-height:clamp(290px,48vh,620px);
+  overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;padding-right:2px;
+}
+#lobbyView #daSocialLobby #playerList .player-row{
+  min-height:61px;padding:8px;gap:7px;flex:0 0 auto;border-radius:11px;
+}
+#lobbyView #daSocialLobby #playerList .player-name{font-size:13px;overflow-wrap:anywhere}
+#lobbyView #daSocialLobby #playerList .avatar{width:37px;height:37px;flex-basis:37px}
+#lobbyView #daSocialLobby #playerList .status{font-size:11px}
+#lobbyView #daSocialLobby #playerList .challenge-btn{min-width:83px;min-height:35px;font-size:11px;padding:6px 7px}
+#lobbyView #daSocialLobby #playerList .challenge-btn:disabled{opacity:.52;cursor:not-allowed}
+#lobbyView #daSocialLobby #daPlayerMore{
+  flex:0 0 auto;width:100%;min-height:39px;margin-top:9px;
+  border:1px solid rgba(0,234,244,.24);border-radius:9px;
+}
+#lobbyView #daSocialLobby #daPlayerMore[hidden]{display:none!important}
+#lobbyView #daSocialLobby .da-social-tabs{display:none}
+#lobbyView>.da-challenge-grid{grid-template-columns:minmax(0,1fr);margin-bottom:18px}
+#lobbyView>.da-challenge-grid>.da-incoming-challenges{grid-column:1;min-width:0}
+#lobbyView>.da-challenge-grid>.da-incoming-challenges .heading{margin-bottom:9px}
+#lobbyView #lobbyMainGrid{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
+#lobbyView #lobbyMainGrid>.tournament-section{grid-column:1;min-width:0;width:auto}
+@media(min-width:1101px){
+  #lobbyView>.da-challenge-grid>.da-incoming-challenges{
+    padding:15px 19px;
+  }
+}
+@media(max-width:1100px){
+  #lobbyView .da-social-lobby{grid-template-columns:minmax(0,1.35fr) minmax(275px,1fr);gap:12px}
+  #lobbyView #daSocialLobby>.dart-chat-card{padding:15px}
+  #lobbyView #daSocialLobby>#daOnlinePlayers{padding:13px}
+}
+@media(max-width:800px){
+  #lobbyView .da-social-lobby{
+    display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto;
+    gap:0;margin-bottom:15px;
+  }
+  #lobbyView #daSocialLobby .da-social-tabs{
+    display:grid;grid-column:1;grid-row:1;
+    grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;
+    padding:5px;margin-bottom:10px;
+    border:1px solid rgba(0,234,244,.19);background:rgba(5,18,22,.94);border-radius:11px;
+  }
+  #lobbyView #daSocialLobby .da-social-tab{
+    padding:11px 12px;min-height:43px;border:1px solid transparent;
+    border-radius:8px;background:transparent;color:#afc5c8;
+    font-size:14px;font-weight:850;
+  }
+  #lobbyView #daSocialLobby .da-social-tab.active{
+    color:#061214;background:#00eaf4;border-color:#00eaf4;
+  }
+  #lobbyView #daSocialLobby>.dart-chat-card,
+  #lobbyView #daSocialLobby>#daOnlinePlayers{grid-column:1;grid-row:2;min-height:0;padding:14px}
+  #lobbyView #daSocialLobby[data-tab="chat"]>#daOnlinePlayers{display:none}
+  #lobbyView #daSocialLobby[data-tab="players"]>.dart-chat-card{display:none}
+  #lobbyView #daSocialLobby .dart-chat-messages,
+  #lobbyView #daSocialLobby .dart-chat-card.da-chat-empty .dart-chat-messages,
+  #lobbyView #daSocialLobby .dart-chat-card.da-chat-expanded .dart-chat-messages{
+    height:clamp(300px,44dvh,570px)!important;
+    min-height:300px!important;max-height:570px!important;
+  }
+  #lobbyView #daSocialLobby #playerList{
+    height:clamp(250px,43dvh,480px);min-height:250px;max-height:480px;
+  }
+}
+@media(max-width:480px){
+  #lobbyView #daSocialLobby>.dart-chat-card,
+  #lobbyView #daSocialLobby>#daOnlinePlayers{padding:11px}
+  #lobbyView #daSocialLobby .dart-chat-card .dart-chat-message{max-width:94%}
+  #lobbyView #daSocialLobby .da-player-filter{min-height:35px;padding:7px 8px}
+}
+@media(prefers-reduced-motion:reduce){
+  #lobbyView #daSocialLobby *{scroll-behavior:auto!important;transition:none!important}
+}
