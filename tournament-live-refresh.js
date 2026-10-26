@@ -120,7 +120,7 @@
         .select('user_id,role,joined_at')
         .eq('tournament_id',tournamentId),
       client.from('tournament_matches')
-        .select('id,status,round_no,match_no,player1_id,player2_id,player1_legs,player2_legs,winner_id,live_match_id,updated_at')
+        .select('id,stage,status,round_no,match_no,player1_id,player2_id,player1_legs,player2_legs,winner_id,live_match_id,updated_at')
         .eq('tournament_id',tournamentId)
     ]);
 
@@ -153,7 +153,7 @@
       tournament:JSON.stringify(tournamentResult.data||null),
       members:JSON.stringify(stableRows(membersResult.data,['user_id','role','joined_at'])),
       matches:JSON.stringify(stableRows(matchesResult.data,[
-        'id','status','round_no','match_no','player1_id','player2_id',
+        'id','stage','status','round_no','match_no','player1_id','player2_id',
         'player1_legs','player2_legs','winner_id','live_match_id','updated_at'
       ])),
       liveScores:JSON.stringify(stableRows(liveScores,[
