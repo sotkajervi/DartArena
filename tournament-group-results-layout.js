@@ -20,6 +20,7 @@
     if(!group||!setup||!cup)return;
     const mode=placement(t);
     group.classList.toggle('hidden',!mode);
+    group.classList.toggle('cup-group-results',mode==='after-cup');
     if(!mode)return;
     if(mode==='before-setup'){
       if(group.nextElementSibling!==setup)setup.parentNode?.insertBefore(group,setup);
