@@ -1,6 +1,8 @@
 // DartArena Cricket: keyboard-first mark entry, visit log and last-visit correction.
 (()=>{
   let visits=[],editingVisitId=null,logChannel=null,ready=false;
+  // The board uses the same logged visits as the correction panel.
+  window.DartArenaCricketVisitHistory=()=>visits;
   const isChicago=()=>String(m?.game_config?.chicago??'false').toLowerCase()==='true';
   const TARGETS=['20','19','18','17','16','15','B'];
   const KEY_TARGETS={'0':'20','9':'19','8':'18','7':'17','6':'16','5':'15','b':'B'};
@@ -83,6 +85,8 @@
     const{data,error}=await db.from('cricket_visits').select('id,match_id,player_id,leg_no,visit_no,darts,points_scored,created_at,corrected_at').eq('match_id',m.id).order('id',{ascending:true});
     if(error){console.warn('Cricket visit log:',error.message);return}
     visits=data||[];
+    // Refresh symbols after the async log query (including corrected visits).
+    if(typeof renderBoard==='function')renderBoard();
   }
   function latestActive(){const rows=visits.filter(v=>Number(v.leg_no)===Number(m?.current_leg));return rows.at(-1)||null}
   function renderLog(){
