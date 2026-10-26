@@ -36,7 +36,7 @@ async function boot(){
    title:'Korriger kast',
    kicker:'DARTARENA · KAMPROM',
    inputLabel:'NY SCORE (0–180)',
-   inputType:'number',
+   inputType:'text',inputMode:'numeric',
    value:String(t.score),
    confirmText:'Lagre endring',
    cancelText:'Avbryt'
@@ -50,7 +50,7 @@ async function boot(){
   const ui=dialog();
   if(!ui?.prompt){await notice('Kunne ikke åpne valg for checkout-piler.','Korrigering','danger');return null}
   const raw=await ui.prompt(`Checkout ${score}. Hvor mange piler brukte du?`,{
-   title:'Checkout',inputLabel:'ANTALL PILER (1–3)',inputType:'number',value:'3',confirmText:'Bekreft'
+   title:'Checkout',inputLabel:'ANTALL PILER (1–3)',inputType:'text',inputMode:'numeric',value:'3',confirmText:'Bekreft'
   });
   if(raw===null)return null;
   const darts=Number(raw);
