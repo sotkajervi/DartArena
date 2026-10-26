@@ -1,5 +1,5 @@
 (()=>{
-  let profileChannel=null,refreshTimer=null,heartbeatTimer=null,idleCheckTimer=null,lastRefresh=0;
+  let profileChannel=null,refreshTimer=null,heartbeatTimer=null,playersPollTimer=null,idleCheckTimer=null,lastRefresh=0,presenceStarted=false;
   let presenceUserId=null,lastActivity=Date.now(),idleOffline=false;
   const IDLE_MS=2*60*60*1000;
   const ONLINE_WINDOW_MS=5*60*1000;
@@ -60,6 +60,8 @@
   }
   async function stopPresenceChannel(){
     clearInterval(heartbeatTimer);heartbeatTimer=null;
+    clearInterval(playersPollTimer);playersPollTimer=null;
+    presenceStarted=false;
     if(profileChannel&&typeof db!=='undefined'){
       const old=profileChannel;profileChannel=null;
       try{await db.removeChannel(old)}catch{}
@@ -105,10 +107,16 @@
       await stopPresenceChannel();
     }
     if(idleOffline)return true;
-    if(profileChannel)return true;
-    profileChannel=db.channel('lobby-profile-presence-'+profile.id).on('postgres_changes',{event:'*',schema:'public',table:'profiles'},payload=>{if(payload?.new?.id===profile.id||payload?.old?.id===profile.id)return;refreshPlayersSoon()}).subscribe(status=>{if(status==='SUBSCRIBED'){heartbeat();refreshPlayersSoon(0)}});
+    if(presenceStarted)return true;
+    presenceStarted=true;
+    // Listening to all profile updates fans out every heartbeat to every
+    // viewer. Poll a small, server-filtered page instead.
+    await heartbeat();
+    refreshPlayersSoon(0);
     clearInterval(heartbeatTimer);
-    heartbeatTimer=setInterval(async()=>{await heartbeat();refreshPlayersSoon(0)},10000);
+    heartbeatTimer=setInterval(()=>{heartbeat().catch(e=>console.warn('Presence heartbeat failed',e))},45000);
+    clearInterval(playersPollTimer);
+    playersPollTimer=setInterval(()=>refreshPlayersSoon(0),20000);
     if(!idleCheckTimer)idleCheckTimer=setInterval(()=>checkIdle().catch(e=>console.warn('Idle presence check failed',e)),60000);
     return true
   }
@@ -117,5 +125,5 @@
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){installHelpLink();installChangelogLink();markActivity();refreshPlayersSoon(0)}});
   window.addEventListener('focus',()=>{installHelpLink();installChangelogLink();markActivity();refreshPlayersSoon(0)});
   window.addEventListener('dartarena:lobby-left',()=>{presenceUserId=null;idleOffline=false;lastActivity=Date.now();stopPresenceChannel();});
-  window.addEventListener('beforeunload',()=>{clearTimeout(refreshTimer);clearInterval(heartbeatTimer);clearInterval(idleCheckTimer);if(profileChannel&&typeof db!=='undefined')db.removeChannel(profileChannel)});
+  window.addEventListener('beforeunload',()=>{clearTimeout(refreshTimer);clearInterval(heartbeatTimer);clearInterval(playersPollTimer);clearInterval(idleCheckTimer);if(profileChannel&&typeof db!=='undefined')db.removeChannel(profileChannel)});
 })();
