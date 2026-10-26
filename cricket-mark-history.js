@@ -33,5 +33,7 @@
     // Both online and local games retain their existing numeric state as the truth.
     return total===expected&&parts.length?parts.join(' '):basic(expected);
   }
-  root.DartArenaCricketMarkHistory=Object.freeze({display,basic});
+  const api=Object.freeze({display,basic});
+  root.DartArenaCricketMarkHistory=api;
+  if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window==='undefined'?globalThis:window);
