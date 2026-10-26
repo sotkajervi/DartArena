@@ -175,12 +175,12 @@ function create(raw,config,{fps=25,video=null,
           // A camera-specific presentation correction compensates for shaft/flight
           // centroids landing above the actual tip. It never changes hit detection,
           // calibration, scoring or the raw coordinates provided to observers.
-          target=offsetHit({x:hit.x*sw/sampled.width,y:hit.y*sh/sampled.height},
-            board.radius,config);
+          const rawHit={x:hit.x*sw/sampled.width,y:hit.y*sh/sampled.height};
+          target=offsetHit(rawHit,board.radius,config);
           ref=new Uint8ClampedArray(frame);still=0;
           // Optional observer for experimental capture; normal Zoom-cam is unchanged.
           if(typeof onStableHit==='function'){
-            try{onStableHit({x:target.x,y:target.y,width:sw,height:sh},video)}
+            try{onStableHit({x:rawHit.x,y:rawHit.y,width:sw,height:sh},video)}
             catch(error){console.warn('Zoom-cam capture observer error',error)}
           }
         }
