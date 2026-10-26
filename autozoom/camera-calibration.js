@@ -11,6 +11,11 @@ const tools=document.createElement('div');
 tools.className='cam-zoom-tools';
 tools.innerHTML='<div class="cam-zoom-row"><button type="button" id="camZoomCalibrate" class="outline">Kalibrer Zoom-cam</button><button type="button" id="camZoomPreview" class="outline">Forhåndsvis Zoom-cam</button><button type="button" id="camZoomClear" class="outline">Fjern kalibrering</button></div><div class="cam-zoom-settings"><label>Følsomhet<select id="camZoomSensitivity"><option value="normal" selected>Normal (stabil)</option><option value="low">Lav</option><option value="high">Høy (test)</option></select></label><label>Hastighet<select id="camZoomSpeed"><option value="fast">Rask</option><option value="normal" selected>Normal</option><option value="smooth">Rolig</option></select></label></div><p class="muted compact" id="camZoomHelp">Marker Bull og deretter D20. Zoom-cam kan velges i venterom etter kalibrering.</p>';
 preview.insertAdjacentElement('afterend',tools);
+const activationLabel=document.createElement('label');
+activationLabel.className='cam-zoom-guide-toggle';
+activationLabel.innerHTML='<input type="checkbox" id="camZoomUseInMatch"> Bruk Zoom-cam automatisk i venterom og kamp';
+tools.appendChild(activationLabel);
+const activation=activationLabel.querySelector('input');
 const button=tools.querySelector('#camZoomCalibrate'),clear=tools.querySelector('#camZoomClear'),help=tools.querySelector('#camZoomHelp');
 const previewButton=tools.querySelector('#camZoomPreview');
 const speedSelect=tools.querySelector('#camZoomSpeed');
@@ -29,6 +34,49 @@ framingPanel.innerHTML=`
   <p class="muted compact">Dra i kamerabildet for å flytte utsnittet etter at du har zoomet inn. Hold gjerne øvre høyre hjørne ledig – anbefalt, ikke nødvendig.</p>
 `;
 tools.appendChild(framingPanel);
+const hitPanel=document.createElement('section');
+hitPanel.className='cam-zoom-framing';
+hitPanel.innerHTML=`
+  <div class="cam-zoom-framing-header"><strong>TREFFPUNKT-KORREKSJON</strong><span>Kun dette kameraet</span></div>
+  <div class="cam-zoom-framing-controls">
+    <label class="cam-zoom-range">Horisontalt <output id="camHitOffsetXValue">Ingen</output>
+      <input id="camHitOffsetX" type="range" min="-1" max="1" step="0.05" value="0" aria-label="Treffpunkt venstre eller høyre">
+    </label>
+    <label class="cam-zoom-range">Vertikalt <output id="camHitOffsetYValue">Ingen</output>
+      <input id="camHitOffsetY" type="range" min="-1" max="1" step="0.05" value="0" aria-label="Treffpunkt opp eller ned">
+    </label>
+    <button type="button" class="outline" id="camHitOffsetReset">Nullstill treffpunkt</button>
+  </div>
+  <p class="muted compact">Bruk dette bare hvis Zoom-cam peker feil etter et kast. Er zoompunktet over pilspissen, juster vertikalt mot Ned. Verdien er en andel av skiveradiusen, og påvirker ikke kalibrering, scoring eller heatmap. Start forhåndsvisning på nytt etter justering.</p>
+`;
+tools.appendChild(hitPanel);
+const hitX=hitPanel.querySelector('#camHitOffsetX');
+const hitY=hitPanel.querySelector('#camHitOffsetY');
+const hitXValue=hitPanel.querySelector('#camHitOffsetXValue');
+const hitYValue=hitPanel.querySelector('#camHitOffsetYValue');
+const hitReset=hitPanel.querySelector('#camHitOffsetReset');
+function showHitOffset(){
+  const x=Number(hitX.value),y=Number(hitY.value);
+  hitXValue.textContent=x?(x<0?'Venstre ':'Høyre ')+Math.round(Math.abs(x)*100)+'%':'Ingen';
+  hitYValue.textContent=y?(y<0?'Opp ':'Ned ')+Math.round(Math.abs(y)*100)+'%':'Ingen';
+}
+function loadHitOffset(){
+  const data=Z.loadConfig(localStorage);
+  const value=Z.hitOffsetOf(data&&data.deviceId===deviceId()?data:{});
+  hitX.value=String(value.hitOffsetX);hitY.value=String(value.hitOffsetY);
+  showHitOffset();
+}
+function saveHitOffset(){
+  showHitOffset();
+  const data=Z.loadConfig(localStorage);
+  if(data&&data.deviceId===deviceId()){
+    Z.saveConfig(localStorage,{...data,hitOffsetX:Number(hitX.value),hitOffsetY:Number(hitY.value)});
+  }
+  stopPreview();
+}
+hitX.addEventListener('input',saveHitOffset);
+hitY.addEventListener('input',saveHitOffset);
+hitReset.addEventListener('click',()=>{hitX.value='0';hitY.value='0';saveHitOffset()});
 const zoomInput=framingPanel.querySelector('#camFramingZoom');
 const zoomValue=framingPanel.querySelector('#camFramingValue');
 const frameReset=framingPanel.querySelector('#camFramingReset');
@@ -52,6 +100,7 @@ function loadFraming(){
   const data=Z.loadConfig(localStorage);
   framing=Z.framingOf(data&&data.deviceId===deviceId()?data:null);
   updateFramingDisplay();
+  loadHitOffset();
 }
 function saveFraming(){
   const data=Z.loadConfig(localStorage);
@@ -139,14 +188,33 @@ function track(){return video.srcObject?.getVideoTracks?.()[0]||null}
 function deviceId(){return track()?.getSettings?.()?.deviceId||camera.value||''}
 function updateHelp(){
   const data=Z.loadConfig(localStorage);
+  activation.checked=!!(data&&data.deviceId===deviceId()&&Z.selected(localStorage));
   if(data&&data.deviceId===deviceId()){
     speedSelect.value=data.speed||'normal';
     sensitivitySelect.value=data.sensitivity||'normal';
-    help.textContent='Zoom-cam kalibrert for dette kameraet. Velg Zoom-cam i venterommet for å sende full skive med zoomvindu.';
+    help.textContent=activation.checked
+      ?'Zoom-cam er kalibrert og valgt for venterom og kamp.'
+      :'Zoom-cam er kalibrert. Huk av «Bruk Zoom-cam automatisk» eller velg den i venterommet.';
   }else{
     help.textContent='Kalibrer dette kameraet: klikk Bull, deretter D20 på dobbelringen. Valget lagres for venterommet.';
   }
 }
+activation.addEventListener('change',()=>{
+  if(!activation.checked){
+    Z.setSelected(localStorage,false);
+    updateHelp();
+    return;
+  }
+  const config=Z.loadConfig(localStorage);
+  if(!config||config.deviceId!==deviceId()){
+    Z.setSelected(localStorage,false);
+    activation.checked=false;
+    help.textContent='Kalibrer dette kameraet med Bull og D20 før du aktiverer Zoom-cam.';
+    return;
+  }
+  Z.setSelected(localStorage,true);
+  updateHelp();
+});
 function cancel(){step=0;bull=null;marker.classList.add('hidden')}
 previewButton.addEventListener('click',async()=>{
   if(zoomSession){stopPreview();return}
@@ -177,7 +245,8 @@ marker.addEventListener('click',event=>{
   if(!pt){help.textContent='Klikk innenfor kamerabildet.';return}
   if(step===1){bull=pt;step=2;help.textContent='Klikk midt i D20 på den ytre dobbelringen.';return}
   const settings=Z.calibration(video,bull,pt,deviceId());
-  if(!settings||!Z.saveConfig(localStorage,{...settings,...framing,speed:speedSelect.value,sensitivity:sensitivitySelect.value})){
+  if(!settings||!Z.saveConfig(localStorage,{...settings,...framing,speed:speedSelect.value,sensitivity:sensitivitySelect.value,
+    hitOffsetX:Number(hitX.value),hitOffsetY:Number(hitY.value)})){
     help.textContent='Kalibreringen ble ikke gyldig. Sjekk D20 og prøv igjen.';return
   }
   cancel();stopPreview();updateHelp();
@@ -186,7 +255,7 @@ clear.addEventListener('click',()=>{
   stopPreview();
   localStorage.removeItem(Z.CONFIG_KEY);
   Z.setSelected(localStorage,false);
-  cancel();updateHelp();
+  cancel();loadFraming();updateHelp();
 });
 function saveOptions(){
   const data=Z.loadConfig(localStorage);
