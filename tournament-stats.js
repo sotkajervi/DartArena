@@ -160,17 +160,15 @@
 
       const playerIds=[...new Set(playedMatches.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))];
       const liveIds=[...new Set(playedMatches.map(m=>m.live_match_id).filter(Boolean))];
-      const [{data:profiles,error:profileError},{data:throws,error:throwError},{data:cricketVisits,error:cricketError}]=await Promise.all([
+      const fetchVisits=window.DartArenaTournamentStatsFetch?.fetchAllVisits;
+      if(typeof fetchVisits!=='function')throw Error('Tournament pagination helper unavailable');
+      const [{data:profiles,error:profileError},allThrows,allCricket]=await Promise.all([
         playerIds.length?db.from('profiles').select('id,username').in('id',playerIds):Promise.resolve({data:[]}),
-        liveIds.length?db.from('match_throws').select('*').in('match_id',liveIds).order('created_at',{ascending:true}):Promise.resolve({data:[]}),
-        chicago&&liveIds.length?db.from('cricket_visits').select('match_id,player_id,darts').in('match_id',liveIds).order('created_at',{ascending:true}):Promise.resolve({data:[]})
+        fetchVisits(db,'match_throws',liveIds,'*'),
+        chicago?fetchVisits(db,'cricket_visits',liveIds,'match_id,player_id,darts') : Promise.resolve([])
       ]);
       if(profileError)throw profileError;
-      if(throwError)throw throwError;
-      if(cricketError)throw cricketError;
-
       const names=Object.fromEntries((profiles||[]).map(p=>[p.id,p.username]));
-      const allThrows=throws||[],allCricket=cricketVisits||[];
       const matchByLive=Object.fromEntries(playedMatches.filter(m=>m.live_match_id).map(m=>[m.live_match_id,m]));
       const rows=playerIds.map(pid=>{
         const pm=playedMatches.filter(m=>m.player1_id===pid||m.player2_id===pid);
