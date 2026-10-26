@@ -11,6 +11,11 @@ const tools=document.createElement('div');
 tools.className='cam-zoom-tools';
 tools.innerHTML='<div class="cam-zoom-row"><button type="button" id="camZoomCalibrate" class="outline">Kalibrer Zoom-cam</button><button type="button" id="camZoomPreview" class="outline">Forhåndsvis Zoom-cam</button><button type="button" id="camZoomClear" class="outline">Fjern kalibrering</button></div><div class="cam-zoom-settings"><label>Følsomhet<select id="camZoomSensitivity"><option value="normal" selected>Normal (stabil)</option><option value="low">Lav</option><option value="high">Høy (test)</option></select></label><label>Hastighet<select id="camZoomSpeed"><option value="fast">Rask</option><option value="normal" selected>Normal</option><option value="smooth">Rolig</option></select></label></div><p class="muted compact" id="camZoomHelp">Marker Bull og deretter D20. Zoom-cam kan velges i venterom etter kalibrering.</p>';
 preview.insertAdjacentElement('afterend',tools);
+const activationLabel=document.createElement('label');
+activationLabel.className='cam-zoom-guide-toggle';
+activationLabel.innerHTML='<input type="checkbox" id="camZoomUseInMatch"> Bruk Zoom-cam automatisk i venterom og kamp';
+tools.appendChild(activationLabel);
+const activation=activationLabel.querySelector('input');
 const button=tools.querySelector('#camZoomCalibrate'),clear=tools.querySelector('#camZoomClear'),help=tools.querySelector('#camZoomHelp');
 const previewButton=tools.querySelector('#camZoomPreview');
 const speedSelect=tools.querySelector('#camZoomSpeed');
@@ -139,14 +144,33 @@ function track(){return video.srcObject?.getVideoTracks?.()[0]||null}
 function deviceId(){return track()?.getSettings?.()?.deviceId||camera.value||''}
 function updateHelp(){
   const data=Z.loadConfig(localStorage);
+  activation.checked=!!(data&&data.deviceId===deviceId()&&Z.selected(localStorage));
   if(data&&data.deviceId===deviceId()){
     speedSelect.value=data.speed||'normal';
     sensitivitySelect.value=data.sensitivity||'normal';
-    help.textContent='Zoom-cam kalibrert for dette kameraet. Velg Zoom-cam i venterommet for å sende full skive med zoomvindu.';
+    help.textContent=activation.checked
+      ?'Zoom-cam er kalibrert og valgt for venterom og kamp.'
+      :'Zoom-cam er kalibrert. Huk av «Bruk Zoom-cam automatisk» eller velg den i venterommet.';
   }else{
     help.textContent='Kalibrer dette kameraet: klikk Bull, deretter D20 på dobbelringen. Valget lagres for venterommet.';
   }
 }
+activation.addEventListener('change',()=>{
+  if(!activation.checked){
+    Z.setSelected(localStorage,false);
+    updateHelp();
+    return;
+  }
+  const config=Z.loadConfig(localStorage);
+  if(!config||config.deviceId!==deviceId()){
+    Z.setSelected(localStorage,false);
+    activation.checked=false;
+    help.textContent='Kalibrer dette kameraet med Bull og D20 før du aktiverer Zoom-cam.';
+    return;
+  }
+  Z.setSelected(localStorage,true);
+  updateHelp();
+});
 function cancel(){step=0;bull=null;marker.classList.add('hidden')}
 previewButton.addEventListener('click',async()=>{
   if(zoomSession){stopPreview();return}
