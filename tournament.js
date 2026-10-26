@@ -142,7 +142,7 @@ async function load(){
   renderPage();
   window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
   if(window.DartArenaGroupResultsLayout?.show(t))await loadGroupLobby();
-  window.dispatchEvent(new CustomEvent('dartarena:tournament-loaded',{detail:{id:t.id,status:t.status,gameVariant:t.game_variant||'x01',cupGameVariant:t.cup_game_variant||t.game_variant||'x01'}}));
+  window.dispatchEvent(new CustomEvent('dartarena:tournament-loaded',{detail:{id:t.id,status:t.status,tournamentType:t.tournament_type,gameVariant:t.game_variant||'x01',cupGameVariant:t.cup_game_variant||t.game_variant||'x01'}}));
 }
 
 function renderLeaderTransfer(){
