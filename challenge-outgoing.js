@@ -197,6 +197,17 @@
       return;
     }
 
+    // UI state may be stale between render and click. Recheck before sending.
+    // Accepting an already-incoming challenge above retains its own flow.
+    const{data:recipient,error:recipientError}=await db.from('profiles')
+      .select('status,last_seen').eq('id',id).maybeSingle();
+    const online=recipient?.last_seen&&Date.now()-Date.parse(recipient.last_seen)<5*60*1000;
+    if(recipientError||!recipient||recipient.status!=='available'||!online){
+      button.disabled=true;button.textContent='Ikke ledig';
+      await loadPlayers();
+      if(recipientError)console.warn('Challenge availability verification failed',recipientError);
+      return;
+    }
     button.textContent='Sender…';
     const{data,error}=await db.from('challenges').insert({challenger_id:profile.id,challenged_id:id,game:501,legs:5,allow_draw:false,starter:'me',status:'pending'}).select('id').single();
     if(error){button.disabled=false;button.textContent=old;alert(error.message);return}
