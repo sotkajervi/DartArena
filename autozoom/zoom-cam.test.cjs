@@ -96,7 +96,7 @@ test('Zoom-cam has fallback when captureStream is unsupported',()=>{
 });
 test('main lobby Cam-test includes calibration code and the physical camera selector',()=>{
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-  assert.match(html,/autozoom\/camera-calibration\.js\?v=20261026-startup1/);
+  assert.match(html,/autozoom\/camera-calibration\.js\?v=20261026-explicit-activate1/);
   assert.match(html,/autozoom\/zoom-cam\.js\?v=20261026-startup1/);
   assert.match(html,/id="cameraTestCameraSelect"/);
 });
