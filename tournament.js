@@ -98,7 +98,7 @@ async function boot(){
     .on('postgres_changes',{event:'*',schema:'public',table:'tournaments',filter:`id=eq.${id}`},load)
     .on('postgres_changes',{event:'*',schema:'public',table:'tournament_members',filter:`tournament_id=eq.${id}`},load)
     .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${id}`},()=>{
-      if(tournament?.status==='groups'||(tournament?.status==='finished'&&tournament?.tournament_type==='groups_cup'))loadGroupLobby();
+      if(window.DartArenaGroupResultsLayout?.show(tournament))loadGroupLobby();
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'tournament_ai_group_matches',filter:`tournament_id=eq.${id}`},()=>{
       if(tournament?.status==='groups')loadGroupLobby();
@@ -141,7 +141,7 @@ async function load(){
 
   renderPage();
   window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
-  if(t.status==='groups'||(t.status==='finished'&&t.tournament_type==='groups_cup'))await loadGroupLobby();
+  if(window.DartArenaGroupResultsLayout?.show(t))await loadGroupLobby();
   window.dispatchEvent(new CustomEvent('dartarena:tournament-loaded',{detail:{id:t.id,status:t.status,gameVariant:t.game_variant||'x01',cupGameVariant:t.cup_game_variant||t.game_variant||'x01'}}));
 }
 
@@ -221,7 +221,7 @@ function renderPage(){
   renderLeaderTransfer();
   $('closeRegistrationBtn').classList.toggle('hidden',!open);
   $('groupSetup').classList.toggle('hidden',!(owner&&t.status==='groups_setup'));
-  $('groupLobby').classList.toggle('hidden',!(t.status==='groups'||(t.status==='finished'&&t.tournament_type==='groups_cup')));
+  window.DartArenaGroupResultsLayout?.sync(t);
 
   if(t.status==='cancelled')$('tInfo').textContent='Turneringen er avbrutt av turneringsleder.';
   else if(open)$('tInfo').textContent='Spillere og turneringsleder kan melde seg på og av frem til påmeldingen stenges.';
@@ -481,10 +481,12 @@ async function groupMatchAverages(matches){
   const completed=(matches||[]).filter(m=>m.status==='finished'&&!m.is_wo&&m.live_match_id);
   const liveIds=[...new Set(completed.map(m=>m.live_match_id).filter(Boolean))];
   if(!liveIds.length)return new Map();
-  const {data:visits,error}=await db.from('match_throws')
-    .select('match_id,player_id,score,is_checkout,darts_used')
-    .in('match_id',liveIds);
-  if(error){console.warn('Could not load group match averages',error);return new Map()}
+  let visits;
+  try{
+    const fetchVisits=window.DartArenaTournamentStatsFetch?.fetchAllVisits;
+    if(typeof fetchVisits!=='function')throw Error('Group averages pagination unavailable');
+    visits=await fetchVisits(db,'match_throws',liveIds,'match_id,player_id,score,is_checkout,darts_used');
+  }catch(error){console.warn('Could not load complete group match averages',error);return new Map()}
   const tournamentByLive=new Map(completed.map(m=>[m.live_match_id,m]));
   const totals=new Map();
   for(const visit of visits||[]){
@@ -561,13 +563,16 @@ async function loadGroupLobby(){
   const trainingMatches=matches.filter(m=>m.is_ai_rival);
   const done=officialMatches.filter(m=>['finished','wo'].includes(m.status)).length;
   const archive=tournament?.status==='finished';
-  $('groupLobby')?.classList.toggle('group-archive-full',archive);
+  const readonly=tournament?.status!=='groups';
+  $('groupLobby')?.classList.toggle('group-archive-full',readonly);
   const groupLabel=$('groupLobby')?.querySelector('.heading small');
-  if(groupLabel)groupLabel.textContent=archive?'PULJEHISTORIKK':'LIVE';
+  if(groupLabel)groupLabel.textContent=readonly?'PULJERESULTATER':'LIVE';
+  const groupHeading=$('groupLobby')?.querySelector('.heading h2');
+  if(groupHeading)groupHeading.textContent=readonly?'Endelig puljestilling':'Puljespill';
   matches.sort((a,b)=>Number(a.round_no)-Number(b.round_no)||Number(a.match_no)-Number(b.match_no));
-  $('groupProgress').textContent=archive?`${officialMatches.length} puljekamper`:`${done} / ${officialMatches.length} puljekamper ferdig`;
+  $('groupProgress').textContent=readonly?`${officialMatches.length} puljekamper`:`${done} / ${officialMatches.length} puljekamper ferdig`;
   if(trainingMatches.length)$('groupProgress').textContent+=' · '+trainingMatches.length+' AI-treningskamper';
-  const collapseArchivedGroups=archive;
+  const collapseArchivedGroups=readonly;
   $('liveGroups').innerHTML=groups.map(g=>{
     const gp=players.filter(p=>p.group_id===g.id&&!p.is_ai_rival&&p.user_id!==AI_RIVAL_ID);
     const gm=matches.filter(m=>m.group_id===g.id&&!m.is_ai_rival);
