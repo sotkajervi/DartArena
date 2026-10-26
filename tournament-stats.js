@@ -12,6 +12,39 @@
   let loading=false;
   let reloadRequested=false;
   let reloadTimer=null;
+  let lastCompactMode=null;
+
+  function placeSection(t){
+    if(!t)return;
+    const section=document.getElementById('tournamentStats');
+    const details=document.getElementById('tournamentStatsDetails');
+    if(!section||!details)return;
+    const isCup=['cup','finished'].includes(t.status);
+    // Only reset when moving between group and cup views. Do not close a
+    // disclosure the user opened whenever a live score refreshes.
+    if(lastCompactMode!==isCup){
+      details.open=!isCup;
+      lastCompactMode=isCup;
+    }
+    section.classList.toggle('tournament-stats-compact',isCup);
+    const scope=document.getElementById('tournamentStatsScope');
+    if(scope)scope.textContent=isCup&&t.tournament_type==='groups_cup'
+      ?'Samlet pulje + cup · ikke puljestilling'
+      :isCup?'Statistikk for cupkamper':'Kast- og kampstatistikk';
+    const layout=window.DartArenaGroupResultsLayout;
+    const group=layout?.show(t)?document.getElementById('groupLobby'):null;
+    const anchor=group||(['cup','finished'].includes(t.status)
+      ?document.getElementById('cupLobby')
+      :t.status==='cup_setup'
+        ?document.getElementById('cupSetup')
+        :document.getElementById('groupLobby'))||document.getElementById('cupLobby');
+    if(anchor?.parentNode&&section.previousElementSibling!==anchor)
+      anchor.insertAdjacentElement('afterend',section);
+  }
+  document.addEventListener('dartarena:tournament-loaded',event=>{
+    const t=event.detail;
+    if(t?.id===tournamentId)placeSection({status:t.status,tournament_type:t.tournamentType});
+  });
 
   function ensureSection(){
     let section=document.getElementById('tournamentStats');
@@ -22,18 +55,45 @@
     section.className='card';
     section.style.marginTop='20px';
     section.innerHTML=`
-      <div class="heading">
-        <div><small>STATISTIKK</small><h2>Turneringsstatistikk</h2></div>
-        <div id="tournamentStatsMeta" class="status">Laster…</div>
-      </div>
-      <p class="muted compact">Snitt beregnes fra registrerte kast i ferdigspilte kamper. WO påvirker kampseire, mens BYE/frirunde ikke teller som kamp.</p>
-      <div id="tournamentStatsHighlights" class="tournament-stats-highlights"></div>
-      <div class="tournament-stats-scroll"><div id="tournamentStatsBody"></div></div>`;
+      <details id="tournamentStatsDetails" class="tournament-stats-disclosure" open>
+        <summary class="tournament-stats-toggle">
+          <div class="tournament-stats-summary-heading">
+            <small>STATISTIKK</small><h2>Turneringsstatistikk</h2>
+            <span id="tournamentStatsScope" class="tournament-stats-scope">Kast- og kampstatistikk</span>
+          </div>
+          <div class="tournament-stats-summary-side">
+            <span id="tournamentStatsMeta" class="status">Laster…</span>
+            <span class="tournament-stats-chevron" aria-hidden="true">⌄</span>
+          </div>
+        </summary>
+        <div class="tournament-stats-content">
+          <p class="muted compact">Snitt beregnes fra registrerte kast i ferdigspilte kamper. WO påvirker kampseire, mens BYE/frirunde ikke teller som kamp.</p>
+          <div id="tournamentStatsHighlights" class="tournament-stats-highlights"></div>
+          <div class="tournament-stats-scroll"><div id="tournamentStatsBody"></div></div>
+        </div>
+      </details>`;
 
     const style=document.createElement('style');
     style.textContent=`
       #cupLobby{overflow:hidden}
       #tournamentStats{position:relative;z-index:2;isolation:isolate;overflow:hidden;background:var(--card,rgba(7,16,18,.94))}
+      #tournamentStats.tournament-stats-compact{padding:0}
+      .tournament-stats-disclosure{min-width:0}
+      .tournament-stats-toggle{display:flex;align-items:center;justify-content:space-between;gap:16px;list-style:none;cursor:pointer;border-radius:12px;outline-offset:5px}
+      .tournament-stats-compact .tournament-stats-toggle{padding:17px 22px}
+      .tournament-stats-toggle::-webkit-details-marker{display:none}
+      .tournament-stats-toggle::marker{content:''}
+      .tournament-stats-toggle:hover h2{color:var(--cyan,#00eaf4)}
+      .tournament-stats-toggle:focus-visible{outline:2px solid var(--cyan,#00eaf4)}
+      .tournament-stats-summary-heading{min-width:0}
+      .tournament-stats-toggle h2{margin:3px 0 0;font-size:clamp(17px,2vw,23px)}
+      .tournament-stats-scope{display:block;color:var(--muted);font-size:11px;line-height:1.5;margin-top:4px}
+      .tournament-stats-summary-side{display:flex;align-items:center;gap:14px;min-width:0}
+      .tournament-stats-summary-side .status{text-align:right;white-space:normal}
+      .tournament-stats-chevron{font-size:27px;line-height:1;font-weight:700;color:var(--cyan,#00eaf4);display:inline-block;transition:transform .18s ease}
+      .tournament-stats-disclosure[open] .tournament-stats-chevron{transform:rotate(180deg)}
+      .tournament-stats-compact .tournament-stats-content{padding:0 22px 20px}
+      @media(max-width:620px){.tournament-stats-toggle{gap:9px}.tournament-stats-summary-side{gap:5px}.tournament-stats-summary-side .status{font-size:10px}.tournament-stats-compact .tournament-stats-toggle{padding:14px}.tournament-stats-compact .tournament-stats-content{padding:0 14px 15px}}
       .tournament-stats-highlights{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:14px}
       .tournament-stat-highlight{min-width:0;padding:11px 12px;border:1px solid rgba(0,234,244,.18);border-radius:12px;background:rgba(0,234,244,.035)}
       .tournament-stat-highlight small{display:block;color:var(--muted);font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
@@ -142,6 +202,7 @@
       const groupChicago=String(tournament?.game_variant||'x01').toLowerCase()==='chicago';
       const cupChicago=String((tournament?.cup_game_variant??tournament?.game_variant)||'x01').toLowerCase()==='chicago';
       const chicago=groupChicago||cupChicago;
+      placeSection(tournament);
       const mixedFormats=tournament?.tournament_type==='groups_cup'&&(
         groupChicago!==cupChicago||
         (!groupChicago&&!cupChicago&&(
