@@ -17,6 +17,20 @@ $('matchScoreBtn').onclick=()=>score($('matchScoreInput').value);$('matchScoreIn
 function setupChannel(){channel=db.channel('match-'+m.id,{config:{broadcast:{ack:true}}}).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${m.id}`},async p=>{m=p.new;render();if(m.status!=='playing')await setPlayersUnavailable()}).on('broadcast',{event:'ready'},async({payload})=>{if(payload.from!==other)return;remoteReady=true;lastSignal=`READY g${payload.generation||1}`;debug();if(isOfferer()&&recoveryState==='idle')await ensureOffer();else if(!isOfferer()&&!pc)armAnswerWatch()}).on('broadcast',{event:'signal'},async({payload})=>{if(payload.from!==other)return;remoteReady=true;await handleSignal(payload)}).on('broadcast',{event:'reset-request'},async({payload})=>{if(payload.from!==other||!isOfferer()||leaving)return;lastSignal=`RESET request ${payload.reason||''}`;debug();if(recoveryState!=='idle')return;await startOffererRecovery(payload.reason||'remote')}).subscribe(async s=>{lastSignal=`RT ${s}`;debug();if(s==='SUBSCRIBED'){await startCamera();startHeartbeat()}})}
 function startHeartbeat(){clearInterval(readyTimer);readyTimer=setInterval(()=>{if(!leaving&&localReady)send('ready',{generation});if(!isOfferer()&&localReady&&remoteReady&&!pc&&recoveryState==='idle')armAnswerWatch()},5000)}
 function armAnswerWatch(){if(isOfferer()||leaving||!localReady||!remoteReady||pc||answerWatchTimer||recoveryState!=='idle')return;answerWatchTimer=setTimeout(async()=>{answerWatchTimer=null;if(!pc&&recoveryState==='idle')await requestReset('answer-no-peer')},5000)}
+function zoomCamNotice(message,failed=false){
+  let note=$('zoomCamMatchStatus');
+  if(!note){
+    const cameraButton=$('cameraBtn');
+    if(!cameraButton)return;
+    note=document.createElement('p');
+    note.id='zoomCamMatchStatus';
+    note.setAttribute('role','status');
+    note.style.cssText='font-size:12px;line-height:1.4;margin:8px 0 0;';
+    cameraButton.insertAdjacentElement('afterend',note);
+  }
+  note.textContent=message;
+  note.style.color=failed?'#ffb8b8':'#90dae2';
+}
 async function startCamera(){
   if(stream?.active)return;
   try{
@@ -42,10 +56,15 @@ async function startCamera(){
         zoomCamSession=Z.create(raw,config);
         stream=zoomCamSession.stream;
         window.DartArenaX01ZoomSession=zoomCamSession;
+        zoomCamNotice('Zoom-cam valgt og startet i kamp.');
       }catch(error){
         console.warn('Zoom-cam kunne ikke starte, bruker vanlig kamera',error);
-        Z.setSelected(localStorage,false);
+        zoomCamNotice('Zoom-cam kunne ikke startes. Vanlig kamera brukes. Åpne Cam-test og kontroller kalibrering og kameravalg. '+(error?.message||''),true);
+        // Preserve the user's choice: a transient camera error must not silently
+        // turn Zoom-cam off for the next match.
       }
+    }else if(Z?.loadConfig(localStorage)){
+      zoomCamNotice('Zoom-cam er kalibrert, men ikke valgt. Aktiver den i Cam-test eller venterommet.');
     }
     if(!zoomCamSession){
       try{pictureSession=window.DartArenaCameraPicture?.createStream(raw)||null;
