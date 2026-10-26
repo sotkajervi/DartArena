@@ -179,10 +179,19 @@
         '<button type="button" class="small-btn challenge-btn" data-id="'+esc(p.id)+'" '+(can?'':'disabled')+'>'+action+'</button></div>';
     }).join(''):'<p class="muted">Ingen spillere passer dette søket eller filteret.</p>';
     target.querySelectorAll('.challenge-btn:not([disabled])').forEach(button=>
-      button.addEventListener('click',()=>context.sendInvite(button)));
+      button.addEventListener('click',()=>{
+        const latest=typeof root.sendInvite==='function'?root.sendInvite:context.sendInvite;
+        if(typeof latest==='function')latest(button);
+      }));
     more.hidden=!(Number.isInteger(count)&&count>PAGE_SIZE*state.page);
     if(!more.hidden)more.textContent='Vis flere spillere ('+Math.max(0,count-PAGE_SIZE*state.page)+' igjen)';
   }
+  root.addEventListener('dartarena:lobby-left',()=>{
+    ++state.token;state.lastContext=null;state.page=1;state.term='';state.filter='all';
+    if(search)search.value='';
+    const list=doc.getElementById('playerList');if(list)list.innerHTML='';
+    more.hidden=true;
+  });
   root.DartArenaSocialLobby=Object.freeze({
     refreshPlayers,setFilter,setTab,
     getState:()=>({filter:state.filter,term:state.term,page:state.page,tab:state.tab})
