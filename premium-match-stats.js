@@ -186,12 +186,12 @@
     </article>`;
   }
   async function renderChicago(match,tm,tournament,names){
-    const [{data:x01Rows,error:x01Error},{data:cricketRows,error:cricketError}]=await Promise.all([
-      db.from('match_throws').select('player_id,leg_no,score,darts_used,is_checkout,created_at').eq('match_id',match.id).order('created_at',{ascending:true}),
-      db.from('cricket_visits').select('player_id,leg_no,darts,points_scored,created_at').eq('match_id',match.id).order('created_at',{ascending:true})
+    const fetchVisits=window.DartArenaTournamentStatsFetch?.fetchAllVisits;
+    if(typeof fetchVisits!=='function')throw Error('Match statistics pagination unavailable');
+    const [x01Rows,cricketRows]=await Promise.all([
+      fetchVisits(db,'match_throws',[match.id],'player_id,leg_no,score,darts_used,is_checkout,created_at'),
+      fetchVisits(db,'cricket_visits',[match.id],'player_id,leg_no,darts,points_scored,created_at')
     ]);
-    if(x01Error)throw x01Error;
-    if(cricketError)throw cricketError;
 
     const winnerId=tm?.winner_id||match.winner_id;
     const[leftId,rightId]=displayOrder(match,winnerId);
@@ -267,9 +267,10 @@
       $('statsView').innerHTML=`<section class="premium-result-card"><div class="premium-result-kicker">KAMP FERDIG</div><h2 class="premium-result-title"><span class="winner-name">${esc(winnerName)}</span>${winnerId?' vant!':' er ferdig'}</h2><div class="premium-result-sub">${esc(gameLabel(match))} • ${esc(formatLabel(match))}</div><div class="premium-result-score">${leftScore}<span>–</span>${rightScore}</div><div class="premium-empty">Denne detaljvisningen viser foreløpig full kaststatistikk for X01. Resultatet er lagret.</div></section>`;
       return;
     }
-    const {data:throws,error}=await db.from('match_throws').select('player_id,set_no,leg_no,visit_no,score,darts_used,is_checkout,created_at').eq('match_id',match.id).order('created_at',{ascending:true});
-    if(error)throw error;
-    const all=throws||[],stats=window.DartArenaX01Stats;
+    const fetchVisits=window.DartArenaTournamentStatsFetch?.fetchAllVisits;
+    if(typeof fetchVisits!=='function')throw Error('Match statistics pagination unavailable');
+    const all=await fetchVisits(db,'match_throws',[match.id],'player_id,set_no,leg_no,visit_no,score,darts_used,is_checkout,created_at');
+    const stats=window.DartArenaX01Stats;
     const statsById={
       [match.player1_id]:stats?.statsFor?stats.statsFor(all,match.player1_id):null,
       [match.player2_id]:stats?.statsFor?stats.statsFor(all,match.player2_id):null
