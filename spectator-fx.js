@@ -9,7 +9,7 @@
   if(!FX)return;
   const effects={...FX.DEFAULT_EFFECTS,neon_relay:false};
   const state={id:null,stage:null,last:null,instance:null,baseline:false,
-    known:new Set(),transitions:[],reconcileTimer:null};
+    known:new Set(),consumed:new Set(),transitions:[],reconcileTimer:null};
   const validScore=n=>Number.isInteger(Number(n))&&Number(n)>=0&&Number(n)<=1001;
   const scores=m=>({p1:Number(m?.player1_score),p2:Number(m?.player2_score)});
   const slot=(m,id)=>id===m?.player1_id?'p1':id===m?.player2_id?'p2':null;
@@ -40,7 +40,7 @@
   }
   function initialize(m,key){
     clearFx();
-    state.id=String(m.id);state.stage=key;state.last=m;state.baseline=false;state.known.clear();
+    state.id=String(m.id);state.stage=key;state.last=m;state.baseline=false;state.known.clear();state.consumed.clear();
     if(!key)return;
     try{
       if(key.startsWith('x01:')){
@@ -97,8 +97,10 @@
       const item=state.transitions[j];
       if(Date.now()-item.at>4500)continue;
       for(const visit of item.visits||[]){
+        if(state.consumed.has(String(visit?.id)))continue;
         const confirmed=parse(item.before,item.after,visit);
         if(!confirmed)continue;
+        state.consumed.add(String(visit.id));
         state.instance.syncSnapshot(scores(item.before));
         state.instance.acceptConfirmedOnlineVisit(confirmed);
         state.instance.syncSnapshot(scores(item.after));
@@ -162,7 +164,7 @@
     }
   }
   function destroy(){
-    clearFx();state.id=null;state.stage=null;state.last=null;state.baseline=false;state.known.clear();
+    clearFx();state.id=null;state.stage=null;state.last=null;state.baseline=false;state.known.clear();state.consumed.clear();
   }
   root.DartArenaSpectatorFX=Object.freeze({snapshot,visits,destroy,stageKey,parse});
   root.addEventListener('pagehide',destroy,{once:true});
