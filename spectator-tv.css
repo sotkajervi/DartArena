@@ -1,5 +1,6 @@
 /* Tournament spectator TV: a single self-contained live viewport.
    Spectator only; never changes player camera/scoring layouts. */
+.spectator-stats-toggle{display:none}
 body.spectator-tv-live{
   height:100dvh;min-height:0;overflow:hidden;
 }
