@@ -1,0 +1,176 @@
+/* Tournament spectator TV: a single self-contained live viewport.
+   Spectator only; never changes player camera/scoring layouts. */
+body.spectator-tv-live{
+  height:100dvh;min-height:0;overflow:hidden;
+}
+body.spectator-tv-live>header{
+  min-height:48px;height:48px;padding:4px 16px;
+}
+body.spectator-tv-live>header .brand-logo{max-width:190px;max-height:42px;object-fit:contain}
+body.spectator-tv-live>.shell{
+  box-sizing:border-box;width:100%;max-width:1600px;height:calc(100dvh - 48px);
+  padding:7px 12px 9px;margin:0 auto;overflow:hidden;
+  display:grid;grid-template-rows:auto minmax(0,1fr) minmax(0,1.15fr);gap:8px;
+}
+body.spectator-tv-live .viewer-head{min-height:0;margin:0;gap:12px}
+body.spectator-tv-live .viewer-head h1{
+  font-size:clamp(17px,2.1vw,25px);margin:0;line-height:1.1;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+body.spectator-tv-live .viewer-head small{font-size:10px;letter-spacing:.11em}
+body.spectator-tv-live .viewer-head .muted{font-size:11px;margin:2px 0 0}
+body.spectator-tv-live .viewer-head .top-actions{gap:7px;flex-wrap:nowrap}
+body.spectator-tv-live .viewer-head .top-actions button,
+body.spectator-tv-live .viewer-head .viewer-pill{padding:6px 9px;font-size:11px;min-height:31px}
+body.spectator-tv-live .spectator-videos{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;min-height:0;height:100%;margin:0;
+}
+body.spectator-tv-live .spectator-video-card{
+  min-height:0;height:100%;aspect-ratio:auto;overflow:hidden;border-radius:11px;
+  box-shadow:0 6px 20px rgba(0,0,0,.25);
+}
+body.spectator-tv-live .spectator-video-card video{width:100%;height:100%;object-fit:contain}
+body.spectator-tv-live .spectator-video-card.active-turn{
+  border-color:#00eaf4;box-shadow:inset 0 0 0 2px rgba(0,234,244,.7),0 0 0 1px rgba(0,234,244,.65),0 0 16px rgba(0,234,244,.22);
+}
+body.spectator-tv-live .spectator-video-card.active-turn::after{
+  content:'KASTER NÅ';position:absolute;top:8px;left:9px;z-index:2;
+  font-size:10px;font-weight:950;letter-spacing:.07em;color:#061012;
+  background:#00eaf4;border-radius:5px;padding:4px 6px;pointer-events:none;
+}
+body.spectator-tv-live .spectator-video-name{font-size:11px;padding:4px 8px;bottom:7px;left:8px}
+body.spectator-tv-live .spectator-bottom-grid{
+  display:grid;grid-template-columns:minmax(0,.94fr) minmax(0,1.06fr);
+  min-height:0;gap:9px;position:relative;
+}
+body.spectator-tv-live .spectator-score-card,
+body.spectator-tv-live .spectator-stats-card{
+  min-height:0;min-width:0;overflow:hidden;border-radius:12px;
+  background:linear-gradient(160deg,rgba(7,26,31,.96),rgba(3,13,16,.97));
+  border:1px solid rgba(0,234,244,.17);padding:8px 12px;margin:0;
+}
+body.spectator-tv-live .spectator-score-card{display:flex;flex-direction:column}
+body.spectator-tv-live .spectator-score{
+  flex:0 0 auto;padding:3px 5px 6px;gap:6px;
+  grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);
+}
+body.spectator-tv-live .spectator-player{
+  min-width:0;padding:6px 9px 8px;border-radius:10px;
+  background:rgba(255,255,255,.018);border:1px solid rgba(255,255,255,.08);
+}
+body.spectator-tv-live .spectator-player.active-turn{
+  background:linear-gradient(130deg,rgba(0,234,244,.18),rgba(0,234,244,.025));
+  border-color:rgba(0,234,244,.9);
+  box-shadow:inset 0 0 0 1px rgba(0,234,244,.22),0 0 19px rgba(0,234,244,.18);
+}
+body.spectator-tv-live .spectator-name{
+  font-size:clamp(12px,1.35vw,17px);line-height:1.2;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+body.spectator-tv-live .spectator-points{font-size:clamp(31px,4.5vh,57px);margin:2px 0 0;line-height:1}
+body.spectator-tv-live .spectator-legs{font-size:11px;margin:4px 0 0}
+body.spectator-tv-live .spectator-turn-label{
+  display:block;min-height:13px;margin-top:3px;
+  font-size:9px;font-weight:950;letter-spacing:.12em;color:var(--muted);
+}
+body.spectator-tv-live .spectator-player.active-turn .spectator-turn-label{color:#00eaf4}
+body.spectator-tv-live .spectator-countdown{
+  height:4px;margin-top:6px;border-radius:99px;overflow:hidden;
+  background:rgba(0,234,244,.13)
+}
+body.spectator-tv-live .spectator-countdown-fill{
+  display:block;height:100%;width:100%;transform:scaleX(0);
+  transform-origin:left center;transition:transform .55s ease-out;
+  background:linear-gradient(90deg,#007d8a,#00eaf4,#adffff);
+}
+body.spectator-tv-live .spectator-vs{font-size:11px}
+body.spectator-tv-live .spectator-note{
+  flex:0 0 auto;font-size:11px;text-align:center;margin:5px 0 0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+body.spectator-tv-live .spectator-stats-card{display:flex;flex-direction:column}
+body.spectator-tv-live .spectator-stats-heading{margin:0 0 4px;gap:9px}
+body.spectator-tv-live .spectator-stats-heading h2{font-size:15px}
+body.spectator-tv-live .spectator-stats-heading small{font-size:10px}
+body.spectator-tv-live #spectatorStats{min-height:0;flex:1}
+body.spectator-tv-live .spectator-stats-table{height:100%;width:100%;table-layout:fixed}
+body.spectator-tv-live .spectator-stats-table th,
+body.spectator-tv-live .spectator-stats-table td{
+  font-size:clamp(10px,1.1vw,13px);line-height:1.07;
+  padding:2px 5px;
+}
+body.spectator-tv-live .spectator-stats-table tbody th{font-size:clamp(10px,1.05vw,12px)}
+body.spectator-tv-live .spectator-stats-table thead th{font-size:11px}
+body.spectator-tv-live .spectator-cricket-board.active{
+  display:flex;flex-direction:column;flex:1;min-height:0;
+  width:100%;max-width:none;margin:1px 0 0;border-radius:9px;
+}
+body.spectator-tv-live .spectator-cricket-head{flex:0 0 auto;padding:3px 8px;font-size:10px}
+body.spectator-tv-live .spectator-cricket-head strong{font-size:12px}
+body.spectator-tv-live .spectator-cricket-row{flex:1;min-height:0}
+body.spectator-tv-live .spectator-cricket-mark{font-size:17px;line-height:1}
+body.spectator-tv-live .spectator-cricket-mark .da-cricket-symbol{width:clamp(17px,2.6vh,27px);height:clamp(17px,2.6vh,27px)}
+body.spectator-tv-live .spectator-cricket-target{font-size:clamp(11px,1.6vh,16px)}
+body.spectator-tv-live .spectator-stats-toggle{display:none}
+body.spectator-tv-live .da-fx-score-rail{top:5px;bottom:5px}
+@media(max-height:720px) and (min-width:761px){
+  body.spectator-tv-live>.shell{grid-template-rows:auto minmax(0,.9fr) minmax(0,1.15fr);gap:6px;padding:4px 9px}
+  body.spectator-tv-live .spectator-score-card,body.spectator-tv-live .spectator-stats-card{padding:5px 9px}
+  body.spectator-tv-live .spectator-player{padding:4px 6px}
+  body.spectator-tv-live .spectator-points{font-size:clamp(26px,5vh,40px)}
+  body.spectator-tv-live .spectator-score{padding:0}
+  body.spectator-tv-live .spectator-countdown{margin-top:3px}
+  body.spectator-tv-live .spectator-stats-table th,body.spectator-tv-live .spectator-stats-table td{padding:1px 4px}
+}
+/* Mobile: compact full-viewport live board, stats can replace board on demand. */
+@media(max-width:760px){
+  body.spectator-tv-live>header{min-height:42px;height:42px;padding:3px 9px}
+  body.spectator-tv-live>header .brand-logo{max-width:128px;max-height:36px}
+  body.spectator-tv-live>.shell{
+    height:calc(100dvh - 42px);padding:5px 7px;
+    grid-template-rows:auto minmax(0,.45fr) minmax(0,1fr);gap:6px;
+  }
+  body.spectator-tv-live .viewer-head{flex-direction:row;align-items:center;gap:4px}
+  body.spectator-tv-live .viewer-head h1{font-size:clamp(13px,3.7vw,19px)}
+  body.spectator-tv-live .viewer-head .muted{font-size:9px}
+  body.spectator-tv-live .viewer-head small{font-size:8px}
+  body.spectator-tv-live .viewer-head .viewer-pill{display:none}
+  body.spectator-tv-live .viewer-head .top-actions button{min-height:28px;padding:5px 7px;font-size:9px}
+  body.spectator-tv-live .spectator-videos{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  body.spectator-tv-live .spectator-video-card{border-radius:8px}
+  body.spectator-tv-live .spectator-video-name{bottom:3px;left:3px;padding:2px 4px;font-size:9px}
+  body.spectator-tv-live .spectator-video-card.active-turn::after{font-size:8px;top:4px;left:4px;padding:3px}
+  body.spectator-tv-live .spectator-bottom-grid{display:block;min-height:0;height:100%}
+  body.spectator-tv-live .spectator-score-card{height:100%;padding:5px 7px}
+  body.spectator-tv-live .spectator-score{padding:0 0 3px;gap:4px}
+  body.spectator-tv-live .spectator-player{padding:3px 6px}
+  body.spectator-tv-live .spectator-name{font-size:clamp(11px,3vw,16px)}
+  body.spectator-tv-live .spectator-points{font-size:clamp(28px,8vw,43px)}
+  body.spectator-tv-live .spectator-legs{font-size:10px;margin-top:2px}
+  body.spectator-tv-live .spectator-turn-label{font-size:8px;min-height:10px;margin-top:1px}
+  body.spectator-tv-live .spectator-countdown{height:3px;margin-top:3px}
+  body.spectator-tv-live .spectator-cricket-board.active{margin-top:3px}
+  body.spectator-tv-live .spectator-cricket-head{padding:2px 4px}
+  body.spectator-tv-live .spectator-cricket-mark .da-cricket-symbol{width:21px;height:21px}
+  body.spectator-tv-live .spectator-stats-toggle{display:inline-flex}
+  body.spectator-tv-live .spectator-stats-card{display:none}
+  body.spectator-tv-live.spectator-stats-open .spectator-stats-card{
+    display:flex;position:absolute;inset:0;z-index:30;
+    padding:8px;overflow:auto;box-shadow:0 9px 25px #0009
+  }
+  body.spectator-tv-live.spectator-stats-open .spectator-score-card{visibility:hidden}
+  body.spectator-tv-live .spectator-stats-table th,
+  body.spectator-tv-live .spectator-stats-table td{font-size:12px;padding:4px}
+}
+@media(max-height:540px){
+  body.spectator-tv-live>.shell{gap:3px;padding-block:2px}
+  body.spectator-tv-live .spectator-score{padding:0}
+  body.spectator-tv-live .spectator-points{font-size:25px}
+  body.spectator-tv-live .spectator-note{margin-top:1px}
+  body.spectator-tv-live .spectator-video-card.active-turn::after{display:none}
+  body.spectator-tv-live .spectator-cricket-mark .da-cricket-symbol{width:17px;height:17px}
+}
+@media(prefers-reduced-motion:reduce){
+  body.spectator-tv-live .spectator-countdown-fill{transition:none}
+}
