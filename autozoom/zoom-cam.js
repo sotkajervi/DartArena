@@ -115,13 +115,28 @@ function create(raw,config,{fps=25,video=null,
   const deviceId=sourceTrack.getSettings?.()?.deviceId||config?.deviceId||'';
   const visualFilter=picture!==false&&P?P.cssFilter(picture||P.load(root.localStorage,deviceId)):'none';
   const setDrawFilter=value=>{if('filter' in ctx)ctx.filter=value};
-  let out=null,loop=0,clock=0,stopped=false,prev=null,ref=null,still=0,target=null,current=null;
+  let out=null,loop=0,clock=0,stopped=false,prev=null,ref=null,still=0,target=null,current=null,lastRawHit=null;
   const speed=tracker.speedPreset(config.speed);
   const gate=tracker.createChangeGate({stableFrames:speed.stableFrames,motionWindowMs:4000,cooldownMs:speed.cooldownMs});
   const sampled=document.createElement('canvas'),sampleCtx=sampled.getContext('2d',{willReadFrequently:true});
   let lastAnalysis=0,resetResumeAt=0,lastRenderErrorAt=-Infinity;
+  function setHitOffset(next){
+    if(stopped)return false;
+    const values=hitOffsetOf(next);
+    config.hitOffsetX=values.hitOffsetX;
+    config.hitOffsetY=values.hitOffsetY;
+    // Reposition the existing detected hit in the live preview without restarting
+    // video/canvas or re-running motion detection. Keep T20 reset uncorrected.
+    if(lastRawHit){
+      const width=video.videoWidth||dims.width||1280;
+      target=offsetHit(lastRawHit,config.radius*width,values);
+      current={...target};
+    }
+    return true;
+  }
   function resetToT20(){
     if(stopped)return false;
+    lastRawHit=null;
     // Go straight back to the 20-bed after a recorded visit. Do not treat
     // dart removal as a new hit while the player clears the board.
     const sw=video.videoWidth||dims.width||1280;
@@ -176,6 +191,7 @@ function create(raw,config,{fps=25,video=null,
           // centroids landing above the actual tip. It never changes hit detection,
           // calibration, scoring or the raw coordinates provided to observers.
           const rawHit={x:hit.x*sw/sampled.width,y:hit.y*sh/sampled.height};
+          lastRawHit=rawHit;
           target=offsetHit(rawHit,board.radius,config);
           ref=new Uint8ClampedArray(frame);still=0;
           // Optional observer for experimental capture; normal Zoom-cam is unchanged.
@@ -216,7 +232,7 @@ function create(raw,config,{fps=25,video=null,
   }catch(error){out?.stop();video.srcObject=null;throw error}
   return{
     track:out,sourceTrack,stream:new MediaStream([out,...raw.getAudioTracks()]),
-    resetToT20,
+    resetToT20,setHitOffset,
     stop(){
       if(stopped)return;stopped=true;
       if(loop)cancelAnimationFrame(loop);
