@@ -15,7 +15,7 @@ test('Cam-test calibration stores only device geometry across navigation',()=>{
   const store=storage();
   assert.ok(Z.saveConfig(store,sample));
   const saved=Z.loadConfig(store);
-  assert.deepEqual({...saved},{...sample,zoom:1,panX:0,panY:0,speed:'normal',sensitivity:'normal',version:1});
+  assert.deepEqual({...saved},{...sample,zoom:1,panX:0,panY:0,hitOffsetX:0,hitOffsetY:0,speed:'normal',sensitivity:'normal',version:1});
   assert.equal(Object.keys(saved).includes('track'),false);
   assert.equal(Z.loadConfig(storage()),null);
   assert.equal(Z.saveConfig(store,{...sample,cx:4}),false);
@@ -333,4 +333,29 @@ test('Zoom-cam retries after delayed startup frame and a temporary draw failure'
     global.MediaStream=old.media;global.requestAnimationFrame=old.raf;
     global.cancelAnimationFrame=old.cancel;global.document=old.doc;
   }
+});
+
+test('camera-specific zoom correction is stored, bounded and keeps raw calibration intact',()=>{
+  const store=storage();
+  assert.ok(Z.saveConfig(store,{...sample,hitOffsetX:2,hitOffsetY:-.35}));
+  const cfg=Z.loadConfig(store);
+  assert.equal(cfg.hitOffsetX,1);
+  assert.equal(cfg.hitOffsetY,-.35);
+  assert.equal(cfg.cx,sample.cx);
+  assert.equal(cfg.cy,sample.cy);
+  assert.equal(cfg.radius,sample.radius);
+  const rawHit={x:620,y:380};
+  const boardRadius=250;
+  assert.deepEqual(Z.offsetHit(rawHit,boardRadius,cfg),{x:870,y:292.5});
+  assert.deepEqual(rawHit,{x:620,y:380},'Unmodified source point');
+  assert.deepEqual(Z.offsetHit(rawHit,boardRadius,{}),rawHit,'Default correction is neutral');
+});
+test('Stian can correct upward-biased zoom without changing other users defaults',()=>{
+  const calibration=fs.readFileSync(path.join(root,'autozoom','camera-calibration.js'),'utf8');
+  const core=fs.readFileSync(path.join(root,'autozoom','zoom-cam.js'),'utf8');
+  assert.match(calibration,/id="camHitOffsetX"/);
+  assert.match(calibration,/id="camHitOffsetY"/);
+  assert.match(calibration,/Bruk dette bare hvis Zoom-cam peker feil/);
+  assert.match(core,/target=offsetHit\(rawHit,board\.radius,config\)/);
+  assert.match(core,/onStableHit\(\{x:rawHit\.x,y:rawHit\.y/);
 });
