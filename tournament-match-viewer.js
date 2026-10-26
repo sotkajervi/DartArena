@@ -67,10 +67,16 @@ function renderViewerStats(){
   if(statsRows===null||cricketStatsRows===null){host.innerHTML='<p class="muted">Laster kampstatistikk…</p>';return}
 
   let rows=[];
-  if(chicago&&chicagoStage===2){
+  if(isViewerCricketStage()){
     if(!cricketStatsRows.length){host.innerHTML='<p class="muted">Ingen Cricket-kast registrert ennå.</p>';return}
     const a=cricketLiveStats(cricketStatsRows,tm.player1_id),b=cricketLiveStats(cricketStatsRows,tm.player2_id);
-    rows=[['MPR',a.mpr.toFixed(2),b.mpr.toFixed(2)],['Visits',a.visits,b.visits],['Poeng scoret',a.points,b.points],['Games',Number(live?.player1_legs||0),Number(live?.player2_legs||0)]];
+    const currentLeg=chicago?2:Number(live?.current_leg||1);
+    const am=cricketMarksFor(cricketStatsRows,tm.player1_id,currentLeg);
+    const bm=cricketMarksFor(cricketStatsRows,tm.player2_id,currentLeg);
+    const closed=marks=>CRICKET_TARGETS.filter(t=>Number(marks[t])>=3).length;
+    rows=[['MPR',a.mpr.toFixed(2),b.mpr.toFixed(2)],['Runder',a.visits,b.visits],
+      ['Poeng scoret',a.points,b.points],['Lukkede felt',closed(am)+'/7',closed(bm)+'/7'],
+      [chicago?'Games':'Legs',Number(live?.player1_legs||0),Number(live?.player2_legs||0)]];
   }else{
     const activeRows=chicago?statsRows.filter(r=>Number(r.leg_no||1)===chicagoStage):statsRows;
     if(!activeRows.length){host.innerHTML='<p class="muted">Ingen registrerte kast tilgjengelig ennå.</p>';return}
