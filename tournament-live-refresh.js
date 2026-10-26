@@ -16,6 +16,12 @@
   let reconcileTimer=null;
   let liveChannel=null;
   let authRecovery=null;
+  let scoreChannel=null;
+  let scoreChannelKey='';
+  let scoreChannelVersion=0;
+  let scorePollTimer=null;
+  let scorePollBusy=false;
+  let liveMatchLinks=new Map();
 
   async function ensureAuthenticated(){
     const {data,error}=await client.auth.getSession();
@@ -37,6 +43,71 @@
   const stableRows=(rows,fields)=>(rows||[])
     .map(row=>fields.map(field=>row?.[field]??null))
     .sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
+
+  function renderLiveLegs(liveRows){
+    if(window.dartArenaSimulationViewActive)return;
+    for(const row of liveRows||[]){
+      const link=liveMatchLinks.get(row.id);
+      if(!link)continue;
+      const left=Number(row.player1_legs),right=Number(row.player2_legs);
+      if(!Number.isFinite(left)||!Number.isFinite(right))continue;
+      const score=`${left}–${right}`;
+      // Update the small score field only. Rebuilding cup/group cards during
+      // each leg would replace event handlers, badges and scroll position.
+      const selector=link.stage==='cup'?'#cupBracket .cup-match':'#liveGroups .match-row';
+      const card=[...document.querySelectorAll(`${selector}[data-match]`)]
+        .find(node=>node.dataset.match===link.tournamentMatchId);
+      const scoreEl=card?.querySelector(link.stage==='cup'?'.cup-score':'.match-score');
+      if(scoreEl&&scoreEl.textContent!==score)scoreEl.textContent=score;
+    }
+  }
+
+  async function pollLiveLegs(){
+    if(scorePollBusy||!liveMatchLinks.size||window.dartArenaSimulationViewActive||
+      document.visibilityState==='hidden')return;
+    scorePollBusy=true;
+    try{
+      const {data,error}=await client.from('matches')
+        .select('id,player1_legs,player2_legs')
+        .in('id',[...liveMatchLinks.keys()]);
+      if(error)throw error;
+      renderLiveLegs(data||[]);
+    }catch(error){console.warn('Tournament live leg refresh failed',error)}
+    finally{scorePollBusy=false}
+  }
+
+  function syncLiveMatchLinks(tournamentMatches){
+    const next=new Map((tournamentMatches||[])
+      .filter(row=>row.status==='live'&&row.live_match_id)
+      .map(row=>[row.live_match_id,{tournamentMatchId:row.id,stage:row.stage}]));
+    const key=[...next].map(([liveId,link])=>`${liveId}:${link.tournamentMatchId}:${link.stage}`).sort().join('|');
+    liveMatchLinks=next;
+    if(key===scoreChannelKey)return;
+    scoreChannelKey=key;
+    scoreChannelVersion++;
+    const generation=scoreChannelVersion;
+    if(scoreChannel){
+      client.removeChannel(scoreChannel).catch(()=>{});
+      scoreChannel=null;
+    }
+    if(!next.size)return;
+    // Filter per match: do not subscribe to every score update on the server.
+    const channel=client.channel(`tournament-leg-scores-${tournamentId}-${generation}`);
+    for(const liveId of next.keys()){
+      channel.on('postgres_changes',{
+        event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${liveId}`
+      },payload=>{
+        if(generation!==scoreChannelVersion)return;
+        renderLiveLegs(payload.new?[payload.new]:[]);
+      });
+    }
+    scoreChannel=channel;
+    channel.subscribe(status=>{
+      if(status==='SUBSCRIBED'&&generation===scoreChannelVersion)pollLiveLegs();
+    });
+    // Polling remains a fallback when Realtime isn't enabled for a match.
+    pollLiveLegs();
+  }
 
   async function readSnapshot(){
     if(!await ensureAuthenticated())return null;
@@ -61,6 +132,8 @@
     }
     if(membersResult.error)throw membersResult.error;
     if(matchesResult.error)throw matchesResult.error;
+    // Both bracket and group scores reference these live match IDs.
+    syncLiveMatchLinks(matchesResult.data||[]);
 
     const liveIds=[...new Set((matchesResult.data||[])
       .filter(row=>row.status==='live'&&row.live_match_id)
@@ -73,6 +146,8 @@
       if(liveResult.error)throw liveResult.error;
       liveScores=liveResult.data||[];
     }
+
+    renderLiveLegs(liveScores);
 
     return{
       tournament:JSON.stringify(tournamentResult.data||null),
@@ -228,6 +303,8 @@
   // Safety net for missed Realtime events. It only reloads the UI when the
   // database snapshot actually changed, so idle tournament pages stay quiet.
   reconcileTimer=setInterval(()=>scheduleSync(false),15000);
+  // Cheap, score-only safety polling while tournament matches are in progress.
+  scorePollTimer=setInterval(pollLiveLegs,3000);
 
   setTimeout(async()=>{
     try{
@@ -239,6 +316,8 @@
   window.addEventListener('pagehide',()=>{
     clearTimeout(syncTimer);
     clearInterval(reconcileTimer);
+    clearInterval(scorePollTimer);
+    if(scoreChannel)client.removeChannel(scoreChannel).catch(()=>{});
     if(liveChannel)client.removeChannel(liveChannel).catch?.(()=>{});
   },{once:true});
 })();
