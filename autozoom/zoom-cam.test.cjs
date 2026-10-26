@@ -420,14 +420,13 @@ test('live slider corrections move the latest hit without stopping video or offs
     frames.shift()(4020);
     assert.equal(session.track,liveTrack,'Framing does not replace the camera track');
     assert.equal(session.resetToT20(),true);
-    const t20=crops.at(-1);
-    frames.shift()(4030);
+    frames.shift()(performance.now()+20);
     const resetPoint=crops.at(-1);
     assert.ok(resetPoint.y<360,'T20 remains above bull');
     assert.ok(Math.abs(resetPoint.x-640)<.001,'T20 reset has no arbitrary sideways offset');
     assert.equal(session.setHitOffset({hitOffsetY:.9}),true);
     const resetTargetBefore=crops.at(-1);
-    frames.shift()(4040);
+    frames.shift()(performance.now()+40);
     const resetTargetAfter=crops.at(-1);
     assert.deepEqual(resetTargetAfter,resetTargetBefore,'Offset slider does not corrupt T20 reset');
     session.stop();
