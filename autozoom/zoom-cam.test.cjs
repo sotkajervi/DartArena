@@ -359,3 +359,82 @@ test('Stian can correct upward-biased zoom without changing other users defaults
   assert.match(core,/target=offsetHit\(rawHit,board\.radius,config\)/);
   assert.match(core,/onStableHit\(\{x:rawHit\.x,y:rawHit\.y/);
 });
+
+test('Cam-test sliders keep the running Zoom-cam preview mounted',()=>{
+  const ui=fs.readFileSync(path.join(root,'autozoom','camera-calibration.js'),'utf8');
+  const hitFn=ui.match(/function saveHitOffset\(\)\{([\s\S]*?)\n\}/)?.[1];
+  const framingFn=ui.match(/function framingChanged\(\)\{([\s\S]*?)\n\}/)?.[1];
+  assert.ok(hitFn,'Hit correction handler exists');
+  assert.ok(framingFn,'Framing handler exists');
+  assert.doesNotMatch(hitFn,/stopPreview\(/);
+  assert.doesNotMatch(framingFn,/stopPreview\(/);
+  assert.match(hitFn,/zoomSession\?\.setHitOffset\?\./);
+  assert.match(framingFn,/zoomSession\?\.setFraming\?\./);
+});
+test('live slider corrections move the latest hit without stopping video or offsetting T20 reset',()=>{
+  const source={kind:'video',readyState:'live',getSettings:()=>({deviceId:'webcam-1',width:1280,height:720})};
+  const out={kind:'video',readyState:'live',stop(){this.readyState='ended'}};
+  class Stream {
+    constructor(tracks){this.tracks=tracks}
+    getVideoTracks(){return this.tracks.filter(t=>t.kind==='video')}
+    getAudioTracks(){return this.tracks.filter(t=>t.kind==='audio')}
+  }
+  const ctx=()=>({fillRect(){},drawImage(){},strokeRect(){},getImageData(){
+    return {data:new Uint8ClampedArray(480*270*4)};
+  }});
+  const canvas={width:0,height:0,getContext:ctx,captureStream:()=>new Stream([out])};
+  const video={videoWidth:1280,videoHeight:720,readyState:2,play:async()=>{},pause(){},srcObject:null};
+  const crops=[],frames=[];
+  const tracker={
+    ...T,
+    speedPreset:()=>({...T.speedPreset('fast'),intervalMs:1,quietFrames:0,ease:1}),
+    findChange:()=>({x:390,y:100}),
+    motionRatio:()=>0,
+    createChangeGate:()=>({observe:hit=>hit,reset(){}}),
+    zoomCrop:(w,h,x,y)=>{
+      crops.push({x,y});
+      return{x:100,y:50,width:60,height:45};
+    }
+  };
+  const old={media:global.MediaStream,raf:global.requestAnimationFrame,
+    cancel:global.cancelAnimationFrame,doc:global.document};
+  try{
+    global.MediaStream=Stream;
+    global.requestAnimationFrame=fn=>{frames.push(fn);return frames.length};
+    global.cancelAnimationFrame=()=>{};
+    global.document={createElement:()=>({width:0,height:0,getContext:ctx})};
+    const session=Z.create(new Stream([source]),{...sample},
+      {video,canvas,tracker});
+    frames.shift()(4000);
+    const before=crops.at(-1);
+    assert.ok(before);
+    const liveTrack=session.track;
+    assert.equal(session.setHitOffset({hitOffsetY:.4,hitOffsetX:.1}),true);
+    frames.shift()(4010);
+    const shifted=crops.at(-1);
+    assert.ok(Math.abs((shifted.y-before.y)-1280*sample.radius*.4)<.001);
+    assert.ok(Math.abs((shifted.x-before.x)-1280*sample.radius*.1)<.001);
+    assert.equal(session.track,liveTrack,'The same video track remains live');
+    assert.equal(out.readyState,'live');
+    assert.equal(session.setFraming({zoom:2,panX:.3,panY:-.2}),true);
+    frames.shift()(4020);
+    assert.equal(session.track,liveTrack,'Framing does not replace the camera track');
+    assert.equal(session.resetToT20(),true);
+    const t20=crops.at(-1);
+    frames.shift()(4030);
+    const resetPoint=crops.at(-1);
+    assert.ok(resetPoint.y<360,'T20 remains above bull');
+    assert.ok(Math.abs(resetPoint.x-640)<.001,'T20 reset has no arbitrary sideways offset');
+    assert.equal(session.setHitOffset({hitOffsetY:.9}),true);
+    const resetTargetBefore=crops.at(-1);
+    frames.shift()(4040);
+    const resetTargetAfter=crops.at(-1);
+    assert.deepEqual(resetTargetAfter,resetTargetBefore,'Offset slider does not corrupt T20 reset');
+    session.stop();
+    assert.equal(session.setHitOffset({hitOffsetY:.1}),false);
+    assert.equal(session.setFraming({zoom:1}),false);
+  }finally{
+    global.MediaStream=old.media;global.requestAnimationFrame=old.raf;
+    global.cancelAnimationFrame=old.cancel;global.document=old.doc;
+  }
+});
