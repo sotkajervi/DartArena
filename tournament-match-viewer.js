@@ -92,14 +92,14 @@ async function loadViewerStats(){
   const matchId=statsMatchId;if(!matchId)return;
   const request=++statsRequest;
   try{
-    const [{data:throws,error:throwError},{data:cricket,error:cricketError}]=await Promise.all([
-      db.from('match_throws').select('*').eq('match_id',matchId).order('created_at',{ascending:true}),
-      db.from('cricket_visits').select('player_id,leg_no,darts,points_scored,created_at').eq('match_id',matchId).order('created_at',{ascending:true})
+    const fetchVisits=window.DartArenaTournamentStatsFetch?.fetchAllVisits;
+    if(typeof fetchVisits!=='function')throw Error('Spectator pagination unavailable');
+    const [throws,cricket]=await Promise.all([
+      fetchVisits(db,'match_throws',[matchId],'*'),
+      fetchVisits(db,'cricket_visits',[matchId],'player_id,leg_no,darts,points_scored,created_at')
     ]);
     if(request!==statsRequest||matchId!==statsMatchId)return;
-    if(throwError)throw throwError;
-    if(cricketError)throw cricketError;
-    statsRows=throws||[];cricketStatsRows=cricket||[];statsError=false;
+    statsRows=throws;cricketStatsRows=cricket;statsError=false;
   }catch(error){if(request!==statsRequest||matchId!==statsMatchId)return;statsError=true;console.error('Spectator statistics failed',error)}
   renderViewerStats();
   renderSpectatorCricketBoard();
