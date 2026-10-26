@@ -47,7 +47,7 @@ hitPanel.innerHTML=`
     </label>
     <button type="button" class="outline" id="camHitOffsetReset">Nullstill treffpunkt</button>
   </div>
-  <p class="muted compact">Bruk dette bare hvis Zoom-cam peker feil etter et kast. Er zoompunktet over pilspissen, juster vertikalt mot Ned. Verdien er en andel av skiveradiusen, og påvirker ikke kalibrering, scoring eller heatmap. Start forhåndsvisning på nytt etter justering.</p>
+  <p class="muted compact">Bruk dette bare hvis Zoom-cam peker feil etter et kast. Er zoompunktet over pilspissen, juster vertikalt mot Ned. Verdien er en andel av skiveradiusen, og påvirker ikke kalibrering, scoring eller heatmap. Korreksjonen oppdateres direkte i forhåndsvisningen etter et registrert kast.</p>
 `;
 tools.appendChild(hitPanel);
 const hitX=hitPanel.querySelector('#camHitOffsetX');
@@ -70,9 +70,9 @@ function saveHitOffset(){
   showHitOffset();
   const data=Z.loadConfig(localStorage);
   if(data&&data.deviceId===deviceId()){
-    Z.saveConfig(localStorage,{...data,hitOffsetX:Number(hitX.value),hitOffsetY:Number(hitY.value)});
+    const offset={hitOffsetX:Number(hitX.value),hitOffsetY:Number(hitY.value)};
+    if(Z.saveConfig(localStorage,{...data,...offset}))zoomSession?.setHitOffset?.(offset);
   }
-  stopPreview();
 }
 hitX.addEventListener('input',saveHitOffset);
 hitY.addEventListener('input',saveHitOffset);
@@ -129,7 +129,7 @@ function stopFramingLoop(){
 function framingChanged(){
   updateFramingDisplay();
   saveFraming();
-  stopPreview();
+  zoomSession?.setFraming?.(framing);
 }
 zoomInput.addEventListener('input',()=>{
   framing=Z.framingOf({...framing,zoom:Number(zoomInput.value)});
@@ -158,11 +158,12 @@ framedCanvas.addEventListener('pointermove',event=>{
     panX:framing.panX-2*dx/(rect.width*extent),
     panY:framing.panY-2*dy/(rect.height*extent)});
   framing=next;dragging.x=event.clientX;dragging.y=event.clientY;
+  zoomSession?.setFraming?.(framing);
   event.preventDefault();
 });
 function endFramingDrag(event){
   if(!dragging||dragging.id!==event.pointerId)return;
-  dragging=null;framedCanvas.style.cursor='grab';saveFraming();stopPreview();
+  dragging=null;framedCanvas.style.cursor='grab';saveFraming();
 }
 framedCanvas.addEventListener('pointerup',endFramingDrag);
 framedCanvas.addEventListener('pointercancel',endFramingDrag);
