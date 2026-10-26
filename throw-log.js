@@ -12,27 +12,68 @@ async function boot(){
  function renderColumn(elId,list,editable){const el=$(elId);el.innerHTML='';const recent=list.slice(-3);if(!recent.length){el.innerHTML='<div class="throw-empty">Ingen kast ennå</div>';return}recent.forEach(t=>{const label=t.is_checkout?`${t.score} (${t.darts_used}p)`:String(t.score);if(editable?.has(t.id)){const b=document.createElement('button');b.type='button';b.className='throw-chip editable';b.title=`Korriger ${label}`;b.setAttribute('aria-label',`Korriger kast ${label}`);const score=document.createElement('span');score.textContent=label;const icon=document.createElement('span');icon.className='throw-edit-icon';icon.setAttribute('aria-hidden','true');icon.textContent='✎';b.append(score,icon);b.onclick=()=>editThrow(t);el.appendChild(b)}else{const chip=document.createElement('span');chip.className='throw-chip';chip.textContent=label;el.appendChild(chip)}})}
  function draw(){const mine=throws.filter(t=>t.player_id===me),opp=throws.filter(t=>t.player_id!==me),editable=chicago?new Set():new Set(mine.slice(-3).map(t=>t.id));renderColumn('myThrowRows',mine,editable);renderColumn('oppThrowRows',opp,null)}
  function syncScoreDisplay(updated){const p1=$('matchScore1'),p2=$('matchScore2');if(p1)p1.textContent=updated.player1_score;if(p2)p2.textContent=updated.player2_score}
+ function dialog(){return window.DartArenaDialog}
+ async function notice(message,title='Korrigering',tone='warning'){
+  const ui=dialog();
+  if(ui?.alert)return ui.alert(message,{title,tone,confirmText:'OK'});
+  const status=$('matchMessage');
+  if(status)status.textContent=message;
+ }
+ function parseScoreInput(raw){
+  if(raw===null)return null;
+  const text=String(raw).trim();
+  if(!/^\d{1,3}$/.test(text))return NaN;
+  const number=Number(text);
+  return number<=180?number:NaN;
+ }
+ async function askCorrectionScore(t){
+  const ui=dialog();
+  if(!ui?.prompt){
+   await notice('Korrigeringsdialogen kunne ikke åpnes. Oppdater kampsiden og prøv igjen.','Kunne ikke åpne dialog','danger');
+   return null;
+  }
+  const answer=await ui.prompt('Endre registrert kast fra '+t.score+' til riktig poengsum.',{
+   title:'Korriger kast',
+   kicker:'DARTARENA · KAMPROM',
+   inputLabel:'NY SCORE (0–180)',
+   inputType:'number',
+   value:String(t.score),
+   confirmText:'Lagre endring',
+   cancelText:'Avbryt'
+  });
+  return parseScoreInput(answer);
+ }
  async function chooseCheckoutDarts(score){
   const api=window.DartArenaCheckout;
-  if(api?.possibleDarts&&!api.possibleDarts(score).length){alert(`${score} kan ikke avsluttes på tre piler.`);return null}
+  if(api?.possibleDarts&&!api.possibleDarts(score).length){await notice(`${score} kan ikke avsluttes på tre piler.`,'Ugyldig checkout');return null}
   if(api?.askDarts)return api.askDarts(score);
-  const raw=prompt(`Checkout ${score}. Hvor mange piler brukte du? (1–3)`,'3');if(raw===null)return null;const darts=Number(raw);if(![1,2,3].includes(darts)){alert('Velg 1, 2 eller 3 piler.');return null}return darts
+  const ui=dialog();
+  if(!ui?.prompt){await notice('Kunne ikke åpne valg for checkout-piler.','Korrigering','danger');return null}
+  const raw=await ui.prompt(`Checkout ${score}. Hvor mange piler brukte du?`,{
+   title:'Checkout',inputLabel:'ANTALL PILER (1–3)',inputType:'number',value:'3',confirmText:'Bekreft'
+  });
+  if(raw===null)return null;
+  const darts=Number(raw);
+  if(!/^[123]$/.test(String(raw).trim())||![1,2,3].includes(darts)){
+   await notice('Velg 1, 2 eller 3 piler.','Ugyldig antall piler');return null;
+  }
+  return darts
  }
  async function editThrow(t){
   if(chicago)return;
-  const raw=prompt('Ny score (0–180):',String(t.score));if(raw===null)return;const score=Number(raw);if(!Number.isInteger(score)||score<0||score>180){alert('Score må være 0–180.');return}
-  const mine=throws.filter(x=>x.player_id===me),allowed=mine.slice(-3).some(x=>x.id===t.id);if(!allowed){alert('Bare dine tre siste kast i aktivt leg kan korrigeres.');return}
-  if(t.is_checkout){alert('Checkout-kast korrigeres ikke her ennå.');return}
+  const score=await askCorrectionScore(t);if(score===null)return;if(!Number.isInteger(score)){await notice('Score må være et heltall mellom 0 og 180.','Ugyldig score');return}
+  const mine=throws.filter(x=>x.player_id===me),allowed=mine.slice(-3).some(x=>x.id===t.id);if(!allowed){await notice('Bare dine tre siste kast i aktivt leg kan korrigeres.');return}
+  if(t.is_checkout){await notice('Checkout-kast korrigeres ikke her ennå.');return}
   const scoreKey=me===match.player1_id?'player1_score':'player2_score',oldRemaining=Number(match[scoreKey]),newRemaining=oldRemaining-(score-Number(t.score));
   if(newRemaining===0){
    const darts=await chooseCheckoutDarts(score);if(!darts)return;
    const {data:updated,error}=await db.rpc('correct_throw_to_checkout',{p_throw_id:t.id,p_score:score,p_darts:darts});
-   if(error||!updated){alert('Checkout-korrigeringen kunne ikke lagres: '+(error?.message||'ukjent feil'));return}
+   if(error||!updated){await notice('Checkout-korrigeringen kunne ikke lagres: '+(error?.message||'ukjent feil'),'Kunne ikke lagre','danger');return}
    match=updated;syncScoreDisplay(updated);const msg=$('matchMessage');if(msg)msg.textContent=`Korrigert til checkout ${score} på ${darts} ${darts===1?'pil':'piler'}.`;await load();return
   }
   const {data:updated,error}=await db.rpc('correct_x01_throw',{p_throw_id:t.id,p_score:score});
-  if(error||!updated){alert('Korrigeringen kunne ikke lagres: '+(error?.message||'ukjent feil'));return}
-  match=updated;syncScoreDisplay(updated);await load();
+  if(error||!updated){await notice('Korrigeringen kunne ikke lagres: '+(error?.message||'ukjent feil'),'Kunne ikke lagre','danger');return}
+  match=updated;syncScoreDisplay(updated);const message=$('matchMessage');if(message)message.textContent=`Kast korrigert: ${t.score} → ${score}.`;await load();
  }
  db.channel('throw-log-'+matchId).on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:`match_id=eq.${matchId}`},()=>load()).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{const oldSet=match.current_set,oldLeg=match.current_leg;match=p.new;syncScoreDisplay(match);if(oldSet!==match.current_set||oldLeg!==match.current_leg)load()}).subscribe();
  await load();
