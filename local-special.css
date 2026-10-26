@@ -126,8 +126,8 @@
   border-radius:9px;padding:4px 7px;min-height:48px
 }
 .local-special-page .special-cricket-row .special-cricket-mark{
-  font-size:24px;font-weight:850;line-height:1;
-  color:#d9f4f4
+  font-size:clamp(12px,2.1vw,24px);font-weight:850;line-height:1;
+  color:#d9f4f4;min-width:0;white-space:nowrap;letter-spacing:-.06em
 }
 .local-special-page .special-cricket-row .special-cricket-target{
   min-height:39px;position:relative;display:flex;align-items:center;
