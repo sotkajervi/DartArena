@@ -6,7 +6,8 @@ let tm=null,live=null,names={},mediaChannel=null,presence=null,liveChannel=null,
 const subscriptions=new Map();
 
 
-let statsMatchId=null,statsChannel=null,cricketStatsChannel=null,statsTimer=null,statsRequest=0,statsRows=null,cricketStatsRows=null,statsError=false;
+let statsMatchId=null,statsChannel=null,cricketStatsChannel=null,statsTimer=null,statsRefreshTimer=null,statsRequest=0,statsRows=null,cricketStatsRows=null,statsError=false;
+let throwsRealtimeReady=false,cricketRealtimeReady=false,statsFallbackTicks=0;
 const statsEsc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function cricketLiveStats(rows,pid){
@@ -110,19 +111,34 @@ async function loadViewerStats(){
     window.DartArenaSpectatorFX?.visits(statsRows||[]);
   }
 }
+function queueViewerStatsRefresh(){
+  // One visit may cause both a throw INSERT and a match UPDATE. Coalesce
+  // those notifications into one history read without delaying score/FX.
+  clearTimeout(statsRefreshTimer);
+  statsRefreshTimer=setTimeout(()=>{statsRefreshTimer=null;loadViewerStats()},180);
+}
 function syncViewerStats(){
   const next=tm?.live_match_id||null;
   if(next!==statsMatchId){
     ++statsRequest;
     if(statsChannel)db.removeChannel(statsChannel);
     if(cricketStatsChannel)db.removeChannel(cricketStatsChannel);
-    clearInterval(statsTimer);statsChannel=null;cricketStatsChannel=null;statsTimer=null;
+    clearInterval(statsTimer);clearTimeout(statsRefreshTimer);
+    statsChannel=null;cricketStatsChannel=null;statsTimer=null;statsRefreshTimer=null;
+    throwsRealtimeReady=false;cricketRealtimeReady=false;statsFallbackTicks=0;
     statsMatchId=next;statsRows=null;cricketStatsRows=null;statsError=false;
     if(next){
-      statsChannel=db.channel('spectator-stats-'+next).on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:'match_id=eq.'+next},payload=>{if(payload.eventType==='INSERT')window.DartArenaSpectatorFX?.visitEvent(payload.new);loadViewerStats()}).subscribe(status=>{if(status==='SUBSCRIBED')loadViewerStats()});
-      cricketStatsChannel=db.channel('spectator-cricket-stats-'+next).on('postgres_changes',{event:'*',schema:'public',table:'cricket_visits',filter:'match_id=eq.'+next},loadViewerStats).subscribe();
-      // Re-fetch also covers missed reconnect events and deleted throws.
-      statsTimer=setInterval(()=>{if(document.visibilityState!=='hidden')loadViewerStats()},5000);
+      statsChannel=db.channel('spectator-stats-'+next).on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:'match_id=eq.'+next},payload=>{if(payload.eventType==='INSERT')window.DartArenaSpectatorFX?.visitEvent(payload.new);queueViewerStatsRefresh()}).subscribe(status=>{throwsRealtimeReady=status==='SUBSCRIBED'});
+      cricketStatsChannel=db.channel('spectator-cricket-stats-'+next).on('postgres_changes',{event:'*',schema:'public',table:'cricket_visits',filter:'match_id=eq.'+next},queueViewerStatsRefresh).subscribe(status=>{cricketRealtimeReady=status==='SUBSCRIBED'});
+      // Realtime handles new throws immediately. Keep a conservative safety
+      // fetch every 15s when connected, or every 5s if Realtime is unavailable.
+      // This avoids full-history reads every 5s for every healthy spectator.
+      statsTimer=setInterval(()=>{
+        if(document.visibilityState==='hidden')return;
+        statsFallbackTicks++;
+        const connected=throwsRealtimeReady&&(!isViewerCricketStage()||cricketRealtimeReady);
+        if(!connected||statsFallbackTicks%3===0)queueViewerStatsRefresh();
+      },5000);
       loadViewerStats();
     }
   }
@@ -207,14 +223,14 @@ async function loadLive(){
   if(!tm?.live_match_id)return;
   const {data,error}=await db.from('matches').select('*').eq('id',tm.live_match_id).single();
   if(!error&&data){live=data;render()}else console.error('Could not read live match for spectator',error);
-  liveChannel=db.channel(`spectator-live-${tm.live_match_id}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${tm.live_match_id}`},p=>{live=p.new;render();loadViewerStats()}).subscribe();
+  liveChannel=db.channel(`spectator-live-${tm.live_match_id}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${tm.live_match_id}`},p=>{live=p.new;render();queueViewerStatsRefresh()}).subscribe();
 }
 async function boot(){
   const {data:{session}}=await db.auth.getSession();if(!session||!tournamentMatchId)return location.replace('./');
   const {data,error}=await db.from('tournament_matches').select('*').eq('id',tournamentMatchId).single();if(error||!data)return location.replace('./');tm=data;tournamentId=tm.tournament_id;
   const {data:profiles}=await db.from('profiles').select('id,username').in('id',[tm.player1_id,tm.player2_id].filter(Boolean));names=Object.fromEntries((profiles||[]).map(p=>[p.id,p.username]));render();
   if(tm.status==='live'&&tm.live_match_id){await loadLive();await setupMedia(session)}
-  tournamentChannel=db.channel(`spectator-tm-${tournamentMatchId}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'tournament_matches',filter:`id=eq.${tournamentMatchId}`},p=>{tm=p.new;render();loadViewerStats()}).subscribe();
+  tournamentChannel=db.channel(`spectator-tm-${tournamentMatchId}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'tournament_matches',filter:`id=eq.${tournamentMatchId}`},p=>{tm=p.new;render();queueViewerStatsRefresh()}).subscribe();
 }
 function closeViewer(){try{window.opener?.focus()}catch{};window.close();setTimeout(()=>{if(!window.closed&&tournamentId)location.href=`tournament.html?id=${encodeURIComponent(tournamentId)}`},120)}
 $('closeBtn').onclick=closeViewer;
@@ -224,6 +240,6 @@ $('viewerStatsToggle')?.addEventListener('click',()=>{
   $('viewerStatsToggle').setAttribute('aria-expanded',String(visible));
   $('viewerStatsToggle').textContent=visible?'Til kamp':'Statistikk';
 });
-function cleanup(){window.DartArenaSpectatorFX?.destroy();++statsRequest;clearInterval(statsTimer);if(statsChannel){db.removeChannel(statsChannel);statsChannel=null}if(cricketStatsChannel){db.removeChannel(cricketStatsChannel);cricketStatsChannel=null}clearInterval(mediaRequestTimer);try{presence?.untrack()}catch{};for(const x of subscriptions.values()){try{x.client.close()}catch{}}subscriptions.clear();for(const ch of [mediaChannel,presence,liveChannel,tournamentChannel]){try{if(ch)db.removeChannel(ch)}catch{}}}
+function cleanup(){window.DartArenaSpectatorFX?.destroy();++statsRequest;clearInterval(statsTimer);clearTimeout(statsRefreshTimer);if(statsChannel){db.removeChannel(statsChannel);statsChannel=null}if(cricketStatsChannel){db.removeChannel(cricketStatsChannel);cricketStatsChannel=null}clearInterval(mediaRequestTimer);try{presence?.untrack()}catch{};for(const x of subscriptions.values()){try{x.client.close()}catch{}}subscriptions.clear();for(const ch of [mediaChannel,presence,liveChannel,tournamentChannel]){try{if(ch)db.removeChannel(ch)}catch{}}}
 window.addEventListener('pagehide',cleanup);
 boot().catch(e=>{console.error('Tilskuervisningen kunne ikke starte:',e);$('status').textContent='Kunne ikke starte tilskuervisningen.'});
