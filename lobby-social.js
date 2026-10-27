@@ -62,9 +62,14 @@
     '<button type="button" class="da-player-filter" data-player-filter="in_game" aria-pressed="false">I kamp</button>'+
     '</div>';
   players.insertBefore(controls,doc.getElementById('playerList'));
+  const pager=doc.createElement('div');pager.className='da-player-pager';
+  const previous=doc.createElement('button');
+  previous.id='daPlayerPrev';previous.type='button';previous.className='small-btn da-player-prev';previous.textContent='Forrige';previous.disabled=true;
+  const pageLabel=doc.createElement('span');pageLabel.id='daPlayerPage';pageLabel.className='da-player-page';pageLabel.textContent='Side 1';
   const more=doc.createElement('button');
-  more.id='daPlayerMore';more.type='button';more.className='small-btn da-player-more';more.textContent='Vis flere spillere';more.hidden=true;
-  doc.getElementById('playerList')?.insertAdjacentElement('afterend',more);
+  more.id='daPlayerMore';more.type='button';more.className='small-btn da-player-more';more.textContent='Neste';more.hidden=true;
+  pager.append(previous,pageLabel,more);
+  doc.getElementById('playerList')?.insertAdjacentElement('afterend',pager);
 
   function setTab(name){
     state.tab=name==='players'?'players':'chat';
@@ -135,6 +140,7 @@
     if(state.lastContext)refreshPlayers(state.lastContext);
   }
   more.onclick=()=>{state.page++;refreshCurrent()};
+  previous.onclick=()=>{if(state.page>1){state.page--;refreshCurrent()}};
 
   async function refreshPlayers(context){
     if(!context?.db||!context?.profileId)return;
@@ -150,9 +156,9 @@
       .or('status.eq.in_game,last_seen.gte.'+since);
     if(state.filter!=='all')query=query.eq('status',state.filter);
     if(state.term)query=query.ilike('username','%'+safeSearch(state.term)+'%');
-    const last=PAGE_SIZE*state.page-1;
+    const from=PAGE_SIZE*(state.page-1),last=from+PAGE_SIZE-1;
     const {data,error,count}=await query.order('status',{ascending:true})
-      .order('username',{ascending:true}).range(0,last);
+      .order('username',{ascending:true}).range(from,last);
     if(token!==state.token||context.profileId!==state.lastContext?.profileId)return;
     const countEl=doc.getElementById('daPlayerCount');
     const list=Array.isArray(data)?data.filter(p=>!hiddenIds.has(p.id)&&online(p,now)):[];
@@ -183,14 +189,16 @@
         const latest=typeof root.sendInvite==='function'?root.sendInvite:context.sendInvite;
         if(typeof latest==='function')latest(button);
       }));
+    previous.disabled=state.page<=1;
+    pageLabel.textContent='Side '+state.page+' av '+Math.max(1,Math.ceil(state.total/PAGE_SIZE));
     more.hidden=!(Number.isInteger(count)&&count>PAGE_SIZE*state.page);
-    if(!more.hidden)more.textContent='Vis flere spillere ('+Math.max(0,count-PAGE_SIZE*state.page)+' igjen)';
+    if(!more.hidden)more.textContent='Neste';
   }
   root.addEventListener('dartarena:lobby-left',()=>{
     ++state.token;state.lastContext=null;state.page=1;state.term='';state.filter='all';
     if(search)search.value='';
     const list=doc.getElementById('playerList');if(list)list.innerHTML='';
-    more.hidden=true;
+    more.hidden=true;previous.disabled=true;pageLabel.textContent='Side 1';
   });
   root.DartArenaSocialLobby=Object.freeze({
     refreshPlayers,setFilter,setTab,
