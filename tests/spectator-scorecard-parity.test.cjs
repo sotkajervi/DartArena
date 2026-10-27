@@ -65,7 +65,7 @@ test('PILER, AVG, high-out, tons and fastest leg are derived from real visits',(
   assert.equal(elements.get('spectateDarts2').textContent,'3');
   assert.equal(elements.get('spectateCardAvg1').textContent,'62.50');
   assert.equal(elements.get('spectateFastLeg1').textContent,'8 PILER');
-  api.sync(match,visits,{mode:'tournament'});
+  api.sync({...match,player1_avg:undefined,player2_avg:undefined},visits,{mode:'tournament'});
   assert.equal(elements.get('p1Darts').textContent,'3');
   assert.equal(elements.get('p1Avg').textContent,'122.73');
   assert.equal(elements.get('p1100').textContent,'2');
