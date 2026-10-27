@@ -65,3 +65,50 @@ main.shell:has(#tName)>section.card:not(#dartArenaChat){grid-column:1/-1;margin-
 #dartArenaChat .dart-chat-jump-new{align-self:flex-end;max-width:100%;margin-top:4px;cursor:pointer}
 #dartArenaChat .dart-chat-message.dart-chat-grouped{margin-top:-5px}
 #dartArenaChat .dart-chat-message.dart-chat-grouped .dart-chat-body{margin-top:0}
+
+
+/* Stable message metadata on every display, both regular and moderator.
+   Preserve a constant 24px right control slot even if the current user
+   cannot delete messages; timestamps then align across accounts and PCs. */
+#dartArenaChat .dart-chat-message .dart-chat-meta{
+  display:grid;grid-template-columns:minmax(0,1fr) max-content;
+  align-items:center;gap:8px;width:100%;min-width:0;
+}
+#dartArenaChat .dart-chat-meta-left{
+  display:flex;gap:6px;align-items:center;min-width:0;overflow:hidden;
+}
+#dartArenaChat .dart-chat-meta-left .dart-chat-author{
+  min-width:0;max-width:100%;overflow:hidden;
+  white-space:nowrap;text-overflow:ellipsis;
+}
+#dartArenaChat .dart-chat-meta-left .dart-chat-role-badge{
+  flex:0 0 auto;white-space:nowrap;
+}
+#dartArenaChat .dart-chat-meta-right{
+  display:flex;align-items:center;justify-content:flex-end;
+  gap:9px;flex:0 0 auto;min-width:75px;white-space:nowrap;
+}
+#dartArenaChat .dart-chat-meta-right .dart-chat-time{
+  margin:0!important;flex:0 0 auto;
+  white-space:nowrap;text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+#dartArenaChat .dart-chat-delete-slot{
+  display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 22px;width:22px;min-height:20px;
+}
+#dartArenaChat .dart-chat-delete-slot .dart-chat-delete{
+  display:inline-flex;align-items:center;justify-content:center;
+  margin:0!important;min-width:20px;min-height:20px;line-height:1;
+}
+#dartArenaChat .dart-chat-grouped .dart-chat-meta-left{
+  visibility:hidden;
+}
+#dartArenaChat .dart-chat-grouped .dart-chat-meta{
+  margin-bottom:0;
+}
+@media(max-width:520px){
+  #dartArenaChat .dart-chat-message .dart-chat-meta{gap:5px}
+  #dartArenaChat .dart-chat-meta-right{gap:5px;min-width:65px}
+  #dartArenaChat .dart-chat-meta-left .dart-chat-role-badge{font-size:8px;padding:2px 4px}
+}
