@@ -37,7 +37,7 @@ test('Page remains searchable with both languages',()=>{
 });
 
 test('Illustrated Zoom-cam image is embedded from a repository asset with English accessibility copy',()=>{
-  assert.equal((html.match(/assets\/zoomcam-guide\.avif\?v=20261027-illustrated1/g)||[]).length,2);
+  assert.equal((html.match(/assets\/zoomcam-guide\.avif\?v=20261027-illustrated1/g)||[]).length,3);
   assert.match(html,/class="help-zoomcam-poster"/);
   assert.match(html,/width="650" height="855" loading="lazy" decoding="async"/);
   assert.match(html,/id="helpZoomcamOpen"[^>]*target="_blank" rel="noopener"/);
