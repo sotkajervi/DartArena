@@ -1281,6 +1281,8 @@
   "301 spilles Double In / Double Out. Før åpning teller bare score fra og med første double.": "301 uses Double In / Double Out. Only scores after the first double count.",
   "Hvor mange piler?": "How many darts?",
   "Hvor mange piler brukte du?": "How many darts did you use?",
+  // Page-specific additions; undefined on all other pages.
+  ...(window.DartArenaHelpTranslations||{}),
 });
   let lang='no';
   try{lang=localStorage.getItem(KEY)==='en'?'en':'no'}catch{}
