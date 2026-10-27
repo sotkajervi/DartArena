@@ -37,17 +37,32 @@ tools.appendChild(framingPanel);
 const hitPanel=document.createElement('section');
 hitPanel.className='cam-zoom-framing';
 hitPanel.innerHTML=`
-  <div class="cam-zoom-framing-header"><strong>TREFFPUNKT-KORREKSJON</strong><span>Kun dette kameraet</span></div>
+  <div class="cam-zoom-framing-header"><strong>FINJUSTER ZOOM-PUNKT</strong><span>Kun dette kameraet</span></div>
   <div class="cam-zoom-framing-controls">
     <label class="cam-zoom-range">Horisontalt <output id="camHitOffsetXValue">Ingen</output>
-      <input id="camHitOffsetX" type="range" min="-1" max="1" step="0.05" value="0" aria-label="Treffpunkt venstre eller høyre">
+      <input id="camHitOffsetX" type="range" min="-1" max="1" step="0.025" value="0" aria-label="Treffpunkt venstre eller høyre">
     </label>
     <label class="cam-zoom-range">Vertikalt <output id="camHitOffsetYValue">Ingen</output>
-      <input id="camHitOffsetY" type="range" min="-1" max="1" step="0.05" value="0" aria-label="Treffpunkt opp eller ned">
+      <input id="camHitOffsetY" type="range" min="-1" max="1" step="0.025" value="0" aria-label="Treffpunkt opp eller ned">
     </label>
     <button type="button" class="outline" id="camHitOffsetReset">Nullstill treffpunkt</button>
   </div>
-  <p class="muted compact">Bruk dette bare hvis Zoom-cam peker feil etter et kast. Er zoompunktet over pilspissen, juster vertikalt mot Ned. Verdien er en andel av skiveradiusen, og påvirker ikke kalibrering, scoring eller heatmap. Korreksjonen oppdateres direkte i forhåndsvisningen etter et registrert kast.</p>
+  <div class="cam-zoom-nudge-layout">
+    <div class="cam-zoom-nudge-pad" role="group" aria-label="Finjuster Zoom-cam i fire retninger">
+      <button type="button" class="outline cam-nudge-up" data-cam-hit-nudge="up" aria-label="Flytt zoompunkt opp">↑</button>
+      <button type="button" class="outline cam-nudge-left" data-cam-hit-nudge="left" aria-label="Flytt zoompunkt venstre">←</button>
+      <button type="button" class="outline cam-nudge-center" id="camHitOffsetCenter" aria-label="Nullstill horisontal og vertikal justering" title="Nullstill justering">◎</button>
+      <button type="button" class="outline cam-nudge-right" data-cam-hit-nudge="right" aria-label="Flytt zoompunkt høyre">→</button>
+      <button type="button" class="outline cam-nudge-down" data-cam-hit-nudge="down" aria-label="Flytt zoompunkt ned">↓</button>
+      <small>Hvert trykk: 2,5 % av skiveradiusen</small>
+    </div>
+    <div class="cam-zoom-hit-preview">
+      <div class="cam-zoom-hit-preview-title"><strong>LIVE ZOOMUTSNITT</strong><span>T20 som prøvepunkt</span></div>
+      <canvas id="camHitOffsetPreview" width="320" height="240" role="img" aria-label="Live zoomutsnitt som flyttes med piljusteringene"></canvas>
+      <div class="cam-zoom-hit-preview-hint" id="camHitOffsetPreviewHint" aria-live="polite">Start kamera og kalibrer skiva for livevisning.</div>
+    </div>
+  </div>
+  <p class="muted compact">Pilene og skyveknappene flytter zoomens visningspunkt, ikke skivekalibreringen. Se resultatet direkte i livevinduet over. Hvis Zoom-cam peker over pilspissen, velg Ned. Dette endrer ikke scoring eller heatmap.</p>
 `;
 tools.appendChild(hitPanel);
 const hitX=hitPanel.querySelector('#camHitOffsetX');
@@ -55,6 +70,10 @@ const hitY=hitPanel.querySelector('#camHitOffsetY');
 const hitXValue=hitPanel.querySelector('#camHitOffsetXValue');
 const hitYValue=hitPanel.querySelector('#camHitOffsetYValue');
 const hitReset=hitPanel.querySelector('#camHitOffsetReset');
+const hitCenter=hitPanel.querySelector('#camHitOffsetCenter');
+const hitLiveCanvas=hitPanel.querySelector('#camHitOffsetPreview');
+const hitLiveCtx=hitLiveCanvas.getContext('2d',{alpha:false});
+const hitLiveHint=hitPanel.querySelector('#camHitOffsetPreviewHint');
 function showHitOffset(){
   const x=Number(hitX.value),y=Number(hitY.value);
   hitXValue.textContent=x?(x<0?'Venstre ':'Høyre ')+Math.round(Math.abs(x)*100)+'%':'Ingen';
@@ -71,12 +90,61 @@ function saveHitOffset(){
   const data=Z.loadConfig(localStorage);
   if(data&&data.deviceId===deviceId()){
     const offset={hitOffsetX:Number(hitX.value),hitOffsetY:Number(hitY.value)};
-    if(Z.saveConfig(localStorage,{...data,...offset}))zoomSession?.setHitOffset?.(offset);
+    if(Z.saveConfig(localStorage,{...data,...offset})){
+      zoomSession?.setHitOffset?.(offset);
+      zoomSession?.showCalibrationSample?.();
+    }
   }
 }
 hitX.addEventListener('input',saveHitOffset);
 hitY.addEventListener('input',saveHitOffset);
-hitReset.addEventListener('click',()=>{hitX.value='0';hitY.value='0';saveHitOffset()});
+function clearHitOffset(){hitX.value='0';hitY.value='0';saveHitOffset()}
+hitReset.addEventListener('click',clearHitOffset);
+hitCenter.addEventListener('click',clearHitOffset);
+hitPanel.querySelectorAll('[data-cam-hit-nudge]').forEach(button=>{
+  button.addEventListener('click',()=>{
+    const direction=button.dataset.camHitNudge;
+    const delta=0.025;
+    if(direction==='left'||direction==='right'){
+      const next=Number(hitX.value)+(direction==='right'?delta:-delta);
+      hitX.value=String(Math.max(-1,Math.min(1,Math.round(next*1000)/1000)));
+    }else{
+      const next=Number(hitY.value)+(direction==='down'?delta:-delta);
+      hitY.value=String(Math.max(-1,Math.min(1,Math.round(next*1000)/1000)));
+    }
+    saveHitOffset();
+  });
+});
+function drawHitOffsetPreview(){
+  if(!hitLiveCtx)return;
+  const w=hitLiveCanvas.width,h=hitLiveCanvas.height;
+  hitLiveCtx.fillStyle='#061317';hitLiveCtx.fillRect(0,0,w,h);
+  const config=Z.loadConfig(localStorage),device=deviceId();
+  const tracker=window.DartArenaAutoZoom;
+  if(!config||config.deviceId!==device||!tracker||!video.videoWidth||!video.videoHeight||video.readyState<2){
+    hitLiveHint.textContent='Start kamera og kalibrer Bull + D20 for livevisning.';
+    return;
+  }
+  const sw=video.videoWidth,sh=video.videoHeight;
+  const raw=tracker.targetPoint(config.cx*sw,config.cy*sh,config.radius*sw,'T20',config.rotation);
+  if(!raw)return;
+  const adjusted=Z.offsetHit(raw,config.radius*sw,{
+    hitOffsetX:Number(hitX.value),hitOffsetY:Number(hitY.value)
+  });
+  const crop=tracker.zoomCrop(sw,sh,adjusted.x,adjusted.y,config.radius*sw,w/h);
+  try{
+    hitLiveCtx.drawImage(video,crop.x,crop.y,crop.width,crop.height,0,0,w,h);
+    // Fixed centre reference: the picture moves behind the crosshair.
+    hitLiveCtx.strokeStyle='#00eaf4';hitLiveCtx.lineWidth=2;
+    hitLiveCtx.beginPath();
+    hitLiveCtx.moveTo(w/2-9,h/2);hitLiveCtx.lineTo(w/2+9,h/2);
+    hitLiveCtx.moveTo(w/2,h/2-9);hitLiveCtx.lineTo(w/2,h/2+9);
+    hitLiveCtx.stroke();
+    hitLiveHint.textContent='Live • horisontalt '+Math.round(Number(hitX.value)*100)+' %, vertikalt '+Math.round(Number(hitY.value)*100)+' %';
+  }catch(error){
+    hitLiveHint.textContent='Videobildet oppdateres ikke ennå. Prøver igjen.';
+  }
+}
 const zoomInput=framingPanel.querySelector('#camFramingZoom');
 const zoomValue=framingPanel.querySelector('#camFramingValue');
 const frameReset=framingPanel.querySelector('#camFramingReset');
@@ -117,6 +185,7 @@ function drawFramed(){
       dx,dy,crop.width*fit,crop.height*fit);
     framedCanvas.hidden=false;
   }else framedCanvas.hidden=true;
+  drawHitOffsetPreview();
   framingLoop=requestAnimationFrame(drawFramed);
 }
 function startFramingLoop(){
@@ -226,6 +295,7 @@ previewButton.addEventListener('click',async()=>{
   try{
     // Preview gets the same CSS color treatment as Cam-test; avoid applying it twice.
     zoomSession=Z.create(new MediaStream([physical]),config,{picture:false});
+    zoomSession.showCalibrationSample?.();
     previewVideo.srcObject=zoomSession.stream;
     previewVideo.classList.remove('hidden');
     previewButton.textContent='Stopp forhåndsvisning';
