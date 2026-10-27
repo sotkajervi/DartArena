@@ -60,7 +60,9 @@ test('chat source uses DOM textContent for body and server-side role RPC',()=>{
  assert.match(source,/db\.rpc\('get_public_user_roles'\)/);
  assert.match(source,/body\.textContent=row\.body\|\|''/);
  assert.match(source,/const badge=document\.createElement\('span'\)/);
- assert.match(source,/meta\.appendChild\(time\)/);
+ assert.match(source,/right\.append\(time,deleteSlot\)/);
+ assert.match(source,/meta\.append\(left,right\)/);
+ assert.match(source,/item\.appendChild\(meta\)/);
  assert.match(source,/function loadOlder\(/);
  assert.ok(html.indexOf('lobby-chat-feed.js?v=')<html.indexOf('lobby-chat.js?v='));
  assert.ok(tournament.indexOf('lobby-chat-feed.js?v=')<tournament.indexOf('lobby-chat.js?v='));
@@ -73,4 +75,40 @@ test('main lobby visually uses one continuous feed without stacked chat bubbles'
  assert.match(css,/border-radius:0!important/);
  assert.match(css,/\.dart-chat-message\.dart-chat-role-owner \.dart-chat-author/);
  assert.match(css,/\.dart-chat-message\.dart-chat-role-admin \.dart-chat-author/);
+});
+
+
+test('chat timestamps and moderator actions occupy separate columns on all displays',()=>{
+ const chat=fs.readFileSync(path.join(__dirname,'../lobby-chat.js'),'utf8');
+ const css=fs.readFileSync(path.join(__dirname,'../lobby-chat.css'),'utf8');
+ const social=fs.readFileSync(path.join(__dirname,'../lobby-social.css'),'utf8');
+ const admin=fs.readFileSync(path.join(__dirname,'../admin-ui.js'),'utf8');
+ assert.match(chat,/const left=document\.createElement\('div'\);left\.className='dart-chat-meta-left'/);
+ assert.match(chat,/const right=document\.createElement\('div'\);right\.className='dart-chat-meta-right'/);
+ assert.match(chat,/right\.append\(time,deleteSlot\)/);
+ // Even grouped messages have a meta row, so they retain their timestamp
+ // and admins may delete them individually.
+ assert.match(chat,/item\.appendChild\(meta\);/);
+ assert.doesNotMatch(chat,/if\(grouped\)\{[\s\S]*?else\{\s*const meta=/);
+ assert.match(css,/#dartArenaChat \.dart-chat-message \.dart-chat-meta\{[\s\S]*?display:grid;grid-template-columns:minmax\(0,1fr\) max-content;/);
+ assert.match(css,/#dartArenaChat \.dart-chat-meta-right \.dart-chat-time\{[\s\S]*?margin:0!important;/);
+ assert.match(css,/#dartArenaChat \.dart-chat-delete-slot\{[\s\S]*?width:22px;/);
+ assert.match(social,/#lobbyView #daSocialLobby \.dart-chat-meta\{[\s\S]*?display:grid;/);
+ assert.doesNotMatch(social,/#lobbyView #daSocialLobby \.dart-chat-time\{[^}]*margin-left:auto/);
+ assert.match(admin,/const slot=item\.querySelector\('\.dart-chat-delete-slot'\)/);
+ assert.match(admin,/slot\.appendChild\(button\)/);
+ assert.doesNotMatch(admin,/\.dart-chat-delete\{margin-left:auto/);
+});
+
+test('both chat pages bust caching for fixed timestamps, moderation and styles',()=>{
+ const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+ const tournament=fs.readFileSync(path.join(__dirname,'../tournament.html'),'utf8');
+ const chat=fs.readFileSync(path.join(__dirname,'../lobby-chat.js'),'utf8');
+ const social=fs.readFileSync(path.join(__dirname,'../lobby-social.js'),'utf8');
+ for(const html of [index,tournament]){
+   assert.match(html,/lobby-chat\.js\?v=20261027-chatclock1/);
+   assert.match(html,/admin-ui\.js\?v=20261027-chatclock1/);
+ }
+ assert.match(chat,/lobby-chat\.css\?v=20261027-chatclock1/);
+ assert.match(social,/lobby-social\.css\?v=20261027-chatclock1/);
 });
