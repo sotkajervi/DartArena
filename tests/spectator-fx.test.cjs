@@ -95,3 +95,46 @@ test('destroy releases the FX engine',()=>{
   const fx=x.instances[0].fx;
   x.api.destroy();assert.equal(fx.destroyed,true);
 });
+
+test('Realtime INSERT before match UPDATE still triggers spectator FX once',()=>{
+  const x=setup();
+  const before=match(),after=match({player1_score:421,turn_player_id:'p2',updated_at:'next'});
+  x.api.snapshot(before);x.api.visits([]);
+  x.api.visitEvent(visit());
+  assert.equal(x.accepted.length,0);
+  x.api.snapshot(after);
+  assert.equal(x.accepted.length,1);
+  assert.equal(x.accepted[0].scored,80);
+  x.api.visitEvent(visit());
+  x.api.visits([visit()]);
+  assert.equal(x.accepted.length,1,'Same committed visit must not animate twice');
+  assert.equal(x.snapshots.length,1,'Do not immediately overwrite the animated LED rail');
+});
+test('Spectator scorecard shares exact match-room score and name classes',()=>{
+  const tournament=fs.readFileSync(path.join(__dirname,'../tournament-match-viewer.html'),'utf8');
+  const ordinary=fs.readFileSync(path.join(__dirname,'../spectate.html'),'utf8');
+  const standard=fs.readFileSync(path.join(__dirname,'../match.html'),'utf8');
+  assert.match(standard,/id="matchScore1" class="match-score"/);
+  assert.match(tournament,/id="s1" class="spectator-points match-score"/);
+  assert.match(ordinary,/id="spectateResult1" class="match-score"/);
+  for(const page of [tournament,ordinary]){
+    assert.match(page,/spectator-scorecard\.css\?v=/);
+    assert.match(page,/spectator-fx\.js\?v=/);
+    assert.match(page,/fx-live\.js\?v=/);
+  }
+  assert.doesNotMatch(tournament,/id="matchScoreInput"/);
+  assert.doesNotMatch(ordinary,/id="matchScoreInput"/);
+});
+test('Tournament spectator handles committed INSERT immediately, ordinary uses restricted RPCs',()=>{
+  const tournament=fs.readFileSync(path.join(__dirname,'../tournament-match-viewer.js'),'utf8');
+  const ordinary=fs.readFileSync(path.join(__dirname,'../spectate-runtime.js'),'utf8');
+  const sql=fs.readFileSync(path.join(__dirname,'../supabase-spectator-fx-readonly.sql'),'utf8');
+  assert.match(tournament,/DartArenaSpectatorFX\?\.visitEvent\(payload.new\)/);
+  assert.match(ordinary,/get_spectate_fx_state/);
+  assert.match(ordinary,/get_spectate_fx_visits/);
+  assert.match(ordinary,/setInterval\(pollFxVisits,2000\)/);
+  assert.doesNotMatch(ordinary,/from\('match_throws'\)/);
+  assert.match(sql,/auth\.uid\(\) is not null/);
+  assert.match(sql,/revoke execute on function public\.get_spectate_fx_state\(uuid\) from anon;/);
+  assert.match(sql,/revoke execute on function public\.get_spectate_fx_visits\(uuid\) from anon;/);
+});
