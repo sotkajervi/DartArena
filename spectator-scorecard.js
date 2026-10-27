@@ -33,7 +33,24 @@
     // authoritative all-match average, except Chicago's stage-specific AVG.
     const average=!chicago&&finite(rpcAverage)?Number(rpcAverage)
       :(all?computed:null);
-    return {darts,average};
+    // Standard Spectate retains at most 150 visits; a full buffer may omit
+    // older, faster completed legs. Omit that stat rather than invent it.
+    const completeHistory=all&&!(m.player1_avg!==undefined&&all.length>=150);
+    let fastest=null;
+    if(completeHistory){
+      const legs=new Map();
+      for(const v of scoped){
+        const key=String(v.set_no||1)+':'+String(v.leg_no||1);
+        const leg=legs.get(key)||{darts:0,checkout:false};
+        leg.darts+=countDarts(v);
+        leg.checkout=leg.checkout||v.is_checkout===true;
+        legs.set(key,leg);
+      }
+      for(const leg of legs.values()){
+        if(leg.checkout&&leg.darts>0)fastest=fastest===null?leg.darts:Math.min(fastest,leg.darts);
+      }
+    }
+    return {darts,average,fastest};
   }
   function legStarter(m){
     if(!m||!m.match_starter_id)return null;
@@ -53,24 +70,23 @@
     </g>`;
   }
   function updateStarter(m,mode){
-    const starter=m.status==='playing'&&!isCricket(m)?legStarter(m):null;
+    // The spectator's three darts follow the current thrower, not the
+    // different leg-starter mark in the player's own game room.
+    const throwing=m.status==='playing'?m.turn_player_id:null;
     for(const n of [1,2]){
       const name=get(mode==='spectate'?'spectatePlayer'+n:'p'+n);
       const card=get(mode==='spectate'?'spectatePlayerCard'+n:'p'+n+'PlayerCard');
       name?.querySelector('.da-leg-starter-dart')?.remove();
-      if(name&&starter&&String(starter)===String(m['player'+n+'_id'])){
+      if(name&&throwing&&String(throwing)===String(m['player'+n+'_id'])){
         const marker=doc.createElement('span');
         marker.className='da-leg-starter-dart';
-        marker.setAttribute('aria-label','Startet dette legget');
-        marker.title='Startet dette legget';
+        marker.setAttribute('aria-label','Kaster nå');
+        marker.title='Kaster nå';
         marker.innerHTML=`<svg viewBox="0 0 34 30" aria-hidden="true" focusable="false">
           ${dartSvg(7.2,1.1,-10)}${dartSvg(17,0,0)}${dartSvg(26.8,1.1,10)}</svg>`;
         name.appendChild(marker);
       }
-      if(card){
-        const host=mode==='spectate'?card.closest('.spectate-lane'):card;
-        if(host)host.style.order=starter&&String(starter)===String(m['player'+n+'_id'])?'0':String(n+1);
-      }
+      // Keep scorecards tied to their matching video; never reorder them.
     }
   }
   function sync(m,rows,options={}){
@@ -82,6 +98,8 @@
         const count=get('spectateDarts'+slot),avg=get('spectateCardAvg'+slot);
         if(count)count.textContent=data.darts===null?'–':String(data.darts);
         if(avg)avg.textContent=data.average===null?'–':data.average.toFixed(2);
+        const fast=get('spectateFastLeg'+slot);
+        if(fast)fast.textContent=data.fastest===null?'–':data.fastest+' PILER';
         get('spectatePlayerCard'+slot)?.classList.toggle('da-spectator-non-x01',isCricket(m));
       }
     }else{
@@ -90,6 +108,16 @@
         const count=get('p'+slot+'Darts'),avg=get('p'+slot+'Avg');
         if(count)count.textContent=data.darts===null?'–':String(data.darts);
         if(avg)avg.textContent=data.average===null?'–':data.average.toFixed(2);
+        const statistics=Array.isArray(rows)&&root.DartArenaX01Stats?.statsFor
+          ?root.DartArenaX01Stats.statsFor(rows,m['player'+slot+'_id']):null;
+        const fmt=(id,v)=>{const node=get('p'+slot+id);if(node)node.textContent=String(v)};
+        if(statistics){
+          fmt('100',statistics.c100);
+          fmt('140',statistics.c140);
+          fmt('180',statistics.c180);
+          fmt('Checkout',statistics.high||'–');
+        }
+        fmt('FastLeg',data.fastest===null?'–':data.fastest+' PILER');
         get('p'+slot+'PlayerCard')?.classList.toggle('da-spectator-non-x01',isCricket(m));
       }
     }
