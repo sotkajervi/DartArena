@@ -9,7 +9,7 @@
   if(!FX)return;
   const effects={...FX.DEFAULT_EFFECTS,neon_relay:false};
   const state={id:null,stage:null,last:null,instance:null,baseline:false,
-    known:new Set(),consumed:new Set(),transitions:[],reconcileTimer:null};
+    known:new Set(),consumed:new Set(),transitions:[],queued:new Map(),reconcileTimer:null};
   const validScore=n=>Number.isInteger(Number(n))&&Number(n)>=0&&Number(n)<=1001;
   const scores=m=>({p1:Number(m?.player1_score),p2:Number(m?.player2_score)});
   const slot=(m,id)=>id===m?.player1_id?'p1':id===m?.player2_id?'p2':null;
@@ -36,7 +36,7 @@
     clearTimer();
     state.instance?.destroy();
     state.instance=null;
-    state.transitions.length=0;
+    state.transitions.length=0;state.queued.clear();
   }
   function initialize(m,key){
     clearFx();
@@ -44,18 +44,24 @@
     if(!key)return;
     try{
       if(key.startsWith('x01:')){
+        const tournament=!!root.document?.getElementById('p1PlayerCard');
         state.instance=FX.createX01({
           matchId:String(m.id),level:'cinematic',effects,startScore:startScore(key),
           initialScores:scores(m),
           slots:{
-            p1:{score:'#s1',card:'#p1PlayerCard',camera:'#p1VideoCard'},
-            p2:{score:'#s2',card:'#p2PlayerCard',camera:'#p2VideoCard'}
+            p1:tournament
+              ?{score:'#s1',card:'#p1PlayerCard',camera:'#p1VideoCard'}
+              :{score:'#spectateResult1',card:'#spectatePlayerCard1',camera:'#spectateVideoCard1'},
+            p2:tournament
+              ?{score:'#s2',card:'#p2PlayerCard',camera:'#p2VideoCard'}
+              :{score:'#spectateResult2',card:'#spectatePlayerCard2',camera:'#spectateVideoCard2'}
           }
         });
       }else if(key.startsWith('cricket')){
         state.instance=FX.engine(String(m.id),{
           level:'cinematic',effects,targets:{
-            'card:p1':'#p1PlayerCard','card:p2':'#p2PlayerCard'
+            'card:p1':root.document?.getElementById('p1PlayerCard')?'#p1PlayerCard':'#spectatePlayerCard1',
+            'card:p2':root.document?.getElementById('p2PlayerCard')?'#p2PlayerCard':'#spectatePlayerCard2'
           }
         });
       }
@@ -100,33 +106,37 @@
         if(state.consumed.has(String(visit?.id)))continue;
         const confirmed=parse(item.before,item.after,visit);
         if(!confirmed)continue;
-        state.consumed.add(String(visit.id));
+        state.consumed.add(String(visit.id));state.queued.delete(String(visit.id));
         state.instance.syncSnapshot(scores(item.before));
         state.instance.acceptConfirmedOnlineVisit(confirmed);
-        state.instance.syncSnapshot(scores(item.after));
+        // Let LED rail/score rolls animate. The snapshot safety reconciliation
+        // already scheduled by snapshot() restores the final state later.
         state.transitions.splice(j,1);j--;
         break;
       }
     }
   }
+  function visitEvent(row){
+    if(!row?.id||!state.id||String(row.match_id)!==state.id||!state.baseline)return;
+    const key=String(row.id);if(state.known.has(key))return;
+    state.known.add(key);
+    if(state.known.size>900)state.known=new Set([...state.known].slice(-450));
+    // INSERT and match UPDATE may arrive in either order. Retain only recent
+    // committed events until a matching authoritative transition arrives.
+    state.queued.set(key,{row,at:Date.now()});
+    if(state.queued.size>30)state.queued.delete(state.queued.keys().next().value);
+    for(const transition of state.transitions)transition.visits.push(row);
+    reconcile();
+  }
   function visits(rows){
     if(!state.id)return;
     const available=(Array.isArray(rows)?rows:[]).filter(r=>String(r.match_id)===state.id);
     if(!state.baseline){
-      // Don't replay old visits when someone opens the spectator mid-match.
+      // A viewer joining mid-match should never replay existing throws.
       for(const visit of available)if(visit.id!=null)state.known.add(String(visit.id));
       state.baseline=true;return;
     }
-    const fresh=[];
-    for(const visit of available){
-      if(visit.id==null||state.known.has(String(visit.id)))continue;
-      state.known.add(String(visit.id));fresh.push(visit);
-    }
-    if(state.known.size>900){const newest=[...state.known].slice(-450);state.known=new Set(newest)}
-    if(fresh.length){
-      for(const transition of state.transitions)transition.visits=(transition.visits||[]).concat(fresh);
-      reconcile();
-    }
+    for(const row of available)visitEvent(row);
   }
   function snapshot(m){
     if(!m?.id)return;
@@ -153,8 +163,11 @@
     if(key?.startsWith('x01:')){
       if(old.status==='playing'&&['playing','finished'].includes(m.status)&&
          (from!==to||old.player1_score!==m.player1_score||old.player2_score!==m.player2_score)){
-        state.transitions.push({before:old,after:m,at:Date.now(),visits:[]});
+        for(const [id,event] of state.queued)if(Date.now()-event.at>4500)state.queued.delete(id);
+        state.transitions.push({before:old,after:m,at:Date.now(),
+          visits:[...state.queued.values()].map(x=>x.row)});
         if(state.transitions.length>10)state.transitions.shift();
+        reconcile();
       }
       clearTimer();
       state.reconcileTimer=root.setTimeout(()=>{
@@ -164,8 +177,8 @@
     }
   }
   function destroy(){
-    clearFx();state.id=null;state.stage=null;state.last=null;state.baseline=false;state.known.clear();state.consumed.clear();
+    clearFx();state.id=null;state.stage=null;state.last=null;state.baseline=false;state.known.clear();state.consumed.clear();state.queued.clear();
   }
-  root.DartArenaSpectatorFX=Object.freeze({snapshot,visits,destroy,stageKey,parse});
+  root.DartArenaSpectatorFX=Object.freeze({snapshot,visits,visitEvent,destroy,stageKey,parse});
   root.addEventListener('pagehide',destroy,{once:true});
 })(window);
