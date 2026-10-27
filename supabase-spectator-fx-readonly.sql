@@ -37,12 +37,12 @@ as $$
   select coalesce((
     select jsonb_agg(
       jsonb_build_object('id',v.id,'match_id',v.match_id,
-      'player_id',v.player_id,'score',v.score,'is_checkout',v.is_checkout,
+      'player_id',v.player_id,'score',v.score,'darts_used',v.darts_used,'is_checkout',v.is_checkout,
       'leg_no',v.leg_no,'set_no',v.set_no,'created_at',v.created_at)
       order by v.created_at,v.id
     )
     from (
-      select t.id,t.match_id,t.player_id,t.score,t.is_checkout,t.leg_no,t.set_no,t.created_at
+      select t.id,t.match_id,t.player_id,t.score,t.darts_used,t.is_checkout,t.leg_no,t.set_no,t.created_at
       from public.match_throws t
       where t.match_id=p_match_id
       order by t.created_at desc,t.id desc
