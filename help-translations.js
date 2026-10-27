@@ -159,5 +159,13 @@ window.DartArenaHelpTranslations = Object.freeze({
   "DartArena • hjelp og informasjon": "DartArena • help and information",
   "Åpne guidebildet i ny fane": "Open the guide image in a new tab",
   "Zoom-cam hurtigguide: åpne Cam-test, marker Bull og D20, forhåndsvis og finjuster med pilknappene.": "Zoom-cam quick guide: open Camera test, mark Bull and D20, preview, and fine-tune with the arrow buttons.",
-  "Illustrert hurtigguide med fire trinn. Trykk på bildet for å se det større. Flere detaljer finner du under.": "Illustrated four-step quick guide. Select the image to view it larger. More details are below."
+  "Åpne stor, rullbar Zoom-cam-guide": "Open large, scrollable Zoom-cam guide",
+  "Illustrert hurtigguide med fire trinn. Trykk på bildet for å åpne en stor visning der du kan scrolle og zoome. Flere detaljer finner du under.": "Illustrated four-step quick guide. Select the image to open a large, scrollable and zoomable view. More details are below.",
+  "ZOOM-CAM • BILDEGUIDE": "ZOOM-CAM • VISUAL GUIDE",
+  "Zoom og bildevisning": "Zoom and image controls",
+  "Zoom ut": "Zoom out",
+  "Zoom inn": "Zoom in",
+  "Tilpass bredde": "Fit width",
+  "Lukk": "Close",
+  "Stor Zoom-cam-guide, scroll for å se alle fire trinn": "Large Zoom-cam guide; scroll to read all four steps"
 });
