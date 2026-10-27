@@ -96,7 +96,9 @@ async function loadViewerStats(){
     if(typeof fetchVisits!=='function')throw Error('Spectator pagination unavailable');
     const [throws,cricket]=await Promise.all([
       fetchVisits(db,'match_throws',[matchId],'*'),
-      fetchVisits(db,'cricket_visits',[matchId],'player_id,leg_no,darts,points_scored,created_at')
+      isViewerCricketStage()
+        ?fetchVisits(db,'cricket_visits',[matchId],'player_id,leg_no,darts,points_scored,created_at')
+        :Promise.resolve([])
     ]);
     if(request!==statsRequest||matchId!==statsMatchId)return;
     statsRows=throws;cricketStatsRows=cricket;statsError=false;
