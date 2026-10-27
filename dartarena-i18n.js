@@ -1243,6 +1243,15 @@
   "Tapt": "Lost",
   "Poeng": "Points",
   "Vinner": "Winner",
+  "Kampen avsluttes for begge spillere.": "The match will end for both players.",
+  "Kampen pågår fortsatt.": "The match is still in progress.",
+  "Vil du lukke kampfanen uten å avbryte kampen?": "Do you want to close the match tab without cancelling the match?",
+  "Vil du avbryte denne turneringskampen?": "Do you want to cancel this tournament match?",
+  "Kampen nullstilles og kan startes på nytt.": "The match will be reset and can be started again.",
+  "Avbryt turneringskamp": "Cancel tournament match",
+  "Lukk kampfane?": "Close match tab?",
+  "Avbryter…": "Cancelling…",
+  "Avbryt denne turneringskampen og gjør den klar til omstart": "Cancel this tournament match and make it ready to restart",
   "Høyeste utsjekk": "Highest checkout",
   "Kast i dette leget": "Throws in this leg",
   "Kast i dette legget": "Throws in this leg",
@@ -1414,6 +1423,14 @@
     if(Object.prototype.hasOwnProperty.call(translations,value))return translations[value];
     for(const [pattern,formatter] of dynamic){
       const m=value.match(pattern);if(m)return formatter(m);
+    }
+    // Dialogs can combine independent sentences in one text node with blank
+    // lines. Translate each line separately while retaining the original
+    // whitespace and source so the language toggle remains reversible.
+    if(value.includes('\n')){
+      return value.split(/(\r?\n+)/).map(part=>
+        /\n/.test(part)?part:preserveSpace(part,x=>translatePhrase(x,to))
+      ).join('');
     }
     return value;
   }
