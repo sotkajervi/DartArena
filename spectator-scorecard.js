@@ -86,6 +86,17 @@
           ${dartSvg(7.2,1.1,-10)}${dartSvg(17,0,0)}${dartSvg(26.8,1.1,10)}</svg>`;
         name.appendChild(marker);
       }
+      if(mode==='tournament'&&name){
+        const role=root.DartArenaRoleVisuals?.roleFor?.(name.textContent.trim());
+        const existing=name.nextElementSibling?.classList?.contains('player-role-badge')
+          ?name.nextElementSibling:null;
+        if(role==='owner'||role==='admin'){
+          const badge=existing||doc.createElement('span');
+          badge.className='player-role-badge '+role;
+          badge.textContent=role==='owner'?'OWNER':'ADMIN';
+          if(!existing)name.insertAdjacentElement('afterend',badge);
+        }else existing?.remove();
+      }
       // Keep scorecards tied to their matching video; never reorder them.
     }
   }
