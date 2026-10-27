@@ -17,7 +17,7 @@
 
     const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
     const matchId=new URLSearchParams(location.search).get('id');
-    let match=null,names={},timer=null,channel=null,fxTimer=null,fxPolling=false,fxStarted=false,leaving=false,clients=new Map(),publications=new Map();
+    let match=null,names={},fxVisits=null,timer=null,channel=null,fxTimer=null,fxPolling=false,fxStarted=false,leaving=false,clients=new Map(),publications=new Map();
     if(title)title.textContent='Kobler til kamp…';
 
     const isX01=m=>!['jdc','cricket','half_it','sixty_one'].includes(m?.game_variant||'x01');
@@ -75,6 +75,7 @@
         $('spectatePlayerCard'+index)?.classList.toggle('active',throwing===id);
         $('spectateVideoCard'+index)?.classList.toggle('active-turn',throwing===id);
       }
+      window.DartArenaSpectatorScorecard?.sync(match,fxVisits,{mode:'spectate'});
       window.DartArenaSpectatorFX?.snapshot(match);
       window.DartArenaSpectateRolePolish?.apply?.(p1,p2);
     }
@@ -129,7 +130,11 @@
       try{
         const {data,error}=await db.rpc('get_spectate_fx_visits',{p_match_id:matchId});
         if(error)throw error;
-        if(!leaving)window.DartArenaSpectatorFX?.visits(Array.isArray(data)?data:[]);
+        if(!leaving){
+          fxVisits=Array.isArray(data)?data:[];
+          window.DartArenaSpectatorScorecard?.sync(match,fxVisits,{mode:'spectate'});
+          window.DartArenaSpectatorFX?.visits(fxVisits);
+        }
       }catch(error){console.warn('Spectator FX visit refresh unavailable',error)}
       finally{fxPolling=false}
     }
