@@ -116,6 +116,7 @@ function create(raw,config,{fps=25,video=null,
   const visualFilter=picture!==false&&P?P.cssFilter(picture||P.load(root.localStorage,deviceId)):'none';
   const setDrawFilter=value=>{if('filter' in ctx)ctx.filter=value};
   let out=null,loop=0,clock=0,stopped=false,prev=null,ref=null,still=0,target=null,current=null,lastRawHit=null;
+  let trackingPaused=false,lastFrameAt=0,watchdog=null;
   const speed=tracker.speedPreset(config.speed);
   const gate=tracker.createChangeGate({stableFrames:speed.stableFrames,motionWindowMs:4000,cooldownMs:speed.cooldownMs});
   const sampled=document.createElement('canvas'),sampleCtx=sampled.getContext('2d',{willReadFrequently:true});
@@ -139,8 +140,17 @@ function create(raw,config,{fps=25,video=null,
     }
     return true;
   }
+  function pauseTracking(){
+    if(stopped)return false;
+    trackingPaused=true;
+    prev=null;ref=null;still=0;gate.reset();
+    return true;
+  }
+  // Used on a confirmed transition to this player's turn. The output
+  // canvas continues drawing even when tracking is disabled between turns.
   function resetToT20(){
     if(stopped)return false;
+    trackingPaused=false;
     lastRawHit=null;
     // Go straight back to the 20-bed after a recorded visit. Do not treat
     // dart removal as a new hit while the player clears the board.
@@ -153,8 +163,18 @@ function create(raw,config,{fps=25,video=null,
     resetResumeAt=(typeof performance!=='undefined'?performance.now():0)+1800;
     return true;
   }
+  // Cam-test only: show how a correction shifts a reference T20 crop,
+  // before the user has thrown a dart. Never invoked automatically in games.
+  function showCalibrationSample(){
+    if(stopped)return false;
+    const sw=video.videoWidth||dims.width||1280;
+    const sh=video.videoHeight||dims.height||720;
+    if(!lastRawHit)lastRawHit=tracker.targetPoint(config.cx*sw,config.cy*sh,config.radius*sw,'T20',config.rotation);
+    return setHitOffset(config);
+  }
   function tick(now){
     if(stopped)return;
+    lastFrameAt=typeof performance!=='undefined'?performance.now():now;
     try{
     // Some browsers report dimensions before the first drawable video frame.
     // A transient drawImage/getImageData failure must never kill the live track.
@@ -172,7 +192,7 @@ function create(raw,config,{fps=25,video=null,
       setDrawFilter('none');
       const board={x:config.cx*sw,y:config.cy*sh,radius:config.radius*sw};
       if(!target){const p=tracker.targetPoint(board.x,board.y,board.radius,'T20',config.rotation);target=p;current={...p}}
-      if(now-lastAnalysis>=speed.intervalMs){
+      if(!trackingPaused&&now-lastAnalysis>=speed.intervalMs){
         lastAnalysis=now;
         sampled.width=480;sampled.height=Math.max(1,Math.round(480*sh/sw));
         sampleCtx.drawImage(video,0,0,sampled.width,sampled.height);
@@ -212,7 +232,13 @@ function create(raw,config,{fps=25,video=null,
       const crop=tracker.zoomCrop(sw,sh,current.x,current.y,board.radius,4/3);
       ctx.fillStyle='#071b20';ctx.fillRect(ix-3,iy-3,insetW+6,insetH+6);
       setDrawFilter(visualFilter);
-      ctx.drawImage(video,crop.x,crop.y,crop.width,crop.height,ix,iy,insetW,insetH);
+      try{
+        ctx.drawImage(video,crop.x,crop.y,crop.width,crop.height,ix,iy,insetW,insetH);
+      }catch(error){
+        // Do not leave an old, frozen inset from an earlier frame on screen.
+        ctx.fillStyle='#071b20';ctx.fillRect(ix,iy,insetW,insetH);
+        throw error;
+      }
       setDrawFilter('none');
       ctx.strokeStyle='#00eaf4';ctx.lineWidth=Math.max(2,w/450);ctx.strokeRect(ix-2,iy-2,insetW+4,insetH+4);
     }
@@ -234,12 +260,23 @@ function create(raw,config,{fps=25,video=null,
     if(!out)throw Error('Ingen Zoom-cam videotrack');
     video.play().catch(()=>{});
     loop=requestAnimationFrame(tick);
+    // A visible tab should never be left with a stalled animation callback.
+    // Re-arm only this canvas compositor: do not replace WebRTC tracks.
+    watchdog=setInterval(()=>{
+      if(stopped||typeof document==='undefined'||document.visibilityState==='hidden')return;
+      const now=typeof performance!=='undefined'?performance.now():0;
+      if(lastFrameAt&&now-lastFrameAt<3500)return;
+      if(loop)cancelAnimationFrame(loop);
+      lastFrameAt=now;
+      loop=requestAnimationFrame(tick);
+    },1500);
   }catch(error){out?.stop();video.srcObject=null;throw error}
   return{
     track:out,sourceTrack,stream:new MediaStream([out,...raw.getAudioTracks()]),
-    resetToT20,setHitOffset,setFraming,
+    resetToT20,pauseTracking,setHitOffset,setFraming,showCalibrationSample,
     stop(){
       if(stopped)return;stopped=true;
+      if(watchdog)clearInterval(watchdog);
       if(loop)cancelAnimationFrame(loop);
       out?.stop();
       video.pause();video.srcObject=null;

@@ -96,14 +96,14 @@ test('Zoom-cam has fallback when captureStream is unsupported',()=>{
 });
 test('main lobby Cam-test includes calibration code and the physical camera selector',()=>{
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-  assert.match(html,/autozoom\/camera-calibration\.js\?v=20261026-liveadjust2/);
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261026-liveadjust2/);
+  assert.match(html,/autozoom\/camera-calibration\.js\?v=20261027-turncal1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261027-turncal1/);
   assert.match(html,/id="cameraTestCameraSelect"/);
 });
 test('waiting room includes calibrated Zoom-cam selection and real sender.replaceTrack',()=>{
   const html=fs.readFileSync(path.join(root,'room.html'),'utf8');
   const js=fs.readFileSync(path.join(root,'room-device-selector.js'),'utf8');
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261026-liveadjust2/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261027-turncal1/);
   assert.match(js,/ZOOM_VALUE/);
   assert.match(js,/option\.textContent='Zoom-cam \(kalibrert\)'/);
   assert.match(js,/sender\.replaceTrack\(next\.track\)/);
@@ -113,7 +113,7 @@ test('waiting room includes calibrated Zoom-cam selection and real sender.replac
 test('X01 match reloads physical input and composes actual outbound video',()=>{
   const html=fs.readFileSync(path.join(root,'match.html'),'utf8');
   const js=fs.readFileSync(path.join(root,'match.js'),'utf8');
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261026-liveadjust2/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261027-turncal1/);
   assert.match(js,/Z\.create\(raw,config\)/);
   assert.match(js,/stream=zoomCamSession\.stream/);
   assert.match(js,/deviceId:\{exact:config\.deviceId\}/);
@@ -204,16 +204,19 @@ test('Zoom-cam resets immediately to T20 after a saved visit and keeps the media
     global.cancelAnimationFrame=old.cancel;global.document=old.doc;
   }
 });
-test('Zoom-cam resets only after successful normal-score and checkout saves',()=>{
+test('own saved visits pause tracking; opponent turn confirmation triggers reset',()=>{
   const regular=fs.readFileSync(path.join(root,'set-engine.js'),'utf8');
   const checkout=fs.readFileSync(path.join(root,'checkout-engine.js'),'utf8');
   const fallback=fs.readFileSync(path.join(root,'match.js'),'utf8');
-  for(const code of [regular,checkout,fallback]){
+  for(const code of [regular,checkout]){
     const fail=code.indexOf('if(error||!data)');
-    const reset=code.indexOf('window.DartArenaX01ZoomSession?.resetToT20?.()');
-    assert.ok(reset>0,'Score handler calls the optional Zoom-cam reset');
-    if(fail>=0)assert.ok(reset>fail,'Reset occurs after a failed-score return');
+    const pause=code.indexOf('window.DartArenaX01ZoomSession?.pauseTracking?.()');
+    assert.ok(pause>fail&&fail>=0,'Pause only after a successful score save');
+    assert.doesNotMatch(code,/window\.DartArenaX01ZoomSession\?\.resetToT20\?\.\(\)/);
   }
+  assert.match(fallback,/function syncZoomCamTurn\(previous,next\)/);
+  assert.match(fallback,/if\(newTurn\|\|newLeg\)zoomCamSession\.resetToT20\?\.\(\)/);
+  assert.match(fallback,/window\.DartArenaX01ZoomSession\?\.pauseTracking\?\.\(\)/);
 });
 
 test('digital framing crops and pans without changing camera calibration coordinates',()=>{
@@ -261,15 +264,15 @@ test('Cam-test offers zoom, draggable positioning, reset and optional inset guid
   assert.match(ui,/pointermove/);
   assert.match(ui,/\.\.\.settings,\.\.\.framing/);
   const match=fs.readFileSync(path.join(root,'match.html'),'utf8');
-  assert.match(match,/autozoom\/zoom-cam\.js\?v=20261026-liveadjust2/);
+  assert.match(match,/autozoom\/zoom-cam\.js\?v=20261027-turncal1/);
 });
 
 test('Cam-test picture controls load after calibration and stay separate from detection',()=>{
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-  const i=html.indexOf('autozoom/camera-calibration.js?v=20261026-liveadjust2');
+  const i=html.indexOf('autozoom/camera-calibration.js?v=20261027-turncal1');
   const pic=html.indexOf('camera-picture.js?v=20261023-picture2');
   assert.ok(i>0&&pic>i);
-  assert.match(html,/camera-test\.css\?v=20261026-liveadjust2/);
+  assert.match(html,/autozoom\/camera-calibration\.css\?v=20261027-turncal1/);
   const calibration=fs.readFileSync(path.join(root,'autozoom','camera-calibration.js'),'utf8');
   assert.match(calibration,/picture:false/);
   const zoom=fs.readFileSync(path.join(root,'autozoom','zoom-cam.js'),'utf8');
@@ -355,7 +358,7 @@ test('Stian can correct upward-biased zoom without changing other users defaults
   const core=fs.readFileSync(path.join(root,'autozoom','zoom-cam.js'),'utf8');
   assert.match(calibration,/id="camHitOffsetX"/);
   assert.match(calibration,/id="camHitOffsetY"/);
-  assert.match(calibration,/Bruk dette bare hvis Zoom-cam peker feil/);
+  assert.match(calibration,/Pilene og skyveknappene flytter zoomens visningspunkt/);
   assert.match(core,/target=offsetHit\(rawHit,board\.radius,config\)/);
   assert.match(core,/onStableHit\(\{x:rawHit\.x,y:rawHit\.y/);
 });
@@ -432,6 +435,73 @@ test('live slider corrections move the latest hit without stopping video or offs
     session.stop();
     assert.equal(session.setHitOffset({hitOffsetY:.1}),false);
     assert.equal(session.setFraming({zoom:1}),false);
+  }finally{
+    global.MediaStream=old.media;global.requestAnimationFrame=old.raf;
+    global.cancelAnimationFrame=old.cancel;global.document=old.doc;
+  }
+});
+
+test('Cam-test has directional controls with a live inset using production crop geometry',()=>{
+  const ui=fs.readFileSync(path.join(root,'autozoom','camera-calibration.js'),'utf8');
+  const css=fs.readFileSync(path.join(root,'autozoom','camera-calibration.css'),'utf8');
+  for(const direction of ['up','down','left','right']){
+    assert.match(ui,new RegExp('data-cam-hit-nudge="'+direction+'"'));
+  }
+  assert.match(ui,/id="camHitOffsetPreview"/);
+  assert.match(ui,/function drawHitOffsetPreview\(\)/);
+  assert.match(ui,/tracker\.zoomCrop\(sw,sh,adjusted\.x,adjusted\.y,config\.radius\*sw,w\/h\)/);
+  assert.match(ui,/drawHitOffsetPreview\(\);[\s\S]*?framingLoop=requestAnimationFrame\(drawFramed\)/);
+  assert.match(css,/\.cam-zoom-nudge-pad/);
+  assert.match(css,/\.cam-zoom-hit-preview canvas/);
+});
+test('Pausing detector between turns preserves outgoing video and resuming returns to T20',()=>{
+  const source={kind:'video',readyState:'live',getSettings:()=>({deviceId:'webcam-1',width:1280,height:720})};
+  const outgoing={kind:'video',readyState:'live',stop(){this.readyState='ended'}};
+  class Stream{
+    constructor(tracks){this.tracks=tracks}
+    getVideoTracks(){return this.tracks.filter(t=>t.kind==='video')}
+    getAudioTracks(){return this.tracks.filter(t=>t.kind==='audio')}
+  }
+  const frames=[],crops=[];let drawn=0,detects=0;
+  const ctx=()=>({fillRect(){},drawImage(){drawn++},strokeRect(){},
+    getImageData(){return{data:new Uint8ClampedArray(480*270*4)}}});
+  const canvas={width:0,height:0,getContext:ctx,captureStream:()=>new Stream([outgoing])};
+  const video={videoWidth:1280,videoHeight:720,readyState:2,play:async()=>{},pause(){},srcObject:null};
+  const tracker={
+    ...T,
+    speedPreset:()=>({...T.speedPreset('fast'),intervalMs:1,quietFrames:0,ease:1}),
+    motionRatio:()=>0,
+    findChange:()=>{detects++;return{x:390,y:100}},
+    createChangeGate:()=>({observe:hit=>hit,reset(){}}),
+    zoomCrop:(w,h,x,y)=>{crops.push({x,y});return{x:1,y:1,width:60,height:45}}
+  };
+  const old={media:global.MediaStream,raf:global.requestAnimationFrame,
+    cancel:global.cancelAnimationFrame,doc:global.document};
+  try{
+    global.MediaStream=Stream;
+    global.requestAnimationFrame=fn=>{frames.push(fn);return frames.length};
+    global.cancelAnimationFrame=()=>{};
+    global.document={createElement:()=>({width:0,height:0,getContext:ctx}),visibilityState:'visible'};
+    const session=Z.create(new Stream([source]),{...sample},{video,canvas,tracker});
+    frames.shift()(performance.now()+5000);
+    assert.ok(detects>0,'Initially detects changes');
+    assert.equal(session.pauseTracking(),true);
+    const previousDetections=detects,previousDraws=drawn;
+    frames.shift()(performance.now()+5100);
+    assert.equal(detects,previousDetections,'Detection pauses during opponent turn');
+    assert.ok(drawn>previousDraws,'Camera video continues to render when tracking pauses');
+    assert.equal(session.track,outgoing,'Never replaced outgoing WebRTC video track');
+    assert.equal(session.resetToT20(),true);
+    frames.shift()(performance.now()+10);
+    assert.ok(Math.abs(crops.at(-1).x-640)<.001,'Next turn targets T20');
+    assert.equal(session.pauseTracking(),true);
+    assert.equal(session.showCalibrationSample(),true,'Cam-test can show sample without throw');
+    assert.equal(session.setHitOffset({hitOffsetX:.1,hitOffsetY:.2}),true);
+    frames.shift()(performance.now()+100);
+    assert.ok(crops.at(-1).x>640,'Preview moves with a right offset');
+    session.stop();
+    assert.equal(session.pauseTracking(),false);
+    assert.equal(session.showCalibrationSample(),false);
   }finally{
     global.MediaStream=old.media;global.requestAnimationFrame=old.raf;
     global.cancelAnimationFrame=old.cancel;global.document=old.doc;
