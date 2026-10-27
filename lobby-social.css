@@ -75,6 +75,14 @@
   min-height:61px;padding:8px;gap:7px;flex:0 0 auto;border-radius:11px;
 }
 #lobbyView #daSocialLobby #playerList .player-name{font-size:13px;overflow-wrap:anywhere}
+#lobbyView #daSocialLobby #playerList .da-player-profile-link{
+  display:block;text-decoration:none;color:var(--text,#f2f7f7);
+  font-weight:850;cursor:pointer;
+}
+#lobbyView #daSocialLobby #playerList .da-player-profile-link:hover,
+#lobbyView #daSocialLobby #playerList .da-player-profile-link:focus-visible{
+  color:#00eaf4;text-decoration:underline;text-underline-offset:3px;
+}
 #lobbyView #daSocialLobby #playerList .avatar{width:37px;height:37px;flex-basis:37px}
 #lobbyView #daSocialLobby #playerList .status{font-size:11px}
 #lobbyView #daSocialLobby #playerList .challenge-btn{min-width:83px;min-height:35px;font-size:11px;padding:6px 7px}
