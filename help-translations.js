@@ -154,5 +154,7 @@ window.DartArenaHelpTranslations = Object.freeze({
   "i lobbyen.": "in the lobby.",
   "Finner du en feil?": "Found a bug?",
   "DartArena er fortsatt under utvikling. Ta gjerne skjermbilde av feilen og noter hvilken side, kamp eller turnering det gjelder. Det gjør feilsøking mye enklere.": "DartArena is still in development. Take a screenshot and note which page, match or tournament is affected. This makes troubleshooting much easier.",
+  "Spill": "Games",
+  "→ Cricket → 501": "→ Cricket → 501",
   "DartArena • hjelp og informasjon": "DartArena • help and information"
 });
