@@ -114,7 +114,7 @@ function syncViewerStats(){
     clearInterval(statsTimer);statsChannel=null;cricketStatsChannel=null;statsTimer=null;
     statsMatchId=next;statsRows=null;cricketStatsRows=null;statsError=false;
     if(next){
-      statsChannel=db.channel('spectator-stats-'+next).on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:'match_id=eq.'+next},loadViewerStats).subscribe(status=>{if(status==='SUBSCRIBED')loadViewerStats()});
+      statsChannel=db.channel('spectator-stats-'+next).on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:'match_id=eq.'+next},payload=>{if(payload.eventType==='INSERT')window.DartArenaSpectatorFX?.visitEvent(payload.new);loadViewerStats()}).subscribe(status=>{if(status==='SUBSCRIBED')loadViewerStats()});
       cricketStatsChannel=db.channel('spectator-cricket-stats-'+next).on('postgres_changes',{event:'*',schema:'public',table:'cricket_visits',filter:'match_id=eq.'+next},loadViewerStats).subscribe();
       // Re-fetch also covers missed reconnect events and deleted throws.
       statsTimer=setInterval(()=>{if(document.visibilityState!=='hidden')loadViewerStats()},5000);
@@ -164,6 +164,8 @@ function render(){
   const throwing=tm.status==='live'&&live?.status==='playing'?live.turn_player_id:null;
   $('p1PlayerCard')?.classList.toggle('active-turn',throwing===tm.player1_id);
   $('p2PlayerCard')?.classList.toggle('active-turn',throwing===tm.player2_id);
+  $('p1PlayerCard')?.classList.toggle('active',throwing===tm.player1_id);
+  $('p2PlayerCard')?.classList.toggle('active',throwing===tm.player2_id);
   $('p1VideoCard')?.classList.toggle('active-turn',throwing===tm.player1_id);
   $('p2VideoCard')?.classList.toggle('active-turn',throwing===tm.player2_id);
   renderSpectatorCricketBoard();
