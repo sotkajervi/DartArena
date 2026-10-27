@@ -36,12 +36,12 @@ function harness(users){
   nodes.lobbyView.contains=()=>true;
   nodes.daOnlinePlayers.querySelector=q=>q==='.heading'?heading:q==='p.muted.compact'?help:null;
   nodes.challengeList.closest=()=>element('incoming');
-  const eventHandlers={};
+  const eventHandlers={},created=[];
   const doc={
     head:{appendChild(el){doc._style=el}},
     getElementById:id=>nodes[id]||null,
     querySelector:()=>doc._style||null,
-    createElement:tag=>element(tag)
+    createElement:tag=>{const item=element(tag);created.push(item);return item}
   };
   const win={
     document:doc,
@@ -74,7 +74,7 @@ function harness(users){
   const ctx={db,profileId:'self',activeMatch:null,sendInvite(){},esc:v=>String(v)};
   const api=win.DartArenaSocialLobby;
   assert.ok(api,'Social lobby should initialize');
-  return{api,calls,nodes,win,ctx,eventHandlers,doc};
+  return{api,calls,nodes,win,ctx,eventHandlers,doc,created};
 }
 const recent=new Date().toISOString();
 const stale=new Date(Date.now()-3600_000).toISOString();
@@ -137,18 +137,20 @@ test('after 1000 players every query still requests no more than 60 rows',async(
     status:'available',last_seen:recent
   }));
   const h=harness(many);await h.api.refreshPlayers(h.ctx);
-  for(let i=0;i<17;i++){h.nodes.playerList.innerHTML='';h.api.getState(); // ensure same filters
-    const more=h.nodes.daOnlinePlayers.children.find(x=>x.id==='daPlayerPager');
-    // Pager is inserted after #playerList, so use exposed page actions.
-    const paging=h.nodes.playerList;
-    const parentButton=null;
-    h.api.setFilter; // page buttons were created, accessed below through node registry.
+  const next=h.created.find(el=>el.id==='daPlayerMore');
+  const previous=h.created.find(el=>el.id==='daPlayerPrev');
+  assert.ok(next&&previous,'Pagination controls exist');
+  for(let i=0;i<17;i++){
+    assert.equal(next.hidden,false,'Next page should be available');
+    next.onclick();
+    await tick();
   }
-  const allPages=h.doc._paginationButtons||[];
-  // See the separate source invariant below: each request is bounded by
-  // from..from+PAGE_SIZE-1 even after previous pages have been viewed.
-  assert.match(script,/const from=PAGE_SIZE\*\(state\.page-1\),last=from\+PAGE_SIZE-1/);
+  assert.equal(h.api.getState().page,18);
+  assert.equal(h.calls.at(-1).from,1020);
+  assert.equal(h.calls.at(-1).to,1079);
   assert.ok(h.calls.every(c=>c.to-c.from+1<=60));
+  previous.onclick();await tick();
+  assert.equal(h.api.getState().page,17);
 });
 
 test('logging out clears cached roster and invalidates inflight requests',async()=>{
