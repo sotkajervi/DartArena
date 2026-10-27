@@ -180,7 +180,7 @@
       const action=can?'Utfordre':inGame?'I kamp':'Ikke ledig';
       return '<div class="player-row da-social-player" data-player-status="'+esc(p.status)+'">'+
         '<div class="player-main"><div class="avatar">'+escapeName((p.username||'?').slice(0,1).toUpperCase())+'</div>'+
-        '<div><div class="player-name">'+escapeName(p.username||'Spiller')+'</div>'+
+        '<div><a class="player-name da-player-profile-link" href="player.html?id='+encodeURIComponent(p.id)+'" target="_blank" rel="noopener" title="Se spillerprofil">'+escapeName(p.username||'Spiller')+'</a>'+
         '<div class="status"><span class="dot '+esc(p.status)+'"></span>'+rawStatus+'</div></div></div>'+
         '<button type="button" class="small-btn challenge-btn" data-id="'+esc(p.id)+'" '+(can?'':'disabled')+'>'+action+'</button></div>';
     }).join(''):'<p class="muted">Ingen spillere passer dette søket eller filteret.</p>';
