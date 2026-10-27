@@ -30,9 +30,15 @@
   window.addEventListener('dartarena:tournament-loaded',refreshSoon);
   window.addEventListener('focus',refreshSoon);
   if(tournamentId&&typeof db!=='undefined'){
-    db.channel(`tournament-finish-summary-${tournamentId}`)
-      .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${tournamentId}`},refreshSoon)
-      .subscribe();
+    // The shared tournament client may still be restoring its auth session.
+    // A premature anonymous Realtime filter is rejected by the database.
+    db.auth.getSession().then(({data,error})=>{
+      if(error)throw error;
+      if(!data?.session?.access_token)return;
+      db.channel(`tournament-finish-summary-${tournamentId}`)
+        .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${tournamentId}`},refreshSoon)
+        .subscribe();
+    }).catch(error=>console.warn('Tournament finish summary Realtime auth failed',error));
   }
   setTimeout(refreshSoon,900);
 })();
