@@ -48,7 +48,7 @@ test('Zoom controls change image width without changing the actual guide asset',
   el.helpZoomcamFit.fire('click');
   assert.equal(parseFloat(el.helpZoomcamFull.style.width),1246);
   assert.equal(el.helpZoomcamScale.textContent,'100 %');
-  assert.match(html,/assets\/zoomcam-guide\.avif/);
+  assert.match(html,/assets\/zoomcam-guide-fullres\.avif/);
 });
 test('Small screens open a scrollable 850px guide and support fitting it to width',()=>{
   const el=mount(350);el.helpZoomcamOpen.fire('click',{preventDefault(){}});
@@ -67,7 +67,7 @@ test('Closing with button or backdrop restores keyboard focus to image',()=>{
   assert.equal(el.helpZoomcamViewer.open,false);
 });
 test('Help viewer has translated controls and retains a no-JavaScript image fallback',()=>{
-  assert.match(html,/id="helpZoomcamOpen"[^>]*href="\.\/assets\/zoomcam-guide\.avif[^"]*" target="_blank"/);
+  assert.match(html,/id="helpZoomcamOpen"[^>]*href="\.\/assets\/zoomcam-guide-fullres\.avif[^"]*" target="_blank"/);
   assert.match(html,/help-guide-viewer\.js\?v=20261028-scrollzoom1/);
   assert.match(html,/id="helpZoomcamClose"/);
   assert.match(html,/id="helpZoomcamFit"/);
