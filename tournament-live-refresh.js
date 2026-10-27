@@ -286,7 +286,12 @@
     scheduleSync(hadHiddenChange);
   });
 
-  liveChannel=client.channel(`tournament-live-refresh-${tournamentId}`)
+  async function startAuthenticatedRealtime(){
+    // Realtime treats a column without SELECT privilege as an invalid filter.
+    // An anonymous join therefore raises "invalid column for filter tournament_id".
+    // Do not open any filtered subscription until the client's JWT is ready.
+    if(!await ensureAuthenticated())return;
+    liveChannel=client.channel(`tournament-live-refresh-${tournamentId}`)
     .on('postgres_changes',{
       event:'*',schema:'public',table:'tournaments',filter:`id=eq.${tournamentId}`
     },realtimeChange)
@@ -312,6 +317,11 @@
       scheduleSync(true);
     }catch(err){console.warn('Tournament refresh baseline failed',err)}
   },500);
+  }
+
+  startAuthenticatedRealtime().catch(error=>
+    console.warn('Tournament authenticated Realtime startup failed',error)
+  );
 
   window.addEventListener('pagehide',()=>{
     clearTimeout(syncTimer);
