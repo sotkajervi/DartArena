@@ -23,15 +23,29 @@
     .help-card{background:linear-gradient(145deg,#0d1e22,#091518);border-color:#284249;box-shadow:0 14px 38px rgba(0,0,0,.32)}
     .help-nav a{background:#0b1e21}
     .help-nav a:hover,.help-nav a:focus-visible{background:#103037;border-color:#00eaf4}
-    @media(max-width:720px){.help-head{display:grid}.help-head h1{font-size:31px}.help-grid{grid-template-columns:1fr}.help-wide{grid-column:auto}}
+    .help-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;list-style:none;margin:16px 0 0;padding:0}
+    .help-step{display:flex;align-items:flex-start;gap:12px;min-width:0;border:1px solid #28454a;background:#0b191d;border-radius:12px;padding:14px}
+    .help-step-number{display:grid;place-items:center;flex:0 0 32px;height:32px;background:#0b3439;border:1px solid #00eaf4;border-radius:50%;font-weight:950;color:#00eaf4;font-size:15px}
+    .help-step h3{margin:1px 0 6px;font-size:15px}.help-step p{margin:0;font-size:14px;line-height:1.5}
+    .help-step strong{color:#f3fcfc}.help-inline-keys{display:inline-flex;gap:5px;align-items:center;white-space:nowrap}
+    .help-arrow-key{display:inline-grid;place-items:center;border:1px solid #2e7579;border-radius:6px;background:#102b30;color:#00eaf4;min-width:25px;height:25px;font-weight:900}
+    .help-callout{margin-top:14px;border:1px solid #29646a;border-radius:12px;padding:13px 15px;background:#0c252a;color:#d9eded;line-height:1.55}
+    .help-callout strong{color:#f3fcfc}.help-two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .help-faq-item{background:#0b191d;border:1px solid #28454a;padding:13px;border-radius:12px}
+    .help-faq-item h3{margin:0 0 7px}.help-faq-item p{margin:0}
+    .help-mini-link{color:#42f4fa;font-weight:800;text-decoration:underline;text-underline-offset:3px}
+    .help-mini-link:hover{color:#a9fdff}
+    .help-search input:focus-visible,.help-nav a:focus-visible,.help-mini-link:focus-visible{outline:2px solid #00eaf4;outline-offset:3px}
+    @media(max-width:720px){.help-head{display:grid}.help-head h1{font-size:31px}.help-grid{grid-template-columns:1fr}.help-wide{grid-column:auto}.help-steps,.help-two-col{grid-template-columns:1fr}}
+    @media(max-width:420px){.help-step{padding:11px}.help-shell{width:96vw}.help-head{padding:16px}.help-card{padding:15px}}
   </style>
 <link rel="stylesheet" href="brand-header.css?v=20261009-mobile1"></head>
 <body>
 <header><div class="brand"><img class="brand-logo" src="./assets/dartarena-logo.jpg?v=20261009-global1" alt="DartArena" width="420" height="116" decoding="async"></div><div class="live"><i></i> HJELP</div></header>
 <main class="help-shell">
-  <div class="help-head"><div><small>INFO & HJELP</small><h1>Slik bruker du DartArena</h1><p class="muted">Kort forklaring av onlinekamper, spillmodusene, statistikk, turneringer og de vanligste problemene.</p></div><button class="outline" onclick="location.href='./'">Til lobby</button></div>
-  <label class="help-search"><input id="helpSearch" type="search" placeholder="Søk i hjelpen, f.eks. AVG, kamera, turnering eller Chicago"></label>
-  <nav class="help-nav"><a href="#komigang">Kom i gang</a><a href="#spill">Spill</a><a href="#statistikk">Statistikk</a><a href="#turnering">Turnering</a><a href="#kamera">Kamera/lyd</a><a href="#faq">Vanlige spørsmål</a></nav>
+  <div class="help-head"><div><small>INFO & HJELP</small><h1>Slik bruker du DartArena</h1><p class="muted">Praktiske guider til onlinekamp, Cam-test, Zoom-cam, turneringer, statistikk og feilsøking.</p></div><button class="outline" onclick="location.href='./'">Til lobby</button></div>
+  <label class="help-search"><input id="helpSearch" type="search" placeholder="Søk i hjelpen: Zoom-cam, Bull, D20, mikrofon, AVG …"></label>
+  <nav class="help-nav" aria-label="Hjelpetemaer"><a href="#komigang">Kom i gang</a><a href="#camtest">Cam-test</a><a href="#zoomcam">Zoom-cam</a><a href="#kamera">Kamera/lyd</a><a href="#videofeil">Videofeil</a><a href="#spill">Spill</a><a href="#statistikk">Statistikk</a><a href="#turnering">Turnering</a><a href="#faq">Vanlige spørsmål</a></nav>
   <section class="help-grid" id="helpCards">
     <article class="card help-card" id="komigang" data-help>
       <small>KOM I GANG</small><h2>Onlinekamp</h2>
@@ -53,9 +67,47 @@
       <small>TURNERINGER</small><h2>Puljer og cup</h2>
       <ul><li>Turneringsleder oppretter turnering og åpner påmelding.</li><li>Ved puljespill trekkes gruppene før kampene låses.</li><li>Puljespill og cup kan ha ulike spillformat, for eksempel <strong>Chicago Style i puljene → 501 i cupen</strong>.</li><li>For vanlig X01-cup velges Best of separat per cuprunde.</li><li>Ferdige puljer kan gå videre til cup etter valgt antall kvalifiserte.</li><li>Tilskuere kan følge livekamper og statistikk.</li><li>Chicago Style kan også brukes i ren cup.</li></ul>
     </article>
+    <article class="card help-card help-wide" id="camtest" data-help>
+      <small>KAMERA • STEG FOR STEG</small><h2>Cam-test: sjekk bilde og lyd</h2>
+      <p>Start her før første onlinekamp. Cam-test åpnes fra <strong>☰ Meny → Cam-test</strong> i hovedlobbyen.</p>
+      <ol class="help-steps">
+        <li class="help-step"><span class="help-step-number" aria-hidden="true">1</span><div><h3>Åpne Cam-test</h3><p>Gå til lobbyen, åpne <strong>Meny</strong> og velg <strong>Cam-test</strong>. Gi nettleseren tillatelse til kamera og mikrofon.</p></div></li>
+        <li class="help-step"><span class="help-step-number" aria-hidden="true">2</span><div><h3>Velg kamera og mikrofon</h3><p>Kontroller at skiva vises i bildet. Velg riktig kamera og mikrofon i feltene nedenfor. Snakk for å kontrollere at mikrofonen registrerer lyd.</p></div></li>
+        <li class="help-step"><span class="help-step-number" aria-hidden="true">3</span><div><h3>Juster bildet ved behov</h3><p>Åpne <strong>Bildejustering</strong> for lys og bilde. Du kan også stille digital zoom og utsnitt under <strong>Utsnitt og plassering</strong>.</p></div></li>
+        <li class="help-step"><span class="help-step-number" aria-hidden="true">4</span><div><h3>Velg vanlig kamera eller Zoom-cam</h3><p>Vil du bare vise hele skiva, er du klar. For automatisk innzooming på treff, følg <a class="help-mini-link" href="#zoomcam">Zoom-cam-guiden nedenfor</a>.</p></div></li>
+      </ol>
+      <div class="help-callout"><strong>Tips:</strong> Plasser kameraet slik at hele skiva er synlig og godt belyst. Unngå store bevegelser i kamerafestet under kamp.</div>
+    </article>
+    <article class="card help-card help-wide" id="zoomcam" data-help>
+      <small>ZOOM-CAM • KALIBRERING</small><h2>Slik setter du opp Zoom-cam</h2>
+      <p>Zoom-cam viser hele skiva og et mindre utsnitt som følger registrerte bildeendringer. Det er <strong>ikke automatisk poengregistrering</strong> – du skriver fremdeles inn scoren selv.</p>
+      <ol class="help-steps">
+        <li class="help-step"><span class="help-step-number" aria-hidden="true">1</span><div><h3>Kalibrer Zoom-cam</h3><p>I <strong>Cam-test</strong>: trykk <strong>Kalibrer Zoom-cam</strong>. Klikk først midt i <strong>Bull</strong> på skiva, og deretter midt i <strong>D20</strong> på den øverste dobbelringen.</p></div></li>
+        <li class="help-step"><span class="help-step-number" aria-hidden="true">2</span><div><h3>Forhåndsvis og scroll ned</h3><p>Trykk <strong>Forhåndsvis Zoom-cam</strong>. Dette viser komposittbildet motstanderen vil se. Scroll ned i Cam-test for flere innstillinger.</p></div></li>
+        <li class="help-step"><span class="help-step-number" aria-hidden="true">3</span><div><h3>Finjuster zoompunktet</h3><p>Under <strong>Finjuster zoom-punkt</strong> bruker du <span class="help-inline-keys" aria-label="opp, ned, venstre, høyre"><span class="help-arrow-key">↑</span><span class="help-arrow-key">↓</span><span class="help-arrow-key">←</span><span class="help-arrow-key">→</span></span> eller skyveknappene. Hvert piltrykk flytter zoompunktet <strong>2,5 % av skiveradiusen</strong>. Følg endringen i <strong>Live zoomutsnitt</strong> med T20 som prøvepunkt.</p></div></li>
+        <li class="help-step"><span class="help-step-number" aria-hidden="true">4</span><div><h3>Ta noen prøvekast</h3><p>Se i <strong>Forhåndsvis Zoom-cam</strong> hvor zoomvinduet følger pilen. Juster hvis utsnittet havner for høyt, lavt eller på siden. Deteksjonen kan treffe ulikt på pilen avhengig av vinkel og lys.</p></div></li>
+        <li class="help-step"><span class="help-step-number" aria-hidden="true">5</span><div><h3>Aktiver til kamp</h3><p>Huk av <strong>Bruk Zoom-cam automatisk i venterom og kamp</strong>. I venterommet kan du også velge <strong>Zoom-cam (kalibrert)</strong> som kamera.</p></div></li>
+        <li class="help-step"><span class="help-step-number" aria-hidden="true">6</span><div><h3>Spill som vanlig</h3><p>Etter at du har registrert scoren din, pauses sporingen mens du henter pilene. Når motstanderen har registrert sin score og det blir din tur igjen, returnerer zoompunktet til <strong>T20</strong>.</p></div></li>
+      </ol>
+      <div class="help-callout"><strong>Kalibreringen lagres automatisk.</strong> Du trenger ikke trykke «Ferdig». Bull/D20, finjustering og digitalt utsnitt lagres i nettleseren for det valgte kameraet. Hvis du bytter kamera, videoformat eller nettleser, kan ny kalibrering være nødvendig.</div>
+      <p style="margin-top:12px"><a class="help-mini-link" href="./">Gå til lobbyen og åpne Cam-test</a></p>
+    </article>
     <article class="card help-card" id="kamera" data-help>
-      <small>KAMERA & LYD</small><h2>Hvis bilde eller lyd ikke virker</h2>
-      <ul><li>Kjør <strong>Cam-test</strong> i lobbyen først.</li><li>Velg riktig kamera og mikrofon. Valget lagres.</li><li>Sjekk at nettleseren har tillatelse til kamera/mikrofon.</li><li>Hvis video fryser: lukk andre programmer som bruker kameraet og åpne kamprommet på nytt.</li><li>Et lite bilde-delay er normalt i en onlinekamp.</li></ul>
+      <small>LYD & KAMERA</small><h2>Gode innstillinger før kamp</h2>
+      <ul>
+        <li>Velg <strong>Normal (stabil)</strong> følsomhet som utgangspunkt. <strong>Høy</strong> er en testinnstilling og kan gi flere falske zoomer.</li>
+        <li>Velg hastighet etter behov: <strong>Rask</strong>, <strong>Normal</strong> eller <strong>Rolig</strong>.</li>
+        <li>Skal hele skiva være større i bildet, bruk <strong>Digital zoom</strong> under <strong>Utsnitt og plassering</strong>. Dette er noe annet enn justering av treffpunktet.</li>
+        <li>Har du Zoom-cam valgt, skal <strong>Forhåndsvis Zoom-cam</strong> vise både hele skiva og det lille zoomvinduet.</li>
+        <li>Følg med på mikrofonstatus i Cam-test. Et lite bilde-delay i onlinekamp er normalt.</li>
+      </ul>
+    </article>
+    <article class="card help-card" id="videofeil" data-help>
+      <small>FEILSØKING</small><h2>Hvis kamera eller Zoom-cam ikke virker</h2>
+      <div class="help-faq-item"><h3>Svart bilde eller ingen mikrofon?</h3><p>Sjekk kameratillatelsen i nettleseren, at riktig enhet er valgt, og at ikke et annet program bruker kameraet. Prøv <strong>Cam-test</strong> på nytt.</p></div>
+      <div class="help-faq-item"><h3>Zoom-cam kan ikke velges?</h3><p>Kalibrer først <strong>Bull + D20</strong>. Bruk det samme kameraet og videoformatet som ved kalibreringen.</p></div>
+      <div class="help-faq-item"><h3>Zoompunktet havner feil?</h3><p>Ta prøvekast, juster med pilene og kontroller liveutsnittet. Dersom oppsettet er vesentlig endret, kalibrer på nytt.</p></div>
+      <div class="help-faq-item"><h3>Zoomvinduet fryser?</h3><p>Hold kampfanen synlig: nettlesere kan begrense videobehandlingen i bakgrunnsfaner. Dersom feilen fortsetter i en aktiv fane, prøv vanlig kamera eller start kameraet på nytt, og meld fra om kampen.</p></div>
     </article>
     <article class="card help-card" id="faq" data-help>
       <small>VANLIGE SPØRSMÅL</small><h2>Statistikk og historikk</h2>
