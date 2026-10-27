@@ -52,7 +52,7 @@
     style.textContent=`
       .admin-delete-tournament{color:#ff9ba1!important;border-color:#743139!important;background:#35171a!important}
       .admin-delete-tournament.admin-force-delete{font-weight:900;border-color:#a33f49!important;background:#491b20!important}
-      .dart-chat-delete{margin-left:auto;border:0;background:transparent;color:#ff8f96;padding:0 2px;font-size:15px;line-height:1;cursor:pointer;opacity:.78}
+      .dart-chat-delete{margin:0;border:0;background:transparent;color:#ff8f96;padding:0 2px;font-size:15px;line-height:1;cursor:pointer;opacity:.78}
       .dart-chat-delete:hover{opacity:1}
       .dart-chat-delete:disabled{opacity:.3;cursor:default}
     `;
@@ -166,10 +166,10 @@
     if(!isAdmin)return;
     document.querySelectorAll('.dart-chat-message[data-message-id]').forEach(item=>{
       if(item.querySelector('.dart-chat-delete'))return;
-      const meta=item.querySelector('.dart-chat-meta');if(!meta)return;
+      const slot=item.querySelector('.dart-chat-delete-slot');if(!slot)return;
       const button=document.createElement('button');button.type='button';button.className='dart-chat-delete';button.textContent='×';button.title='Admin: slett melding';button.setAttribute('aria-label','Slett chatmelding');
       button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();deleteChatMessage(item.dataset.messageId,item,button)});
-      meta.appendChild(button);
+      slot.appendChild(button);
     });
   }
 
