@@ -176,17 +176,23 @@ function saveFraming(){
 }
 function drawFramed(){
   if(modal.classList.contains('hidden')){framingLoop=0;return}
-  if(frameCtx&&video.videoWidth&&video.videoHeight&&video.readyState>=2){
-    const crop=Z.framingCrop(video.videoWidth,video.videoHeight,framing);
-    const w=framedCanvas.width,h=framedCanvas.height,fit=Math.min(w/crop.width,h/crop.height);
-    const dx=(w-crop.width*fit)/2,dy=(h-crop.height*fit)/2;
-    frameCtx.fillStyle='#030708';frameCtx.fillRect(0,0,w,h);
-    frameCtx.drawImage(video,crop.x,crop.y,crop.width,crop.height,
-      dx,dy,crop.width*fit,crop.height*fit);
-    framedCanvas.hidden=false;
-  }else framedCanvas.hidden=true;
-  drawHitOffsetPreview();
-  framingLoop=requestAnimationFrame(drawFramed);
+  try{
+    if(frameCtx&&video.videoWidth&&video.videoHeight&&video.readyState>=2){
+      const crop=Z.framingCrop(video.videoWidth,video.videoHeight,framing);
+      const w=framedCanvas.width,h=framedCanvas.height,fit=Math.min(w/crop.width,h/crop.height);
+      const dx=(w-crop.width*fit)/2,dy=(h-crop.height*fit)/2;
+      frameCtx.fillStyle='#030708';frameCtx.fillRect(0,0,w,h);
+      frameCtx.drawImage(video,crop.x,crop.y,crop.width,crop.height,
+        dx,dy,crop.width*fit,crop.height*fit);
+      framedCanvas.hidden=false;
+    }else framedCanvas.hidden=true;
+    drawHitOffsetPreview();
+  }catch(error){
+    // A transient camera frame must not permanently stop Cam-test previews.
+    framedCanvas.hidden=true;
+  }finally{
+    framingLoop=requestAnimationFrame(drawFramed);
+  }
 }
 function startFramingLoop(){
   if(!framingLoop)framingLoop=requestAnimationFrame(drawFramed);
