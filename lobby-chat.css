@@ -47,3 +47,21 @@ main.shell:has(#tName)>section.card:not(#dartArenaChat){grid-column:1/-1;margin-
   background:#0b1719;
   color:#899fa3;
 }
+
+
+/* Role colors and compact-feed accessibility in main and tournament chat. */
+#dartArenaChat .dart-chat-message.dart-chat-role-owner .dart-chat-author{color:#00eaf4!important}
+#dartArenaChat .dart-chat-message.dart-chat-role-admin .dart-chat-author{color:#ff9f43!important}
+#dartArenaChat .dart-chat-message.dart-chat-role-user .dart-chat-author{color:#c1d1e1!important}
+#dartArenaChat .dart-chat-role-badge{display:inline-flex;font-size:9px;font-weight:900;letter-spacing:.07em;line-height:1.2;padding:2px 6px;border-radius:999px;border:1px solid currentColor}
+#dartArenaChat .dart-chat-role-owner .dart-chat-role-badge{color:#00eaf4;background:rgba(0,234,244,.09)}
+#dartArenaChat .dart-chat-role-admin .dart-chat-role-badge{color:#ff9f43;background:rgba(255,159,67,.09)}
+#dartArenaChat .dart-chat-time{font-size:10px;color:#819da3;font-variant-numeric:tabular-nums}
+#dartArenaChat .dart-chat-date{font-size:10px;font-weight:800;text-align:center;color:#91aab0;padding:6px 0;letter-spacing:.04em}
+#dartArenaChat .dart-chat-history{text-align:center}
+#dartArenaChat .dart-chat-history button{min-height:29px;font-size:11px;margin-bottom:6px}
+#dartArenaChat .dart-chat-history button[hidden],
+#dartArenaChat .dart-chat-jump-new[hidden]{display:none!important}
+#dartArenaChat .dart-chat-jump-new{align-self:flex-end;max-width:100%;margin-top:4px;cursor:pointer}
+#dartArenaChat .dart-chat-message.dart-chat-grouped{margin-top:-5px}
+#dartArenaChat .dart-chat-message.dart-chat-grouped .dart-chat-body{margin-top:0}
