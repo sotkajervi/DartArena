@@ -63,7 +63,9 @@ async function boot(){
      if(error||!data){$('matchMessage').textContent=error?.message||'Kastet kunne ikke lagres.';return}
      match=data.match||data;
      input.value='';
-     window.DartArenaX01ZoomSession?.resetToT20?.();
+     // Keep the last zoom while darts are removed; resume and reset when
+      // the opponent confirms their visit and our next turn begins.
+      if(match.status!=='playing'||match.turn_player_id!==me)window.DartArenaX01ZoomSession?.pauseTracking?.();
      $('matchMessage').textContent=data.bust?'Bust.':'';
      draw();
    }finally{syncEntryLock()}
