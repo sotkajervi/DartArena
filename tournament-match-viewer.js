@@ -105,7 +105,10 @@ async function loadViewerStats(){
   }catch(error){if(request!==statsRequest||matchId!==statsMatchId)return;statsError=true;console.error('Spectator statistics failed',error)}
   renderViewerStats();
   renderSpectatorCricketBoard();
-  if(!statsError)window.DartArenaSpectatorFX?.visits(statsRows||[]);
+  if(!statsError){
+    window.DartArenaSpectatorScorecard?.sync(live,statsRows,{mode:'tournament'});
+    window.DartArenaSpectatorFX?.visits(statsRows||[]);
+  }
 }
 function syncViewerStats(){
   const next=tm?.live_match_id||null;
@@ -171,7 +174,10 @@ function render(){
   $('p1VideoCard')?.classList.toggle('active-turn',throwing===tm.player1_id);
   $('p2VideoCard')?.classList.toggle('active-turn',throwing===tm.player2_id);
   renderSpectatorCricketBoard();
-  if(live)window.DartArenaSpectatorFX?.snapshot(live);
+  if(live){
+    window.DartArenaSpectatorScorecard?.sync(live,statsRows,{mode:'tournament'});
+    window.DartArenaSpectatorFX?.snapshot(live);
+  }
 }
 function videoTarget(pid){return pid===tm?.player1_id?{video:$('p1Video'),placeholder:$('p1Placeholder')}:{video:$('p2Video'),placeholder:$('p2Placeholder')}}
 async function subscribePublication(pid,publication){
