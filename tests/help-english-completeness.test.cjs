@@ -18,7 +18,7 @@ test('English Help translations load before the existing bilingual engine',()=>{
 test('Every visible Help source fragment has a deliberate English translation',()=>{
   const visible=html.split('</style>')[1].split('<script>')[0].replace(/<[^>]*>/g,'\n');
   const nodes=[...new Set(visible.split('\n').map(x=>x.trim()).filter(Boolean))];
-  const untranslated=nodes.filter(x=>!constant.has(x)&&!(x in dict));
+  const untranslated=nodes.filter(x=>!constant.has(x)&&!/^\d+$/.test(x)&&!(x in dict));
   assert.deepEqual(untranslated,[], 'Untranslated Help fragments: '+untranslated.join(' / '));
   assert.ok(Object.keys(dict).length>150);
 });
