@@ -26,6 +26,7 @@ as $$
   limit 1;
 $$;
 revoke all on function public.get_spectate_fx_state(uuid) from public;
+revoke execute on function public.get_spectate_fx_state(uuid) from anon;
 grant execute on function public.get_spectate_fx_state(uuid) to authenticated;
 
 create or replace function public.get_spectate_fx_visits(p_match_id uuid)
@@ -53,4 +54,5 @@ as $$
       where m.id=p_match_id and m.is_live is true and m.deleted_at is null);
 $$;
 revoke all on function public.get_spectate_fx_visits(uuid) from public;
+revoke execute on function public.get_spectate_fx_visits(uuid) from anon;
 grant execute on function public.get_spectate_fx_visits(uuid) to authenticated;
