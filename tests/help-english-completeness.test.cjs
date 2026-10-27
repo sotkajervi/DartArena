@@ -8,7 +8,7 @@ const html=fs.readFileSync(path.join(root,'help.html'),'utf8');
 const langSrc=fs.readFileSync(path.join(root,'help-translations.js'),'utf8');
 const i18nSrc=fs.readFileSync(path.join(root,'dartarena-i18n.js'),'utf8');
 const dict=JSON.parse(langSrc.match(/Object\.freeze\(([\s\S]*?)\);/)?.[1]||'{}');
-const constant=new Set(['1','2','3','4','5','6','X01','DIDO','SIDO','MPR:','3-dart AVG:','First 9 AVG:','BETA','T20','Bull','D20','Chicago Style','Zoom-cam','Cam-test','Available','Unavailable','↑','↓','←','→','.',',','Cricket, Half-It, 61 og JDC','DartArena']);
+const constant=new Set(['1','2','3','4','5','6','X01','DIDO','SIDO','MPR:','3-dart AVG:','First 9 AVG:','BETA','T20','Bull','D20','Chicago Style','Zoom-cam','Cam-test','Available','Unavailable','↑','↓','←','→','.',',','Cricket, Half-It, 61 og JDC','DartArena','100 %','+','−']);
 test('English Help translations load before the existing bilingual engine',()=>{
   assert.ok(html.indexOf('help-translations.js?v=20261027-helpenglish1')>0);
   assert.ok(html.indexOf('help-translations.js?v=20261027-helpenglish1')<html.indexOf('dartarena-i18n.js?v=20261027-helpenglish1'));
@@ -37,12 +37,15 @@ test('Page remains searchable with both languages',()=>{
 });
 
 test('Illustrated Zoom-cam image is embedded from a repository asset with English accessibility copy',()=>{
-  assert.equal((html.match(/assets\/zoomcam-guide\.avif\?v=20261027-illustrated1/g)||[]).length,2);
+  assert.equal((html.match(/assets\/zoomcam-guide\.avif\?v=20261027-illustrated1/g)||[]).length,3);
   assert.match(html,/class="help-zoomcam-poster"/);
   assert.match(html,/width="650" height="855" loading="lazy" decoding="async"/);
-  assert.match(html,/target="_blank" rel="noopener"/);
+  assert.match(html,/id="helpZoomcamOpen"[^>]*target="_blank" rel="noopener"/);
+  assert.match(html,/<dialog class="help-guide-viewer" id="helpZoomcamViewer"/);
+  assert.match(html,/help-guide-viewport\{flex:1 1 auto;min-height:0;overflow:auto/);
+  assert.match(html,/help-guide-viewer\.js\?v=20261028-scrollzoom1/);
   assert.match(html,/\.help-zoomcam-poster-link img\{display:block;width:100%;height:auto\}/);
-  assert.match(dict['Åpne guidebildet i ny fane'],/Open the guide image/);
+  assert.match(dict['Åpne stor, rullbar Zoom-cam-guide'],/Open large, scrollable/);
   assert.match(dict['Zoom-cam hurtigguide: åpne Cam-test, marker Bull og D20, forhåndsvis og finjuster med pilknappene.'],/Zoom-cam quick guide/);
-  assert.match(dict['Illustrert hurtigguide med fire trinn. Trykk på bildet for å se det større. Flere detaljer finner du under.'],/Illustrated four-step quick guide/);
+  assert.match(dict['Illustrert hurtigguide med fire trinn. Trykk på bildet for å åpne en stor visning der du kan scrolle og zoome. Flere detaljer finner du under.'],/Illustrated four-step quick guide/);
 });

@@ -36,11 +36,24 @@
     .help-mini-link{color:#42f4fa;font-weight:800;text-decoration:underline;text-underline-offset:3px}
     .help-mini-link:hover{color:#a9fdff}
     .help-search input:focus-visible,.help-nav a:focus-visible,.help-mini-link:focus-visible{outline:2px solid #00eaf4;outline-offset:3px}
-    .help-zoomcam-poster{max-width:650px;margin:18px auto 20px;padding:9px;border:1px solid #2e6065;background:#061619;border-radius:14px}
+    .help-zoomcam-poster{width:100%;max-width:none;box-sizing:border-box;margin:18px 0 20px;padding:9px;border:1px solid #2e6065;background:#061619;border-radius:14px}
     .help-zoomcam-poster-link{display:block;overflow:hidden;border-radius:9px;line-height:0}
     .help-zoomcam-poster-link img{display:block;width:100%;height:auto}
     .help-zoomcam-poster-link:focus-visible{outline:2px solid #00eaf4;outline-offset:3px}
     .help-zoomcam-poster figcaption{padding:10px 5px 3px;text-align:center;color:#d1e4e6;font-size:13px;line-height:1.5}
+    .help-guide-viewer{position:fixed;inset:0;width:min(96vw,1500px);height:94dvh;max-width:none;max-height:none;margin:auto;padding:0;background:#06171a;color:#eaf8f9;border:1px solid #327078;border-radius:14px;box-shadow:0 28px 85px rgba(0,0,0,.75);overflow:hidden}
+    .help-guide-viewer[open]{display:flex;flex-direction:column}
+    .help-guide-viewer::backdrop{background:rgba(0,0,0,.88)}
+    .help-guide-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:12px 16px;background:#092429;border-bottom:1px solid #2b686f;flex:0 0 auto}
+    .help-guide-toolbar strong{color:#00eaf4;font-size:15px;letter-spacing:.02em}
+    .help-guide-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+    .help-guide-actions button{appearance:none;min-width:40px;min-height:38px;border:1px solid #327078;border-radius:8px;background:#0e3238;color:#eaf8f9;font:inherit;font-weight:800;cursor:pointer;padding:7px 11px}
+    .help-guide-actions button:hover,.help-guide-actions button:focus-visible{background:#16535b;border-color:#00eaf4}
+    .help-guide-actions output{min-width:55px;text-align:center;font-variant-numeric:tabular-nums;font-size:13px}
+    .help-guide-viewport{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;background:#041215;padding:18px;scrollbar-color:#49777c #092429}
+    .help-guide-viewport img{display:block;max-width:none;height:auto;margin:0 auto}
+    .help-guide-viewport:focus-visible{outline:2px solid #00eaf4;outline-offset:-3px}
+    @media(max-width:720px){.help-guide-viewer{width:100vw;height:100dvh;border-radius:0}.help-guide-toolbar{padding:9px 10px}.help-guide-toolbar strong{font-size:13px}.help-guide-actions{gap:5px}.help-guide-actions button{padding:5px 8px;min-height:36px}.help-guide-viewport{padding:8px}}
     @media(max-width:720px){.help-head{display:grid}.help-head h1{font-size:31px}.help-grid{grid-template-columns:1fr}.help-wide{grid-column:auto}.help-steps,.help-two-col{grid-template-columns:1fr}}
     @media(max-width:420px){.help-step{padding:11px}.help-shell{width:96vw}.help-head{padding:16px}.help-card{padding:15px}}
   </style>
@@ -87,10 +100,10 @@
       <small>ZOOM-CAM • KALIBRERING</small><h2>Slik setter du opp Zoom-cam</h2>
       <p>Zoom-cam viser hele skiva og et mindre utsnitt som følger registrerte bildeendringer. Det er <strong>ikke automatisk poengregistrering</strong> – du skriver fremdeles inn scoren selv.</p>
       <figure class="help-zoomcam-poster">
-        <a class="help-zoomcam-poster-link" href="./assets/zoomcam-guide.avif?v=20261027-illustrated1" target="_blank" rel="noopener" title="Åpne guidebildet i ny fane">
+        <a class="help-zoomcam-poster-link" id="helpZoomcamOpen" href="./assets/zoomcam-guide.avif?v=20261027-illustrated1" target="_blank" rel="noopener" title="Åpne stor, rullbar Zoom-cam-guide">
           <img src="./assets/zoomcam-guide.avif?v=20261027-illustrated1" width="650" height="855" loading="lazy" decoding="async" alt="Zoom-cam hurtigguide: åpne Cam-test, marker Bull og D20, forhåndsvis og finjuster med pilknappene.">
         </a>
-        <figcaption>Illustrert hurtigguide med fire trinn. Trykk på bildet for å se det større. Flere detaljer finner du under.</figcaption>
+        <figcaption>Illustrert hurtigguide med fire trinn. Trykk på bildet for å åpne en stor visning der du kan scrolle og zoome. Flere detaljer finner du under.</figcaption>
       </figure>
       <ol class="help-steps">
         <li class="help-step"><span class="help-step-number" aria-hidden="true">1</span><div><h3>Kalibrer Zoom-cam</h3><p>I <strong>Cam-test</strong>: trykk <strong>Kalibrer Zoom-cam</strong>. Klikk først midt i <strong>Bull</strong> på skiva, og deretter midt i <strong>D20</strong> på den øverste dobbelringen.</p></div></li>
@@ -132,6 +145,21 @@
     </article>
   </section>
 </main>
+<dialog class="help-guide-viewer" id="helpZoomcamViewer" aria-labelledby="helpZoomcamViewerTitle">
+  <div class="help-guide-toolbar">
+    <strong id="helpZoomcamViewerTitle">ZOOM-CAM • BILDEGUIDE</strong>
+    <div class="help-guide-actions" role="group" aria-label="Zoom og bildevisning">
+      <button type="button" id="helpZoomcamOut" aria-label="Zoom ut">−</button>
+      <output id="helpZoomcamScale" aria-live="polite">100 %</output>
+      <button type="button" id="helpZoomcamIn" aria-label="Zoom inn">+</button>
+      <button type="button" id="helpZoomcamFit">Tilpass bredde</button>
+      <button type="button" id="helpZoomcamClose">Lukk</button>
+    </div>
+  </div>
+  <div class="help-guide-viewport" id="helpZoomcamViewport" tabindex="0" aria-label="Stor Zoom-cam-guide, scroll for å se alle fire trinn">
+    <img id="helpZoomcamFull" src="./assets/zoomcam-guide.avif?v=20261027-illustrated1" width="650" height="855" alt="Zoom-cam hurtigguide: åpne Cam-test, marker Bull og D20, forhåndsvis og finjuster med pilknappene.">
+  </div>
+</dialog>
 <footer>DartArena • hjelp og informasjon</footer>
 <script>
 (()=>{const q=document.getElementById('helpSearch'),cards=[...document.querySelectorAll('[data-help]')];
@@ -146,6 +174,7 @@
   }));
 })();
 </script>
+<script src="./help-guide-viewer.js?v=20261028-scrollzoom1"></script>
 <script src="brand-home.js?v=20261006-authsmooth3"></script>
 <script src="./help-translations.js?v=20261027-helpenglish1"></script>
 <script src="./dartarena-i18n.js?v=20261027-helpenglish1"></script></body>
