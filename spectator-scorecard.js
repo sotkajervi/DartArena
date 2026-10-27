@@ -35,6 +35,44 @@
       :(all?computed:null);
     return {darts,average};
   }
+  function legStarter(m){
+    if(!m||!m.match_starter_id)return null;
+    const p1=m.player1_id,p2=m.player2_id,other=id=>id===p1?p2:id===p2?p1:null;
+    const setNo=Math.max(1,Number(m.current_set)||1);
+    const legNo=Math.max(1,Number(m.current_leg)||1);
+    const setStarter=setNo%2===1?m.match_starter_id:other(m.match_starter_id);
+    return legNo%2===1?setStarter:other(setStarter);
+  }
+  function dartSvg(x,y,angle){
+    return `<g transform="translate(${x} ${y}) rotate(${angle} 0 13)">
+      <path class="dart-flight" d="M0 0 -4.2 2.2 -2.7 6.2 0 4.6 2.7 6.2 4.2 2.2Z"/>
+      <path class="dart-shaft" d="M0 4.5V12"/>
+      <path class="dart-barrel" d="M-1.8 11.5H1.8L2.3 18.4 1.25 21H-1.25L-2.3 18.4Z"/>
+      <path class="dart-grip" d="M-1.65 14.2H1.65M-1.8 16.2H1.8M-1.65 18.2H1.65"/>
+      <path class="dart-point" d="M0 21V28"/>
+    </g>`;
+  }
+  function updateStarter(m,mode){
+    const starter=m.status==='playing'&&!isCricket(m)?legStarter(m):null;
+    for(const n of [1,2]){
+      const name=get(mode==='spectate'?'spectatePlayer'+n:'p'+n);
+      const card=get(mode==='spectate'?'spectatePlayerCard'+n:'p'+n+'PlayerCard');
+      name?.querySelector('.da-leg-starter-dart')?.remove();
+      if(name&&starter&&String(starter)===String(m['player'+n+'_id'])){
+        const marker=doc.createElement('span');
+        marker.className='da-leg-starter-dart';
+        marker.setAttribute('aria-label','Startet dette legget');
+        marker.title='Startet dette legget';
+        marker.innerHTML=`<svg viewBox="0 0 34 30" aria-hidden="true" focusable="false">
+          ${dartSvg(7.2,1.1,-10)}${dartSvg(17,0,0)}${dartSvg(26.8,1.1,10)}</svg>`;
+        name.appendChild(marker);
+      }
+      if(card){
+        const host=mode==='spectate'?card.closest('.spectate-lane'):card;
+        if(host)host.style.order=starter&&String(starter)===String(m['player'+n+'_id'])?'0':String(n+1);
+      }
+    }
+  }
   function sync(m,rows,options={}){
     if(!m||!doc)return;
     const mode=options.mode==='spectate'?'spectate':'tournament';
@@ -55,6 +93,7 @@
         get('p'+slot+'PlayerCard')?.classList.toggle('da-spectator-non-x01',isCricket(m));
       }
     }
+    updateStarter(m,mode);
   }
-  root.DartArenaSpectatorScorecard=Object.freeze({sync,metrics,countDarts,isCricket});
+  root.DartArenaSpectatorScorecard=Object.freeze({sync,metrics,countDarts,isCricket,legStarter});
 })(window);
