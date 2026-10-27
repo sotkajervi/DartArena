@@ -17,7 +17,7 @@
 
     const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
     const matchId=new URLSearchParams(location.search).get('id');
-    let match=null,names={},timer=null,channel=null,fxChannel=null,fxStarted=false,leaving=false,clients=new Map(),publications=new Map();
+    let match=null,names={},timer=null,channel=null,fxChannel=null,fxTimer=null,fxPolling=false,fxStarted=false,leaving=false,clients=new Map(),publications=new Map();
     if(title)title.textContent='Kobler til kamp…';
 
     const isX01=m=>!['jdc','cricket','half_it','sixty_one'].includes(m?.game_variant||'x01');
@@ -82,9 +82,14 @@
     function blockPrivate(){match=null;stopVideo();setText('spectateTitle','Kampen finnes ikke eller er ikke offentlig live');document.querySelectorAll('.spectate-grid,.spectate-meta').forEach(el=>el.style.display='none')}
     async function refresh(){
       if(!matchId){setText('spectateTitle','Mangler kamp-ID');return false}
-      const {data,error}=await db.rpc('get_spectate_match',{p_match_id:matchId});
+      const [{data,error},{data:fxData,error:fxError}]=await Promise.all([
+        db.rpc('get_spectate_match',{p_match_id:matchId}),
+        db.rpc('get_spectate_fx_state',{p_match_id:matchId})
+      ]);
       if(error){console.error('Spectate match load failed',error);setText('spectateTitle',`Kunne ikke laste kampen • ${error.code||'RPC-feil'}`);return false}
-      const m=Array.isArray(data)?data[0]:data;
+      if(fxError)console.warn('Spectator FX state unavailable',fxError);
+      const base=Array.isArray(data)?data[0]:data;
+      const m=base?{...base,...(fxError?{}:fxData||{})}:null;
       if(!m){blockPrivate();return false}
       match=m;
       names={[m.player1_id]:m.player1_name||'Spiller 1',[m.player2_id]:m.player2_name||'Spiller 2'};
@@ -118,30 +123,31 @@
         });
       }catch(e){console.warn('Spectator subscribe failed',e);publications.delete(playerId)}
     }
+    async function pollFxVisits(){
+      if(!fxStarted||fxPolling||leaving||document.hidden||!isX01(match))return;
+      fxPolling=true;
+      try{
+        const {data,error}=await db.rpc('get_spectate_fx_visits',{p_match_id:matchId});
+        if(error)throw error;
+        if(!leaving)window.DartArenaSpectatorFX?.visits(Array.isArray(data)?data:[]);
+      }catch(error){console.warn('Spectator FX visit refresh unavailable',error)}
+      finally{fxPolling=false}
+    }
     async function setupFx(){
       if(fxStarted||!match||!isX01(match)||!window.DartArenaSpectatorFX)return;
       fxStarted=true;
-      // Load a baseline of already committed visits. Existing visits are never
-      // replayed as new effects when a spectator joins in the middle of a leg.
-      try{
-        const {data,error}=await db.from('match_throws')
-          .select('id,match_id,player_id,score,is_checkout,leg_no,set_no,created_at')
-          .eq('match_id',matchId)
-          .order('created_at',{ascending:false}).limit(150);
-        if(error)throw error;
-        if(leaving)return;
-        window.DartArenaSpectatorFX.visits(data||[]);
-        fxChannel=db.channel('spectate-fx-'+matchId)
-          .on('postgres_changes',{
-            event:'INSERT',schema:'public',table:'match_throws',
-            filter:'match_id=eq.'+matchId
-          },payload=>window.DartArenaSpectatorFX?.visitEvent(payload.new))
-          .subscribe();
-      }catch(error){
-        // An unavailable stats permission must never prevent spectating video
-        // or reading the scores provided by get_spectate_match.
-        console.warn('Spectator FX visits unavailable',error);
-      }
+      // Baseline only: previous visits must never animate on join.
+      await pollFxVisits();
+      if(leaving)return;
+      // For normal spectator sessions the RLS-safe RPC also covers visits when
+      // PostgreSQL Realtime INSERT isn't visible directly to spectators.
+      fxTimer=setInterval(pollFxVisits,2000);
+      fxChannel=db.channel('spectate-fx-'+matchId)
+        .on('postgres_changes',{
+          event:'INSERT',schema:'public',table:'match_throws',
+          filter:'match_id=eq.'+matchId
+        },payload=>window.DartArenaSpectatorFX?.visitEvent(payload.new))
+        .subscribe();
     }
     async function setupVideo(){
       if(!isX01(match)||channel)return;
@@ -163,7 +169,7 @@
       },1500);
     }
     function cleanup(){
-      leaving=true;clearInterval(timer);stopVideo();
+      leaving=true;clearInterval(timer);clearInterval(fxTimer);stopVideo();
       window.DartArenaSpectatorFX?.destroy();
       if(fxChannel){db.removeChannel(fxChannel).catch(()=>{});fxChannel=null}
     }
