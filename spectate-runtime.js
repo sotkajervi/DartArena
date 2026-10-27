@@ -17,7 +17,7 @@
 
     const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
     const matchId=new URLSearchParams(location.search).get('id');
-    let match=null,names={},timer=null,channel=null,fxChannel=null,fxTimer=null,fxPolling=false,fxStarted=false,leaving=false,clients=new Map(),publications=new Map();
+    let match=null,names={},timer=null,channel=null,fxTimer=null,fxPolling=false,fxStarted=false,leaving=false,clients=new Map(),publications=new Map();
     if(title)title.textContent='Kobler til kamp…';
 
     const isX01=m=>!['jdc','cricket','half_it','sixty_one'].includes(m?.game_variant||'x01');
@@ -139,15 +139,9 @@
       // Baseline only: previous visits must never animate on join.
       await pollFxVisits();
       if(leaving)return;
-      // For normal spectator sessions the RLS-safe RPC also covers visits when
-      // PostgreSQL Realtime INSERT isn't visible directly to spectators.
+      // Ordinary spectators cannot read the raw match_throws table. Poll the
+      // restricted, read-only RPC without opening another Realtime socket.
       fxTimer=setInterval(pollFxVisits,2000);
-      fxChannel=db.channel('spectate-fx-'+matchId)
-        .on('postgres_changes',{
-          event:'INSERT',schema:'public',table:'match_throws',
-          filter:'match_id=eq.'+matchId
-        },payload=>window.DartArenaSpectatorFX?.visitEvent(payload.new))
-        .subscribe();
     }
     async function setupVideo(){
       if(!isX01(match)||channel)return;
@@ -171,7 +165,6 @@
     function cleanup(){
       leaving=true;clearInterval(timer);clearInterval(fxTimer);stopVideo();
       window.DartArenaSpectatorFX?.destroy();
-      if(fxChannel){db.removeChannel(fxChannel).catch(()=>{});fxChannel=null}
     }
     window.addEventListener('pagehide',cleanup,{once:true});
     await boot();
