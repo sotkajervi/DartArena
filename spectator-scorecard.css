@@ -1,0 +1,60 @@
+/* Shared DartArena X01 scorecard presentation in read-only spectator rooms.
+   Mirrors the match room's .match-player/.match-name/.match-score/.match-legs.
+   No match input, camera or scoring controls are introduced. */
+.spectator-score .spectator-player.match-player,
+.spectate-lane .spectate-player.match-player {
+  position:relative;
+  background:#081315;
+  border:1px solid var(--line,#203438);
+  border-radius:15px;
+  color:var(--text,#f2f7f7);
+  padding:12px 14px;
+  transition:background .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+.spectator-score .spectator-player.match-player.active,
+.spectate-lane .spectate-player.match-player.active {
+  background:linear-gradient(135deg,rgba(0,234,244,.10),#081315 68%);
+  border-color:var(--cyan,#00eaf4);
+  box-shadow:inset 0 0 0 1px rgba(0,234,244,.27),0 0 22px rgba(0,234,244,.12);
+}
+.spectator-score .spectator-name.match-name,
+.spectate-lane .spectate-player-head.match-name {
+  font-weight:900;
+  color:var(--text,#f2f7f7);
+  line-height:1.15;
+}
+.spectator-score .spectator-points.match-score,
+.spectate-lane .spectate-score-line .match-score {
+  color:var(--text,#f2f7f7);
+  font-weight:950;
+  letter-spacing:-.05em;
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.spectator-score .spectator-player.active .match-score,
+.spectate-lane .spectate-player.active .match-score {
+  color:var(--cyan,#00eaf4);
+}
+.spectator-score .spectator-legs.match-legs,
+.spectate-lane .spectate-legs.match-legs {
+  color:var(--cyan,#00eaf4);
+  font-weight:900;
+}
+.spectate-lane .spectate-score-line .match-score {
+  font-size:clamp(38px,5vw,72px);
+  margin:8px 0 5px;
+}
+.spectate-lane .spectate-player-head.match-name {font-size:clamp(14px,1.5vw,19px)}
+.spectate-lane .spectate-video.active-turn {
+  border-color:var(--cyan,#00eaf4);
+  box-shadow:inset 0 0 0 2px rgba(0,234,244,.5),0 0 20px rgba(0,234,244,.14);
+}
+.spectator-score .spectator-player.match-player .da-fx-score-rail,
+.spectate-lane .spectate-player.match-player .da-fx-score-rail {
+  top:8px;bottom:8px;
+}
+@media(max-width:760px){
+  .spectator-score .spectator-player.match-player{padding:5px 7px}
+  .spectate-lane .spectate-player.match-player{padding:10px 12px}
+  .spectate-lane .spectate-score-line .match-score{font-size:clamp(35px,10vw,53px)}
+}

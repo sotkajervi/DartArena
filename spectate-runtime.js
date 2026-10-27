@@ -17,7 +17,7 @@
 
     const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
     const matchId=new URLSearchParams(location.search).get('id');
-    let match=null,names={},timer=null,channel=null,leaving=false,clients=new Map(),publications=new Map();
+    let match=null,names={},timer=null,channel=null,fxTimer=null,fxPolling=false,fxStarted=false,leaving=false,clients=new Map(),publications=new Map();
     if(title)title.textContent='Kobler til kamp…';
 
     const isX01=m=>!['jdc','cricket','half_it','sixty_one'].includes(m?.game_variant||'x01');
@@ -70,15 +70,26 @@
       if(!isX01(match)){
         [$('spectatePlaceholder1'),$('spectatePlaceholder2')].forEach(el=>{if(el){el.textContent='Live video er foreløpig ikke koblet til denne spilltypen.';el.classList.remove('hidden')}});
       }
+      const throwing=match.status==='playing'?match.turn_player_id:null;
+      for(const [index,id] of [[1,match.player1_id],[2,match.player2_id]]){
+        $('spectatePlayerCard'+index)?.classList.toggle('active',throwing===id);
+        $('spectateVideoCard'+index)?.classList.toggle('active-turn',throwing===id);
+      }
+      window.DartArenaSpectatorFX?.snapshot(match);
       window.DartArenaSpectateRolePolish?.apply?.(p1,p2);
     }
     function stopVideo(){clients.forEach(c=>{try{c.close()}catch{}});clients.clear();publications.clear();if(channel){db.removeChannel(channel).catch(()=>{});channel=null}}
     function blockPrivate(){match=null;stopVideo();setText('spectateTitle','Kampen finnes ikke eller er ikke offentlig live');document.querySelectorAll('.spectate-grid,.spectate-meta').forEach(el=>el.style.display='none')}
     async function refresh(){
       if(!matchId){setText('spectateTitle','Mangler kamp-ID');return false}
-      const {data,error}=await db.rpc('get_spectate_match',{p_match_id:matchId});
+      const [{data,error},{data:fxData,error:fxError}]=await Promise.all([
+        db.rpc('get_spectate_match',{p_match_id:matchId}),
+        db.rpc('get_spectate_fx_state',{p_match_id:matchId})
+      ]);
       if(error){console.error('Spectate match load failed',error);setText('spectateTitle',`Kunne ikke laste kampen • ${error.code||'RPC-feil'}`);return false}
-      const m=Array.isArray(data)?data[0]:data;
+      if(fxError)console.warn('Spectator FX state unavailable',fxError);
+      const base=Array.isArray(data)?data[0]:data;
+      const m=base?{...base,...(fxError?{}:fxData||{})}:null;
       if(!m){blockPrivate();return false}
       match=m;
       names={[m.player1_id]:m.player1_name||'Spiller 1',[m.player2_id]:m.player2_name||'Spiller 2'};
@@ -112,6 +123,26 @@
         });
       }catch(e){console.warn('Spectator subscribe failed',e);publications.delete(playerId)}
     }
+    async function pollFxVisits(){
+      if(!fxStarted||fxPolling||leaving||document.hidden||!isX01(match))return;
+      fxPolling=true;
+      try{
+        const {data,error}=await db.rpc('get_spectate_fx_visits',{p_match_id:matchId});
+        if(error)throw error;
+        if(!leaving)window.DartArenaSpectatorFX?.visits(Array.isArray(data)?data:[]);
+      }catch(error){console.warn('Spectator FX visit refresh unavailable',error)}
+      finally{fxPolling=false}
+    }
+    async function setupFx(){
+      if(fxStarted||!match||!isX01(match)||!window.DartArenaSpectatorFX)return;
+      fxStarted=true;
+      // Baseline only: previous visits must never animate on join.
+      await pollFxVisits();
+      if(leaving)return;
+      // Ordinary spectators cannot read the raw match_throws table. Poll the
+      // restricted, read-only RPC without opening another Realtime socket.
+      fxTimer=setInterval(pollFxVisits,2000);
+    }
     async function setupVideo(){
       if(!isX01(match)||channel)return;
       channel=db.channel(`match-spectator-media-${matchId}`)
@@ -125,9 +156,16 @@
       hardMuteVideo($('spectateVideo1'));hardMuteVideo($('spectateVideo2'));
       const allowed=await refresh();if(!allowed)return;
       await setupVideo();
-      timer=setInterval(async()=>{const ok=await refresh();if(ok&&!channel)await setupVideo()},1500);
+      await setupFx();
+      timer=setInterval(async()=>{
+        const ok=await refresh();
+        if(ok){if(!channel)await setupVideo();if(!fxStarted)await setupFx()}
+      },1500);
     }
-    function cleanup(){leaving=true;clearInterval(timer);stopVideo()}
+    function cleanup(){
+      leaving=true;clearInterval(timer);clearInterval(fxTimer);stopVideo();
+      window.DartArenaSpectatorFX?.destroy();
+    }
     window.addEventListener('pagehide',cleanup,{once:true});
     await boot();
   }
