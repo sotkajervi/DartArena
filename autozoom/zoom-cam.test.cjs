@@ -450,7 +450,7 @@ test('Cam-test has directional controls with a live inset using production crop 
   assert.match(ui,/id="camHitOffsetPreview"/);
   assert.match(ui,/function drawHitOffsetPreview\(\)/);
   assert.match(ui,/tracker\.zoomCrop\(sw,sh,adjusted\.x,adjusted\.y,config\.radius\*sw,w\/h\)/);
-  assert.match(ui,/drawHitOffsetPreview\(\);\s*framingLoop=requestAnimationFrame/);
+  assert.match(ui,/drawHitOffsetPreview\(\);[\s\S]*?framingLoop=requestAnimationFrame\(drawFramed\)/);
   assert.match(css,/\.cam-zoom-nudge-pad/);
   assert.match(css,/\.cam-zoom-hit-preview canvas/);
 });
