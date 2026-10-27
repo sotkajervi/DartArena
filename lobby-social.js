@@ -97,7 +97,7 @@
     chat.setAttribute('aria-labelledby','daSocialChatTab');
     if(!doc.querySelector('link[data-dartarena-social-css]')){
       const style=doc.createElement('link');
-      style.rel='stylesheet';style.href='lobby-social.css?v=20261027-rolefeed1';
+      style.rel='stylesheet';style.href='lobby-social.css?v=20261027-chatclock1';
       style.dataset.dartarenaSocialCss='1';
       doc.head.appendChild(style);
     }
