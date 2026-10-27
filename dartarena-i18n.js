@@ -1342,6 +1342,8 @@
     [/^(\d+) utilgjengelige$/i,m=>m[1]+' unavailable'],
     [/^(\d+) i kamp$/i,m=>m[1]+' in match'],
     [/^Vis flere spillere \((\d+) igjen\)$/i,m=>'Show more players ('+m[1]+' remaining)'],
+    [/^Side (\d+) av (\d+)$/i,m=>'Page '+m[1]+' of '+m[2]],
+    [/^Side (\d+)$/i,m=>'Page '+m[1]],
     [/^Se alle turneringer \((\d+)\)$/i,m=>'View all tournaments ('+m[1]+')'],
     [/^Vis færre turneringer \((\d+)\)$/i,m=>'Show fewer tournaments ('+m[1]+')'],
     [/^(\d+) deltakere$/i,m=>m[1]+' participants'],
