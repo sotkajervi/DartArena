@@ -207,11 +207,18 @@
   font-size:13px;line-height:1.4;
 }
 #lobbyView #daSocialLobby .dart-chat-meta{
-  display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 9px;
+  display:grid;grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;gap:8px;min-width:0;width:100%;
   margin:0 0 3px;font-size:11px;
 }
-#lobbyView #daSocialLobby .dart-chat-author{font-size:12px;line-height:1.15;letter-spacing:.005em}
-#lobbyView #daSocialLobby .dart-chat-time{font-size:10px;color:#819da3;font-variant-numeric:tabular-nums;margin-left:auto}
+#lobbyView #daSocialLobby .dart-chat-author{
+  font-size:12px;line-height:1.15;letter-spacing:.005em;
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+#lobbyView #daSocialLobby .dart-chat-time{
+  margin:0!important;white-space:nowrap;text-align:right;
+  font-size:10px;color:#819da3;font-variant-numeric:tabular-nums;
+}
 #lobbyView #daSocialLobby .dart-chat-body{
   color:#e9f3f4!important;
   font-size:13px;line-height:1.43;
