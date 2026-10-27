@@ -17,7 +17,7 @@
 
     const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
     const matchId=new URLSearchParams(location.search).get('id');
-    let match=null,names={},timer=null,channel=null,leaving=false,clients=new Map(),publications=new Map();
+    let match=null,names={},timer=null,channel=null,fxChannel=null,fxStarted=false,leaving=false,clients=new Map(),publications=new Map();
     if(title)title.textContent='Kobler til kamp…';
 
     const isX01=m=>!['jdc','cricket','half_it','sixty_one'].includes(m?.game_variant||'x01');
@@ -70,6 +70,12 @@
       if(!isX01(match)){
         [$('spectatePlaceholder1'),$('spectatePlaceholder2')].forEach(el=>{if(el){el.textContent='Live video er foreløpig ikke koblet til denne spilltypen.';el.classList.remove('hidden')}});
       }
+      const throwing=match.status==='playing'?match.turn_player_id:null;
+      for(const [index,id] of [[1,match.player1_id],[2,match.player2_id]]){
+        $('spectatePlayerCard'+index)?.classList.toggle('active',throwing===id);
+        $('spectateVideoCard'+index)?.classList.toggle('active-turn',throwing===id);
+      }
+      window.DartArenaSpectatorFX?.snapshot(match);
       window.DartArenaSpectateRolePolish?.apply?.(p1,p2);
     }
     function stopVideo(){clients.forEach(c=>{try{c.close()}catch{}});clients.clear();publications.clear();if(channel){db.removeChannel(channel).catch(()=>{});channel=null}}
@@ -112,6 +118,31 @@
         });
       }catch(e){console.warn('Spectator subscribe failed',e);publications.delete(playerId)}
     }
+    async function setupFx(){
+      if(fxStarted||!match||!isX01(match)||!window.DartArenaSpectatorFX)return;
+      fxStarted=true;
+      // Load a baseline of already committed visits. Existing visits are never
+      // replayed as new effects when a spectator joins in the middle of a leg.
+      try{
+        const {data,error}=await db.from('match_throws')
+          .select('id,match_id,player_id,score,is_checkout,leg_no,set_no,created_at')
+          .eq('match_id',matchId)
+          .order('created_at',{ascending:false}).limit(150);
+        if(error)throw error;
+        if(leaving)return;
+        window.DartArenaSpectatorFX.visits(data||[]);
+        fxChannel=db.channel('spectate-fx-'+matchId)
+          .on('postgres_changes',{
+            event:'INSERT',schema:'public',table:'match_throws',
+            filter:'match_id=eq.'+matchId
+          },payload=>window.DartArenaSpectatorFX?.visitEvent(payload.new))
+          .subscribe();
+      }catch(error){
+        // An unavailable stats permission must never prevent spectating video
+        // or reading the scores provided by get_spectate_match.
+        console.warn('Spectator FX visits unavailable',error);
+      }
+    }
     async function setupVideo(){
       if(!isX01(match)||channel)return;
       channel=db.channel(`match-spectator-media-${matchId}`)
@@ -125,9 +156,17 @@
       hardMuteVideo($('spectateVideo1'));hardMuteVideo($('spectateVideo2'));
       const allowed=await refresh();if(!allowed)return;
       await setupVideo();
-      timer=setInterval(async()=>{const ok=await refresh();if(ok&&!channel)await setupVideo()},1500);
+      await setupFx();
+      timer=setInterval(async()=>{
+        const ok=await refresh();
+        if(ok){if(!channel)await setupVideo();if(!fxStarted)await setupFx()}
+      },1500);
     }
-    function cleanup(){leaving=true;clearInterval(timer);stopVideo()}
+    function cleanup(){
+      leaving=true;clearInterval(timer);stopVideo();
+      window.DartArenaSpectatorFX?.destroy();
+      if(fxChannel){db.removeChannel(fxChannel).catch(()=>{});fxChannel=null}
+    }
     window.addEventListener('pagehide',cleanup,{once:true});
     await boot();
   }
