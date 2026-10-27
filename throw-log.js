@@ -1,4 +1,5 @@
 (()=>{
+const tr=value=>window.DartArenaI18n?.t?.(String(value))??String(value);
 const $=id=>document.getElementById(id),wait=setInterval(()=>{if(!window.supabase||!$('matchView'))return;clearInterval(wait);boot()},100);
 async function boot(){
  const matchId=new URLSearchParams(location.search).get('id');if(!matchId)return;
@@ -6,7 +7,7 @@ async function boot(){
  const {data:{session}}=await db.auth.getSession();if(!session)return;const me=session.user.id;
  let {data:match}=await db.from('matches').select('*').eq('id',matchId).single();if(!match)return;const chicago=String(match.game_config?.chicago??'false').toLowerCase()==='true';let throws=[];
  const host=document.querySelector('.score-card');if(!host)return;
- const box=document.createElement('div');box.className='throw-log';box.innerHTML=`<div class="throw-log-head"><strong>Kast i dette leget</strong><small>${chicago?'Chicago Style • korrigering låst i testversjonen':'Trykk på et av dine siste kast for å korrigere'}</small></div><div class="throw-compact"><div class="throw-line"><span class="throw-line-label">DU</span><div id="myThrowRows" class="throw-chip-row"></div></div><div class="throw-line"><span class="throw-line-label">MOT</span><div id="oppThrowRows" class="throw-chip-row"></div></div></div>`;host.appendChild(box);
+ const box=document.createElement('div');box.className='throw-log';box.innerHTML=`<div class="throw-log-head"><strong>Kast i dette legget</strong><small>${chicago?'Chicago Style • korrigering låst i testversjonen':'Trykk på et av dine siste kast for å korrigere'}</small></div><div class="throw-compact"><div class="throw-line"><span class="throw-line-label">DU</span><div id="myThrowRows" class="throw-chip-row"></div></div><div class="throw-line"><span class="throw-line-label">MOT</span><div id="oppThrowRows" class="throw-chip-row"></div></div></div>`;host.appendChild(box);
  const style=document.createElement('style');style.textContent='.throw-log{margin-top:14px;padding-top:11px;border-top:1px solid rgba(255,255,255,.1)}.throw-log-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}.throw-log-head strong{font-size:.85rem}.throw-log-head small{opacity:.6;font-size:.68rem}.throw-compact{display:grid;gap:6px}.throw-line{display:grid;grid-template-columns:34px minmax(0,1fr);gap:7px;align-items:center}.throw-line-label{color:#54e6d0;font-size:.64rem;font-weight:950;letter-spacing:.1em}.throw-chip-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;min-width:0}.throw-chip{display:flex;align-items:center;justify-content:center;min-width:0;min-height:31px;padding:5px 7px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.035);color:#eef7f7;font-size:.82rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.throw-chip.editable{cursor:pointer;border-color:rgba(0,234,244,.28);background:rgba(0,234,244,.055);color:#dffdf9}.throw-chip.editable:hover,.throw-chip.editable:focus-visible{border-color:var(--cyan);color:#00eaf4;outline:none}.throw-edit-icon{margin-left:4px;color:#00eaf4;font-size:.7em}.throw-empty{opacity:.45;grid-column:1/-1;padding:6px 2px;font-size:.76rem}@media(max-width:600px){.throw-log-head small{display:none}.throw-line{grid-template-columns:30px minmax(0,1fr)}.throw-chip{font-size:.78rem;padding:5px 4px}}';document.head.appendChild(style);
  async function load(){const setNo=Number(match.current_set||1),legNo=Number(match.current_leg||1);const {data}=await db.from('match_throws').select('*').eq('match_id',matchId).eq('set_no',setNo).eq('leg_no',legNo).order('created_at',{ascending:true});throws=data||[];draw()}
  function renderColumn(elId,list,editable){const el=$(elId);el.innerHTML='';const recent=list.slice(-3);if(!recent.length){el.innerHTML='<div class="throw-empty">Ingen kast ennå</div>';return}recent.forEach(t=>{const label=t.is_checkout?`${t.score} (${t.darts_used}p)`:String(t.score);if(editable?.has(t.id)){const b=document.createElement('button');b.type='button';b.className='throw-chip editable';b.title=`Korriger ${label}`;b.setAttribute('aria-label',`Korriger kast ${label}`);const score=document.createElement('span');score.textContent=label;const icon=document.createElement('span');icon.className='throw-edit-icon';icon.setAttribute('aria-hidden','true');icon.textContent='✎';b.append(score,icon);b.onclick=()=>editThrow(t);el.appendChild(b)}else{const chip=document.createElement('span');chip.className='throw-chip';chip.textContent=label;el.appendChild(chip)}})}
@@ -15,7 +16,7 @@ async function boot(){
  function dialog(){return window.DartArenaDialog}
  async function notice(message,title='Korrigering',tone='warning'){
   const ui=dialog();
-  if(ui?.alert)return ui.alert(message,{title,tone,confirmText:'OK'});
+  if(ui?.alert)return ui.alert(tr(message),{title:tr(title),tone,confirmText:'OK'});
   const status=$('matchMessage');
   if(status)status.textContent=message;
  }
@@ -32,14 +33,14 @@ async function boot(){
    await notice('Korrigeringsdialogen kunne ikke åpnes. Oppdater kampsiden og prøv igjen.','Kunne ikke åpne dialog','danger');
    return null;
   }
-  const answer=await ui.prompt('Endre registrert kast fra '+t.score+' til riktig poengsum.',{
-   title:'Korriger kast',
-   kicker:'DARTARENA · KAMPROM',
-   inputLabel:'NY SCORE (0–180)',
+  const answer=await ui.prompt(tr('Endre registrert kast fra '+t.score+' til riktig poengsum.'),{
+   title:tr('Korriger kast'),
+   kicker:tr('DARTARENA · KAMPROM'),
+   inputLabel:tr('NY SCORE (0–180)'),
    inputType:'text',inputMode:'numeric',
    value:String(t.score),
-   confirmText:'Lagre endring',
-   cancelText:'Avbryt'
+   confirmText:tr('Lagre endring'),
+   cancelText:tr('Avbryt')
   });
   return parseScoreInput(answer);
  }
@@ -49,8 +50,8 @@ async function boot(){
   if(api?.askDarts)return api.askDarts(score);
   const ui=dialog();
   if(!ui?.prompt){await notice('Kunne ikke åpne valg for checkout-piler.','Korrigering','danger');return null}
-  const raw=await ui.prompt(`Checkout ${score}. Hvor mange piler brukte du?`,{
-   title:'Checkout',inputLabel:'ANTALL PILER (1–3)',inputType:'text',inputMode:'numeric',value:'3',confirmText:'Bekreft'
+  const raw=await ui.prompt(tr(`Checkout ${score}. Hvor mange piler brukte du?`),{
+   title:'Checkout',inputLabel:tr('ANTALL PILER (1–3)'),inputType:'text',inputMode:'numeric',value:'3',confirmText:tr('Bekreft')
   });
   if(raw===null)return null;
   const darts=Number(raw);

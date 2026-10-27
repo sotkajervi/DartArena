@@ -161,3 +161,8 @@ body.match-page.match-tv-layout.standard-tv-layout .score-card{
     height:72px!important;
   }
 }
+
+/* CSS pseudo-content is not translated by MutationObserver. */
+html[lang="en"] body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock::before{
+  content:'YOUR TURN  •  ENTER SCORE';
+}
