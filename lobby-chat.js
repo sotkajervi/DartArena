@@ -192,27 +192,29 @@
         (grouped?' dart-chat-grouped':'');
       item.dataset.messageId=row.id;
       const label=(names[row.sender_id]||'Spiller')+' '+formatTime(row.created_at);
-      if(grouped){
-        item.setAttribute('aria-label',label);
-      }else{
-        const meta=document.createElement('div');meta.className='dart-chat-meta';
-        const sender=document.createElement('strong');
-        sender.className='dart-chat-author';
-        sender.textContent=names[row.sender_id]||'Spiller';
-        meta.appendChild(sender);
-        if(role==='owner'||role==='admin'){
-          const badge=document.createElement('span');
-          badge.className='dart-chat-role-badge';
-          badge.textContent=role==='owner'?'OWNER':'ADMIN';
-          meta.appendChild(badge);
-        }
-        const time=document.createElement('time');
-        time.className='dart-chat-time';
-        time.dateTime=row.created_at;
-        time.textContent=formatTime(row.created_at);
-        meta.appendChild(time);
-        item.appendChild(meta);
+      if(grouped)item.setAttribute('aria-label',label);
+      // Two fixed columns: name/role on the left, time/moderation on the right.
+      // Reserve the moderator slot on every account so timestamps never move.
+      const meta=document.createElement('div');meta.className='dart-chat-meta';
+      const left=document.createElement('div');left.className='dart-chat-meta-left';
+      const sender=document.createElement('strong');
+      sender.className='dart-chat-author';
+      sender.textContent=names[row.sender_id]||'Spiller';
+      left.appendChild(sender);
+      if(role==='owner'||role==='admin'){
+        const badge=document.createElement('span');
+        badge.className='dart-chat-role-badge';
+        badge.textContent=role==='owner'?'OWNER':'ADMIN';
+        left.appendChild(badge);
       }
+      const right=document.createElement('div');right.className='dart-chat-meta-right';
+      const time=document.createElement('time');time.className='dart-chat-time';
+      time.dateTime=row.created_at;time.textContent=formatTime(row.created_at);
+      const deleteSlot=document.createElement('span');
+      deleteSlot.className='dart-chat-delete-slot';
+      right.append(time,deleteSlot);
+      meta.append(left,right);
+      item.appendChild(meta);
       const body=document.createElement('div');body.className='dart-chat-body';
       body.textContent=row.body||'';
       item.appendChild(body);fragment.appendChild(item);
