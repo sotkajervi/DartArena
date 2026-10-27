@@ -96,14 +96,14 @@ test('Zoom-cam has fallback when captureStream is unsupported',()=>{
 });
 test('main lobby Cam-test includes calibration code and the physical camera selector',()=>{
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-  assert.match(html,/autozoom\/camera-calibration\.js\?v=20261026-liveadjust2/);
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261026-liveadjust2/);
+  assert.match(html,/autozoom\/camera-calibration\.js\?v=20261027-turncal1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261027-turncal1/);
   assert.match(html,/id="cameraTestCameraSelect"/);
 });
 test('waiting room includes calibrated Zoom-cam selection and real sender.replaceTrack',()=>{
   const html=fs.readFileSync(path.join(root,'room.html'),'utf8');
   const js=fs.readFileSync(path.join(root,'room-device-selector.js'),'utf8');
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261026-liveadjust2/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261027-turncal1/);
   assert.match(js,/ZOOM_VALUE/);
   assert.match(js,/option\.textContent='Zoom-cam \(kalibrert\)'/);
   assert.match(js,/sender\.replaceTrack\(next\.track\)/);
@@ -113,7 +113,7 @@ test('waiting room includes calibrated Zoom-cam selection and real sender.replac
 test('X01 match reloads physical input and composes actual outbound video',()=>{
   const html=fs.readFileSync(path.join(root,'match.html'),'utf8');
   const js=fs.readFileSync(path.join(root,'match.js'),'utf8');
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261026-liveadjust2/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261027-turncal1/);
   assert.match(js,/Z\.create\(raw,config\)/);
   assert.match(js,/stream=zoomCamSession\.stream/);
   assert.match(js,/deviceId:\{exact:config\.deviceId\}/);
@@ -204,16 +204,19 @@ test('Zoom-cam resets immediately to T20 after a saved visit and keeps the media
     global.cancelAnimationFrame=old.cancel;global.document=old.doc;
   }
 });
-test('Zoom-cam resets only after successful normal-score and checkout saves',()=>{
+test('own saved visits pause tracking; opponent turn confirmation triggers reset',()=>{
   const regular=fs.readFileSync(path.join(root,'set-engine.js'),'utf8');
   const checkout=fs.readFileSync(path.join(root,'checkout-engine.js'),'utf8');
   const fallback=fs.readFileSync(path.join(root,'match.js'),'utf8');
-  for(const code of [regular,checkout,fallback]){
+  for(const code of [regular,checkout]){
     const fail=code.indexOf('if(error||!data)');
-    const reset=code.indexOf('window.DartArenaX01ZoomSession?.resetToT20?.()');
-    assert.ok(reset>0,'Score handler calls the optional Zoom-cam reset');
-    if(fail>=0)assert.ok(reset>fail,'Reset occurs after a failed-score return');
+    const pause=code.indexOf('window.DartArenaX01ZoomSession?.pauseTracking?.()');
+    assert.ok(pause>fail&&fail>=0,'Pause only after a successful score save');
+    assert.doesNotMatch(code,/window\.DartArenaX01ZoomSession\?\.resetToT20\?\.\(\)/);
   }
+  assert.match(fallback,/function syncZoomCamTurn\(previous,next\)/);
+  assert.match(fallback,/if\(newTurn\|\|newLeg\)zoomCamSession\.resetToT20\?\.\(\)/);
+  assert.match(fallback,/window\.DartArenaX01ZoomSession\?\.pauseTracking\?\.\(\)/);
 });
 
 test('digital framing crops and pans without changing camera calibration coordinates',()=>{
@@ -261,15 +264,15 @@ test('Cam-test offers zoom, draggable positioning, reset and optional inset guid
   assert.match(ui,/pointermove/);
   assert.match(ui,/\.\.\.settings,\.\.\.framing/);
   const match=fs.readFileSync(path.join(root,'match.html'),'utf8');
-  assert.match(match,/autozoom\/zoom-cam\.js\?v=20261026-liveadjust2/);
+  assert.match(match,/autozoom\/zoom-cam\.js\?v=20261027-turncal1/);
 });
 
 test('Cam-test picture controls load after calibration and stay separate from detection',()=>{
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-  const i=html.indexOf('autozoom/camera-calibration.js?v=20261026-liveadjust2');
+  const i=html.indexOf('autozoom/camera-calibration.js?v=20261027-turncal1');
   const pic=html.indexOf('camera-picture.js?v=20261023-picture2');
   assert.ok(i>0&&pic>i);
-  assert.match(html,/camera-test\.css\?v=20261026-liveadjust2/);
+  assert.match(html,/autozoom\/camera-calibration\.css\?v=20261027-turncal1/);
   const calibration=fs.readFileSync(path.join(root,'autozoom','camera-calibration.js'),'utf8');
   assert.match(calibration,/picture:false/);
   const zoom=fs.readFileSync(path.join(root,'autozoom','zoom-cam.js'),'utf8');
