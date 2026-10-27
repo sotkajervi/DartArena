@@ -25,7 +25,7 @@
     if(document.querySelector('link[data-dartarena-chat-style]'))return;
     const link=document.createElement('link');
     link.rel='stylesheet';
-    link.href='lobby-chat.css?v=20261027-roles1';
+    link.href='lobby-chat.css?v=20261027-chatclock1';
     link.dataset.dartarenaChatStyle='1';
     document.head.appendChild(link);
   }
