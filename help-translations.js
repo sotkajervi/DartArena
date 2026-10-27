@@ -156,5 +156,8 @@ window.DartArenaHelpTranslations = Object.freeze({
   "DartArena er fortsatt under utvikling. Ta gjerne skjermbilde av feilen og noter hvilken side, kamp eller turnering det gjelder. Det gjør feilsøking mye enklere.": "DartArena is still in development. Take a screenshot and note which page, match or tournament is affected. This makes troubleshooting much easier.",
   "Spill": "Games",
   "→ Cricket → 501": "→ Cricket → 501",
-  "DartArena • hjelp og informasjon": "DartArena • help and information"
+  "DartArena • hjelp og informasjon": "DartArena • help and information",
+  "Åpne guidebildet i ny fane": "Open the guide image in a new tab",
+  "Zoom-cam hurtigguide: åpne Cam-test, marker Bull og D20, forhåndsvis og finjuster med pilknappene.": "Zoom-cam quick guide: open Camera test, mark Bull and D20, preview, and fine-tune with the arrow buttons.",
+  "Illustrert hurtigguide med fire trinn. Trykk på bildet for å se det større. Flere detaljer finner du under.": "Illustrated four-step quick guide. Select the image to view it larger. More details are below."
 });
