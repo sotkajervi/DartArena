@@ -1,60 +1,312 @@
-/* Shared DartArena X01 scorecard presentation in read-only spectator rooms.
-   Mirrors the match room's .match-player/.match-name/.match-score/.match-legs.
-   No match input, camera or scoring controls are introduced. */
+/* Spectator scorecards use the actual X01 match-room anatomy:
+   centered name; PILER | remaining score + LEGS | AVG.
+   Styling mirrors score-meta.css/live-avg.js without player-only controls. */
+.spectator-score{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:8px!important;
+  padding:2px!important;
+  align-items:stretch!important;
+}
+.spectator-score .spectator-vs{display:none!important}
 .spectator-score .spectator-player.match-player,
-.spectate-lane .spectate-player.match-player {
+.spectate-lane .spectate-player.match-player{
   position:relative;
-  background:#081315;
-  border:1px solid var(--line,#203438);
-  border-radius:15px;
+  display:flex!important;
+  flex-direction:column;
+  justify-content:center;
+  min-width:0;
+  min-height:122px;
+  width:100%;
+  border:1px solid var(--line,#203438)!important;
+  border-radius:12px!important;
+  background:#081315!important;
+  padding:9px 12px!important;
   color:var(--text,#f2f7f7);
-  padding:12px 14px;
-  transition:background .18s ease,box-shadow .18s ease,border-color .18s ease;
+  transition:background .18s ease,border-color .18s ease,box-shadow .18s ease;
+  overflow:visible;
 }
 .spectator-score .spectator-player.match-player.active,
-.spectate-lane .spectate-player.match-player.active {
-  background:linear-gradient(135deg,rgba(0,234,244,.10),#081315 68%);
-  border-color:var(--cyan,#00eaf4);
-  box-shadow:inset 0 0 0 1px rgba(0,234,244,.27),0 0 22px rgba(0,234,244,.12);
+.spectate-lane .spectate-player.match-player.active{
+  border-color:#00eaf4!important;
+  background:linear-gradient(145deg,rgba(0,234,244,.075),rgba(8,19,21,.98))!important;
+  box-shadow:inset 0 0 0 1px rgba(0,234,244,.46),inset 0 0 30px rgba(0,234,244,.10),0 0 10px rgba(0,234,244,.48),0 0 24px rgba(0,234,244,.20)!important;
 }
 .spectator-score .spectator-name.match-name,
-.spectate-lane .spectate-player-head.match-name {
-  font-weight:900;
+.spectate-lane .spectate-player-head.match-name{
+  display:block;
+  text-align:center;
+  min-width:0;
+  max-width:100%;
+  margin:0 0 2px;
+  font-size:clamp(12px,1.2vw,16px)!important;
+  font-weight:900!important;
   color:var(--text,#f2f7f7);
   line-height:1.15;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.da-spectator-score-layout{
+  display:grid;
+  grid-template-columns: minmax(46px,68px) minmax(0,1fr) minmax(46px,68px);
+  align-items:center;
+  justify-content:space-between;
+  gap:6px;
+  width:100%;
+}
+.da-spectator-score-center{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-width:0;
 }
 .spectator-score .spectator-points.match-score,
-.spectate-lane .spectate-score-line .match-score {
-  color:var(--text,#f2f7f7);
-  font-weight:950;
-  letter-spacing:-.05em;
-  line-height:1;
+.spectate-lane .spectate-score-line .match-score,
+.spectate-lane .da-spectator-score-center .match-score{
+  display:block;
+  width:auto;
+  min-width:0;
+  padding:0!important;
+  margin:0!important;
+  font-size:clamp(46px,5.6vw,84px)!important;
+  line-height:.95!important;
+  font-weight:950!important;
+  letter-spacing:-.05em!important;
   font-variant-numeric:tabular-nums;
+  color:var(--text,#f2f7f7)!important;
+  text-align:center;
 }
 .spectator-score .spectator-player.active .match-score,
-.spectate-lane .spectate-player.active .match-score {
-  color:var(--cyan,#00eaf4);
+.spectate-lane .spectate-player.active .match-score{
+  color:#00eaf4!important;
+  text-shadow:0 0 22px rgba(0,234,244,.22);
 }
 .spectator-score .spectator-legs.match-legs,
-.spectate-lane .spectate-legs.match-legs {
-  color:var(--cyan,#00eaf4);
-  font-weight:900;
+.spectate-lane .spectate-legs.match-legs{
+  display:block;
+  color:#00eaf4!important;
+  font-size:12px!important;
+  font-weight:950!important;
+  letter-spacing:.03em;
+  margin:2px 0 0!important;
+  white-space:nowrap;
+  line-height:1.1!important;
 }
-.spectate-lane .spectate-score-line .match-score {
-  font-size:clamp(38px,5vw,72px);
-  margin:8px 0 5px;
+.da-spectator-score-layout .da-spectator-pocket{
+  position:static!important;
+  inset:auto!important;
+  transform:none!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  box-sizing:border-box;
+  min-width:0;
+  width:100%;
+  min-height:55px;
+  padding:7px 4px;
+  border:1px solid rgba(0,234,244,.16);
+  border-radius:10px;
+  background:rgba(0,0,0,.38);
+  box-shadow:none;
+  line-height:1;
+  pointer-events:none;
 }
-.spectate-lane .spectate-player-head.match-name {font-size:clamp(14px,1.5vw,19px)}
-.spectate-lane .spectate-video.active-turn {
+.da-spectator-score-layout .da-spectator-pocket b{
+  display:block;
+  color:var(--text,#f2f7f7)!important;
+  font-size:19px!important;
+  font-weight:950!important;
+  line-height:1!important;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-.02em;
+}
+.da-spectator-score-layout .da-spectator-pocket span{
+  display:block;
+  color:var(--muted,#88a1a5)!important;
+  font-size:9px!important;
+  font-weight:950!important;
+  letter-spacing:.10em;
+  line-height:1!important;
+}
+.spectator-score .spectator-turn-label,
+.spectator-score .spectator-countdown{display:none!important}
+.spectator-score .spectator-player.da-spectator-non-x01 .da-spectator-pocket,
+.spectate-lane .spectate-player.da-spectator-non-x01 .da-spectator-pocket{visibility:hidden}
+.spectator-score .spectator-player .da-fx-score-rail,
+.spectate-lane .spectate-player .da-fx-score-rail{top:7px;bottom:7px}
+.spectate-lane .spectate-video.active-turn{
   border-color:var(--cyan,#00eaf4);
   box-shadow:inset 0 0 0 2px rgba(0,234,244,.5),0 0 20px rgba(0,234,244,.14);
 }
-.spectator-score .spectator-player.match-player .da-fx-score-rail,
-.spectate-lane .spectate-player.match-player .da-fx-score-rail {
-  top:8px;bottom:8px;
+.spectate-lane .spectate-stats-disclosure{
+  border:1px solid rgba(0,234,244,.13);
+  border-radius:10px;
+  background:rgba(6,16,18,.72);
+  padding:7px 10px;
 }
+.spectate-lane .spectate-stats-disclosure summary{
+  color:var(--muted,#88a1a5);
+  font-size:11px;
+  font-weight:850;
+  cursor:pointer;
+}
+.spectate-lane .spectate-stats-disclosure .spectate-stat-grid{margin-top:8px}
+
+/* The rolling FX engine hides the static score while animating. */
+.spectator-score .spectator-points.match-score.da-fx-rolling-target,
+.spectate-lane .da-spectator-score-center .match-score.da-fx-rolling-target{color:transparent!important}
+/* Exact dart artwork and treatment used in x01-leg-starter-marker.js. */
+.spectator-score .da-leg-starter-dart,.spectate-lane .da-leg-starter-dart{
+ display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
+ width:34px;height:30px;margin-left:6px;vertical-align:middle;color:var(--cyan,#00eaf4);
+ filter:drop-shadow(0 0 5px rgba(0,234,244,.6));
+}
+.spectator-score .da-leg-starter-dart svg,.spectate-lane .da-leg-starter-dart svg{display:block;width:34px;height:30px;overflow:visible}
+.spectator-score .da-leg-starter-dart .dart-flight,.spectate-lane .da-leg-starter-dart .dart-flight{fill:rgba(0,234,244,.18);stroke:currentColor;stroke-width:1.05;stroke-linejoin:round}
+.spectator-score .da-leg-starter-dart .dart-shaft,.spectate-lane .da-leg-starter-dart .dart-shaft{stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.spectator-score .da-leg-starter-dart .dart-barrel,.spectate-lane .da-leg-starter-dart .dart-barrel{fill:rgba(0,234,244,.35);stroke:currentColor;stroke-width:1}
+.spectator-score .da-leg-starter-dart .dart-grip,.spectate-lane .da-leg-starter-dart .dart-grip{stroke:currentColor;stroke-width:.75;opacity:.8}
+.spectator-score .da-leg-starter-dart .dart-point,.spectate-lane .da-leg-starter-dart .dart-point{stroke:currentColor;stroke-width:1.15;stroke-linecap:round}
+
+body.spectator-tv-live .spectator-score{
+  flex:1 1 auto!important;
+  min-height:0;
+  align-content:center;
+  gap:7px!important;
+}
+body.spectator-tv-live .spectator-score .spectator-player.match-player{
+  min-height:0;
+  padding:6px 10px!important;
+}
+body.spectator-tv-live .spectator-score .match-score{
+  font-size:clamp(40px,5.3vh,72px)!important;
+}
+body.spectator-tv-live .spectator-score .da-spectator-pocket{
+  min-height:47px;
+  padding:5px 3px;
+}
+body.spectator-tv-live .spectator-score .da-spectator-pocket b{font-size:17px!important}
 @media(max-width:760px){
-  .spectator-score .spectator-player.match-player{padding:5px 7px}
-  .spectate-lane .spectate-player.match-player{padding:10px 12px}
-  .spectate-lane .spectate-score-line .match-score{font-size:clamp(35px,10vw,53px)}
+  .spectator-score .spectator-player.match-player,
+  .spectate-lane .spectate-player.match-player{min-height:94px;padding:7px 8px!important}
+  .da-spectator-score-layout{grid-template-columns:49px minmax(0,1fr) 49px;gap:4px}
+  .da-spectator-score-layout .da-spectator-pocket{min-height:43px;padding:5px 2px}
+  .da-spectator-score-layout .da-spectator-pocket b{font-size:15px!important}
+  .da-spectator-score-layout .da-spectator-pocket span{font-size:8px!important}
+  .spectator-score .spectator-points.match-score,
+  .spectate-lane .da-spectator-score-center .match-score{font-size:clamp(38px,9vw,60px)!important}
+  body.spectator-tv-live .spectator-score{gap:4px!important}
+  body.spectator-tv-live .spectator-score .spectator-player.match-player{padding:4px 7px!important}
+}
+@media(max-height:540px){
+  body.spectator-tv-live .spectator-score .spectator-player.match-player{padding:2px 6px!important}
+  body.spectator-tv-live .spectator-score .match-score{font-size:32px!important}
+  body.spectator-tv-live .spectator-score .da-spectator-pocket{min-height:35px;padding:3px 2px}
+}
+
+/* Name + three darts + role badge on the SAME line, in that order.
+   Ordinary Spectate renders the OWNER badge as ::after; tournament adds
+   .player-role-badge after the name. Both remain after the dart symbol. */
+.spectator-score .spectator-name.match-name,
+.spectate-lane .spectate-player-head.match-name{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+  width:auto!important;
+  margin:0 auto 5px!important;
+  max-width:100%;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+.spectator-score .spectator-player.match-player{text-align:center}
+.spectator-score .player-role-badge{display:inline-flex!important;vertical-align:middle;margin-left:5px!important}
+.spectate-lane .spectate-player-head.match-name::after{margin-left:0!important}
+.spectator-score .da-leg-starter-dart,.spectate-lane .da-leg-starter-dart{margin-left:3px!important}
+
+/* Compact match-room-like tons and checkouts directly underneath each score. */
+.da-spectator-stats-row{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:5px;
+  width:100%;
+  min-width:0;
+  padding-top:7px;
+  margin-top:8px;
+  border-top:1px solid rgba(255,255,255,.07);
+}
+.da-spectator-stat{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  min-width:0;
+  gap:4px;
+  padding:7px 3px;
+  background:rgba(255,255,255,.025);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:8px;
+  text-align:center;
+}
+.da-spectator-stat span{
+  display:block;
+  color:var(--muted,#88a1a5);
+  font-size:clamp(7px,.62vw,10px);
+  font-weight:900;
+  letter-spacing:.04em;
+  white-space:nowrap;
+}
+.da-spectator-stat b{
+  color:var(--text,#f2f7f7);
+  font-size:clamp(10px,1vw,14px);
+  font-weight:950;
+  line-height:1.1;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+body.spectator-tv-live>.shell{
+  grid-template-rows:auto minmax(0,.8fr) minmax(0,1.6fr);
+}
+body.spectator-tv-live .spectator-score-card{overflow:hidden}
+body.spectator-tv-live .spectator-score{
+  align-content:stretch!important;
+  grid-template-rows:repeat(2,minmax(0,1fr))!important;
+  flex:1 1 auto!important;
+  overflow:hidden!important;
+}
+body.spectator-tv-live .spectator-score .spectator-player.match-player{
+  padding:5px 9px!important;
+  min-height:0!important;
+  overflow:hidden;
+}
+body.spectator-tv-live .spectator-score .da-spectator-stats-row{
+  padding-top:4px;margin-top:4px;gap:3px;
+}
+body.spectator-tv-live .spectator-score .da-spectator-stat{
+  padding:3px 2px;gap:2px;
+}
+body.spectator-tv-live .spectator-score .da-spectator-stat b{font-size:11px}
+body.spectator-tv-live .spectator-score .da-spectator-stat span{font-size:7px}
+@media(max-width:760px){
+  .da-spectator-stats-row{gap:3px;margin-top:5px;padding-top:5px}
+  .da-spectator-stat{padding:5px 2px;gap:2px}
+  .da-spectator-stat span{font-size:7px}
+  .da-spectator-stat b{font-size:10px}
+  .spectator-score .spectator-name.match-name,
+  .spectate-lane .spectate-player-head.match-name{font-size:11px!important}
+  body.spectator-tv-live>.shell{
+    grid-template-rows:auto minmax(0,.38fr) minmax(0,1.8fr);
+  }
+  body.spectator-tv-live .spectator-score-card{padding:5px 7px!important}
+}
+@media(max-height:650px) {
+  body.spectator-tv-live>.shell{grid-template-rows:auto minmax(0,.65fr) minmax(0,1.65fr)}
+  body.spectator-tv-live .spectator-score .da-spectator-pocket{min-height:30px}
+  body.spectator-tv-live .spectator-score .match-score{font-size:33px!important}
+  body.spectator-tv-live .spectator-score .da-spectator-stat{padding:2px 1px}
 }
