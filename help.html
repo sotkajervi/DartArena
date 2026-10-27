@@ -14,7 +14,15 @@
     .help-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.help-nav a{text-decoration:none;color:#00eaf4;border:1px solid rgba(0,234,244,.25);border-radius:999px;padding:7px 10px;font-size:12px;font-weight:850}
     .help-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.help-card{padding:18px}.help-card h2{margin:4px 0 10px;font-size:21px}.help-card h3{margin:14px 0 5px;font-size:15px}.help-card p,.help-card li{color:#d8e4e5;line-height:1.55}.help-card ul{margin:7px 0 0;padding-left:20px}.help-card li::marker{color:#00eaf4}
     .help-key{display:inline-flex;padding:2px 7px;border:1px solid rgba(255,255,255,.12);border-radius:7px;background:rgba(255,255,255,.035);font-weight:900;color:var(--text)}
-    .help-wide{grid-column:1/-1}.help-note{border-left:3px solid var(--cyan);padding:10px 12px;background:rgba(0,234,244,.04);border-radius:0 10px 10px 0;color:var(--muted);margin-top:12px}.hidden-by-search{display:none!important}
+    .help-wide{grid-column:1/-1}.help-note{border-left:3px solid var(--cyan);padding:10px 12px;background:#0d2629;border-radius:0 10px 10px 0;color:#c6dcde;margin-top:12px}.hidden-by-search{display:none!important}
+    /* The shared dartboard is fixed at z-index:0. Unlike .shell, the help
+       page uses .help-shell, so it needs its own stacking context above it. */
+    .help-shell{position:relative;z-index:1}
+    .help-head{padding:20px 22px;background:linear-gradient(145deg,#0e2024,#091619);border:1px solid #28464b;border-radius:18px;box-shadow:0 15px 40px rgba(0,0,0,.38)}
+    .help-head p{color:#c6d8da}
+    .help-card{background:linear-gradient(145deg,#0d1e22,#091518);border-color:#284249;box-shadow:0 14px 38px rgba(0,0,0,.32)}
+    .help-nav a{background:#0b1e21}
+    .help-nav a:hover,.help-nav a:focus-visible{background:#103037;border-color:#00eaf4}
     @media(max-width:720px){.help-head{display:grid}.help-head h1{font-size:31px}.help-grid{grid-template-columns:1fr}.help-wide{grid-column:auto}}
   </style>
 <link rel="stylesheet" href="brand-header.css?v=20261009-mobile1"></head>
