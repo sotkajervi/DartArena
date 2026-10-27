@@ -296,10 +296,16 @@
     reloadTimer=setTimeout(load,120);
   }
 
-  db.channel(`tournament-stats-${tournamentId}`)
-    .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${tournamentId}`},scheduleLoad)
-    .on('postgres_changes',{event:'*',schema:'public',table:'match_throws'},scheduleLoad)
-    .subscribe();
+  async function subscribeStats(){
+    const {data,error}=await db.auth.getSession();
+    if(error)throw error;
+    if(!data?.session?.access_token)return;
+    db.channel(`tournament-stats-${tournamentId}`)
+      .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${tournamentId}`},scheduleLoad)
+      .on('postgres_changes',{event:'*',schema:'public',table:'match_throws'},scheduleLoad)
+      .subscribe();
+  }
+  subscribeStats().catch(error=>console.warn('Tournament stats Realtime auth failed',error));
 
   window.addEventListener('focus',scheduleLoad);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleLoad()});
