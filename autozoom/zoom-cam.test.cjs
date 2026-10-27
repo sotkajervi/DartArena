@@ -358,7 +358,7 @@ test('Stian can correct upward-biased zoom without changing other users defaults
   const core=fs.readFileSync(path.join(root,'autozoom','zoom-cam.js'),'utf8');
   assert.match(calibration,/id="camHitOffsetX"/);
   assert.match(calibration,/id="camHitOffsetY"/);
-  assert.match(calibration,/Bruk dette bare hvis Zoom-cam peker feil/);
+  assert.match(calibration,/Pilene og skyveknappene flytter zoomens visningspunkt/);
   assert.match(core,/target=offsetHit\(rawHit,board\.radius,config\)/);
   assert.match(core,/onStableHit\(\{x:rawHit\.x,y:rawHit\.y/);
 });
