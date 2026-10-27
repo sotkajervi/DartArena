@@ -278,6 +278,7 @@
   "Spillerstatistikk": "Player statistics",
   "Søk opp hvem som helst og se karrierestatistikk, rekorder og hele kamphistorikken.": "Search for any player and view career statistics, records and their full match history.",
   "Søk spiller": "Search players",
+  "Se spillerprofil": "View player profile",
   "Søk blant påloggede…": "Search online players…",
   "Søk etter pålogget spiller": "Search for an online player",
   "Filtrer spillere": "Filter players",
