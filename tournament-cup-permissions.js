@@ -547,6 +547,7 @@
   async function boot(){
     ensureStyles();
     await refreshPermission();
+    if(!userId)return; // Do not subscribe as anon while redirecting to sign-in.
     scheduleSync(20);
     window.addEventListener('dartarena:tournament-loaded',()=>scheduleSync(120));
     const setup=document.getElementById('cupSetup');
