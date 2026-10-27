@@ -79,11 +79,22 @@
 #lobbyView #daSocialLobby #playerList .status{font-size:11px}
 #lobbyView #daSocialLobby #playerList .challenge-btn{min-width:83px;min-height:35px;font-size:11px;padding:6px 7px}
 #lobbyView #daSocialLobby #playerList .challenge-btn:disabled{opacity:.52;cursor:not-allowed}
-#lobbyView #daSocialLobby #daPlayerMore{
-  flex:0 0 auto;width:100%;min-height:39px;margin-top:9px;
-  border:1px solid rgba(0,234,244,.24);border-radius:9px;
+#lobbyView #daSocialLobby .da-player-pager{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  margin-top:10px;min-height:39px;
 }
-#lobbyView #daSocialLobby #daPlayerMore[hidden]{display:none!important}
+#lobbyView #daSocialLobby .da-player-pager button{
+  flex:0 1 110px;min-height:38px;padding:7px 8px;
+  border:1px solid rgba(0,234,244,.24);border-radius:9px;font-size:11px;
+}
+#lobbyView #daSocialLobby .da-player-pager button:disabled{
+  opacity:.4;cursor:not-allowed;
+}
+#lobbyView #daSocialLobby .da-player-page{
+  text-align:center;font-size:11px;color:var(--muted,#8aa0a4);
+  flex:1;min-width:0;
+}
+#lobbyView #daSocialLobby #daPlayerMore[hidden]{visibility:hidden;display:block!important}
 #lobbyView #daSocialLobby .da-social-tabs{display:none}
 #lobbyView>.da-challenge-grid{grid-template-columns:minmax(0,1fr);margin-bottom:18px}
 #lobbyView>.da-challenge-grid>.da-incoming-challenges{grid-column:1;min-width:0}
