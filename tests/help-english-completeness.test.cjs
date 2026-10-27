@@ -35,3 +35,14 @@ test('Page remains searchable with both languages',()=>{
   assert.match(html,/card\.textContent\.toLowerCase\(\)\.includes\(term\)/);
   assert.match(html,/\.help-shell\{position:relative;z-index:1\}/);
 });
+
+test('Illustrated Zoom-cam image is embedded from a repository asset with English accessibility copy',()=>{
+  assert.equal((html.match(/assets\/zoomcam-guide\.avif\?v=20261027-illustrated1/g)||[]).length,2);
+  assert.match(html,/class="help-zoomcam-poster"/);
+  assert.match(html,/width="650" height="855" loading="lazy" decoding="async"/);
+  assert.match(html,/target="_blank" rel="noopener"/);
+  assert.match(html,/\.help-zoomcam-poster-link img\{display:block;width:100%;height:auto\}/);
+  assert.match(dict['Åpne guidebildet i ny fane'],/Open the guide image/);
+  assert.match(dict['Zoom-cam hurtigguide: åpne Cam-test, marker Bull og D20, forhåndsvis og finjuster med pilknappene.'],/Zoom-cam quick guide/);
+  assert.match(dict['Illustrert hurtigguide med fire trinn. Trykk på bildet for å se det større. Flere detaljer finner du under.'],/Illustrated four-step quick guide/);
+});

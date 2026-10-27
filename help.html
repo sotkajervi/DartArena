@@ -36,6 +36,11 @@
     .help-mini-link{color:#42f4fa;font-weight:800;text-decoration:underline;text-underline-offset:3px}
     .help-mini-link:hover{color:#a9fdff}
     .help-search input:focus-visible,.help-nav a:focus-visible,.help-mini-link:focus-visible{outline:2px solid #00eaf4;outline-offset:3px}
+    .help-zoomcam-poster{max-width:650px;margin:18px auto 20px;padding:9px;border:1px solid #2e6065;background:#061619;border-radius:14px}
+    .help-zoomcam-poster-link{display:block;overflow:hidden;border-radius:9px;line-height:0}
+    .help-zoomcam-poster-link img{display:block;width:100%;height:auto}
+    .help-zoomcam-poster-link:focus-visible{outline:2px solid #00eaf4;outline-offset:3px}
+    .help-zoomcam-poster figcaption{padding:10px 5px 3px;text-align:center;color:#d1e4e6;font-size:13px;line-height:1.5}
     @media(max-width:720px){.help-head{display:grid}.help-head h1{font-size:31px}.help-grid{grid-template-columns:1fr}.help-wide{grid-column:auto}.help-steps,.help-two-col{grid-template-columns:1fr}}
     @media(max-width:420px){.help-step{padding:11px}.help-shell{width:96vw}.help-head{padding:16px}.help-card{padding:15px}}
   </style>
@@ -81,6 +86,12 @@
     <article class="card help-card help-wide" id="zoomcam" data-help>
       <small>ZOOM-CAM • KALIBRERING</small><h2>Slik setter du opp Zoom-cam</h2>
       <p>Zoom-cam viser hele skiva og et mindre utsnitt som følger registrerte bildeendringer. Det er <strong>ikke automatisk poengregistrering</strong> – du skriver fremdeles inn scoren selv.</p>
+      <figure class="help-zoomcam-poster">
+        <a class="help-zoomcam-poster-link" href="./assets/zoomcam-guide.avif?v=20261027-illustrated1" target="_blank" rel="noopener" title="Åpne guidebildet i ny fane">
+          <img src="./assets/zoomcam-guide.avif?v=20261027-illustrated1" width="650" height="855" loading="lazy" decoding="async" alt="Zoom-cam hurtigguide: åpne Cam-test, marker Bull og D20, forhåndsvis og finjuster med pilknappene.">
+        </a>
+        <figcaption>Illustrert hurtigguide med fire trinn. Trykk på bildet for å se det større. Flere detaljer finner du under.</figcaption>
+      </figure>
       <ol class="help-steps">
         <li class="help-step"><span class="help-step-number" aria-hidden="true">1</span><div><h3>Kalibrer Zoom-cam</h3><p>I <strong>Cam-test</strong>: trykk <strong>Kalibrer Zoom-cam</strong>. Klikk først midt i <strong>Bull</strong> på skiva, og deretter midt i <strong>D20</strong> på den øverste dobbelringen.</p></div></li>
         <li class="help-step"><span class="help-step-number" aria-hidden="true">2</span><div><h3>Forhåndsvis og scroll ned</h3><p>Trykk <strong>Forhåndsvis Zoom-cam</strong>. Dette viser komposittbildet motstanderen vil se. Scroll ned i Cam-test for flere innstillinger.</p></div></li>
