@@ -440,3 +440,70 @@ test('live slider corrections move the latest hit without stopping video or offs
     global.cancelAnimationFrame=old.cancel;global.document=old.doc;
   }
 });
+
+test('Cam-test has directional controls with a live inset using production crop geometry',()=>{
+  const ui=fs.readFileSync(path.join(root,'autozoom','camera-calibration.js'),'utf8');
+  const css=fs.readFileSync(path.join(root,'autozoom','camera-calibration.css'),'utf8');
+  for(const direction of ['up','down','left','right']){
+    assert.match(ui,new RegExp('data-cam-hit-nudge="'+direction+'"'));
+  }
+  assert.match(ui,/id="camHitOffsetPreview"/);
+  assert.match(ui,/function drawHitOffsetPreview\(\)/);
+  assert.match(ui,/tracker\.zoomCrop\(sw,sh,adjusted\.x,adjusted\.y,config\.radius\*sw,w\/h\)/);
+  assert.match(ui,/drawHitOffsetPreview\(\);\s*framingLoop=requestAnimationFrame/);
+  assert.match(css,/\.cam-zoom-nudge-pad/);
+  assert.match(css,/\.cam-zoom-hit-preview canvas/);
+});
+test('Pausing detector between turns preserves outgoing video and resuming returns to T20',()=>{
+  const source={kind:'video',readyState:'live',getSettings:()=>({deviceId:'webcam-1',width:1280,height:720})};
+  const outgoing={kind:'video',readyState:'live',stop(){this.readyState='ended'}};
+  class Stream{
+    constructor(tracks){this.tracks=tracks}
+    getVideoTracks(){return this.tracks.filter(t=>t.kind==='video')}
+    getAudioTracks(){return this.tracks.filter(t=>t.kind==='audio')}
+  }
+  const frames=[],crops=[];let drawn=0,detects=0;
+  const ctx=()=>({fillRect(){},drawImage(){drawn++},strokeRect(){},
+    getImageData(){return{data:new Uint8ClampedArray(480*270*4)}}});
+  const canvas={width:0,height:0,getContext:ctx,captureStream:()=>new Stream([outgoing])};
+  const video={videoWidth:1280,videoHeight:720,readyState:2,play:async()=>{},pause(){},srcObject:null};
+  const tracker={
+    ...T,
+    speedPreset:()=>({...T.speedPreset('fast'),intervalMs:1,quietFrames:0,ease:1}),
+    motionRatio:()=>0,
+    findChange:()=>{detects++;return{x:390,y:100}},
+    createChangeGate:()=>({observe:hit=>hit,reset(){}}),
+    zoomCrop:(w,h,x,y)=>{crops.push({x,y});return{x:1,y:1,width:60,height:45}}
+  };
+  const old={media:global.MediaStream,raf:global.requestAnimationFrame,
+    cancel:global.cancelAnimationFrame,doc:global.document};
+  try{
+    global.MediaStream=Stream;
+    global.requestAnimationFrame=fn=>{frames.push(fn);return frames.length};
+    global.cancelAnimationFrame=()=>{};
+    global.document={createElement:()=>({width:0,height:0,getContext:ctx}),visibilityState:'visible'};
+    const session=Z.create(new Stream([source]),{...sample},{video,canvas,tracker});
+    frames.shift()(performance.now()+5000);
+    assert.ok(detects>0,'Initially detects changes');
+    assert.equal(session.pauseTracking(),true);
+    const previousDetections=detects,previousDraws=drawn;
+    frames.shift()(performance.now()+5100);
+    assert.equal(detects,previousDetections,'Detection pauses during opponent turn');
+    assert.ok(drawn>previousDraws,'Camera video continues to render when tracking pauses');
+    assert.equal(session.track,outgoing,'Never replaced outgoing WebRTC video track');
+    assert.equal(session.resetToT20(),true);
+    frames.shift()(performance.now()+10);
+    assert.ok(Math.abs(crops.at(-1).x-640)<.001,'Next turn targets T20');
+    assert.equal(session.pauseTracking(),true);
+    assert.equal(session.showCalibrationSample(),true,'Cam-test can show sample without throw');
+    assert.equal(session.setHitOffset({hitOffsetX:.1,hitOffsetY:.2}),true);
+    frames.shift()(performance.now()+100);
+    assert.ok(crops.at(-1).x>640,'Preview moves with a right offset');
+    session.stop();
+    assert.equal(session.pauseTracking(),false);
+    assert.equal(session.showCalibrationSample(),false);
+  }finally{
+    global.MediaStream=old.media;global.requestAnimationFrame=old.raf;
+    global.cancelAnimationFrame=old.cancel;global.document=old.doc;
+  }
+});
