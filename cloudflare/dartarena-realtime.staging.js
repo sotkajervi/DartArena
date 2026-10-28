@@ -6,7 +6,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { videoTestHtml } from './sfu-video-test-page.js';
 
 const SFU_BASE='https://rtc.live.cloudflare.com/v1';
-const ALLOWED_ORIGINS=new Set(['https://sotkajervi.github.io','https://dartarena-realtime-security-test.sotkajervi.workers.dev','http://localhost:5500','http://127.0.0.1:5500']);
+const ALLOWED_ORIGINS=new Set(['https://sotkajervi.github.io','https://dartarena-realtime-security-test.sotkajervi.workers.dev','https://dartarena-sfu-preview.sotkajervi.workers.dev','http://localhost:5500','http://127.0.0.1:5500']);
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SESSION_LIFETIME_MS=3*60*60*1000;
 const MAX_BODY_BYTES=256*1024;
