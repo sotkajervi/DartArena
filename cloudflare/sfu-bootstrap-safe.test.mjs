@@ -29,3 +29,24 @@ test('bootstrap config cannot target production',()=>{
  assert.equal(config.durable_objects.bindings[0].name,'SFU_ROOMS');
  assert.deepEqual(config.migrations[0].new_sqlite_classes,['SfuRoom']);
 });
+
+test('bootstrap never exposes secrets, even when environment contains them',async()=>{
+ const env={REALTIME_SFU_BEARER_TOKEN:'sentinel-secret',SUPABASE_URL:'sentinel-url'};
+ for(const path of ['/health','/api/sfu/session','/api/sfu/publish']){
+  const response=await worker.fetch(new Request('https://test.example'+path,{method:path==='/health'?'GET':'POST'}),env);
+  const text=await response.text();
+  assert.equal(text.includes('sentinel-secret'),false);
+  assert.equal(text.includes('sentinel-url'),false);
+  assert.equal(response.headers.get('cache-control'),'no-store');
+ }
+});
+test('bootstrap rejects requests with arbitrary methods and paths',async()=>{
+ for(const [method,path] of [['GET','/api/sfu/session'],['PUT','/api/sfu/renegotiate'],['DELETE','/health'],['GET','/unknown']]){
+  const response=await worker.fetch(new Request('https://test.example'+path,{method}));
+  assert.equal(response.status,503);
+ }
+});
+test('bootstrap preserves Dashboard-managed variables',()=>{
+ assert.equal(config.keep_vars,true);
+ assert.equal(config.name,'dartarena-realtime-security-test');
+});
