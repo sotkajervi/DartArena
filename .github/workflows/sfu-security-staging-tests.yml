@@ -209,7 +209,7 @@ jobs:
           dest.mkdir(exist_ok=True)
           allowed={'.html','.css','.js','.png','.jpg','.jpeg','.webp','.gif','.svg','.ico','.webmanifest','.json','.woff','.woff2','.ttf','.wasm','.tflite','.mp3','.wav','.ogg'}
           excluded={'cloudflare','.github','supabase','node_modules','tests','test','.git'}
-          paths=subprocess.check_output(['git','ls-files','-z']).split(b'\\0')
+          paths=subprocess.check_output(['git','ls-files','-z']).split(bytes([0]))
           count=0
           for raw in paths:
               if not raw: continue
@@ -231,7 +231,7 @@ jobs:
         run: |
           node - <<'NODE'
           const fs=require('fs');
-          const strip=x=>JSON.parse(fs.readFileSync(x,'utf8').replace(/^\\s*\\/\\/.*$/gm,''));
+          const strip=x=>JSON.parse(fs.readFileSync(x,'utf8').split('\\n').filter(line=>!line.trim().startsWith('//')).join('\\n'));
           const frontend=strip('cloudflare/wrangler.frontend-preview.jsonc');
           const media=strip('cloudflare/wrangler.media-test.jsonc');
           if(frontend.name!=='dartarena-sfu-preview'||frontend.assets?.directory!=='../preview-dist')process.exit(1);
