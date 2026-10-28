@@ -95,11 +95,11 @@ export class SfuRoom extends DurableObject {
     if(!env.REALTIME_SFU_APP_ID||!env.REALTIME_SFU_BEARER_TOKEN)return json({ok:false,error:'SFU unavailable'},503);
     if(path==='/api/sfu/session'&&method==='POST'){
       const result=await callSfu(env,'/sessions/new','POST');
-      if(!result.ok)return json(result,result.status);
+      if(!result.ok)return json({ok:false,error:'Cloudflare SFU rejected request',stage:'sfu-upstream',upstreamStatus:result.status},result.status);
       const id=result.sfu?.sessionId;
       if(!validSfuSession(id))return json({ok:false,error:'Invalid SFU session response'},502);
       await this.ctx.storage.put('s:'+id,{owner:userId,createdAt:Date.now(),published:[]});
-      return json(result,result.status);
+      return result.ok?json(result,result.status):json({ok:false,error:'Cloudflare SFU rejected request',stage:'sfu-upstream',upstreamStatus:result.status},result.status);
     }
     const id=body?.sessionId;
     const session=await this.getSession(id);
