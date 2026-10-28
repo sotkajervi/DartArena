@@ -16,7 +16,7 @@ const session1='session_ABCDEF123456';
 const session2='session_QWERTY123456';
 const logs=[];
 const store=new Map();
-const env={SUPABASE_URL:'https://example.supabase.co',SUPABASE_PUBLISHABLE_KEY:'public-test-key',REALTIME_SFU_APP_ID:'test-app',REALTIME_SFU_BEARER_TOKEN:'test-only-secret'};
+const env={SUPABASE_URL:'https://example.supabase.co',SUPABASE_PUBLISHABLE_KEY:'public-test-key',REALTIME_SFU_APP_ID:'test-app',REALTIME_SFU_BEARER_TOKEN:'test-only-secret',SFU_MEDIA_ENABLED:'true'};
 let allow=true;
 let rpcStatus=200;
 let authStatus=200;
@@ -115,4 +115,28 @@ test('Durable Object binding lookup failure returns controlled 503',async()=>{
   assert.equal((await response.json()).error,'Session service unavailable');
   assert.equal(logs.length,before);
  } finally {env.SFU_ROOMS=previous}
+});
+
+test('authorized real-access diagnostic returns success without media calls',async()=>{
+ const before=logs.length;
+ const response=await worker.fetch(req('/api/sfu/access-check'),env);
+ assert.equal(response.status,200);
+ const data=await response.json();
+ assert.equal(data.authorized,true);
+ assert.equal(data.mediaEnabled,false);
+ assert.equal(logs.length,before);
+});
+test('access diagnostic refuses nonmembers',async()=>{
+ const before=logs.length;allow=false;
+ try{
+  const response=await worker.fetch(req('/api/sfu/access-check'),env);
+  assert.equal(response.status,403);
+  assert.equal(logs.length,before);
+ }finally{allow=true}
+});
+test('media is disabled by default, including for authorized users',async()=>{
+ const before=logs.length;
+ const response=await worker.fetch(req('/api/sfu/session'),{...env,SFU_MEDIA_ENABLED:'false'});
+ assert.equal(response.status,503);
+ assert.equal(logs.length,before);
 });
