@@ -34,6 +34,27 @@ jobs:
         run: npx --yes wrangler@4.45.0 deploy --dry-run --config cloudflare/wrangler.staging.example.jsonc --outdir /tmp/dartarena-sfu-dryrun
       - name: Wrangler safe bootstrap compile only (no upload)
         run: npx --yes wrangler@4.45.0 deploy --dry-run --config cloudflare/wrangler.bootstrap.jsonc --outdir /tmp/dartarena-bootstrap-dryrun
+      - name: Live bootstrap smoke test (read-only, no deployment)
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          const base = 'https://dartarena-realtime-security-test.sotkajervi.workers.dev';
+          const health = await fetch(base + '/health');
+          assert.equal(health.status, 200);
+          const body = await health.json();
+          assert.equal(body.ok, true);
+          assert.equal(body.mode, 'bootstrap');
+          assert.equal(body.mediaEnabled, false);
+          for (const path of ['/api/sfu/session', '/api/sfu/publish', '/api/sfu/subscribe', '/api/sfu/renegotiate']) {
+            const response = await fetch(base + path, { method: 'POST' });
+            assert.equal(response.status, 503, path + ' must be disabled');
+            const data = await response.json();
+            assert.equal(data.ok, false);
+          }
+          console.log('Live bootstrap smoke test: 5/5 checks passed');
+          NODE
 
   bootstrap-approval:
     name: Bootstrap isolated Cloudflare test Worker (approval required)
