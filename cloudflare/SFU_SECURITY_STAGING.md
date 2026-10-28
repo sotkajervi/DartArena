@@ -67,3 +67,7 @@ if tests fail.
 - This is a mocked unit test suite, **not** a Cloudflare Durable Object integration test, Supabase RPC integration test or actual video test.
 - Deployment gate remains CLOSED pending verified database RPC on an isolated test setup, real Cloudflare Durable Object migration and authenticated multi-account positive/negative tests.
 - Production `dartarena-realtime` must not be changed by this staging workflow.
+
+## Automated test run #5 (2026-10-28)
+- GitHub Actions run https://github.com/sotkajervi/DartArena/actions/runs/40609806037 concluded **success**; staging-security job and isolated test step passed after adding tournament fail-closed and malformed publish cases.
+- These remain mocked tests, not a verified live Cloudflare / Supabase integration. No deployment or database schema changes authorized by this result.
