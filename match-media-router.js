@@ -93,6 +93,13 @@
     loadSfu('sfu-fallback');
   }
 
+  // Explicit preview-only switch. This preserves Zoom-cam because the SFU
+  // module publishes the stream already selected and processed in match.js.
+  if(new URLSearchParams(location.search).get('sfuSecurityTest')==='1'){
+    loadSfu('sfu');
+    return;
+  }
+
   // Tournament players have already established Cloudflare media in their
   // waiting room. Avoid a second, usually unsuccessful direct Peer negotiation
   // before the SFU fallback. Normal challenges retain Peer-first behavior.
