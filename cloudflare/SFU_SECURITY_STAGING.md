@@ -1,0 +1,42 @@
+# SFU security staging – NOT production ready
+
+This branch is intentionally isolated from `main` and must **not** be deployed as-is.
+
+## Current confirmed weakness
+Production Worker holds a Cloudflare Realtime bearer secret and exposes session, publish,
+subscribe, and renegotiate operations without verifying the Supabase user or the
+match/room authorization. CORS is not an authentication or authorization mechanism.
+
+## Changes staged
+- `sfu-client.js`: attaches the currently logged-in user's Supabase access token to
+  requests. This must be deployed atomically with a compatible Worker because it
+  introduces an Authorization request header and changes browser CORS preflight.
+- `cloudflare/dartarena-realtime.staging.js`: prototype Worker checks tokens against
+  Supabase Auth /auth/v1/user, rejects unexpected Origins, caps body size, and
+  fails closed on media operations until room authorization is implemented.
+  This file intentionally does **not** enable functioning video yet.
+
+## Required before any deployment
+1. Define one server-authoritative room context per SFU request: normal challenge
+   waiting room, match, or tournament waiting room. Do not trust IDs alone.
+2. Validate requester participation/approved viewer status from Supabase on server.
+   A valid login alone is insufficient.
+3. Track or cryptographically bind SFU session ownership and publication visibility
+   to the authorized room and user, including subscribe and renegotiate.
+4. Prevent cross-room and cross-user video subscription even if someone learns a
+   session ID or a media broadcast payload.
+5. Implement abuse limits, validate tracks/SDP sizes and shapes, and consider
+   denial-of-service/resource consumption.
+6. Create the two Supabase public project variables in Cloudflare Worker settings
+   before trying the staging Worker; never place a service_role or SFU bearer token
+   in browser JavaScript.
+7. Test in a separate Worker URL with two accounts, a third nonparticipant,
+   spectators, standard rooms, X01 match, tournament rooms, Zoom-cam, reconnect,
+   and expected rejection for unauthenticated and wrong-room requests.
+8. Do not merge until production Worker and browser client can be deployed together
+   with an explicit rollback plan. Keep `main` untouched while testing.
+
+## Rollback
+The existing production Worker configuration and GitHub `main` have not been
+changed by this branch. Discard the staging Worker and revert or close the draft PR
+if tests fail.
