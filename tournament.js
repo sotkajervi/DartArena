@@ -458,9 +458,10 @@ function standings(players,matches){
   // AI Rival fixtures are optional training, never official group results.
   const humans=players.filter(p=>p.user_id!==AI_RIVAL_ID&&!p.is_ai_rival);
   const official=matches.filter(m=>!m.is_ai_rival&&m.player1_id!==AI_RIVAL_ID&&m.player2_id!==AI_RIVAL_ID);
-  const s=Object.fromEntries(humans.map(p=>[p.user_id,{id:p.user_id,w:0,lf:0,la:0,d:0}]));
+  const s=Object.fromEntries(humans.map(p=>[p.user_id,{id:p.user_id,k:0,w:0,lf:0,la:0,d:0}]));
   official.filter(m=>['finished','wo'].includes(m.status)).forEach(m=>{
     if(!s[m.player1_id]||!s[m.player2_id])return;
+    s[m.player1_id].k++;s[m.player2_id].k++;
     const a=Number(m.player1_legs||0),b=Number(m.player2_legs||0);
     s[m.player1_id].lf+=a;s[m.player1_id].la+=b;
     s[m.player2_id].lf+=b;s[m.player2_id].la+=a;
@@ -582,7 +583,7 @@ async function loadGroupLobby(){
     const rounds=[...new Set(gm.map(m=>m.round_no))];
     const roundHtml=rounds.map(r=>`<div class="round-block"><div class="round-title">Runde ${r}</div>${gm.filter(m=>m.round_no===r).map(matchHtml).join('')}</div>`).join('');
     const trainingHtml=ai.length?`<details class="group-matches-details ai-training-matches" ${collapseArchivedGroups?'':'open'}><summary><span>AI-TRENINGSKAMPER</span><span class="group-match-summary-meta">${ai.length} kamper <span class="group-match-chevron" aria-hidden="true">⌄</span></span></summary><p class="muted compact" style="margin:10px 0">Resultatene teller ikke i puljetabellen og påvirker ikke cup eller seeding.</p><div class="group-rounds">${ai.map(matchHtml).join('')}</div></details>`:'';
-    return `<div class="group-card"><div class="heading"><div><small>PULJE ${g.group_no}</small><h2>${gp.length} spillere</h2></div><div class="status">${tournamentIsChicago()? 'Chicago Style' : `${Number(tournament?.game)||501} • Best av ${g.best_of}`}</div></div><table class="standings"><thead><tr><th>#</th><th>Spiller</th><th>V</th><th>+/-</th><th>${tournamentIsChicago()?'Games':'Legs'}</th></tr></thead><tbody>${table.map((x,i)=>`<tr class="${i<qualify?'qualify':''}"><td>${i+1}</td><td><span class="da-role-player" data-user-id="${esc(x.id)}">${esc(names[x.id]||'Spiller')}</span></td><td>${x.w}</td><td>${x.d>0?'+':''}${x.d}</td><td>${x.lf}</td></tr>`).join('')}</tbody></table><details class="group-matches-details" ${collapseArchivedGroups?'':'open'}><summary><span>Puljekamper</span><span class="group-match-summary-meta">${gm.length} kamper <span class="group-match-chevron" aria-hidden="true">⌄</span></span></summary><div class="group-rounds">${roundHtml}</div></details>${trainingHtml}</div>`;
+    return `<div class="group-card"><div class="heading"><div><small>PULJE ${g.group_no}</small><h2>${gp.length} spillere</h2></div><div class="status">${tournamentIsChicago()? 'Chicago Style' : `${Number(tournament?.game)||501} • Best av ${g.best_of}`}</div></div><div class="group-standings-scroll" role="region" tabindex="0" aria-label="Pulje ${g.group_no} – tabell"><table class="standings"><thead><tr><th>#</th><th>Spiller</th><th title="Kamper spilt">K</th><th title="Seire">V</th><th title="Tap">T</th><th title="Seiersprosent">V%</th><th>${tournamentIsChicago()?'Games':'Legs'}</th><th title="Differanse">+/−</th></tr></thead><tbody>${table.map((x,i)=>`<tr class="${i<qualify?'qualify':''}"><td>${i+1}</td><td><span class="da-role-player" data-user-id="${esc(x.id)}">${esc(names[x.id]||'Spiller')}</span></td><td>${x.k}</td><td>${x.w}</td><td>${x.k-x.w}</td><td>${x.k?Math.round(x.w/x.k*100):0}%</td><td>${x.lf}–${x.la}</td><td>${x.d>0?'+':''}${x.d}</td></tr>`).join('')}</tbody></table></div><details class="group-matches-details" ${collapseArchivedGroups?'':'open'}><summary><span>Puljekamper</span><span class="group-match-summary-meta">${gm.length} kamper <span class="group-match-chevron" aria-hidden="true">⌄</span></span></summary><div class="group-rounds">${roundHtml}</div></details>${trainingHtml}</div>`;
   }).join('');
   window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
   if(collapseArchivedGroups){
