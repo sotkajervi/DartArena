@@ -130,3 +130,6 @@ if tests fail.
 
 ## Tournament media test checkpoint
 Tournament waiting-room clients send tournament_match and their match ID. Pending-match participant permission is separately checked by Supabase before an SFU session is created. This staging change is not production-ready; verify two actual players and nonparticipant denial before promotion.
+
+## Isolated tournament preview release
+Disposable PostgreSQL fixture now includes pending and finished tournament matches, and verifies player-only access with negative checks. Deploy remains restricted to the separate preview and security-test Worker after CI and environment approval.
