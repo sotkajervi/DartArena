@@ -1,14 +1,14 @@
-// Example staging configuration ONLY. Do not deploy against production credentials.
-// Copy to wrangler.jsonc locally and supply the public Supabase URL/key in the
-// Cloudflare dashboard or staging environment. Never commit actual bearer secrets.
+// TEST ONLY — separate Worker. Do not deploy until staging security tests pass.
+// Run from cloudflare/: npx wrangler deploy --config wrangler.staging.example.jsonc
+// NEVER use production Worker name or production SFU bearer token here.
 {
-  "name": "dartarena-realtime-security-staging",
+  "name": "dartarena-realtime-security-test",
   "main": "dartarena-realtime.staging.js",
   "compatibility_date": "2026-10-28",
   "durable_objects": {
     "bindings": [{ "name": "SFU_ROOMS", "class_name": "SfuRoom" }]
   },
   "migrations": [
-    { "tag": "sfu-security-v1", "new_sqlite_classes": ["SfuRoom"] }
+    { "tag": "sfu-security-test-v1", "new_sqlite_classes": ["SfuRoom"] }
   ]
 }
