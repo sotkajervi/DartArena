@@ -3,6 +3,7 @@
 // Secrets: REALTIME_SFU_BEARER_TOKEN; binding: SFU_ROOMS -> SfuRoom
 // See SFU_SECURITY_STAGING.md. Tournament room authorization is intentionally denied.
 import { DurableObject } from 'cloudflare:workers';
+import { videoTestHtml } from './sfu-video-test-page.js';
 
 const SFU_BASE='https://rtc.live.cloudflare.com/v1';
 const ALLOWED_ORIGINS=new Set(['https://sotkajervi.github.io','http://localhost:5500','http://127.0.0.1:5500']);
@@ -143,6 +144,10 @@ export default {
     if(request.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
     const path=new URL(request.url).pathname;
     if(path==='/health'&&request.method==='GET')return json({ok:true,service:'DartArena Realtime'},200,cors);
+    if(path==='/video-test'&&request.method==='GET'){
+      if(!env.SUPABASE_URL||!env.SUPABASE_PUBLISHABLE_KEY)return json({ok:false,error:'Unavailable'},503,cors);
+      return new Response(videoTestHtml(env),{status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'}});
+    }
     if(!env.SUPABASE_URL||!env.SUPABASE_PUBLISHABLE_KEY||!env.SFU_ROOMS)return json({ok:false,error:'Security configuration unavailable'},503,cors);
     if(!['/api/sfu/access-check','/api/sfu/session','/api/sfu/publish','/api/sfu/subscribe','/api/sfu/renegotiate'].includes(path))return json({ok:false,error:'Not found'},404,cors);
     const method=path==='/api/sfu/renegotiate'?'PUT':'POST';
