@@ -20,3 +20,7 @@ test('config contains no embedded SFU credentials',()=>{
   assert.equal(Object.hasOwn(config,'vars'),false);
   assert.equal(JSON.stringify(config).includes('REALTIME_SFU_BEARER_TOKEN'),false);
 });
+
+test('full staging deploy preserves dashboard variables and secrets',()=>{
+  assert.equal(config.keep_vars,true);
+});
