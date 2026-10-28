@@ -7,6 +7,7 @@ import vm from 'node:vm';
 
 const workerSource=await readFile(new URL('./dartarena-realtime.staging.js',import.meta.url),'utf8');
 const transformed=workerSource.replace("import { DurableObject } from 'cloudflare:workers';","class DurableObject { constructor(ctx,env){this.ctx=ctx;this.env=env;} }")
+  .replace("import { videoTestHtml } from './sfu-video-test-page.js';","const videoTestHtml=()=>'<h1>Isolated video test</h1>';")
   .replace('export class SfuRoom','class SfuRoom').replace('export default {','const worker = {')+'\n globalThis.__out={SfuRoom,worker};';
 const id1='11111111-1111-4111-8111-111111111111';
 const id2='22222222-2222-4222-8222-222222222222';
@@ -139,4 +140,11 @@ test('media is disabled by default, including for authorized users',async()=>{
  const response=await worker.fetch(req('/api/sfu/session'),{...env,SFU_MEDIA_ENABLED:'false'});
  assert.equal(response.status,503);
  assert.equal(logs.length,before);
+});
+
+test('video test page is isolated and not a media API',async()=>{
+ const response=await worker.fetch(new Request('https://test.example/video-test'),env);
+ assert.equal(response.status,200);
+ assert.match(response.headers.get('content-type'),/text\/html/);
+ assert.match(await response.text(),/Isolated video test/);
 });
