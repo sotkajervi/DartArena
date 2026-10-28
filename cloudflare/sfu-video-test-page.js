@@ -72,6 +72,9 @@ async function join(){
  if(channel)await sb.removeChannel(channel);
  roomKey=key;
  channel=sb.channel('sfu-video-test:'+key,{config:{broadcast:{self:false}}});
+ channel.on('broadcast',{event:'request-publication'},async()=>{
+  if(pubSession&&publisher&&channel)await channel.send({type:'broadcast',event:'publication',payload:{sessionId:pubSession,tracks:stream?.getTracks().map((t,i)=>t.kind==='video'?'camera':'mic-'+i)||[]}});
+ });
  channel.on('broadcast',{event:'publication'},async({payload})=>{
   if(!payload||!payload.sessionId||!Array.isArray(payload.tracks)||payload.sessionId===pubSession)return;
   try{await subscribe(payload)}catch(e){log('Abonnement feilet: '+e.message)}
@@ -80,6 +83,7 @@ async function join(){
   channel.subscribe(status=>{if(status==='SUBSCRIBED')resolve();if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')reject(Error('Realtime-kanal feilet'))});
  });
  log('Koblet til testrom – venter på motstander');
+ await channel.send({type:'broadcast',event:'request-publication',payload:{}});
 }
 async function subscribe(publication){
  if(subscriber){subscriber.close();subscriber=null;}
@@ -113,6 +117,7 @@ async function start(){
  log('Kamera publisert til test-SFU');
  await channel.send({type:'broadcast',event:'publication',payload:{sessionId:pubSession,tracks:names.map(x=>x.trackName)}});
  log('Publisering sendt til motspiller');
+ await channel.send({type:'broadcast',event:'request-publication',payload:{}});
 }
 function stop(){
  stream?.getTracks().forEach(t=>t.stop());stream=null;
