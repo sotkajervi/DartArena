@@ -49,7 +49,7 @@ test('expired sessions denied',async()=>{store.set('s:'+session1,{owner:id1,crea
 test('tournament access denied even when membership RPC would allow it',async()=>{const before=logs.length;const r=await worker.fetch(req('/api/sfu/session',undefined,{'X-DartArena-Room-Kind':'tournament_match'}),env);assert.equal(r.status,403);assert.equal(logs.length,before)});
 test('malformed publish does not reach Cloudflare',async()=>{store.set('s:'+session1,{owner:id1,createdAt:Date.now(),published:[]});const before=logs.length;const r=await worker.fetch(req('/api/sfu/publish',{sessionId:session1,sessionDescription:{type:'offer',sdp:''},tracks:[{location:'local',mid:'0',trackName:'camera'}]}),env);assert.equal(r.status,400);assert.equal(logs.length,before)});
 
-test('unauthenticated user cannot subscribe to another session',async()=>{
+test('non-member cannot subscribe to another session',async()=>{
  const previous=authorizedUser;authorizedUser=id2;
  const before=logs.length;
  allow=false;
