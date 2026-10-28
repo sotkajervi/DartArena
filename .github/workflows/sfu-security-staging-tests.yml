@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'cloudflare/sfu-security.test.mjs'
+      - 'cloudflare/sfu-config.test.mjs'
+      - 'cloudflare/wrangler.staging.example.jsonc'
       - 'cloudflare/dartarena-realtime.staging.js'
       - '.github/workflows/sfu-security-staging-tests.yml'
   workflow_dispatch:
@@ -20,4 +22,4 @@ jobs:
       - name: Verify Node runtime
         run: node --version
       - name: Run isolated SFU security tests
-        run: node --test cloudflare/sfu-security.test.mjs
+        run: node --test cloudflare/sfu-security.test.mjs cloudflare/sfu-config.test.mjs
