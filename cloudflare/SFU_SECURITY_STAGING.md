@@ -98,3 +98,10 @@ if tests fail.
 - IMPORTANT: These checks do NOT prove authorized live browser users can use the RPC. Real-user positive/negative authorization and end-to-end media tests remain pending.
 - Production Worker `dartarena-realtime` is unchanged; isolated test Worker still runs bootstrap (`mediaEnabled:false`). No full video gateway deployment performed.
 - Reversal if required: `DROP FUNCTION IF EXISTS public.can_access_sfu_room(text,uuid,text);` (only after verifying no new callers depend on it).
+
+## Auth-only diagnostic gate (2026-10-28)
+- Staging Worker now exposes POST /api/sfu/access-check: verifies live Supabase JWT and existing room RPC without calling Cloudflare SFU.
+- Wrangler staging config explicitly specifies SFU_MEDIA_ENABLED='false' and retains keep_vars=true. All actual media endpoints fail closed with 503 while this gate is off.
+- A separate GitHub Actions job targets only dartarena-realtime-security-test and uses protected cloudflare-security-test environment approval; it is triggered solely by a staging branch push commit containing [deploy-sfu-auth-probe].
+- Before approving, verify the test job succeeds. The deployment replaces the test Worker's bootstrap code with auth-only diagnostic code, not the production Worker. Neither production Worker nor GitHub main changes.
+- After deployment, validate authenticated positive/negative access in a real active standard room. Only thereafter can a separate staging media enablement be considered.
