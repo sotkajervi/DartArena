@@ -119,3 +119,7 @@ if tests fail.
 - GitHub test run https://github.com/sotkajervi/DartArena/actions/runs/40665704417 passed before deployment request.
 - To publish to existing isolated staging Worker only, the protected workflow below requires explicit environment reviewer approval. Video usage may incur ordinary Cloudflare usage fees.
 - Roll back by deploying `cloudflare/wrangler.staging.example.jsonc` after approval to restore media disabled.
+
+## Isolated test UI origin fix
+- Added the exact test Worker origin to allowlist. No wildcard origins. Browser reported 403 Origin not allowed from same-origin /video-test.
+- After passing tests, redeploy only isolated media-test Worker via approval gate. Production unchanged.
