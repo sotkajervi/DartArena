@@ -65,6 +65,13 @@ export class SfuRoom extends DurableObject {
     // This Durable Object is callable only through the Worker binding, not a public route.
     const {userId,path,method,body}=await request.json();
     if(!validId(userId))return json({ok:false,error:'Invalid user'},401);
+    const now=Date.now();
+    const rateKey='rate:'+userId;
+    const prior=await this.ctx.storage.get(rateKey);
+    const rate=prior&&now-prior.since<60000?prior:{since:now,count:0};
+    if(rate.count>=120)return json({ok:false,error:'Too many SFU operations'},429);
+    rate.count+=1;
+    await this.ctx.storage.put(rateKey,rate);
     const env=this.env;
     if(!env.REALTIME_SFU_APP_ID||!env.REALTIME_SFU_BEARER_TOKEN)return json({ok:false,error:'SFU unavailable'},503);
     if(path==='/api/sfu/session'&&method==='POST'){
