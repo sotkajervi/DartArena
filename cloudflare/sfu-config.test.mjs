@@ -17,7 +17,7 @@ test('Durable Object binding and SQLite migration match',()=>{
   assert.deepEqual(config.migrations,[{tag:'sfu-security-test-v1',new_sqlite_classes:['SfuRoom']}]);
 });
 test('config contains no embedded SFU credentials',()=>{
-  assert.equal(Object.hasOwn(config,'vars'),false);
+  assert.deepEqual(config.vars,{SFU_MEDIA_ENABLED:'false'});
   assert.equal(JSON.stringify(config).includes('REALTIME_SFU_BEARER_TOKEN'),false);
 });
 
