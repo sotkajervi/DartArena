@@ -4,6 +4,9 @@ on:
     paths:
       - 'cloudflare/sfu-security.test.mjs'
       - 'cloudflare/sfu-config.test.mjs'
+      - 'cloudflare/sfu-bootstrap-safe.test.mjs'
+      - 'cloudflare/sfu-bootstrap-safe.js'
+      - 'cloudflare/wrangler.bootstrap.jsonc'
       - 'cloudflare/wrangler.staging.example.jsonc'
       - 'cloudflare/dartarena-realtime.staging.js'
       - '.github/workflows/sfu-security-staging-tests.yml'
@@ -22,6 +25,8 @@ jobs:
       - name: Verify Node runtime
         run: node --version
       - name: Run isolated SFU security tests
-        run: node --test cloudflare/sfu-security.test.mjs cloudflare/sfu-config.test.mjs
+        run: node --test cloudflare/sfu-security.test.mjs cloudflare/sfu-config.test.mjs cloudflare/sfu-bootstrap-safe.test.mjs
       - name: Wrangler compile-only validation (no upload)
         run: npx --yes wrangler@4.45.0 deploy --dry-run --config cloudflare/wrangler.staging.example.jsonc --outdir /tmp/dartarena-sfu-dryrun
+      - name: Wrangler safe bootstrap compile only (no upload)
+        run: npx --yes wrangler@4.45.0 deploy --dry-run --config cloudflare/wrangler.bootstrap.jsonc --outdir /tmp/dartarena-bootstrap-dryrun
