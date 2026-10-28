@@ -21,7 +21,7 @@ let allow=true;
 let rpcStatus=200;
 let authStatus=200;
 let authorizedUser=id1;
-const sandbox={Request,Response,Headers,URL,TextEncoder,Date,Set,JSON,Number,encodeURIComponent,console,fetch:async (url,opts={})=>{
+const sandbox={Request,Response,Headers,URL,TextEncoder,TextDecoder,Date,Set,JSON,Number,encodeURIComponent,console,fetch:async (url,opts={})=>{
  const u=String(url);
  if(u.includes('/auth/v1/user'))return new Response(JSON.stringify(authStatus===200?{id:authorizedUser}:{error:'auth unavailable'}),{status:authStatus});
  if(u.includes('/rest/v1/rpc/can_access_sfu_room'))return new Response(JSON.stringify(rpcStatus===200?allow:{error:'rpc unavailable'}),{status:rpcStatus});
@@ -89,4 +89,18 @@ test('expired or invalid Supabase token denies access before contacting SFU',asy
   assert.equal(r.status,401);
   assert.equal(logs.length,before);
  }finally{authStatus=200}
+});
+
+test('oversized streamed publish body is rejected before contacting SFU',async()=>{
+ const before=logs.length;
+ const oversized='x'.repeat(256*1024+1);
+ const request=new Request('https://test.example/api/sfu/publish',{
+  method:'POST',
+  headers:{Origin:'https://sotkajervi.github.io',Authorization:'Bearer test',
+   'X-DartArena-Room-Kind':'match','X-DartArena-Room-Id':room1},
+  body:JSON.stringify({sessionId:session1,padding:oversized})
+ });
+ const response=await worker.fetch(request,env);
+ assert.equal(response.status,400);
+ assert.equal(logs.length,before);
 });
