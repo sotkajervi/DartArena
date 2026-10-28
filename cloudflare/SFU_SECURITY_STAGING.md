@@ -55,3 +55,9 @@ if tests fail.
 - Fixed a malformed `ELSIF` in the staging SQL, keeping tournament access denied.
 - Read-only database inspection confirmed expected challenge and match columns exist, but observed challenge statuses include `accepted`, `cancelled`, `declined`; the draft assumes `room`. Match records observed `cancelled` and `finished`, not draft's `waiting`/`playing`. Live in-progress statuses must be verified against real application transitions.
 - Thus authorization RPC remains **unapplied**, and video testing/deployment are **blocked** until room lifecycle authorization, test accounts and negative tests are verified. Never apply this prototype to the production Worker.
+
+## Application lifecycle cross-check (2026-10-28)
+- `room.js` explicitly requires challenge `status === 'room'` on entry and cancels from `room`. The historical `accepted` rows do **not** authorize video access; do not broaden the predicate to accepted.
+- `match.js` allows score/video operation while match `status === 'playing'` and terminates on `finished` or `cancelled`. Staging SQL now restricts match video permission to `playing` (not unverified `waiting`).
+- Database metadata and historical status counts inspected read-only. Current staging SQL is still NOT deployed: live authenticated allow/deny tests and security model review are prerequisites.
+- PR #85 also needs end-to-end tests for publication/session ownership, unauthorized accounts, large bodies, browser CORS, retries and session expiry before test Worker deployment.
