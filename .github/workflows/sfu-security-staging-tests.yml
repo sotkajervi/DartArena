@@ -6,6 +6,8 @@ on:
       - 'cloudflare/sfu-security.test.mjs'
       - 'cloudflare/sfu-authorization-contract.test.mjs'
       - 'cloudflare/can-access-sfu-room.staging.sql'
+      - 'cloudflare/sfu-authorization-pg-fixture.sql'
+      - 'cloudflare/sfu-authorization-pg-assert.sql'
       - 'cloudflare/sfu-config.test.mjs'
       - 'cloudflare/sfu-bootstrap-safe.test.mjs'
       - 'cloudflare/sfu-bootstrap-safe.js'
@@ -23,7 +25,20 @@ jobs:
   staging-security:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: testing-only
+          POSTGRES_DB: sfutest
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sfutest"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,6 +47,13 @@ jobs:
         run: node --version
       - name: Run isolated SFU security tests
         run: node --test cloudflare/sfu-security.test.mjs cloudflare/sfu-config.test.mjs cloudflare/sfu-bootstrap-safe.test.mjs cloudflare/sfu-authorization-contract.test.mjs
+      - name: Execute SQL authorization scenarios in ephemeral PostgreSQL (no Supabase calls)
+        env:
+          PGPASSWORD: testing-only
+        run: |
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d sfutest -f cloudflare/sfu-authorization-pg-fixture.sql
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d sfutest -f cloudflare/can-access-sfu-room.staging.sql
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d sfutest -f cloudflare/sfu-authorization-pg-assert.sql
       - name: Wrangler compile-only validation (no upload)
         run: npx --yes wrangler@4.45.0 deploy --dry-run --config cloudflare/wrangler.staging.example.jsonc --outdir /tmp/dartarena-sfu-dryrun
       - name: Wrangler safe bootstrap compile only (no upload)
