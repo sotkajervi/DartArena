@@ -39,8 +39,16 @@ BEGIN
     );
   END IF;
 
-  -- Tournament waiting rooms and spectator permissions need a verified
-  -- model of their state and must remain denied in this initial draft.
+  ELSIF p_kind = 'tournament_match' THEN
+    RETURN EXISTS (
+      SELECT 1 FROM public.tournament_matches tm
+      WHERE tm.id = p_room_id
+        AND tm.status IN ('pending','ready','playing')
+        AND v_uid IN (tm.player1_id, tm.player2_id)
+    );
+  END IF;
+
+  -- Spectator permissions intentionally remain denied.
   RETURN false;
 END;
 $$;
