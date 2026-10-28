@@ -40,3 +40,11 @@ match/room authorization. CORS is not an authentication or authorization mechani
 The existing production Worker configuration and GitHub `main` have not been
 changed by this branch. Discard the staging Worker and revert or close the draft PR
 if tests fail.
+
+## 2026-10-28 staged room gateway implementation
+- The prototype now passes Supabase JWT + room kind/id and checks the room permission RPC before routing SFU operations.
+- A Durable Object named per room persists SFU session ownership and publication metadata, and rejects cross-room and cross-user session references.
+- New Cloudflare binding required: `SFU_ROOMS` to SQLite-backed Durable Object `SfuRoom` (see Cloudflare current Durable Objects migration docs). This is NOT configured in production.
+- All tournament waiting-room calls are intentionally denied until correct context and membership are verified. No production Worker or database migration has been applied.
+- IMPORTANT: Existing staged `can_access_sfu_room` SQL is only a draft and has not been tested with actual live room statuses; verify challenge/match statuses during a live match before applying it. Verify SFU `sessionId` formats against actual responses.
+- Do not deploy staging code without a runnable test environment, rate limits, careful validation and integration tests for legitimate and forbidden room/session combinations.
