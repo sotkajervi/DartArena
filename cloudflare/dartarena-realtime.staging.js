@@ -144,7 +144,7 @@ export default {
     const path=new URL(request.url).pathname;
     if(path==='/health'&&request.method==='GET')return json({ok:true,service:'DartArena Realtime'},200,cors);
     if(!env.SUPABASE_URL||!env.SUPABASE_PUBLISHABLE_KEY||!env.SFU_ROOMS)return json({ok:false,error:'Security configuration unavailable'},503,cors);
-    if(!['/api/sfu/session','/api/sfu/publish','/api/sfu/subscribe','/api/sfu/renegotiate'].includes(path))return json({ok:false,error:'Not found'},404,cors);
+    if(!['/api/sfu/access-check','/api/sfu/session','/api/sfu/publish','/api/sfu/subscribe','/api/sfu/renegotiate'].includes(path))return json({ok:false,error:'Not found'},404,cors);
     const method=path==='/api/sfu/renegotiate'?'PUT':'POST';
     if(request.method!==method)return json({ok:false,error:'Method not allowed'},405,cors);
     const kind=request.headers.get('X-DartArena-Room-Kind');
@@ -158,6 +158,10 @@ export default {
     try{authorized=await isRoomMember(env,user.authorization,kind,roomId,action)}
     catch{return json({ok:false,error:'Room authorization unavailable'},503,cors)}
     if(!authorized)return json({ok:false,error:'Room access denied'},403,cors);
+    // Diagnostic-only endpoint: verifies real Supabase auth/RLS, never creates a media session.
+    if(path==='/api/sfu/access-check')return json({ok:true,authorized:true,mediaEnabled:false},200,cors);
+    // Safe staging default: an explicit environment opt-in is required before any SFU call.
+    if(env.SFU_MEDIA_ENABLED!=='true')return json({ok:false,error:'SFU media disabled in staging'},503,cors);
     const body=path==='/api/sfu/session'?undefined:await parseBody(request);
     if(path!=='/api/sfu/session'&&(!body||typeof body!=='object'))return json({ok:false,error:'Invalid body'},400,cors);
     // Tournament authorization is not implemented: reject it before calling the RPC.
