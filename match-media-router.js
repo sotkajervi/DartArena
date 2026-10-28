@@ -95,7 +95,7 @@
 
   // Explicit preview-only switch. This preserves Zoom-cam because the SFU
   // module publishes the stream already selected and processed in match.js.
-  if(new URLSearchParams(location.search).get('sfuSecurityTest')==='1'){
+  if(location.hostname==='dartarena-sfu-preview.sotkajervi.workers.dev'||new URLSearchParams(location.search).get('sfuSecurityTest')==='1'){
     loadSfu('sfu');
     return;
   }
