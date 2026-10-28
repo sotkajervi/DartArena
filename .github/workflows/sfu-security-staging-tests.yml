@@ -60,9 +60,9 @@ jobs:
           psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d sfutest -f cloudflare/can-access-sfu-room.staging.sql
           psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d sfutest -f cloudflare/sfu-authorization-pg-assert.sql
       - name: Wrangler compile-only validation (no upload)
-        run: npx --yes wrangler@4.45.0 deploy --dry-run --config cloudflare/wrangler.staging.example.jsonc --outdir /tmp/dartarena-sfu-dryrun
+        run: timeout 90s env WRANGLER_SEND_METRICS=false npx --yes wrangler@4.45.0 deploy --dry-run --config cloudflare/wrangler.staging.example.jsonc --outdir /tmp/dartarena-sfu-dryrun
       - name: Wrangler safe bootstrap compile only (no upload)
-        run: npx --yes wrangler@4.45.0 deploy --dry-run --config cloudflare/wrangler.bootstrap.jsonc --outdir /tmp/dartarena-bootstrap-dryrun
+        run: timeout 90s env WRANGLER_SEND_METRICS=false npx --yes wrangler@4.45.0 deploy --dry-run --config cloudflare/wrangler.bootstrap.jsonc --outdir /tmp/dartarena-bootstrap-dryrun
       - name: Live authenticated-gateway rejection smoke test (read-only)
         shell: bash
         run: |
