@@ -1,6 +1,7 @@
 -- Offline PostgreSQL fixture, run only in an ephemeral GitHub Actions service.
 CREATE SCHEMA auth;
 CREATE ROLE authenticated NOLOGIN;
+CREATE ROLE anon NOLOGIN;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
  SELECT NULLIF(current_setting('request.jwt.claim.sub', true),'')::uuid
 $$;
