@@ -1,0 +1,32 @@
+-- Runs as authenticated role against a disposable local PostgreSQL instance.
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',false);
+DO $$
+BEGIN
+ IF NOT public.can_access_sfu_room('challenge','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','publish') THEN RAISE EXCEPTION 'A challenge denied'; END IF;
+ IF NOT public.can_access_sfu_room('match','cccccccc-cccc-4ccc-8ccc-cccccccccccc','subscribe') THEN RAISE EXCEPTION 'A match denied'; END IF;
+ IF public.can_access_sfu_room('challenge','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','publish') THEN RAISE EXCEPTION 'Closed challenge allowed'; END IF;
+ IF public.can_access_sfu_room('match','dddddddd-dddd-4ddd-8ddd-dddddddddddd','publish') THEN RAISE EXCEPTION 'Finished match allowed'; END IF;
+ IF public.can_access_sfu_room('match','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','publish') THEN RAISE EXCEPTION 'Deleted match allowed'; END IF;
+ IF public.can_access_sfu_room('tournament_match','cccccccc-cccc-4ccc-8ccc-cccccccccccc','subscribe') THEN RAISE EXCEPTION 'Tournament allowed'; END IF;
+ IF public.can_access_sfu_room('match','cccccccc-cccc-4ccc-8ccc-cccccccccccc','invalid') THEN RAISE EXCEPTION 'Invalid action allowed'; END IF;
+END $$;
+SELECT set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',false);
+DO $$
+BEGIN
+ IF NOT public.can_access_sfu_room('challenge','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','subscribe') THEN RAISE EXCEPTION 'B challenge denied'; END IF;
+ IF NOT public.can_access_sfu_room('match','cccccccc-cccc-4ccc-8ccc-cccccccccccc','publish') THEN RAISE EXCEPTION 'B match denied'; END IF;
+END $$;
+SELECT set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',false);
+DO $$
+BEGIN
+ IF public.can_access_sfu_room('challenge','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','publish') THEN RAISE EXCEPTION 'Unrelated C challenge allowed'; END IF;
+ IF public.can_access_sfu_room('match','cccccccc-cccc-4ccc-8ccc-cccccccccccc','subscribe') THEN RAISE EXCEPTION 'Unrelated C match allowed'; END IF;
+END $$;
+SELECT set_config('request.jwt.claim.sub','',false);
+DO $$
+BEGIN
+ IF public.can_access_sfu_room('challenge','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','subscribe') THEN RAISE EXCEPTION 'Anonymous access allowed'; END IF;
+END $$;
+RESET ROLE;
+SELECT 'PASS: 12 SQL authorization assertions' AS result;
