@@ -104,3 +104,15 @@ test('oversized streamed publish body is rejected before contacting SFU',async()
  assert.equal(response.status,400);
  assert.equal(logs.length,before);
 });
+
+test('Durable Object binding lookup failure returns controlled 503',async()=>{
+ const previous=env.SFU_ROOMS;
+ const before=logs.length;
+ env.SFU_ROOMS={getByName(){throw new Error('Durable Object unavailable')}};
+ try {
+  const response=await worker.fetch(req('/api/sfu/session'),env);
+  assert.equal(response.status,503);
+  assert.equal((await response.json()).error,'Session service unavailable');
+  assert.equal(logs.length,before);
+ } finally {env.SFU_ROOMS=previous}
+});
