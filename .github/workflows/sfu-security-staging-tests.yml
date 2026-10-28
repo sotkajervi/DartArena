@@ -35,7 +35,6 @@ jobs:
       - name: Wrangler safe bootstrap compile only (no upload)
         run: npx --yes wrangler@4.45.0 deploy --dry-run --config cloudflare/wrangler.bootstrap.jsonc --outdir /tmp/dartarena-bootstrap-dryrun
       - name: Live bootstrap smoke test (read-only, no deployment)
-        if: github.event_name == 'push'
         shell: bash
         run: |
           node --input-type=module <<'NODE'
