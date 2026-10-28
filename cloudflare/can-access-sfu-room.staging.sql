@@ -33,7 +33,7 @@ BEGIN
     RETURN EXISTS (
       SELECT 1 FROM public.matches m
       WHERE m.id = p_room_id
-        AND m.status = 'active'
+        AND m.status IN ('waiting','playing')
         AND m.deleted_at IS NULL
         AND v_uid IN (m.player1_id, m.player2_id)
     );
