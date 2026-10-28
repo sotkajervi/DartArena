@@ -1,6 +1,7 @@
 name: SFU staging security tests
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     paths:
       - 'cloudflare/sfu-security.test.mjs'
       - 'cloudflare/sfu-config.test.mjs'
@@ -30,3 +31,39 @@ jobs:
         run: npx --yes wrangler@4.45.0 deploy --dry-run --config cloudflare/wrangler.staging.example.jsonc --outdir /tmp/dartarena-sfu-dryrun
       - name: Wrangler safe bootstrap compile only (no upload)
         run: npx --yes wrangler@4.45.0 deploy --dry-run --config cloudflare/wrangler.bootstrap.jsonc --outdir /tmp/dartarena-bootstrap-dryrun
+
+  bootstrap-approval:
+    name: Bootstrap isolated Cloudflare test Worker (approval required)
+    needs: staging-security
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'approve-sfu-test-bootstrap' &&
+      github.event.pull_request.number == 85 &&
+      github.event.pull_request.head.ref == 'security/sfu-auth-staging-20261028' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    environment: cloudflare-security-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify target and fail-closed bootstrap
+        run: |
+          node --test cloudflare/sfu-bootstrap-safe.test.mjs
+          node - <<'NODE'
+          const fs = require('fs');
+          const config = JSON.parse(fs.readFileSync('cloudflare/wrangler.bootstrap.jsonc','utf8').replace(/^\s*\/\/.*$/gm,''));
+          if(config.name!=='dartarena-realtime-security-test'||config.keep_vars!==true||config.main!=='sfu-bootstrap-safe.js') process.exit(1);
+          if(config.durable_objects?.bindings?.[0]?.name!=='SFU_ROOMS'||config.durable_objects.bindings[0].class_name!=='SfuRoom')process.exit(1);
+          if(config.migrations?.[0]?.new_sqlite_classes?.[0]!=='SfuRoom')process.exit(1);
+          NODE
+      - name: Deploy bootstrap only after environment approval
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --yes wrangler@4.45.0 deploy --config cloudflare/wrangler.bootstrap.jsonc
