@@ -83,3 +83,10 @@ if tests fail.
 - The production Worker `dartarena-realtime`, production GitHub `main`, and live Supabase database were not changed.
 - Gate remains CLOSED for video deployment: verify production Cloudflare test-Worker settings preserved after Wrangler takeover; set up a safe real-user auth/RPC integration path without altering active rooms; then test media flows and rollback.
 - Cost restriction: do not create a paid Supabase branch without separate approval.
+
+## Verified readiness checkpoint: run #70
+- GitHub Actions https://github.com/sotkajervi/DartArena/actions/runs/40662432276 succeeded, including SQL assertions, simulated Worker/client tests, and live fail-closed bootstrap HTTP checks.
+- The full staging Wrangler configuration now sets `keep_vars: true` and is restricted to `dartarena-realtime-security-test`.
+- Current deployed code is bootstrap ONLY (`mediaEnabled:false`); full staging Worker has not been deployed and production remains untouched.
+- Blocking dependency: the authorization RPC is absent from live Supabase. Do not deploy the media-enabled Worker before authenticated room authorization is available and verified.
+- Cost constraint: no paid Supabase branch. Possible next approach requires explicit separate authorization for a narrowly scoped additive RPC on the existing database, with a rollback plan; do not assume this is approved.
