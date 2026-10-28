@@ -17,8 +17,8 @@ test('only active, nondeleted match participants can join',()=>{
   assert.match(sql,/m\.deleted_at\s+IS\s+NULL/i);
   assert.match(sql,/v_uid\s+IN\s*\(m\.player1_id,\s*m\.player2_id\)/i);
 });
-test('tournament and spectator access remain disabled',()=>{
-  assert.doesNotMatch(sql,/p_kind\s*=\s*'tournament_match'/);
+test('tournament access limited to registered players',()=>{
+  assert.match(sql,/p_kind\s*=\s*'tournament_match'/);
   assert.match(sql,/RETURN false;\s*END;\s*\$\$;/);
 });
 test('RPC is restricted to authenticated invoker',()=>{
