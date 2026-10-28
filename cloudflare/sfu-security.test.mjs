@@ -148,3 +148,12 @@ test('video test page is isolated and not a media API',async()=>{
  assert.match(response.headers.get('content-type'),/text\/html/);
  assert.match(await response.text(),/Isolated video test/);
 });
+
+test('exact isolated Worker origin is allowed for video test',async()=>{
+ const response=await worker.fetch(req('/api/sfu/access-check',undefined,{Origin:'https://dartarena-realtime-security-test.sotkajervi.workers.dev'}),env);
+ assert.equal(response.status,200);
+});
+test('lookalike Worker origin remains forbidden',async()=>{
+ const response=await worker.fetch(req('/api/sfu/access-check',undefined,{Origin:'https://dartarena-realtime-security-test.sotkajervi.workers.dev.evil.example'}),env);
+ assert.equal(response.status,403);
+});
