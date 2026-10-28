@@ -48,3 +48,10 @@ if tests fail.
 - All tournament waiting-room calls are intentionally denied until correct context and membership are verified. No production Worker or database migration has been applied.
 - IMPORTANT: Existing staged `can_access_sfu_room` SQL is only a draft and has not been tested with actual live room statuses; verify challenge/match statuses during a live match before applying it. Verify SFU `sessionId` formats against actual responses.
 - Do not deploy staging code without a runnable test environment, rate limits, careful validation and integration tests for legitimate and forbidden room/session combinations.
+
+## 2026-10-28 test configuration verification
+- Separate config `wrangler.staging.example.jsonc` targets `dartarena-realtime-security-test`, with `SFU_ROOMS` bound to SQLite Durable Object class `SfuRoom` using migration tag `sfu-security-test-v1`.
+- Configuration JSON structure and binding/migration names checked. **Cloudflare migration has not been executed**; no Cloudflare Worker has been deployed.
+- Fixed a malformed `ELSIF` in the staging SQL, keeping tournament access denied.
+- Read-only database inspection confirmed expected challenge and match columns exist, but observed challenge statuses include `accepted`, `cancelled`, `declined`; the draft assumes `room`. Match records observed `cancelled` and `finished`, not draft's `waiting`/`playing`. Live in-progress statuses must be verified against real application transitions.
+- Thus authorization RPC remains **unapplied**, and video testing/deployment are **blocked** until room lifecycle authorization, test accounts and negative tests are verified. Never apply this prototype to the production Worker.
