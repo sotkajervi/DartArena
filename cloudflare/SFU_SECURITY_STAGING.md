@@ -90,3 +90,11 @@ if tests fail.
 - Current deployed code is bootstrap ONLY (`mediaEnabled:false`); full staging Worker has not been deployed and production remains untouched.
 - Blocking dependency: the authorization RPC is absent from live Supabase. Do not deploy the media-enabled Worker before authenticated room authorization is available and verified.
 - Cost constraint: no paid Supabase branch. Possible next approach requires explicit separate authorization for a narrowly scoped additive RPC on the existing database, with a rollback plan; do not assume this is approved.
+
+## Live Supabase RPC checkpoint (2026-10-28)
+- User authorized proceeding without a paid test branch. Added `public.can_access_sfu_room(text,uuid,text)` to the EXISTING Supabase production database (additive function; no table/row updates), after verifying it was absent and both base tables have RLS enabled.
+- Uses SECURITY INVOKER and `auth.uid()`. Allows only `challenge` status `room` participants or `match` status `playing` non-deleted participants. Tournament and spectator access still denied.
+- Read-only post-apply verification: function exists; `anon` execute = false; `authenticated` execute = true; SECURITY DEFINER = false; unauthenticated lookup returned false.
+- IMPORTANT: These checks do NOT prove authorized live browser users can use the RPC. Real-user positive/negative authorization and end-to-end media tests remain pending.
+- Production Worker `dartarena-realtime` is unchanged; isolated test Worker still runs bootstrap (`mediaEnabled:false`). No full video gateway deployment performed.
+- Reversal if required: `DROP FUNCTION IF EXISTS public.can_access_sfu_room(text,uuid,text);` (only after verifying no new callers depend on it).
