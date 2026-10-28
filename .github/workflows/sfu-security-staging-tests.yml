@@ -183,3 +183,72 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           npx --yes wrangler@4.45.0 deploy --config cloudflare/wrangler.media-test.jsonc
+
+  frontend-preview-approval:
+    name: Publish separate DartArena SFU preview (approval required)
+    needs: staging-security
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/security/sfu-auth-staging-20261028' &&
+      contains(github.event.head_commit.message, '[deploy-sfu-preview]')
+    environment: cloudflare-security-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Assemble public frontend files only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess, shutil
+          root=Path.cwd()
+          dest=root/'preview-dist'
+          dest.mkdir(exist_ok=True)
+          allowed={'.html','.css','.js','.png','.jpg','.jpeg','.webp','.gif','.svg','.ico','.webmanifest','.json','.woff','.woff2','.ttf','.wasm','.tflite','.mp3','.wav','.ogg'}
+          excluded={'cloudflare','.github','supabase','node_modules','tests','test','.git'}
+          paths=subprocess.check_output(['git','ls-files','-z']).split(b'\\0')
+          count=0
+          for raw in paths:
+              if not raw: continue
+              path=Path(raw.decode())
+              if set(path.parts)&excluded or path.suffix.lower() not in allowed: continue
+              if any(x in path.name.lower() for x in ('.env','secret','credential','private-key')): continue
+              source=root/path
+              if not source.is_file(): continue
+              target=dest/path
+              target.parent.mkdir(parents=True,exist_ok=True)
+              shutil.copyfile(source,target)
+              count+=1
+          if not (dest/'index.html').exists() or not (dest/'room.html').exists() or not (dest/'match.html').exists():
+              raise SystemExit('Missing essential frontend pages')
+          if not (dest/'sfu-config.js').exists(): raise SystemExit('Missing SFU configuration')
+          print('Preview public frontend files:',count)
+          PY
+      - name: Verify deployment targets
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const strip=x=>JSON.parse(fs.readFileSync(x,'utf8').replace(/^\\s*\\/\\/.*$/gm,''));
+          const frontend=strip('cloudflare/wrangler.frontend-preview.jsonc');
+          const media=strip('cloudflare/wrangler.media-test.jsonc');
+          if(frontend.name!=='dartarena-sfu-preview'||frontend.assets?.directory!=='../preview-dist')process.exit(1);
+          if(media.name!=='dartarena-realtime-security-test'||media.keep_vars!==true||media.vars?.SFU_MEDIA_ENABLED!=='true')process.exit(1);
+          const client=fs.readFileSync('preview-dist/sfu-config.js','utf8');
+          if(!client.includes('dartarena-sfu-preview.sotkajervi.workers.dev'))process.exit(1);
+          NODE
+      - name: Deploy isolated authorized media API (preserve test secrets)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --yes wrangler@4.45.0 deploy --config cloudflare/wrangler.media-test.jsonc
+      - name: Deploy isolated frontend preview
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.45.0 deploy --config cloudflare/wrangler.frontend-preview.jsonc
