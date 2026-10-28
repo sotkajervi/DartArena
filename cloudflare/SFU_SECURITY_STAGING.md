@@ -127,3 +127,6 @@ if tests fail.
 ## Video session 401 diagnostic
 - Test page reported Unauthorized after both users passed room access. Added endpoint/status and upstream-vs-gateway error classification, without logging or exposing auth tokens. This does not claim the SFU credentials are wrong until verified.
 - Deploy only after passing CI and explicit protected test-Worker approval. Production Worker stays untouched.
+
+## Tournament media test checkpoint
+Tournament waiting-room clients send tournament_match and their match ID. Pending-match participant permission is separately checked by Supabase before an SFU session is created. This staging change is not production-ready; verify two actual players and nonparticipant denial before promotion.
