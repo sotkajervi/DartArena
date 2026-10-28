@@ -1,6 +1,8 @@
 -- STAGING DESIGN ONLY: NOT applied to the database.
 -- This function must be validated against actual room statuses and RLS before use.
 -- Tournament rooms and spectators intentionally fail closed.
+-- Verified against room.js (challenge status 'room') and match.js ('playing').
+-- Historical database rows alone do not establish whether a live room is active.
 CREATE OR REPLACE FUNCTION public.can_access_sfu_room(
     p_kind text,
     p_room_id uuid,
@@ -31,7 +33,7 @@ BEGIN
     RETURN EXISTS (
       SELECT 1 FROM public.matches m
       WHERE m.id = p_room_id
-        AND m.status IN ('waiting','playing')
+        AND m.status = 'playing'
         AND m.deleted_at IS NULL
         AND v_uid IN (m.player1_id, m.player2_id)
     );
