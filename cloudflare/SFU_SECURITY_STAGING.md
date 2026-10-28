@@ -123,3 +123,7 @@ if tests fail.
 ## Isolated test UI origin fix
 - Added the exact test Worker origin to allowlist. No wildcard origins. Browser reported 403 Origin not allowed from same-origin /video-test.
 - After passing tests, redeploy only isolated media-test Worker via approval gate. Production unchanged.
+
+## Video session 401 diagnostic
+- Test page reported Unauthorized after both users passed room access. Added endpoint/status and upstream-vs-gateway error classification, without logging or exposing auth tokens. This does not claim the SFU credentials are wrong until verified.
+- Deploy only after passing CI and explicit protected test-Worker approval. Production Worker stays untouched.
