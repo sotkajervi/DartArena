@@ -43,7 +43,7 @@
   }
 
   // Explicit preview-only switch, never the default for normal players.
-  if(new URLSearchParams(location.search).get('sfuSecurityTest')==='1'){
+  if(location.hostname==='dartarena-sfu-preview.sotkajervi.workers.dev'||new URLSearchParams(location.search).get('sfuSecurityTest')==='1'){
     loadFallback();
     return;
   }
