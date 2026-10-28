@@ -19,6 +19,15 @@ INSERT INTO matches VALUES
  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc','playing',NULL,'11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222'),
  ('dddddddd-dddd-4ddd-8ddd-dddddddddddd','finished',NULL,'11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222'),
  ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','playing',now(),'11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222');
+CREATE TABLE public.tournament_matches (
+ id uuid PRIMARY KEY, status text NOT NULL, player1_id uuid, player2_id uuid
+);
+INSERT INTO tournament_matches VALUES
+ ('ffffffff-ffff-4fff-8fff-ffffffffffff','pending','11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222'),
+ ('99999999-9999-4999-8999-999999999999','finished','11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222');
+ALTER TABLE tournament_matches ENABLE ROW LEVEL SECURITY;
+GRANT SELECT ON tournament_matches TO authenticated;
+CREATE POLICY tournament_match_read ON tournament_matches FOR SELECT TO authenticated USING (true);
 ALTER TABLE challenges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE matches ENABLE ROW LEVEL SECURITY;
 GRANT USAGE ON SCHEMA public,auth TO authenticated;
