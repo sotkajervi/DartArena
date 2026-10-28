@@ -18,11 +18,13 @@ const logs=[];
 const store=new Map();
 const env={SUPABASE_URL:'https://example.supabase.co',SUPABASE_PUBLISHABLE_KEY:'public-test-key',REALTIME_SFU_APP_ID:'test-app',REALTIME_SFU_BEARER_TOKEN:'test-only-secret'};
 let allow=true;
+let rpcStatus=200;
+let authStatus=200;
 let authorizedUser=id1;
 const sandbox={Request,Response,Headers,URL,TextEncoder,Date,Set,JSON,Number,encodeURIComponent,console,fetch:async (url,opts={})=>{
  const u=String(url);
- if(u.includes('/auth/v1/user'))return new Response(JSON.stringify({id:authorizedUser}),{status:200});
- if(u.includes('/rest/v1/rpc/can_access_sfu_room'))return new Response(JSON.stringify(allow),{status:200});
+ if(u.includes('/auth/v1/user'))return new Response(JSON.stringify(authStatus===200?{id:authorizedUser}:{error:'auth unavailable'}),{status:authStatus});
+ if(u.includes('/rest/v1/rpc/can_access_sfu_room'))return new Response(JSON.stringify(rpcStatus===200?allow:{error:'rpc unavailable'}),{status:rpcStatus});
  logs.push(u);
  if(u.endsWith('/sessions/new'))return new Response(JSON.stringify({sessionId:session1}),{status:200});
  return new Response(JSON.stringify({sessionDescription:{type:'answer',sdp:'v=0'}}),{status:200});
@@ -70,4 +72,21 @@ test('invalid room kind denied before authenticating or calling SFU',async()=>{
  const r=await worker.fetch(req('/api/sfu/session',undefined,{'X-DartArena-Room-Kind':'spectator'}),env);
  assert.equal(r.status,403);
  assert.equal(logs.length,before);
+});
+
+test('Supabase RPC failure denies access before contacting SFU',async()=>{
+ const before=logs.length;rpcStatus=500;
+ try{
+  const r=await worker.fetch(req('/api/sfu/session'),env);
+  assert.equal(r.status,403);
+  assert.equal(logs.length,before);
+ }finally{rpcStatus=200}
+});
+test('expired or invalid Supabase token denies access before contacting SFU',async()=>{
+ const before=logs.length;authStatus=401;
+ try{
+  const r=await worker.fetch(req('/api/sfu/session'),env);
+  assert.equal(r.status,401);
+  assert.equal(logs.length,before);
+ }finally{authStatus=200}
 });
