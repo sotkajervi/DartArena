@@ -314,7 +314,7 @@ async function startCamera(){
 
     setStatus('Publiserer kamera via Cloudflare…');
     sfu?.close();
-    sfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl,{kind:'tournament_match',id:tournamentMatchId});
+    sfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
     publication=await sfu.publish(stream);
     setReadyUi();
     setStatus('Kamera klart – venter på motstander');

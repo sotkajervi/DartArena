@@ -73,7 +73,7 @@
       placeholder.classList.remove('hidden');
     }
     const script=document.createElement('script');
-    script.src='match-sfu-media.js?v=20261028-authroom2';
+    script.src='match-sfu-media.js?v=20261014-pollcleanup1';
     script.async=false;
     script.onerror=()=>console.error('[MEDIA ROUTER] Could not load SFU fallback');
     document.head.appendChild(script);
@@ -91,13 +91,6 @@
       console.warn('[MEDIA ROUTER] fallback broadcast failed',error);
     }
     loadSfu('sfu-fallback');
-  }
-
-  // Explicit preview-only switch. This preserves Zoom-cam because the SFU
-  // module publishes the stream already selected and processed in match.js.
-  if(true){
-    loadSfu('sfu');
-    return;
   }
 
   // Tournament players have already established Cloudflare media in their

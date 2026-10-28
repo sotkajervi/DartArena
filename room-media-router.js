@@ -33,19 +33,13 @@
     setMode('sfu-fallback');
     try{setStatus('Direkte video kunne ikke kobles til – bytter til Cloudflare…')}catch{}
     const script=document.createElement('script');
-    script.src='room-sfu-media.js?v=20261028-authroom2';
+    script.src='room-sfu-media.js?v=20261003-fallback1';
     script.async=false;
     script.onerror=()=>{
       console.error('[ROOM MEDIA ROUTER] Could not load SFU fallback');
       try{setStatus('Kunne ikke starte video-fallback. Last siden på nytt.')}catch{}
     };
     document.head.appendChild(script);
-  }
-
-  // Explicit preview-only switch, never the default for normal players.
-  if(true){
-    loadFallback();
-    return;
   }
 
   setMode('peer');
