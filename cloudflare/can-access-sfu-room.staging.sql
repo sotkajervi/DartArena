@@ -1,8 +1,6 @@
 -- STAGING DESIGN ONLY: NOT applied to the database.
--- Use server-side auth.uid() for identity. Authorization to view records does not
--- imply permission to stream/subscribe to camera feeds.
--- A real deployment also needs SFU session ownership/room scoping, enforced in Worker.
-
+-- This function must be validated against actual room statuses and RLS before use.
+-- Tournament rooms and spectators intentionally fail closed.
 CREATE OR REPLACE FUNCTION public.can_access_sfu_room(
     p_kind text,
     p_room_id uuid,
@@ -39,16 +37,7 @@ BEGIN
     );
   END IF;
 
-  ELSIF p_kind = 'tournament_match' THEN
-    RETURN EXISTS (
-      SELECT 1 FROM public.tournament_matches tm
-      WHERE tm.id = p_room_id
-        AND tm.status IN ('pending','ready','playing')
-        AND v_uid IN (tm.player1_id, tm.player2_id)
-    );
-  END IF;
-
-  -- Spectator permissions intentionally remain denied.
+  -- Tournament and spectator authorization are not yet verified.
   RETURN false;
 END;
 $$;
