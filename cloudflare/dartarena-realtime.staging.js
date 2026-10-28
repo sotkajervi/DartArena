@@ -162,9 +162,9 @@ export default {
     if(path!=='/api/sfu/session'&&(!body||typeof body!=='object'))return json({ok:false,error:'Invalid body'},400,cors);
     // Tournament authorization is not implemented: reject it before calling the RPC.
     // One stateful object per match/challenge prevents cross-room session references.
-    const stub=env.SFU_ROOMS.getByName(kind+':'+roomId);
     let result;
     try{
+      const stub=env.SFU_ROOMS.getByName(kind+':'+roomId);
       result=await stub.fetch('https://internal/sfu',{method:'POST',body:JSON.stringify({userId:user.id,path,method,body})});
     }catch{return json({ok:false,error:'Session service unavailable'},503,cors)}
     return new Response(result.body,{status:result.status,headers:{...cors,'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});
