@@ -112,3 +112,10 @@ if tests fail.
 - The real positive room-auth probe returned HTTP 200; wrong room ID returned HTTP 403. This does NOT prove video interoperability or all abuse cases.
 - Roll back the test Worker to auth-only diagnostic with `wrangler.staging.example.jsonc` (sets `SFU_MEDIA_ENABLED=false`) if media fails. Do not change production Worker.
 - The test SFU may incur normal Cloudflare Realtime usage during actual video sessions; monitor usage.
+
+## Standalone video test UI (2026-10-28)
+- Added `GET /video-test` only to isolated staging Worker. It serves a mobile-friendly test page with Supabase login, room validation, local camera, remote camera, and SFU publish/subscribe through existing authorized endpoints. No production website changes.
+- Test page is never served from GitHub Pages; the Worker exposes only the public Supabase URL and publishable key, no bearer token.
+- GitHub test run https://github.com/sotkajervi/DartArena/actions/runs/40665704417 passed before deployment request.
+- To publish to existing isolated staging Worker only, the protected workflow below requires explicit environment reviewer approval. Video usage may incur ordinary Cloudflare usage fees.
+- Roll back by deploying `cloudflare/wrangler.staging.example.jsonc` after approval to restore media disabled.
