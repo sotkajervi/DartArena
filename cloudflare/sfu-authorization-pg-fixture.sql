@@ -27,3 +27,8 @@ CREATE POLICY participant_select_challenges ON challenges FOR SELECT TO authenti
  USING (auth.uid() IN (challenger_id,challenged_id));
 CREATE POLICY participant_select_matches ON matches FOR SELECT TO authenticated
  USING (auth.uid() IN (player1_id,player2_id));
+
+-- Production has additional SELECT policies for admins and tournament spectators.
+-- Simulate their broader visibility to prove the SFU function still checks participants.
+CREATE POLICY tournament_spectator_read ON matches FOR SELECT TO authenticated
+ USING (current_setting('test.spectator_read', true) = 'on');
