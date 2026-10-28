@@ -3,6 +3,7 @@
 // NEVER use production Worker name or production SFU bearer token here.
 {
   "name": "dartarena-realtime-security-test",
+  "keep_vars": true,
   "main": "dartarena-realtime.staging.js",
   "compatibility_date": "2026-10-28",
   "durable_objects": {
