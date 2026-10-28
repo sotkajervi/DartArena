@@ -105,3 +105,10 @@ if tests fail.
 - A separate GitHub Actions job targets only dartarena-realtime-security-test and uses protected cloudflare-security-test environment approval; it is triggered solely by a staging branch push commit containing [deploy-sfu-auth-probe].
 - Before approving, verify the test job succeeds. The deployment replaces the test Worker's bootstrap code with auth-only diagnostic code, not the production Worker. Neither production Worker nor GitHub main changes.
 - After deployment, validate authenticated positive/negative access in a real active standard room. Only thereafter can a separate staging media enablement be considered.
+
+## Media-enabled isolated test gate (2026-10-28)
+- User approved proceeding to an isolated video test. The full staging media config `wrangler.media-test.jsonc` targets only `dartarena-realtime-security-test`, sets `SFU_MEDIA_ENABLED=true`, and retains `keep_vars=true`.
+- Existing production Worker and frontend are untouched. Deployment is gated by protected GitHub environment `cloudflare-security-test` and explicit reviewer approval.
+- The real positive room-auth probe returned HTTP 200; wrong room ID returned HTTP 403. This does NOT prove video interoperability or all abuse cases.
+- Roll back the test Worker to auth-only diagnostic with `wrangler.staging.example.jsonc` (sets `SFU_MEDIA_ENABLED=false`) if media fails. Do not change production Worker.
+- The test SFU may incur normal Cloudflare Realtime usage during actual video sessions; monitor usage.
