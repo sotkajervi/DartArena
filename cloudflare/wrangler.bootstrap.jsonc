@@ -1,0 +1,15 @@
+// MANUAL STAGING BOOTSTRAP ONLY. Targets only the isolated test Worker.
+// This migration is applied ONLY if explicitly deployed using this config.
+// Note: Wrangler deployment may affect existing dashboard-managed variables/settings.
+// Inventory and back up those settings before execution.
+{
+  "name": "dartarena-realtime-security-test",
+  "main": "sfu-bootstrap-safe.js",
+  "compatibility_date": "2026-10-28",
+  "durable_objects": {
+    "bindings": [{ "name": "SFU_ROOMS", "class_name": "SfuRoom" }]
+  },
+  "migrations": [
+    { "tag": "sfu-security-test-v1", "new_sqlite_classes": ["SfuRoom"] }
+  ]
+}
