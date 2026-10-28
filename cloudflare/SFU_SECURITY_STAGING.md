@@ -71,3 +71,7 @@ if tests fail.
 ## Automated test run #5 (2026-10-28)
 - GitHub Actions run https://github.com/sotkajervi/DartArena/actions/runs/40609806037 concluded **success**; staging-security job and isolated test step passed after adding tournament fail-closed and malformed publish cases.
 - These remain mocked tests, not a verified live Cloudflare / Supabase integration. No deployment or database schema changes authorized by this result.
+
+## Staging bootstrap approval trigger
+- Use a push on the isolated staging branch with commit message marker `[bootstrap-sfu-test]` to request an environment-gated bootstrap run. This avoids exposing environment credentials to a pull-request merge ref.
+- Bootstrap job remains blocked by `cloudflare-security-test` required reviewer approval. No production Worker deployment path is configured.
