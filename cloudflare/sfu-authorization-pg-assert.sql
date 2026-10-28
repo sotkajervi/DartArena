@@ -32,7 +32,7 @@ END $$;
 -- A spectator may be allowed to read match rows but must not acquire camera rights.
 SELECT set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',false);
 SELECT set_config('test.spectator_read','on',false);
-DO $
+DO $spectator$
 BEGIN
  IF NOT EXISTS (SELECT 1 FROM public.matches WHERE id='cccccccc-cccc-4ccc-8ccc-cccccccccccc') THEN
    RAISE EXCEPTION 'Spectator visibility fixture missing';
@@ -40,7 +40,7 @@ BEGIN
  IF public.can_access_sfu_room('match','cccccccc-cccc-4ccc-8ccc-cccccccccccc','subscribe') THEN
    RAISE EXCEPTION 'Read-only spectator received camera access';
  END IF;
-END $;
+END $spectator$;
 SELECT set_config('test.spectator_read','off',false);
 RESET ROLE;
 SELECT 'PASS: 14 SQL authorization assertions' AS result;
