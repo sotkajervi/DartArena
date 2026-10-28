@@ -131,7 +131,7 @@ export default {
     if(request.method!==method)return json({ok:false,error:'Method not allowed'},405,cors);
     const kind=request.headers.get('X-DartArena-Room-Kind');
     const roomId=request.headers.get('X-DartArena-Room-Id');
-    if(!['challenge','match','tournament_match'].includes(kind)||!validId(roomId))return json({ok:false,error:'Unsupported room context'},403,cors);
+    if(!['challenge','match'].includes(kind)||!validId(roomId))return json({ok:false,error:'Unsupported room context'},403,cors);
     let user;
     try{user=await authenticate(request,env)}catch{return json({ok:false,error:'Authentication service unavailable'},503,cors)}
     if(!user)return json({ok:false,error:'Unauthorized'},401,cors);
@@ -142,6 +142,7 @@ export default {
     if(!authorized)return json({ok:false,error:'Room access denied'},403,cors);
     const body=path==='/api/sfu/session'?undefined:await parseBody(request);
     if(path!=='/api/sfu/session'&&(!body||typeof body!=='object'))return json({ok:false,error:'Invalid body'},400,cors);
+    // Tournament authorization is not implemented: reject it before calling the RPC.
     // One stateful object per match/challenge prevents cross-room session references.
     const stub=env.SFU_ROOMS.getByName(kind+':'+roomId);
     let result;
