@@ -4,6 +4,8 @@ on:
     types: [opened, synchronize, reopened, labeled]
     paths:
       - 'cloudflare/sfu-security.test.mjs'
+      - 'cloudflare/sfu-client-contract.test.mjs'
+      - 'sfu-client.js'
       - 'cloudflare/sfu-authorization-contract.test.mjs'
       - 'cloudflare/can-access-sfu-room.staging.sql'
       - 'cloudflare/sfu-authorization-pg-fixture.sql'
@@ -46,7 +48,7 @@ jobs:
       - name: Verify Node runtime
         run: node --version
       - name: Run isolated SFU security tests
-        run: node --test cloudflare/sfu-security.test.mjs cloudflare/sfu-config.test.mjs cloudflare/sfu-bootstrap-safe.test.mjs cloudflare/sfu-authorization-contract.test.mjs
+        run: node --test cloudflare/sfu-security.test.mjs cloudflare/sfu-config.test.mjs cloudflare/sfu-bootstrap-safe.test.mjs cloudflare/sfu-authorization-contract.test.mjs cloudflare/sfu-client-contract.test.mjs
       - name: Execute SQL authorization scenarios in ephemeral PostgreSQL (no Supabase calls)
         env:
           PGPASSWORD: testing-only
