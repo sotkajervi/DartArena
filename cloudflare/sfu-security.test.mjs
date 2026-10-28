@@ -31,7 +31,7 @@ vm.runInNewContext(transformed,sandbox,{filename:'dartarena-realtime.staging.js'
 const {SfuRoom,worker}=sandbox.__out;
 const ctx={storage:{get:async k=>store.get(k),put:async(k,v)=>store.set(k,v),delete:async k=>store.delete(k)}};
 const object=new SfuRoom(ctx,env);
-env.SFU_ROOMS={getByName:()=>({fetch:req=>object.fetch(req)})};
+env.SFU_ROOMS={getByName:()=>({fetch:(input,init)=>object.fetch(new Request(input,init))})};
 function req(path,body,headers={},method='POST'){
  return new Request('https://test.example'+path,{method,headers:{Origin:'https://sotkajervi.github.io',Authorization:'Bearer test', 'X-DartArena-Room-Kind':'match','X-DartArena-Room-Id':room1,...headers},body:body===undefined?undefined:JSON.stringify(body)});
 }
@@ -42,6 +42,6 @@ test('invalid room id denied',async()=>{const r=await worker.fetch(req('/api/sfu
 test('unauthorized room denied before SFU',async()=>{allow=false;let before=logs.length;const r=await worker.fetch(req('/api/sfu/session'),env);assert.equal(r.status,403);assert.equal(logs.length,before);allow=true});
 test('session created for authorized user',async()=>{const r=await worker.fetch(req('/api/sfu/session'),env);assert.equal(r.status,200);assert.equal(store.get('s:'+session1).owner,id1)});
 test('another user cannot publish owned session',async()=>{authorizedUser=id2;const before=logs.length;const r=await worker.fetch(req('/api/sfu/publish',{sessionId:session1,sessionDescription:{type:'offer',sdp:'v=0'},tracks:[{location:'local',mid:'0',trackName:'camera'}]}),env);assert.equal(r.status,403);assert.equal(logs.length,before);authorizedUser=id1});
-test('other room cannot access session',async()=>{const before=logs.length;const isolated=new SfuRoom({storage:{get:async()=>undefined,put:async()=>{},delete:async()=>{}}},env);env.SFU_ROOMS={getByName:name=>({fetch:r=>name.endsWith(room2)?isolated.fetch(r):object.fetch(r)})};const r=await worker.fetch(req('/api/sfu/renegotiate',{sessionId:session1,sessionDescription:{type:'answer',sdp:'v=0'}},{'X-DartArena-Room-Id':room2},'PUT'),env);assert.equal(r.status,403);assert.equal(logs.length,before)});
+test('other room cannot access session',async()=>{const before=logs.length;const isolated=new SfuRoom({storage:{get:async()=>undefined,put:async()=>{},delete:async()=>{}}},env);env.SFU_ROOMS={getByName:name=>({fetch:(r,init)=>name.endsWith(room2)?isolated.fetch(new Request(r,init)):object.fetch(new Request(r,init))})};const r=await worker.fetch(req('/api/sfu/renegotiate',{sessionId:session1,sessionDescription:{type:'answer',sdp:'v=0'}},{'X-DartArena-Room-Id':room2},'PUT'),env);assert.equal(r.status,403);assert.equal(logs.length,before)});
 test('unknown remote publication rejected',async()=>{const before=logs.length;const r=await worker.fetch(req('/api/sfu/subscribe',{sessionId:session1,tracks:[{location:'remote',sessionId:session2,trackName:'camera'}]}),env);assert.equal(r.status,403);assert.equal(logs.length,before)});
 test('expired sessions denied',async()=>{store.set('s:'+session1,{owner:id1,createdAt:Date.now()-4*3600*1000,published:[]});const r=await worker.fetch(req('/api/sfu/renegotiate',{sessionId:session1,sessionDescription:{type:'answer',sdp:'v=0'}}, {},'PUT'),env);assert.equal(r.status,403)});
