@@ -48,3 +48,26 @@ test('expired sessions denied',async()=>{store.set('s:'+session1,{owner:id1,crea
 
 test('tournament access denied even when membership RPC would allow it',async()=>{const before=logs.length;const r=await worker.fetch(req('/api/sfu/session',undefined,{'X-DartArena-Room-Kind':'tournament_match'}),env);assert.equal(r.status,403);assert.equal(logs.length,before)});
 test('malformed publish does not reach Cloudflare',async()=>{store.set('s:'+session1,{owner:id1,createdAt:Date.now(),published:[]});const before=logs.length;const r=await worker.fetch(req('/api/sfu/publish',{sessionId:session1,sessionDescription:{type:'offer',sdp:''},tracks:[{location:'local',mid:'0',trackName:'camera'}]}),env);assert.equal(r.status,400);assert.equal(logs.length,before)});
+
+test('unauthenticated user cannot subscribe to another session',async()=>{
+ const previous=authorizedUser;authorizedUser=id2;
+ const before=logs.length;
+ allow=false;
+ try{
+  const r=await worker.fetch(req('/api/sfu/subscribe',{sessionId:session1,tracks:[{location:'remote',sessionId:session2,trackName:'camera'}]}),env);
+  assert.equal(r.status,403);
+  assert.equal(logs.length,before);
+ }finally{allow=true;authorizedUser=previous}
+});
+test('missing authorization configuration fails closed',async()=>{
+ const before=logs.length;
+ const r=await worker.fetch(req('/api/sfu/session'),{...env,SUPABASE_PUBLISHABLE_KEY:''});
+ assert.equal(r.status,503);
+ assert.equal(logs.length,before);
+});
+test('invalid room kind denied before authenticating or calling SFU',async()=>{
+ const before=logs.length;
+ const r=await worker.fetch(req('/api/sfu/session',undefined,{'X-DartArena-Room-Kind':'spectator'}),env);
+ assert.equal(r.status,403);
+ assert.equal(logs.length,before);
+});
