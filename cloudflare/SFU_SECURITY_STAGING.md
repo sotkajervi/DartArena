@@ -61,3 +61,9 @@ if tests fail.
 - `match.js` allows score/video operation while match `status === 'playing'` and terminates on `finished` or `cancelled`. Staging SQL now restricts match video permission to `playing` (not unverified `waiting`).
 - Database metadata and historical status counts inspected read-only. Current staging SQL is still NOT deployed: live authenticated allow/deny tests and security model review are prerequisites.
 - PR #85 also needs end-to-end tests for publication/session ownership, unauthorized accounts, large bodies, browser CORS, retries and session expiry before test Worker deployment.
+
+## Automated test run #2 (2026-10-28)
+- GitHub Actions workflow run 40609670062 concluded **success**; the `Run isolated SFU security tests` step passed.
+- This is a mocked unit test suite, **not** a Cloudflare Durable Object integration test, Supabase RPC integration test or actual video test.
+- Deployment gate remains CLOSED pending verified database RPC on an isolated test setup, real Cloudflare Durable Object migration and authenticated multi-account positive/negative tests.
+- Production `dartarena-realtime` must not be changed by this staging workflow.
