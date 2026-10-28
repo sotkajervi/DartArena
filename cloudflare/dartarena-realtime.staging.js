@@ -9,14 +9,16 @@ const ALLOWED_ORIGINS=new Set(['https://sotkajervi.github.io','http://localhost:
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SESSION_LIFETIME_MS=3*60*60*1000;
 const MAX_BODY_BYTES=256*1024;
+const SFU_SESSION_ID=/^[A-Za-z0-9_-]{8,128}$/;
 
 function json(data,status=200,cors={}){
   return new Response(JSON.stringify(data),{status,headers:{...cors,'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});
 }
 function validId(value){return typeof value==='string'&&UUID.test(value)}
+function validSfuSession(value){return typeof value==='string'&&SFU_SESSION_ID.test(value)}
 function validSdp(s){return s&&typeof s==='object'&&['offer','answer'].includes(s.type)&&typeof s.sdp==='string'&&s.sdp.length>0&&s.sdp.length<180000}
 function validTracks(ts,kind){
-  return Array.isArray(ts)&&ts.length>0&&ts.length<=8&&ts.every(t=>t&&typeof t==='object'&&t.location===kind&&typeof t.trackName==='string'&&t.trackName.length>0&&t.trackName.length<80&&(kind==='remote'?validId(t.sessionId):typeof t.mid==='string'&&t.mid.length<24));
+  return Array.isArray(ts)&&ts.length>0&&ts.length<=8&&ts.every(t=>t&&typeof t==='object'&&t.location===kind&&typeof t.trackName==='string'&&t.trackName.length>0&&t.trackName.length<80&&(kind==='remote'?validSfuSession(t.sessionId):typeof t.mid==='string'&&t.mid.length<24));
 }
 async function parseBody(request){
   if(Number(request.headers.get('Content-Length'))>MAX_BODY_BYTES)return null;
@@ -53,7 +55,7 @@ async function callSfu(env,path,method,body){
 
 export class SfuRoom extends DurableObject {
   async getSession(id){
-    if(!validId(id))return null;
+    if(!validSfuSession(id))return null;
     const session=await this.ctx.storage.get('s:'+id);
     if(!session)return null;
     if(Date.now()-session.createdAt>SESSION_LIFETIME_MS){await this.ctx.storage.delete('s:'+id);return null}
@@ -69,7 +71,7 @@ export class SfuRoom extends DurableObject {
       const result=await callSfu(env,'/sessions/new','POST');
       if(!result.ok)return json(result,result.status);
       const id=result.sfu?.sessionId;
-      if(!validId(id))return json({ok:false,error:'Invalid SFU session response'},502);
+      if(!validSfuSession(id))return json({ok:false,error:'Invalid SFU session response'},502);
       await this.ctx.storage.put('s:'+id,{owner:userId,createdAt:Date.now(),published:[]});
       return json(result,result.status);
     }
