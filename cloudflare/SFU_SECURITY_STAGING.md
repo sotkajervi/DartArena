@@ -75,3 +75,11 @@ if tests fail.
 ## Staging bootstrap approval trigger
 - Use a push on the isolated staging branch with commit message marker `[bootstrap-sfu-test]` to request an environment-gated bootstrap run. This avoids exposing environment credentials to a pull-request merge ref.
 - Bootstrap job remains blocked by `cloudflare-security-test` required reviewer approval. No production Worker deployment path is configured.
+
+## Verified staging checkpoint (2026-10-28, run #50)
+- GitHub Actions run https://github.com/sotkajervi/DartArena/actions/runs/40660715311 succeeded, including the disposable PostgreSQL authorization assertions, mocked Worker tests and live HTTP bootstrap smoke test.
+- A separate Cloudflare test Worker was bootstrapped earlier: `dartarena-realtime-security-test` with `SFU_ROOMS` Durable Object binding. Its deployed bootstrap responds `{"ok":true,"mode":"bootstrap","mediaEnabled":false}` and rejects media calls with HTTP 503.
+- The SQL `can_access_sfu_room` is deliberately NOT installed in the actual Supabase project; PostgreSQL tests use synthetic fixtures and do not constitute authenticated real-account integration.
+- The production Worker `dartarena-realtime`, production GitHub `main`, and live Supabase database were not changed.
+- Gate remains CLOSED for video deployment: verify production Cloudflare test-Worker settings preserved after Wrangler takeover; set up a safe real-user auth/RPC integration path without altering active rooms; then test media flows and rollback.
+- Cost restriction: do not create a paid Supabase branch without separate approval.
