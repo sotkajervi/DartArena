@@ -231,7 +231,7 @@ jobs:
         run: |
           node - <<'NODE'
           const fs=require('fs');
-          const strip=x=>JSON.parse(fs.readFileSync(x,'utf8').split('\\n').filter(line=>!line.trim().startsWith('//')).join('\\n'));
+          const strip=x=>JSON.parse(fs.readFileSync(x,'utf8').split(String.fromCharCode(10)).filter(line=>!line.trim().startsWith('//')).join(String.fromCharCode(10)));
           const frontend=strip('cloudflare/wrangler.frontend-preview.jsonc');
           const media=strip('cloudflare/wrangler.media-test.jsonc');
           if(frontend.name!=='dartarena-sfu-preview'||frontend.assets?.directory!=='../preview-dist')process.exit(1);
