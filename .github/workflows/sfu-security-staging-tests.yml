@@ -73,7 +73,13 @@ jobs:
           assert.equal(body.ok, true);
           assert.equal(body.service, 'DartArena Realtime');
           for (const path of ['/api/sfu/session', '/api/sfu/publish', '/api/sfu/subscribe', '/api/sfu/renegotiate']) {
-            const response = await fetch(base + path, { method: 'POST' });
+            const response = await fetch(base + path, {
+              method: path.endsWith('/renegotiate') ? 'PUT' : 'POST',
+              headers: {
+                'X-DartArena-Room-Kind': 'match',
+                'X-DartArena-Room-Id': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+              }
+            });
             assert.equal(response.status, 401, path + ' must reject missing authentication');
           }
           console.log('Live bootstrap smoke test: 5/5 checks passed');
