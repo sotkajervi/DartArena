@@ -111,6 +111,17 @@
       .stats-positive{color:#00eaf4;font-weight:850}
       .stats-negative{color:#ff8b93;font-weight:850}
       .stats-empty{padding:18px 0;color:var(--muted)}
+      /* Fit the complete statistical scorecard on desktop without a tiny overflow.
+         Narrow screens keep swipeable horizontal scrolling. */
+      @media(min-width:1100px){
+        .tournament-stats-table{width:100%;min-width:0}
+        .tournament-stats-table th,.tournament-stats-table td{padding:9px 4px;letter-spacing:0}
+        .tournament-stats-table th{font-size:9px}
+        .tournament-stats-table td{font-size:12px}
+        .tournament-stats-table .stats-player{width:155px;max-width:155px;white-space:normal;overflow-wrap:break-word;line-height:1.25}
+        .tournament-stats-table th:nth-child(2),.tournament-stats-table td:nth-child(2){min-width:125px}
+      }
+
       @media(max-width:900px){.tournament-stats-highlights{grid-template-columns:repeat(2,minmax(0,1fr))}.tournament-stat-highlight:last-child{grid-column:1/-1}}
       @media(max-width:560px){.tournament-stats-highlights{grid-template-columns:1fr}.tournament-stat-highlight:last-child{grid-column:auto}.tournament-stats-table th,.tournament-stats-table td{padding:9px 7px;font-size:11px}.stats-player{max-width:135px}}
     `;
@@ -306,7 +317,7 @@
           ?'Chicago Style: X01-snitt beregnes fra 301 DIDO og 501 SIDO. MPR beregnes fra Cricket. WO påvirker kampseire, mens BYE/frirunde ikke teller som kamp.'
           :'Snitt beregnes fra registrerte kast i ferdigspilte kamper. WO påvirker kampseire, mens BYE/frirunde ikke teller som kamp.';
       renderHighlights(rows,{chicago});
-      body.innerHTML=`<table class="tournament-stats-table"><thead><tr><th>#</th><th>Spiller</th><th>K</th><th>V</th><th>T</th><th>V%</th><th>${unitLabel}</th><th>+/−</th><th>${chicago?'X01 snitt':'Snitt'}</th><th>First 9</th>${chicago?'<th>MPR</th>':''}<th>Beste kamp</th><th>Høyeste kast</th><th>Checkout</th><th>${chicago?'Raskeste X01':'Raskeste leg'}</th><th>Ø piler/vunnet leg</th><th>60+</th><th>100+</th><th>140+</th><th>170+</th><th>180</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td class="stats-rank">${i+1}</td><td class="stats-player" title="${esc(r.name)}"><span class="da-role-player" data-user-id="${esc(r.id)}">${esc(r.name)}</span></td><td>${r.matches}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.winPct.toFixed(0)}%</td><td>${r.legsFor}–${r.legsAgainst}</td><td class="${r.legDiff>0?'stats-positive':r.legDiff<0?'stats-negative':''}">${r.legDiff>0?'+':''}${r.legDiff}</td><td>${r.avg?r.avg.toFixed(2):'–'}</td><td>${r.firstNine?r.firstNine.toFixed(2):'–'}</td>${chicago?`<td>${r.mpr?r.mpr.toFixed(2):'–'}</td>`:''}<td>${r.bestAvg?r.bestAvg.toFixed(2):'–'}</td><td>${r.highVisit||'–'}</td><td>${r.highCheckout||'–'}</td><td>${r.fast?`${r.fast} piler`:'–'}</td><td>${r.avgWinningLegDarts?r.avgWinningLegDarts.toFixed(1):'–'}</td><td>${r.c60}</td><td>${r.c100}</td><td>${r.c140}</td><td>${r.c170}</td><td>${r.c180}</td></tr>`).join('')}</tbody></table>`;
+      body.innerHTML=`<table class="tournament-stats-table"><thead><tr><th>#</th><th>Spiller</th><th>K</th><th>V</th><th>T</th><th>V%</th><th>${unitLabel}</th><th>+/−</th><th>${chicago?'X01 snitt':'Snitt'}</th><th>First 9</th>${chicago?'<th>MPR</th>':''}<th title="Beste kampsnitt">Beste AVG</th><th title="Høyeste registrerte kast">Maks kast</th><th>Checkout</th><th title="Raskeste vunne leg">${chicago?'Rask X01':'Rask leg'}</th><th title="Gjennomsnittlig antall piler per vunnet leg">Ø piler/leg</th><th>60+</th><th>100+</th><th>140+</th><th>170+</th><th>180</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td class="stats-rank">${i+1}</td><td class="stats-player" title="${esc(r.name)}"><span class="da-role-player" data-user-id="${esc(r.id)}">${esc(r.name)}</span></td><td>${r.matches}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.winPct.toFixed(0)}%</td><td>${r.legsFor}–${r.legsAgainst}</td><td class="${r.legDiff>0?'stats-positive':r.legDiff<0?'stats-negative':''}">${r.legDiff>0?'+':''}${r.legDiff}</td><td>${r.avg?r.avg.toFixed(2):'–'}</td><td>${r.firstNine?r.firstNine.toFixed(2):'–'}</td>${chicago?`<td>${r.mpr?r.mpr.toFixed(2):'–'}</td>`:''}<td>${r.bestAvg?r.bestAvg.toFixed(2):'–'}</td><td>${r.highVisit||'–'}</td><td>${r.highCheckout||'–'}</td><td>${r.fast?`${r.fast} piler`:'–'}</td><td>${r.avgWinningLegDarts?r.avgWinningLegDarts.toFixed(1):'–'}</td><td>${r.c60}</td><td>${r.c100}</td><td>${r.c140}</td><td>${r.c170}</td><td>${r.c180}</td></tr>`).join('')}</tbody></table>`;
     }catch(error){
       console.error('Tournament stats failed',error);
       meta.textContent='Kunne ikke laste';
