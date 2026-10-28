@@ -1,4 +1,5 @@
-window.DARTARENA_SFU = Object.freeze({ workerUrl: 'https://dartarena-realtime.sotkajervi.workers.dev' });
+// Secure SFU gateway. Rollback snapshot: rollback/pre-secure-sfu-20261028
+window.DARTARENA_SFU = Object.freeze({ workerUrl: 'https://dartarena-realtime-security-test.sotkajervi.workers.dev' });
 
 (()=>{
   if(window.__dartArenaPreferredMediaDevices)return;

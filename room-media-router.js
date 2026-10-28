@@ -42,6 +42,12 @@
     document.head.appendChild(script);
   }
 
+  // Explicit preview-only switch, never the default for normal players.
+  if(true){
+    loadFallback();
+    return;
+  }
+
   setMode('peer');
   window.DARTARENA_ACTIVE_MEDIA_MODE='peer';
 
