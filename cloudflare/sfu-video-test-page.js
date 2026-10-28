@@ -60,7 +60,7 @@ async function api(path,body,method='POST'){
  'Content-Type':'application/json'
  },body:body===undefined?undefined:JSON.stringify(body)});
  const dataBody=await response.json().catch(()=>({}));
- if(!response.ok||dataBody.ok===false)throw Error(dataBody.error||dataBody.sfu?.error||'HTTP '+response.status);
+ if(!response.ok||dataBody.ok===false)throw Error(path+' → HTTP '+response.status+'; '+(dataBody.error||dataBody.sfu?.error||'Request failed')+(dataBody.stage?' ['+dataBody.stage+']':'')+(dataBody.upstreamStatus?' upstream '+dataBody.upstreamStatus:''));
  return dataBody.sfu??dataBody;
 }
 function pc(){return new RTCPeerConnection({iceServers:[{urls:'stun:stun.cloudflare.com:3478'}]});}
