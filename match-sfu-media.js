@@ -2,7 +2,7 @@
 // Scoring/state continue to use match.js + Supabase Realtime; this file replaces
 // the fragile direct browser-to-browser WebRTC media path with Cloudflare SFU.
 (()=>{
-  if(window.__dartArenaMatchSfuMedia)return;
+  if(window.__dartArenaMatchSfuMedia||window.DARTARENA_POSTMATCH_MEDIA_STOPPED)return;
   window.__dartArenaMatchSfuMedia=true;
 
   let sfu=null;
@@ -309,7 +309,7 @@
     renderDebug();
   },1000);
 
-  window.DartArenaMatchMedia={mode:'sfu',republish:()=>publish(true),reconnect:async()=>{
+  window.DartArenaMatchMedia={mode:'sfu',stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
     try{sfu?.close()}catch{}
     sfu=null;
     publication=null;
@@ -321,15 +321,20 @@
     await announce();
   },debugText};
 
-  window.addEventListener('pagehide',()=>{
+  function stopMedia(){
+    if(stopped)return;
     stopped=true;
     clearInterval(boot);
     clearInterval(watcher);
     clearInterval(heartbeat);
     try{sfu?.close()}catch{}
     sfu=null;
+    publication=null;
+    remotePublication=null;
+    subscribedPublicationId=null;
     const clientDb=safeDb();
     if(mediaChannel&&clientDb){try{clientDb.removeChannel(mediaChannel)}catch{}}
     mediaChannel=null;
-  },{once:true});
+  }
+  window.addEventListener('pagehide',stopMedia,{once:true});
 })();

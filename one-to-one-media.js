@@ -456,6 +456,13 @@
     clearInterval(heartbeat);clearInterval(monitor);clearInterval(fallbackHeartbeat);clearInterval(legacyGuard);clearTimeout(disconnectTimer);
     closePeer(false);
     try{fallbackSfu?.close()}catch{};fallbackSfu=null;
+    // The peer alone does not release the physical camera or Zoom-cam source.
+    try{zoomSession?.stop();zoomSession?.sourceTrack?.stop()}catch{}
+    try{pictureSession?.stop();pictureSession?.sourceTrack?.stop()}catch{}
+    try{mediaStream?.getTracks?.().forEach(track=>track.stop())}catch{}
+    try{const v=$('localVideo');v?.srcObject?.getTracks?.().forEach(track=>track.stop());if(v)v.srcObject=null}catch{}
+    try{const v=$('remoteVideo');if(v)v.srcObject=null}catch{}
+    mediaStream=null;localReady=false;
     if(channel)try{await db.removeChannel(channel)}catch{};channel=null;
   }
 
