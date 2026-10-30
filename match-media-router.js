@@ -69,11 +69,11 @@
     setMode(mode);
     const placeholder=document.getElementById('remotePlaceholder');
     if(placeholder){
-      placeholder.textContent='Bytter til Cloudflare-video…';
+      placeholder.textContent=mode==='sfu'?'Starter Cloudflare-video…':'Bytter til Cloudflare-video…';
       placeholder.classList.remove('hidden');
     }
     const script=document.createElement('script');
-    script.src='match-sfu-media.js?v=20261030-sfu2';
+    script.src='match-sfu-media.js?v=20261030-matchauth1';
     script.async=false;
     script.onerror=()=>console.error('[MEDIA ROUTER] Could not load SFU fallback');
     document.head.appendChild(script);
