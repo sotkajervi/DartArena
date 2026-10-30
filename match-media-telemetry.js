@@ -157,7 +157,7 @@
     await flush();
   }
 
-  window.DartArenaMediaTelemetry={flush,bufferSize:()=>buffer.length};
+  window.DartArenaMediaTelemetry={flush,stop,bufferSize:()=>buffer.length};
   window.addEventListener('pagehide',()=>{stop().catch(()=>{})},{once:true});
   boot().catch(error=>console.warn('[MEDIA TELEMETRY] startup failed',error));
 })();
