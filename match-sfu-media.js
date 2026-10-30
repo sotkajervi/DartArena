@@ -23,9 +23,14 @@
   let publisherDisconnectedAt=0;
   let lastPublisherRepairAt=0;
   let offlineObserved=false;
+  let subscriberRecoveryPending=false;
+  let subscriberDisconnectedAt=0;
+  let lastSubscriberRepairAt=0;
   let reconnectTimer=null;
   const PUBLISHER_DISCONNECT_GRACE_MS=7000;
   const PUBLISHER_REPAIR_COOLDOWN_MS=12000;
+  const SUBSCRIBER_DISCONNECT_GRACE_MS=7000;
+  const SUBSCRIBER_REPAIR_COOLDOWN_MS=12000;
   const log=[];
 
   const safeProfile=()=>{try{return profile||null}catch{return null}};
@@ -115,9 +120,43 @@
     await publish(true);
   }
 
+  function subscriberNeedsRepair(now=Date.now()){
+    if(!remotePublication?.sessionId)return false;
+    const pc=sfu?.subscriber;
+    if(!pc)return !!subscribedPublicationId;
+    const state=pc.connectionState||'';
+    const ice=pc.iceConnectionState||'';
+    if(['failed','closed'].includes(state)||['failed','closed'].includes(ice))return true;
+    if(state==='disconnected'||ice==='disconnected'){
+      if(!subscriberDisconnectedAt)subscriberDisconnectedAt=now;
+      return now-subscriberDisconnectedAt>=SUBSCRIBER_DISCONNECT_GRACE_MS;
+    }
+    subscriberDisconnectedAt=0;
+    // A video track can stay live while audio never arrives after network loss.
+    // Only treat missing audio as a failure if the opponent publishes an audio track.
+    const expectsAudio=remotePublication.tracks?.some(t=>t.startsWith('microphone')||t==='audio');
+    if(expectsAudio&&subscribedAt&&now-subscribedAt>=8000&&!remoteHasLiveAudio())return true;
+    return false;
+  }
+
+  async function recoverSubscriber(reason){
+    if(stopped||window.DARTARENA_POSTMATCH_MEDIA_STOPPED||!remotePublication?.sessionId)return;
+    if(window.navigator?.onLine===false)return;
+    const now=Date.now();
+    if(now-lastSubscriberRepairAt<SUBSCRIBER_REPAIR_COOLDOWN_MS)return;
+    lastSubscriberRepairAt=now;
+    subscriberRecoveryPending=false;
+    subscriberDisconnectedAt=0;
+    note('SUBSCRIBE reconnect',{reason,publication:remotePublication.sessionId});
+    // Preserve the publisher. Replace the dead inbound session even if its
+    // old video track still appears "live" in the browser.
+    await subscribe(remotePublication,true);
+  }
+
   function onOffline(){
     if(stopped)return;
     offlineObserved=true;
+    subscriberRecoveryPending=true;
     publisherDisconnectedAt=Date.now();
     note('NETWORK offline');
   }
@@ -128,9 +167,11 @@
     clearTimeout(reconnectTimer);
     reconnectTimer=setTimeout(async()=>{
       reconnectTimer=null;
-      if(stopped)return;
+      if(stopped||window.navigator?.onLine===false)return;
+      const wasOffline=offlineObserved||subscriberRecoveryPending;
       if(offlineObserved||publisherNeedsRepair())await recoverPublisher('browser-online');
-    },1200);
+      if(wasOffline||subscriberNeedsRepair())await recoverSubscriber('browser-online');
+    },1500);
   }
 
   async function announce(){
@@ -293,8 +334,10 @@
       .subscribe(async status=>{
         note('CHANNEL',status);
         if(status!=='SUBSCRIBED')return;
+        const wasOffline=offlineObserved||subscriberRecoveryPending;
         if(offlineObserved||publisherNeedsRepair())await recoverPublisher('channel-rejoined');
         else await publish();
+        if(wasOffline&&window.navigator?.onLine!==false)await recoverSubscriber('channel-rejoined');
         await announce();
         clearInterval(heartbeat);
         heartbeat=setInterval(async()=>{
@@ -306,6 +349,9 @@
           }
           await announce();
           if(remotePublication&&!subscribedPublicationId)await subscribe(remotePublication);
+          else if((subscriberRecoveryPending||subscriberNeedsRepair())&&window.navigator?.onLine!==false){
+            await recoverSubscriber('heartbeat-subscriber-unhealthy');
+          }
         },1800);
       });
     return true;
@@ -347,6 +393,8 @@
       `LAST TRACK: ${lastRemoteTrackAt?Math.round((Date.now()-lastRemoteTrackAt)/1000)+'s ago':'none'}`,
       `PUBLISHER STATE: ${sfu?.publisher?.connectionState||'none'}/${sfu?.publisher?.iceConnectionState||'none'}`,
       `NETWORK OFFLINE OBSERVED: ${offlineObserved}`,
+      `SUBSCRIBER STATE: ${sfu?.subscriber?.connectionState||'none'}/${sfu?.subscriber?.iceConnectionState||'none'}`,
+      `SUBSCRIBER RECOVERY PENDING: ${subscriberRecoveryPending}`,
       `LAST ERROR: ${lastError||'none'}`,
       '',
       ...log
@@ -390,11 +438,13 @@
     }
 
     if(remotePublication){
-      if(!subscribedPublicationId){
+      if(subscriberRecoveryPending||subscriberNeedsRepair()){
+        if(window.navigator?.onLine!==false)await recoverSubscriber('subscriber-state');
+      }else if(!subscribedPublicationId){
         await subscribe(remotePublication);
       }else if(!remoteHasLiveVideo()&&Date.now()-subscribedAt>=8000){
         note('VIDEO timeout – resubscribe',{audio:remoteHasLiveAudio(),age:Date.now()-subscribedAt});
-        await subscribe(remotePublication,true);
+        await recoverSubscriber('video-timeout');
       }
     }
     renderDebug();
@@ -406,7 +456,9 @@
     subscriptionEpoch++;
     subscribing=false;
     offlineObserved=false;
+    subscriberRecoveryPending=false;
     publisherDisconnectedAt=0;
+    subscriberDisconnectedAt=0;
     sfu=null;
     publication=null;
     remotePublication=null;
@@ -427,6 +479,7 @@
     window.removeEventListener('offline',onOffline);
     window.removeEventListener('online',onOnline);
     subscriptionEpoch++;
+    subscriberRecoveryPending=false;
     try{sfu?.close()}catch{}
     sfu=null;
     publication=null;
