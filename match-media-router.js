@@ -73,7 +73,7 @@
       placeholder.classList.remove('hidden');
     }
     const script=document.createElement('script');
-    script.src='match-sfu-media.js?v=20261031-micmute1';
+    script.src='match-sfu-media.js?v=20261031-audiorecover1';
     script.async=false;
     script.onerror=()=>console.error('[MEDIA ROUTER] Could not load SFU fallback');
     document.head.appendChild(script);

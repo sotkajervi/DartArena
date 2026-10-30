@@ -49,6 +49,9 @@ function harness(){
       this.subscriber={signalingState:'stable'};
       if(sessionId==='remote-old')return new Promise(resolve=>{this.pending.old=resolve});
       await cb({track:{kind:'video',id:'v-'+sessionId,readyState:'live',muted:false},streams:[]});
+      if(pub.tracks.some(name=>name.startsWith('microphone')||name==='audio')){
+        await cb({track:{kind:'audio',id:'a-'+sessionId,readyState:'live',muted:false},streams:[]});
+      }
       return 'subscriber-'+sessionId;
     }
     close(){this.publisher=null;this.subscriber=null}
@@ -202,4 +205,42 @@ test('muting camera changes only the track enabled flag, not its SFU session',as
     h.stop();
     h.videoTrack.enabled=true;
   }
+});
+
+test('offline/online restores inbound audio subscription even when video track stays live',async()=>{
+  const h=harness();
+  await h.bootstrap();
+  const pub={sessionId:'remote-with-audio',tracks:['camera','microphone-1']};
+  await h.receive(pub);
+  assert.equal(h.video.srcObject.getAudioTracks().length,1);
+  assert.deepEqual(h.subscribeCalls,['remote-with-audio']);
+  h.offline();
+  await h.online();
+  assert.equal(h.publishCount,2,'outgoing publisher also recovers');
+  assert.deepEqual(h.subscribeCalls,['remote-with-audio','remote-with-audio'],
+    'new inbound SFU session is required to restore audio on disconnected PC');
+  assert.equal(h.video.srcObject.getAudioTracks().length,1);
+  assert.match(h.debug,/SUBSCRIBE reconnect/);
+});
+
+test('broken subscriber ICE repairs incoming audio without rebuilding healthy publisher',async()=>{
+  const h=harness();
+  await h.bootstrap();
+  await h.receive({sessionId:'remote-with-audio',tracks:['camera','microphone-1']});
+  h.created[0].subscriber.iceConnectionState='failed';
+  await h.tick();
+  assert.deepEqual(h.subscribeCalls,['remote-with-audio','remote-with-audio']);
+  assert.equal(h.publishCount,1);
+});
+
+test('missing expected remote audio track triggers a bounded subscriber restart',async()=>{
+  const h=harness();
+  await h.bootstrap();
+  await h.receive({sessionId:'remote-with-audio',tracks:['camera','microphone-1']});
+  h.video.srcObject.tracks=h.video.srcObject.tracks.filter(t=>t.kind!=='audio');
+  h.clock(8500);
+  await h.tick();
+  assert.equal(h.subscribeCalls.length,2);
+  await h.tick();
+  assert.equal(h.subscribeCalls.length,2,'restored audio must not cause reconnect loops');
 });

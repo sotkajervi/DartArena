@@ -1,0 +1,33 @@
+name: SFU audio recovery after network loss
+on:
+  push:
+    branches:
+      - fix/sfu-audio-reconnect-after-outage-20261031
+  pull_request:
+    branches:
+      - security/sfu-auth-staging-20261028
+
+permissions:
+  contents: read
+jobs:
+  audio-reconnect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax validation
+        run: |
+          node --check match-sfu-media.js
+          node --check match-controls.js
+          node --check remote-audio-autounlock.js
+          node --check tests/sfu-audio-autoplay-reconnect.test.cjs
+      - name: Verify audio transport, autoplay and historical media behavior
+        run: |
+          node --test tests/sfu-audio-autoplay-reconnect.test.cjs tests/sfu-match-network-recovery.test.cjs tests/sfu-room-subscription.test.cjs tests/sfu-match-room-context.test.cjs tests/sfu-phase2-preview.test.cjs tests/post-match-media-lifecycle.test.cjs
+      - name: Verify authenticated SFU gateway client contract
+        run: node --test cloudflare/sfu-client-contract.test.mjs
+
+# Test-only workflow; cannot deploy.
