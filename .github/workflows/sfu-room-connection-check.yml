@@ -1,0 +1,25 @@
+name: SFU waiting-room connection regression
+
+on:
+  push:
+    branches:
+      - fix/sfu-waiting-room-subscription-20261030
+
+permissions:
+  contents: read
+
+jobs:
+  room-connection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: node --check room-sfu-media.js
+      - name: Test reconnect grace, first-frame playback and diagnostics
+        run: node --test tests/sfu-room-subscription.test.cjs tests/sfu-phase2-preview.test.cjs tests/post-match-media-lifecycle.test.cjs
+
+# No deployment actions or credentials. Production remains unchanged.
