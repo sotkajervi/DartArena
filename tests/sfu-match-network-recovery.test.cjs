@@ -8,7 +8,8 @@ const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'../match-sfu-media.js'),'utf8');
 const matchId='f840b9e4-c6fb-4d1f-a29d-acabc66710f1';
 const streamTrack={kind:'video',id:'local-video',readyState:'live',enabled:true};
-const stream={getTracks:()=>[streamTrack],getVideoTracks:()=>[streamTrack]};
+const audioTrack={kind:'audio',id:'local-audio',readyState:'live',enabled:true};
+const stream={getTracks:()=>[streamTrack,audioTrack],getVideoTracks:()=>[streamTrack],getAudioTracks:()=>[audioTrack]};
 
 class MediaStreamStub{
   constructor(){this.tracks=[]}
@@ -82,6 +83,8 @@ function harness(){
     get subscribeCalls(){return created[0]?.subscribeCalls||[]},
     get pendingOld(){return created[0]?.pending.old},
     get publishCount(){return publishCount},
+    videoTrack:streamTrack,
+    audioTrack,
     get debug(){return window.DartArenaMatchMedia.debugText()},
     clock(ms){now+=ms},
     async bootstrap(){await intervals.find(x=>x.delay===150).fn();await subscribed('SUBSCRIBED')},
@@ -158,4 +161,45 @@ test('stopping media prevents recovery and removes network listeners',async()=>{
   assert.equal(h.listeners.offline,undefined);
   await h.tick();
   assert.equal(h.publishCount,1);
+});
+
+test('muting and unmuting microphone never rebuilds the active SFU video publisher',async()=>{
+  const h=harness();
+  h.audioTrack.enabled=true;
+  h.videoTrack.enabled=true;
+  try{
+    await h.bootstrap();
+    assert.equal(h.publishCount,1);
+    assert.equal(h.broadcasts.at(-1).publication.sessionId,'publisher-1');
+    h.audioTrack.enabled=false;
+    await h.tick();
+    assert.equal(h.publishCount,1,'muting audio must not rebuild the video sender');
+    assert.equal(h.broadcasts.at(-1).publication.sessionId,'publisher-1');
+    h.audioTrack.enabled=true;
+    await h.tick();
+    assert.equal(h.publishCount,1,'unmuting audio must not rebuild the video sender');
+    assert.equal(h.videoTrack.enabled,true);
+    assert.equal(h.publisher.connectionState,'connected');
+  }finally{
+    h.stop();
+    h.audioTrack.enabled=true;
+    h.videoTrack.enabled=true;
+  }
+});
+
+test('muting camera changes only the track enabled flag, not its SFU session',async()=>{
+  const h=harness();
+  h.videoTrack.enabled=true;
+  try{
+    await h.bootstrap();
+    h.videoTrack.enabled=false;
+    await h.tick();
+    assert.equal(h.publishCount,1,'camera off must not break other live media tracks');
+    h.videoTrack.enabled=true;
+    await h.tick();
+    assert.equal(h.publishCount,1,'camera on must reuse existing publisher');
+  }finally{
+    h.stop();
+    h.videoTrack.enabled=true;
+  }
 });

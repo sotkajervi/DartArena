@@ -44,10 +44,13 @@
     renderDebug();
   }
 
+  // Track.enabled is a local mute flag, NOT a new media source.
+  // Toggling microphone/camera must not destroy the Cloudflare publisher.
+  // Track identity and readyState still detect real device changes.
   function trackSignature(){
     const s=safeStream();
     if(!s)return'';
-    return s.getTracks().map(t=>`${t.kind}:${t.id}:${t.readyState}:${t.enabled}`).sort().join('|');
+    return s.getTracks().map(t=>`${t.kind}:${t.id}:${t.readyState}`).sort().join('|');
   }
 
   function hasPublishableTracks(){

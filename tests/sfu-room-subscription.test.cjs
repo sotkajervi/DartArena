@@ -10,6 +10,7 @@ const preview='dartarena-sfu-preview.sotkajervi.workers.dev';
 function harness(){
  let now=100000;
  let attempts=0;
+ let publishCount=0;
  let failing=false;
  let session=null;
  let suspendedSession=null;
@@ -24,7 +25,10 @@ function harness(){
  const video={srcObject:null,muted:false,playsInline:false,readyState:0,videoWidth:0,videoHeight:0,pause(){},async play(){}};
  const placeholder={classList:{add(){},remove(){}},textContent:''};
  const roomDebug={};
- const client={async subscribe(publication){
+ const client={async publish(){
+   publishCount++;
+   return{sessionId:'local-publication-'+publishCount,tracks:['camera','microphone-1']};
+ },async subscribe(publication){
    attempts++;
    if(failing)throw Error('temporary SFU failure');
    if(publication.sessionId===suspendedSession){
@@ -44,6 +48,7 @@ function harness(){
  };
  const db={channel(){return channel},removeChannel(){}};
 
+ const timers=new Map();
  const sandbox={
    window,document:{getElementById(id){return id==='roomSfuDebug'?roomDebug:null}},
    Date:class TestClock extends Date{static now(){return now}},
@@ -52,18 +57,30 @@ function harness(){
    profile:{id:'test-1'},other:'test-2',challengeId:'test-room',names:{'test-2':'Opponent'},
    db,localReady:false,remoteReady:false,stream:null,leaving:false,
    helloTimer:null,pc:null,send:async()=>{},setStatus(){},destroyPeer(){},
-   console:{debug(){}},setInterval(){return 1},clearInterval(){},setTimeout(){return 1},clearTimeout(){}
+   console:{debug(){}},setInterval(fn,ms){timers.set(ms,fn);return 1},clearInterval(){},setTimeout(){return 1},clearTimeout(){}
  };
  // A test seam: expose an inner function in VM without altering production source.
  const instrumented=source.replace(
    "  window.DartArenaRoomMedia={mode:'sfu',",
-   "  window.__testSubscribeRemote=subscribeRemote;window.__testSetupChannel=setupSfuChannel;\n  window.DartArenaRoomMedia={mode:'sfu',"
+   "  window.__testSubscribeRemote=subscribeRemote;window.__testSetupChannel=setupSfuChannel;window.__testEnsurePublished=ensurePublished;\n  window.DartArenaRoomMedia={mode:'sfu',"
  );
  assert.notEqual(instrumented,source,'test seam was not found');
  vm.runInNewContext(instrumented,sandbox);
  return{
    publish:{sessionId:'session-1',tracks:['camera','microphone-1']},
    video,client,
+   get published(){return publishCount},
+   publishLocal:()=>window.__testEnsurePublished(),
+   localTracks:()=>{
+     const videoTrack={kind:'video',id:'camera-1',readyState:'live',enabled:true};
+     const audioTrack={kind:'audio',id:'microphone-1',readyState:'live',enabled:true};
+     const localStream=new MockStream();
+     localStream.tracks=[videoTrack,audioTrack];
+     sandbox.stream=localStream;
+     sandbox.localReady=true;
+     return {videoTrack,audioTrack};
+   },
+   trackWatch:()=>timers.get(700)?.(),
    subscribe:window.__testSubscribeRemote,
    beginReception:window.__testSetupChannel,
    receive:publication=>{
@@ -166,4 +183,36 @@ test('temporary empty publication does not discard newer known media state',asyn
  assert.equal(h.attempts(),1);
  assert.match(h.debug(),/REMOTE PUBLICATION: session-1/);
  assert.match(h.debug(),/REMOTE empty announcement ignored/);
+});
+
+test('waiting-room microphone mute/unmute preserves Cloudflare video publication',async()=>{
+ const h=harness();
+ const {audioTrack,videoTrack}=h.localTracks();
+ await h.publishLocal();
+ assert.equal(h.published,1);
+ assert.match(h.debug(),/PUBLISHER SESSION: local-publication-1/);
+ audioTrack.enabled=false;
+ h.trackWatch();
+ assert.equal(h.published,1,'muting audio must not republish video');
+ audioTrack.enabled=true;
+ h.trackWatch();
+ assert.equal(h.published,1,'unmuting audio must not republish video');
+ assert.equal(videoTrack.enabled,true);
+ assert.match(h.debug(),/PUBLISHER SESSION: local-publication-1/);
+});
+
+test('waiting-room camera/microphone source replacement still republishes',async()=>{
+ const h=harness();
+ const {videoTrack,audioTrack}=h.localTracks();
+ await h.publishLocal();
+ assert.equal(h.published,1);
+ videoTrack.enabled=false;
+ audioTrack.enabled=false;
+ h.trackWatch();
+ assert.equal(h.published,1,'mute-only changes must preserve SFU connection');
+ videoTrack.enabled=true;
+ audioTrack.enabled=true;
+ videoTrack.id='camera-2';
+ h.trackWatch();
+ assert.equal(h.published,2,'new physical camera must trigger a republish');
 });
