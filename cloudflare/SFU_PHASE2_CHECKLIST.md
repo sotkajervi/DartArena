@@ -37,3 +37,12 @@ Denne staginggrenen inneholder nå den sammenslåtte fase 2-integrasjonen fra PR
 En ny GitHub Actions-kjøring med markøren [deploy-sfu-preview] ber om godkjenning i miljøet `cloudflare-security-test` før noen publisering.
 Bare test-Worker og separat frontend-preview er deploymål. `main`, produksjons-Worker og aktive kamper endres ikke av denne koden.
 Kontroller at sikkerhetsjobben er grønn og at preview har riktig kilde før du godkjenner. Test med to testkontoer etterpå.
+
+## Waiting-room latency verification (2026-10-30)
+Two real preview clients connected audio+video but took approximately 15 s and 30 s to show the other player. Their debug logs showed repeated identical remote publication announcements every ~1.8 s and no retained startup timing. This is not proof of the root cause.
+
+PR #90 merged into isolated security staging only. It adds an eight-second grace period for first video frames (instead of repeatedly tearing down subscriptions), and retains startup timing logs by suppressing duplicate publication announcements. Automated waiting-room regression tests passed. **Real-world latency improvement remains unverified.**
+
+Next isolated preview test: have two users connect using a fresh room, record time until camera/audio on each side and copy debug immediately after the first video frame. Compare MODULE loaded, CHANNEL, PUBLISH start/ok, REMOTE publication changed, SUBSCRIBE start/ok, REMOTE first video frame. Do not share access tokens, passwords, or session IDs. Do not promote to production on timing tests alone.
+
+Request protected isolated preview redeploy only: [deploy-sfu-preview]
