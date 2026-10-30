@@ -66,7 +66,11 @@
   function ensureClient(){
     if(sfu)return sfu;
     if(!window.DartArenaSFU||!window.DARTARENA_SFU?.workerUrl)return null;
-    sfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
+    const id=safeMatchId();
+    // The security-test Worker authorizes each SFU operation against an
+    // authenticated, active match. The waiting-room SFU context must NOT be reused.
+    if(!id)return null;
+    sfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl,{kind:'match',id});
     return sfu;
   }
 
@@ -107,6 +111,11 @@
       publishedSignature='';
       lastError=error?.message||String(error);
       note('PUBLISH error',lastError);
+      const placeholder=el('remotePlaceholder');
+      if(placeholder&&!remoteHasLiveVideo()){
+        placeholder.textContent='Cloudflare-video kunne ikke starte. Kontroller videotilkoblingen og åpne mediedebug.';
+        placeholder.classList.remove('hidden');
+      }
     }finally{
       publishing=false;
     }
