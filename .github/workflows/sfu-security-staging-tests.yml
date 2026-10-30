@@ -52,6 +52,9 @@ jobs:
         run: node --version
       - name: Run isolated SFU security tests
         run: node --test cloudflare/sfu-security.test.mjs cloudflare/sfu-config.test.mjs cloudflare/sfu-bootstrap-safe.test.mjs cloudflare/sfu-authorization-contract.test.mjs cloudflare/sfu-client-contract.test.mjs cloudflare/sfu-video-test-page.test.mjs
+      - name: Prevent roomless SFU media requests in integrated preview
+        run: |
+          node --test tests/sfu-match-room-context.test.cjs tests/sfu-phase2-preview.test.cjs tests/post-match-media-lifecycle.test.cjs
       - name: Execute SQL authorization scenarios in ephemeral PostgreSQL (no Supabase calls)
         env:
           PGPASSWORD: testing-only
