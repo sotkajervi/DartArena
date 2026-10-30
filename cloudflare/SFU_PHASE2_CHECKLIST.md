@@ -76,3 +76,17 @@ Validation:
 Request approval-gated deployment of **only** the isolated preview and isolated authorized SFU Worker: [deploy-sfu-preview]
 
 After deployment, repeat same live 501 two-computer network test: disconnect one PC for ~10s, reconnect WITHOUT F5, and verify BOTH remote videos and both-way audio recover. Check scoring still synchronized. Do not deploy to main or production without separate explicit authorization and comprehensive checks.
+
+## Mute must not interrupt video – 2026-10-31
+
+During live 501 SFU test, switching the local microphone off caused remote video to cut out. Root cause: `room-sfu-media.js` and `match-sfu-media.js` included MediaStreamTrack.enabled in their publication signatures. `match-controls.js` mutes the microphone by changing audioTrack.enabled. That incorrectly made both SFU watchers replace the entire publisher session, also interrupting video.
+
+PR #94 fixes waiting-room and match signatures to track only kind/id/readyState, retaining new-device detection and keeping microphone mute/unmute and camera enable/disable on the same SFU session. Updated only isolated preview asset cache keys. Added regressions for both flows and included them in staging predeploy gate.
+
+Verification:
+- Isolated branch CI pass: https://github.com/sotkajervi/DartArena/actions/runs/41143253938
+- Merged security staging CI pass: https://github.com/sotkajervi/DartArena/actions/runs/41143345748
+
+Request approval-gated deployment of ONLY isolated `dartarena-sfu-preview` and `dartarena-realtime-security-test`: [deploy-sfu-preview]
+
+Live retest with two PCs: in waiting room and a 501 match, mute/unmute microphone repeatedly and verify both cameras remain continuous and microphone stops/returns. Then perform a separate ten-second offline/online test WITHOUT F5; a successful recovery only after reloading does not count as automatic reconnect. Production remains untouched.
