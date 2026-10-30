@@ -1,0 +1,34 @@
+name: Isolated X01 match SFU authentication regression
+
+on:
+  push:
+    branches:
+      - fix/sfu-match-room-context-20261030
+  pull_request:
+    branches:
+      - security/sfu-auth-staging-20261028
+
+permissions:
+  contents: read
+
+jobs:
+  match-auth-context:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check SFU match and media router syntax
+        run: |
+          node --check match-sfu-media.js
+          node --check match-media-router.js
+          node --check sfu-client.js
+      - name: Check authorized match headers, lifecycle, and preview routes
+        run: |
+          node --test tests/sfu-match-room-context.test.cjs tests/sfu-phase2-preview.test.cjs tests/post-match-media-lifecycle.test.cjs
+      - name: Verify security Worker and SFU client contracts (no secrets or deployment)
+        run: node --test cloudflare/sfu-client-contract.test.mjs cloudflare/sfu-security.test.mjs
+
+# This workflow is compile-and-test only. It cannot deploy any frontend or Worker.
