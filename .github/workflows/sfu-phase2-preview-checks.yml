@@ -1,0 +1,37 @@
+name: SFU Phase 2 isolated integration checks
+
+on:
+  push:
+    branches:
+      - feature/sfu-phase2-integration-20261030
+  pull_request:
+    branches:
+      - security/sfu-auth-staging-20261028
+
+permissions:
+  contents: read
+
+jobs:
+  phase2-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax-check preview media sources
+        run: |
+          node --check sfu-config.js
+          node --check sfu-client.js
+          node --check room-media-router.js
+          node --check match-media-router.js
+          node --check room-sfu-media.js
+          node --check match-sfu-media.js
+          node --check post-match-media-lifecycle.js
+      - name: Check preview isolation, room-to-match handoff and postgame media cleanup
+        run: node --test tests/sfu-phase2-preview.test.cjs tests/post-match-media-lifecycle.test.cjs
+      - name: Check staged security gateway (mock-only, no deployment)
+        run: node --test cloudflare/sfu-security.test.mjs cloudflare/sfu-config.test.mjs cloudflare/sfu-client-contract.test.mjs cloudflare/sfu-video-test-page.test.mjs
+
+# This workflow is intentionally test-only: no secrets, Wrangler or deploy steps.

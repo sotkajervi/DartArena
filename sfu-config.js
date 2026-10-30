@@ -1,6 +1,6 @@
-// Staging-only opt-in: preview pages may use the isolated SFU security-test Worker.
+// Isolated preview hostname only: never route ordinary DartArena pages to the test SFU.
 // Never enable this option in production or merge it without a separate review.
-const dartArenaSecuritySfuTest = location.hostname === 'dartarena-sfu-preview.sotkajervi.workers.dev' || new URLSearchParams(location.search).get('sfuSecurityTest') === '1';
+const dartArenaSecuritySfuTest = location.hostname === 'dartarena-sfu-preview.sotkajervi.workers.dev';
 window.DARTARENA_SFU = Object.freeze({ workerUrl: dartArenaSecuritySfuTest
   ? 'https://dartarena-realtime-security-test.sotkajervi.workers.dev'
   : 'https://dartarena-realtime.sotkajervi.workers.dev' });

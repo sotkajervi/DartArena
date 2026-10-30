@@ -2,7 +2,7 @@
 // Scoring/state continue to use match.js + Supabase Realtime; this file replaces
 // the fragile direct browser-to-browser WebRTC media path with Cloudflare SFU.
 (()=>{
-  if(window.__dartArenaMatchSfuMedia)return;
+  if(window.__dartArenaMatchSfuMedia||window.DARTARENA_POSTMATCH_MEDIA_STOPPED)return;
   window.__dartArenaMatchSfuMedia=true;
 
   let sfu=null;
@@ -66,7 +66,7 @@
   function ensureClient(){
     if(sfu)return sfu;
     if(!window.DartArenaSFU||!window.DARTARENA_SFU?.workerUrl)return null;
-    sfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl, {kind:'match',id:safeMatchId()});
+    sfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
     return sfu;
   }
 
@@ -98,6 +98,7 @@
     lastError='';
     try{
       publication=await client.publish(safeStream());
+      if(stopped||window.DARTARENA_POSTMATCH_MEDIA_STOPPED){client.close();publication=null;return;}
       publishedSignature=signature;
       note('PUBLISH ok',{sessionId:publication?.sessionId,tracks:publication?.tracks});
       await announce();
@@ -148,7 +149,7 @@
 
     try{
       await client.subscribe(pub,async event=>{
-        if(!video)return;
+        if(stopped||window.DARTARENA_POSTMATCH_MEDIA_STOPPED||!video)return;
         let rs=video.srcObject;
         if(!(rs instanceof MediaStream)){
           rs=new MediaStream();
@@ -179,6 +180,7 @@
         // Keep the fallback button hidden unless the browser repeatedly blocks audio.
         renderDebug();
       });
+      if(stopped||window.DARTARENA_POSTMATCH_MEDIA_STOPPED){client.close();return;}
       note('SUBSCRIBE ok',{sessionId:pub.sessionId,tracks:pub.tracks});
     }catch(error){
       subscribedPublicationId=null;
@@ -309,7 +311,8 @@
     renderDebug();
   },1000);
 
-  window.DartArenaMatchMedia={mode:'sfu',republish:()=>publish(true),reconnect:async()=>{
+  window.DartArenaMatchMedia={mode:'sfu',stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
+    if(stopped||window.DARTARENA_POSTMATCH_MEDIA_STOPPED)return;
     try{sfu?.close()}catch{}
     sfu=null;
     publication=null;
@@ -321,15 +324,20 @@
     await announce();
   },debugText};
 
-  window.addEventListener('pagehide',()=>{
+  function stopMedia(){
+    if(stopped)return;
     stopped=true;
     clearInterval(boot);
     clearInterval(watcher);
     clearInterval(heartbeat);
     try{sfu?.close()}catch{}
     sfu=null;
+    publication=null;
+    remotePublication=null;
+    subscribedPublicationId=null;
     const clientDb=safeDb();
     if(mediaChannel&&clientDb){try{clientDb.removeChannel(mediaChannel)}catch{}}
     mediaChannel=null;
-  },{once:true});
+  }
+  window.addEventListener('pagehide',stopMedia,{once:true});
 })();
