@@ -1,0 +1,33 @@
+name: SFU match offline-online reconnection regression
+on:
+  push:
+    branches:
+      - fix/sfu-match-network-recovery-20261031
+  pull_request:
+    branches:
+      - security/sfu-auth-staging-20261028
+
+permissions:
+  contents: read
+
+jobs:
+  reconnect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax validation
+        run: |
+          node --check match-sfu-media.js
+          node --check match-media-router.js
+          node --check tests/sfu-match-network-recovery.test.cjs
+      - name: Verify offline-online recovery, media isolation, and scoring lifecycle
+        run: |
+          node --test tests/sfu-match-network-recovery.test.cjs tests/sfu-match-room-context.test.cjs tests/sfu-phase2-preview.test.cjs tests/post-match-media-lifecycle.test.cjs
+      - name: Verify authenticated SFU client contracts
+        run: node --test cloudflare/sfu-client-contract.test.mjs
+
+# No deploy or production credentials. Regression checks only.
