@@ -12,6 +12,7 @@ function harness(){
  let attempts=0;
  let failing=false;
  let session=null;
+ let publicationCallback=null;
  class MockStream{
    constructor(){this.tracks=[]}
    getTracks(){return this.tracks}
@@ -24,20 +25,31 @@ function harness(){
  const client={async subscribe(){attempts++;if(failing)throw Error('temporary SFU failure')},close(){}};
  const window={DartArenaSFU:function(){return client},DARTARENA_SFU:{workerUrl:'https://isolated.test'},addEventListener(){},navigator:{}};
  const elements={remoteVideo:video,remotePlaceholder:placeholder};
+ const channel={
+   on(type,options,callback){
+     if(type==='broadcast'&&options?.event==='media-state')publicationCallback=callback;
+     return this;
+   },
+   subscribe(){return this},
+   async send(){},
+   state:'joined'
+ };
+ const db={channel(){return channel},removeChannel(){}};
+
  const sandbox={
    window,document:{getElementById(id){return id==='roomSfuDebug'?roomDebug:null}},
    Date:class TestClock extends Date{static now(){return now}},
    MediaStream:MockStream,
    $:id=>elements[id]||null,
    profile:{id:'test-1'},other:'test-2',challengeId:'test-room',names:{'test-2':'Opponent'},
-   db:null,localReady:false,remoteReady:false,stream:null,leaving:false,
+   db,localReady:false,remoteReady:false,stream:null,leaving:false,
    helloTimer:null,pc:null,send:async()=>{},setStatus(){},destroyPeer(){},
    console:{debug(){}},setInterval(){return 1},clearInterval(){},setTimeout(){return 1},clearTimeout(){}
  };
  // A test seam: expose an inner function in VM without altering production source.
  const instrumented=source.replace(
    "  window.DartArenaRoomMedia={mode:'sfu',",
-   "  window.__testSubscribeRemote=subscribeRemote;\n  window.DartArenaRoomMedia={mode:'sfu',"
+   "  window.__testSubscribeRemote=subscribeRemote;window.__testSetupChannel=setupSfuChannel;\n  window.DartArenaRoomMedia={mode:'sfu',"
  );
  assert.notEqual(instrumented,source,'test seam was not found');
  vm.runInNewContext(instrumented,sandbox);
@@ -45,6 +57,12 @@ function harness(){
    publish:{sessionId:'session-1',tracks:['camera','microphone-1']},
    video,client,
    subscribe:window.__testSubscribeRemote,
+   beginReception:window.__testSetupChannel,
+   receive:publication=>{
+     assert.ok(publicationCallback,'reception channel not subscribed');
+     return publicationCallback({payload:{from:'test-2',publication}});
+   },
+   debug:()=>window.DartArenaRoomMedia.debugText(),
    tick:ms=>{now+=ms},
    attempts:()=>attempts,
    fail:value=>{failing=value}
@@ -93,4 +111,21 @@ test('regression is scoped to waiting-room media on the separate test branch',()
  const config=fs.readFileSync(path.join(__dirname,'../sfu-config.js'),'utf8');
  assert.ok(config.includes(preview));
  assert.ok(!config.includes("get('sfuSecurityTest')"));
+});
+
+test('repeated announcements remain useful for recovery without overwhelming the debug log',async()=>{
+ const h=harness();
+ h.beginReception();
+ await h.receive(h.publish);
+ for(let i=0;i<50;i++){
+   h.tick(100);
+   await h.receive(h.publish);
+ }
+ const debug=h.debug();
+ assert.match(debug,/SFU module loaded/);
+ assert.equal((debug.match(/REMOTE publication changed/g)||[]).length,1);
+ assert.match(debug,/REPEATED PUBLICATIONS: 50/);
+ assert.match(debug,/FIRST REMOTE PUBLICATION: 0s after load/);
+ assert.match(debug,/FIRST PLAYABLE VIDEO: not confirmed/);
+ assert.equal(h.attempts(),1,'unchanged publication must not recreate subscriber');
 });
