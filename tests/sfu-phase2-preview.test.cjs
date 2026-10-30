@@ -34,7 +34,7 @@ test('waiting room routes directly to isolated SFU, with no peer-first delay',()
  assert.deepEqual(result.scripts,['room-sfu-media.js?v=20261030-pubrace1']);
 });
 test('X01 match routes to isolated SFU but not after media shutdown',()=>{
- assert.deepEqual(routedScript('match-media-router.js',previewHost).scripts,['match-sfu-media.js?v=20261030-matchauth1']);
+ assert.deepEqual(routedScript('match-media-router.js',previewHost).scripts,['match-sfu-media.js?v=20261031-recovery1']);
  assert.deepEqual(routedScript('match-media-router.js',previewHost,'',true).scripts,[]);
 });
 test('URL flags on regular DartArena cannot opt into isolated SFU',()=>{
@@ -49,7 +49,7 @@ test('each page loads preview config/client before media router',()=>{
   const source=read(page);
   const config=source.indexOf('sfu-config.js?v=20261030-sfu2');
   const client=source.indexOf('sfu-client.js?v=20261030-pubrace1');
-  const mediaRouter=source.indexOf(router+(page==='room.html'?'?v=20261030-pubrace1':'?v=20261030-matchauth1'));
+  const mediaRouter=source.indexOf(router+(page==='room.html'?'?v=20261030-pubrace1':'?v=20261031-recovery1'));
   assert.ok(config>=0&&client>config&&mediaRouter>client);
  }
 });
@@ -61,7 +61,7 @@ test('Zoom-cam and camera changes use the selected local media stream',()=>{
  const s=read('match-sfu-media.js');
  assert.match(s,/await client\.publish\(safeStream\(\)\)/);
  assert.match(s,/const signature=trackSignature\(\)/);
- assert.match(s,/signature!==publishedSignature\)await publish\(true\)/);
+ assert.match(s,/signature!==publishedSignature\)\s*\{\s*await publish\(true\)/);
  assert.match(s,/if\(stopped\|\|window\.DARTARENA_POSTMATCH_MEDIA_STOPPED\)/);
 });
 test('secure SFU client always sends user and room context to isolated Worker',()=>{

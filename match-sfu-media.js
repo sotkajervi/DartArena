@@ -11,6 +11,7 @@
   let remotePublication=null;
   let subscribedPublicationId=null;
   let subscribedAt=0;
+  let subscriptionEpoch=0;
   let lastRemoteTrackAt=0;
   let publishedSignature='';
   let publishing=false;
@@ -19,6 +20,12 @@
   let watcher=null;
   let stopped=false;
   let lastError='';
+  let publisherDisconnectedAt=0;
+  let lastPublisherRepairAt=0;
+  let offlineObserved=false;
+  let reconnectTimer=null;
+  const PUBLISHER_DISCONNECT_GRACE_MS=7000;
+  const PUBLISHER_REPAIR_COOLDOWN_MS=12000;
   const log=[];
 
   const safeProfile=()=>{try{return profile||null}catch{return null}};
@@ -74,6 +81,55 @@
     return sfu;
   }
 
+  function publisherNeedsRepair(now=Date.now()){
+    if(!publication)return false;
+    const pc=sfu?.publisher;
+    if(!pc)return true;
+    const state=pc.connectionState||'';
+    const ice=pc.iceConnectionState||'';
+    if(['failed','closed'].includes(state)||['failed','closed'].includes(ice))return true;
+    if(state==='disconnected'||ice==='disconnected'){
+      if(!publisherDisconnectedAt)publisherDisconnectedAt=now;
+      return now-publisherDisconnectedAt>=PUBLISHER_DISCONNECT_GRACE_MS;
+    }
+    publisherDisconnectedAt=0;
+    return false;
+  }
+
+  async function recoverPublisher(reason){
+    if(stopped||window.DARTARENA_POSTMATCH_MEDIA_STOPPED||publishing||!hasPublishableTracks())return;
+    if(window.navigator?.onLine===false)return;
+    if(!(()=>{try{return !!localReady}catch{return false}})())return;
+    const now=Date.now();
+    if(now-lastPublisherRepairAt<PUBLISHER_REPAIR_COOLDOWN_MS)return;
+    lastPublisherRepairAt=now;
+    note('PUBLISH reconnect',{reason,previous:publication?.sessionId||'none'});
+    // A working camera track can still have a failed WebRTC uplink.
+    // Replace only the publisher; leave the incoming subscriber intact.
+    publication=null;
+    publishedSignature='';
+    publisherDisconnectedAt=0;
+    await publish(true);
+  }
+
+  function onOffline(){
+    if(stopped)return;
+    offlineObserved=true;
+    publisherDisconnectedAt=Date.now();
+    note('NETWORK offline');
+  }
+
+  function onOnline(){
+    if(stopped)return;
+    note('NETWORK online');
+    clearTimeout(reconnectTimer);
+    reconnectTimer=setTimeout(async()=>{
+      reconnectTimer=null;
+      if(stopped)return;
+      if(offlineObserved||publisherNeedsRepair())await recoverPublisher('browser-online');
+    },1200);
+  }
+
   async function announce(){
     const p=safeProfile();
     if(!mediaChannel||!p?.id)return;
@@ -104,6 +160,8 @@
       publication=await client.publish(safeStream());
       if(stopped||window.DARTARENA_POSTMATCH_MEDIA_STOPPED){client.close();publication=null;return;}
       publishedSignature=signature;
+      offlineObserved=false;
+      publisherDisconnectedAt=0;
       note('PUBLISH ok',{sessionId:publication?.sessionId,tracks:publication?.tracks});
       await announce();
     }catch(error){
@@ -123,9 +181,12 @@
 
   async function subscribe(pub,force=false){
     const o=safeOther();
-    if(stopped||subscribing||!pub?.sessionId||!Array.isArray(pub.tracks)||!o)return;
-
-    const samePublication=subscribedPublicationId===pub.sessionId;
+    if(stopped||!pub?.sessionId||!Array.isArray(pub.tracks)||!o)return;
+    const changed=subscribedPublicationId!==pub.sessionId;
+    if(subscribing&&!changed)return;
+    // New publication must preempt pending subscribe; unchanged publication
+    // retains the first-frame grace period to avoid reconnect thrashing.
+    const samePublication=!changed;
     const age=Date.now()-subscribedAt;
     // Do not tear down a fresh SFU subscriber just because audio arrived before the
     // first video frames. This was causing an audio-only reconnect loop.
@@ -137,6 +198,7 @@
     const client=ensureClient();
     if(!client)return;
 
+    const epoch=++subscriptionEpoch;
     subscribing=true;
     subscribedPublicationId=pub.sessionId;
     subscribedAt=Date.now();
@@ -149,7 +211,7 @@
       video.srcObject=new MediaStream();
       video.muted=true;
       video.playsInline=true;
-      video.onplaying=()=>placeholder?.classList.add('hidden');
+      video.onplaying=()=>{if(epoch===subscriptionEpoch)placeholder?.classList.add('hidden')};
     }
     if(placeholder){
       placeholder.textContent='Kobler til motstander via Cloudflare…';
@@ -158,7 +220,7 @@
 
     try{
       await client.subscribe(pub,async event=>{
-        if(stopped||window.DARTARENA_POSTMATCH_MEDIA_STOPPED||!video)return;
+        if(stopped||epoch!==subscriptionEpoch||remotePublication?.sessionId!==pub.sessionId||window.DARTARENA_POSTMATCH_MEDIA_STOPPED||!video)return;
         let rs=video.srcObject;
         if(!(rs instanceof MediaStream)){
           rs=new MediaStream();
@@ -173,9 +235,10 @@
           }
           if(track?.kind==='video'){
             track.onunmute=async()=>{
+              if(epoch!==subscriptionEpoch||stopped)return;
               lastRemoteTrackAt=Date.now();
               try{await video.play()}catch{}
-              if(track.readyState==='live')placeholder?.classList.add('hidden');
+              if(epoch===subscriptionEpoch&&track.readyState==='live')placeholder?.classList.add('hidden');
             };
           }
         }
@@ -190,8 +253,10 @@
         renderDebug();
       });
       if(stopped||window.DARTARENA_POSTMATCH_MEDIA_STOPPED){client.close();return;}
+      if(epoch!==subscriptionEpoch)return;
       note('SUBSCRIBE ok',{sessionId:pub.sessionId,tracks:pub.tracks});
     }catch(error){
+      if(epoch!==subscriptionEpoch)return;
       subscribedPublicationId=null;
       subscribedAt=0;
       lastError=error?.message||String(error);
@@ -201,7 +266,7 @@
         placeholder.classList.remove('hidden');
       }
     }finally{
-      subscribing=false;
+      if(epoch===subscriptionEpoch)subscribing=false;
     }
   }
 
@@ -215,24 +280,27 @@
     mediaChannel=clientDb.channel(`match-player-sfu-${id}`)
       .on('broadcast',{event:'media-state'},async({payload})=>{
         if(!payload||payload.from!==o)return;
-        const changed=payload.publication?.sessionId&&payload.publication.sessionId!==remotePublication?.sessionId;
-        remotePublication=payload.publication||null;
-        note('REMOTE publication',remotePublication?.sessionId||'none');
-        if(changed){
-          subscribedPublicationId=null;
-          subscribedAt=0;
-        }
-        if(remotePublication)await subscribe(remotePublication,changed);
+        const incoming=payload.publication;
+        if(!incoming?.sessionId||!Array.isArray(incoming.tracks))return;
+        const changed=incoming.sessionId!==remotePublication?.sessionId;
+        remotePublication=incoming;
+        if(changed)note('REMOTE publication',incoming.sessionId);
+        await subscribe(remotePublication,changed);
       })
       .subscribe(async status=>{
         note('CHANNEL',status);
         if(status!=='SUBSCRIBED')return;
-        await publish();
+        if(offlineObserved||publisherNeedsRepair())await recoverPublisher('channel-rejoined');
+        else await publish();
         await announce();
         clearInterval(heartbeat);
         heartbeat=setInterval(async()=>{
           if(stopped)return;
-          await publish();
+          if((offlineObserved||publisherNeedsRepair())&&window.navigator?.onLine!==false){
+            await recoverPublisher('heartbeat-publisher-unhealthy');
+          }else{
+            await publish();
+          }
           await announce();
           if(remotePublication&&!subscribedPublicationId)await subscribe(remotePublication);
         },1800);
@@ -274,6 +342,8 @@
       `REMOTE AUDIO: ${remoteHasLiveAudio()?'yes':'no'}`,
       `REMOTE VIDEO: ${remoteHasLiveVideo()?'yes':'no'}`,
       `LAST TRACK: ${lastRemoteTrackAt?Math.round((Date.now()-lastRemoteTrackAt)/1000)+'s ago':'none'}`,
+      `PUBLISHER STATE: ${sfu?.publisher?.connectionState||'none'}/${sfu?.publisher?.iceConnectionState||'none'}`,
+      `NETWORK OFFLINE OBSERVED: ${offlineObserved}`,
       `LAST ERROR: ${lastError||'none'}`,
       '',
       ...log
@@ -302,12 +372,19 @@
     clearInterval(boot);
   },150);
 
+  window.addEventListener('offline',onOffline);
+  window.addEventListener('online',onOnline);
+
   watcher=setInterval(async()=>{
     if(stopped)return;
     disableDirectP2P();
     setupChannel();
     const signature=trackSignature();
-    if(hasPublishableTracks()&&signature!==publishedSignature)await publish(true);
+    if((offlineObserved||publisherNeedsRepair())&&window.navigator?.onLine!==false){
+      await recoverPublisher('publisher-state');
+    }else if(hasPublishableTracks()&&signature!==publishedSignature){
+      await publish(true);
+    }
 
     if(remotePublication){
       if(!subscribedPublicationId){
@@ -323,6 +400,10 @@
   window.DartArenaMatchMedia={mode:'sfu',stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
     if(stopped||window.DARTARENA_POSTMATCH_MEDIA_STOPPED)return;
     try{sfu?.close()}catch{}
+    subscriptionEpoch++;
+    subscribing=false;
+    offlineObserved=false;
+    publisherDisconnectedAt=0;
     sfu=null;
     publication=null;
     remotePublication=null;
@@ -339,6 +420,10 @@
     clearInterval(boot);
     clearInterval(watcher);
     clearInterval(heartbeat);
+    clearTimeout(reconnectTimer);
+    window.removeEventListener('offline',onOffline);
+    window.removeEventListener('online',onOnline);
+    subscriptionEpoch++;
     try{sfu?.close()}catch{}
     sfu=null;
     publication=null;

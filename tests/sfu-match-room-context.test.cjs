@@ -73,8 +73,8 @@ test('waiting room and X01 match use different authoritative SFU contexts',()=>{
 test('preview loads updated match script and shows failure instead of infinite switching',()=>{
   const router=fs.readFileSync(path.join(root,'match-media-router.js'),'utf8');
   const html=fs.readFileSync(path.join(root,'match.html'),'utf8');
-  assert.match(router,/match-sfu-media\.js\?v=20261030-matchauth1/);
-  assert.match(html,/match-media-router\.js\?v=20261030-matchauth1/);
+  assert.match(router,/match-sfu-media\.js\?v=20261031-recovery1/);
+  assert.match(html,/match-media-router\.js\?v=20261031-recovery1/);
   assert.match(source,/Cloudflare-video kunne ikke starte/);
   assert.match(router,/Starter Cloudflare-video/);
 });
