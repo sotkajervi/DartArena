@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - fix/sfu-waiting-room-subscription-20261030
+      - fix/sfu-newest-publication-20261030
 
 permissions:
   contents: read
@@ -19,7 +20,8 @@ jobs:
           node-version: '22'
       - name: Syntax check
         run: node --check room-sfu-media.js
+          node --check sfu-client.js
       - name: Test reconnect grace, first-frame playback and diagnostics
-        run: node --test tests/sfu-room-subscription.test.cjs tests/sfu-phase2-preview.test.cjs tests/post-match-media-lifecycle.test.cjs
+        run: node --test tests/sfu-room-subscription.test.cjs tests/sfu-phase2-preview.test.cjs tests/post-match-media-lifecycle.test.cjs tests/sfu-superseded-client.test.cjs
 
 # No deployment actions or credentials. Production remains unchanged.
