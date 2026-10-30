@@ -1,0 +1,8 @@
+// Isolated frontend preview — NEVER the production DartArena Worker or GitHub Pages.
+{
+  "name": "dartarena-sfu-preview",
+  "compatibility_date": "2026-10-28",
+  "assets": {
+    "directory": "../preview-dist"
+  }
+}

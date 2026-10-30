@@ -1,4 +1,9 @@
-window.DARTARENA_SFU = Object.freeze({ workerUrl: 'https://dartarena-realtime.sotkajervi.workers.dev' });
+// Staging-only opt-in: preview pages may use the isolated SFU security-test Worker.
+// Never enable this option in production or merge it without a separate review.
+const dartArenaSecuritySfuTest = location.hostname === 'dartarena-sfu-preview.sotkajervi.workers.dev' || new URLSearchParams(location.search).get('sfuSecurityTest') === '1';
+window.DARTARENA_SFU = Object.freeze({ workerUrl: dartArenaSecuritySfuTest
+  ? 'https://dartarena-realtime-security-test.sotkajervi.workers.dev'
+  : 'https://dartarena-realtime.sotkajervi.workers.dev' });
 
 (()=>{
   if(window.__dartArenaPreferredMediaDevices)return;

@@ -1,0 +1,16 @@
+// TEST ONLY — separate Worker. Do not deploy until staging security tests pass.
+// Run from cloudflare/: npx wrangler deploy --config wrangler.staging.example.jsonc
+// NEVER use production Worker name or production SFU bearer token here.
+{
+  "name": "dartarena-realtime-security-test",
+  "keep_vars": true,
+  "vars": {"SFU_MEDIA_ENABLED": "false"},
+  "main": "dartarena-realtime.staging.js",
+  "compatibility_date": "2026-10-28",
+  "durable_objects": {
+    "bindings": [{ "name": "SFU_ROOMS", "class_name": "SfuRoom" }]
+  },
+  "migrations": [
+    { "tag": "sfu-security-test-v1", "new_sqlite_classes": ["SfuRoom"] }
+  ]
+}

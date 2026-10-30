@@ -1,0 +1,42 @@
+name: Manual SFU test Worker bootstrap
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type BOOTSTRAP-SFU-TEST to confirm isolated Worker deployment'
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  bootstrap-test-only:
+    if: github.ref == 'refs/heads/security/sfu-auth-staging-20261028' && inputs.confirmation == 'BOOTSTRAP-SFU-TEST'
+    environment: cloudflare-security-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Enforce isolated configuration
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const cfg = JSON.parse(fs.readFileSync('cloudflare/wrangler.bootstrap.jsonc','utf8').replace(/^\s*\/\/.*$/gm,''));
+          if (cfg.name !== 'dartarena-realtime-security-test' || cfg.main !== 'sfu-bootstrap-safe.js' || cfg.keep_vars !== true) process.exit(1);
+          if (cfg.durable_objects?.bindings?.[0]?.name !== 'SFU_ROOMS' || cfg.durable_objects?.bindings?.[0]?.class_name !== 'SfuRoom') process.exit(1);
+          if (cfg.migrations?.[0]?.new_sqlite_classes?.[0] !== 'SfuRoom') process.exit(1);
+          NODE
+      - name: Security regression tests
+        run: node --test cloudflare/sfu-bootstrap-safe.test.mjs cloudflare/sfu-config.test.mjs cloudflare/sfu-security.test.mjs
+      - name: Compile bootstrap before deployment
+        run: npx --yes wrangler@4.45.0 deploy --dry-run --config cloudflare/wrangler.bootstrap.jsonc
+      - name: Deploy only fail-closed bootstrap to isolated test Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --yes wrangler@4.45.0 deploy --config cloudflare/wrangler.bootstrap.jsonc

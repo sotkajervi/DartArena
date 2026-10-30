@@ -1,0 +1,256 @@
+name: SFU staging security tests
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - 'cloudflare/sfu-security.test.mjs'
+      - 'cloudflare/sfu-video-test-page.js'
+      - 'cloudflare/sfu-video-test-page.test.mjs'
+      - 'cloudflare/sfu-client-contract.test.mjs'
+      - 'sfu-client.js'
+      - 'cloudflare/sfu-authorization-contract.test.mjs'
+      - 'cloudflare/can-access-sfu-room.staging.sql'
+      - 'cloudflare/sfu-authorization-pg-fixture.sql'
+      - 'cloudflare/sfu-authorization-pg-assert.sql'
+      - 'cloudflare/sfu-config.test.mjs'
+      - 'cloudflare/sfu-bootstrap-safe.test.mjs'
+      - 'cloudflare/sfu-bootstrap-safe.js'
+      - 'cloudflare/wrangler.bootstrap.jsonc'
+      - 'cloudflare/wrangler.staging.example.jsonc'
+      - 'cloudflare/wrangler.media-test.jsonc'
+      - 'cloudflare/dartarena-realtime.staging.js'
+      - '.github/workflows/sfu-security-staging-tests.yml'
+  push:
+    branches:
+      - security/sfu-auth-staging-20261028
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  staging-security:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: testing-only
+          POSTGRES_DB: sfutest
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sfutest"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify Node runtime
+        run: node --version
+      - name: Run isolated SFU security tests
+        run: node --test cloudflare/sfu-security.test.mjs cloudflare/sfu-config.test.mjs cloudflare/sfu-bootstrap-safe.test.mjs cloudflare/sfu-authorization-contract.test.mjs cloudflare/sfu-client-contract.test.mjs cloudflare/sfu-video-test-page.test.mjs
+      - name: Execute SQL authorization scenarios in ephemeral PostgreSQL (no Supabase calls)
+        env:
+          PGPASSWORD: testing-only
+        run: |
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d sfutest -f cloudflare/sfu-authorization-pg-fixture.sql
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d sfutest -f cloudflare/can-access-sfu-room.staging.sql
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d sfutest -f cloudflare/sfu-authorization-pg-assert.sql
+      - name: Wrangler compile-only validation (no upload)
+        run: timeout 90s env WRANGLER_SEND_METRICS=false npx --yes wrangler@4.45.0 deploy --dry-run --config cloudflare/wrangler.staging.example.jsonc --outdir /tmp/dartarena-sfu-dryrun
+      - name: Wrangler safe bootstrap compile only (no upload)
+        run: timeout 90s env WRANGLER_SEND_METRICS=false npx --yes wrangler@4.45.0 deploy --dry-run --config cloudflare/wrangler.bootstrap.jsonc --outdir /tmp/dartarena-bootstrap-dryrun
+      - name: Live authenticated-gateway rejection smoke test (read-only)
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          const base = 'https://dartarena-realtime-security-test.sotkajervi.workers.dev';
+          const health = await fetch(base + '/health');
+          assert.equal(health.status, 200);
+          const body = await health.json();
+          assert.equal(body.ok, true);
+          assert.equal(body.service, 'DartArena Realtime');
+          for (const path of ['/api/sfu/session', '/api/sfu/publish', '/api/sfu/subscribe', '/api/sfu/renegotiate']) {
+            const response = await fetch(base + path, {
+              method: path.endsWith('/renegotiate') ? 'PUT' : 'POST',
+              headers: {
+                'X-DartArena-Room-Kind': 'match',
+                'X-DartArena-Room-Id': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+              }
+            });
+            assert.equal(response.status, 401, path + ' must reject missing authentication');
+          }
+          console.log('Live bootstrap smoke test: 5/5 checks passed');
+          NODE
+
+  bootstrap-approval:
+    name: Bootstrap isolated Cloudflare test Worker (approval required)
+    needs: staging-security
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/security/sfu-auth-staging-20261028' &&
+      contains(github.event.head_commit.message, '[bootstrap-sfu-test]')
+    environment: cloudflare-security-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify target and fail-closed bootstrap
+        run: |
+          node --test cloudflare/sfu-bootstrap-safe.test.mjs
+          node - <<'NODE'
+          const fs = require('fs');
+          const config = JSON.parse(fs.readFileSync('cloudflare/wrangler.bootstrap.jsonc','utf8').replace(/^\s*\/\/.*$/gm,''));
+          if(config.name!=='dartarena-realtime-security-test'||config.keep_vars!==true||config.main!=='sfu-bootstrap-safe.js') process.exit(1);
+          if(config.durable_objects?.bindings?.[0]?.name!=='SFU_ROOMS'||config.durable_objects.bindings[0].class_name!=='SfuRoom')process.exit(1);
+          if(config.migrations?.[0]?.new_sqlite_classes?.[0]!=='SfuRoom')process.exit(1);
+          NODE
+      - name: Deploy bootstrap only after environment approval
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --yes wrangler@4.45.0 deploy --config cloudflare/wrangler.bootstrap.jsonc
+
+  diagnostic-deploy-approval:
+    name: Deploy auth-only diagnostic to isolated Cloudflare Worker (approval required)
+    needs: staging-security
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/security/sfu-auth-staging-20261028' &&
+      contains(github.event.head_commit.message, '[deploy-sfu-auth-probe]')
+    environment: cloudflare-security-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify isolation and disabled media
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const config=JSON.parse(fs.readFileSync('cloudflare/wrangler.staging.example.jsonc','utf8').replace(/^\s*\/\/.*$/gm,''));
+          if(config.name!=='dartarena-realtime-security-test')process.exit(1);
+          if(config.keep_vars!==true||config.vars?.SFU_MEDIA_ENABLED!=='false')process.exit(1);
+          if(config.main!=='dartarena-realtime.staging.js')process.exit(1);
+          NODE
+      - name: Deploy auth diagnostic only after environment approval
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --yes wrangler@4.45.0 deploy --config cloudflare/wrangler.staging.example.jsonc
+
+  media-test-deploy-approval:
+    name: Deploy isolated SFU media test (approval required)
+    needs: staging-security
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/security/sfu-auth-staging-20261028' &&
+      contains(github.event.head_commit.message, '[deploy-sfu-media-test]')
+    environment: cloudflare-security-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify target and explicit media test gate
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const cfg=JSON.parse(fs.readFileSync('cloudflare/wrangler.media-test.jsonc','utf8').replace(/^\s*\/\/.*$/gm,''));
+          if(cfg.name!=='dartarena-realtime-security-test'||cfg.main!=='dartarena-realtime.staging.js')process.exit(1);
+          if(cfg.keep_vars!==true||cfg.vars?.SFU_MEDIA_ENABLED!=='true')process.exit(1);
+          if(cfg.durable_objects?.bindings?.[0]?.name!=='SFU_ROOMS')process.exit(1);
+          NODE
+      - name: Deploy media test only after approval
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --yes wrangler@4.45.0 deploy --config cloudflare/wrangler.media-test.jsonc
+
+  frontend-preview-approval:
+    name: Publish separate DartArena SFU preview (approval required)
+    needs: staging-security
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/security/sfu-auth-staging-20261028' &&
+      contains(github.event.head_commit.message, '[deploy-sfu-preview]')
+    environment: cloudflare-security-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Assemble public frontend files only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess, shutil
+          root=Path.cwd()
+          dest=root/'preview-dist'
+          dest.mkdir(exist_ok=True)
+          allowed={'.html','.css','.js','.png','.jpg','.jpeg','.webp','.gif','.svg','.ico','.webmanifest','.json','.woff','.woff2','.ttf','.wasm','.tflite','.mp3','.wav','.ogg'}
+          excluded={'cloudflare','.github','supabase','node_modules','tests','test','.git'}
+          paths=subprocess.check_output(['git','ls-files','-z']).split(bytes([0]))
+          count=0
+          for raw in paths:
+              if not raw: continue
+              path=Path(raw.decode())
+              if set(path.parts)&excluded or path.suffix.lower() not in allowed: continue
+              if any(x in path.name.lower() for x in ('.env','secret','credential','private-key')): continue
+              source=root/path
+              if not source.is_file(): continue
+              target=dest/path
+              target.parent.mkdir(parents=True,exist_ok=True)
+              shutil.copyfile(source,target)
+              count+=1
+          if not (dest/'index.html').exists() or not (dest/'room.html').exists() or not (dest/'match.html').exists():
+              raise SystemExit('Missing essential frontend pages')
+          if not (dest/'sfu-config.js').exists(): raise SystemExit('Missing SFU configuration')
+          print('Preview public frontend files:',count)
+          PY
+      - name: Verify deployment targets
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const strip=x=>JSON.parse(fs.readFileSync(x,'utf8').split(String.fromCharCode(10)).filter(line=>!line.trim().startsWith('//')).join(String.fromCharCode(10)));
+          const frontend=strip('cloudflare/wrangler.frontend-preview.jsonc');
+          const media=strip('cloudflare/wrangler.media-test.jsonc');
+          if(frontend.name!=='dartarena-sfu-preview'||frontend.assets?.directory!=='../preview-dist')process.exit(1);
+          if(media.name!=='dartarena-realtime-security-test'||media.keep_vars!==true||media.vars?.SFU_MEDIA_ENABLED!=='true')process.exit(1);
+          const client=fs.readFileSync('preview-dist/sfu-config.js','utf8');
+          if(!client.includes('dartarena-sfu-preview.sotkajervi.workers.dev'))process.exit(1);
+          NODE
+      - name: Deploy isolated authorized media API (preserve test secrets)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --yes wrangler@4.45.0 deploy --config cloudflare/wrangler.media-test.jsonc
+      - name: Deploy isolated frontend preview
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.45.0 deploy --config cloudflare/wrangler.frontend-preview.jsonc
+
+# Preview redeploy after SFU client authentication diagnostics.

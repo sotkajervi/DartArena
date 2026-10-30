@@ -249,7 +249,7 @@
 
       setStatus('Publiserer valgt kamera via Cloudflare…');
       try{sfu?.close()}catch{}
-      sfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
+      sfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl, {kind:'tournament_match',id:tournamentMatchId});
       publication=null;
       subscribedPublicationId=null;
       publication=await sfu.publish(stream);

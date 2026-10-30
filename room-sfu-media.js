@@ -39,7 +39,7 @@
   function ensureSfu(){
     if(sfu)return sfu;
     if(!window.DartArenaSFU||!window.DARTARENA_SFU?.workerUrl)return null;
-    sfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
+    sfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl, {kind:'challenge',id:challengeId});
     return sfu;
   }
 
