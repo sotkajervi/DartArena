@@ -31,7 +31,7 @@ test('only isolated preview hostname can select security test Worker',()=>{
 test('waiting room routes directly to isolated SFU, with no peer-first delay',()=>{
  const result=routedScript('room-media-router.js',previewHost);
  assert.equal(result.mode,'sfu');
- assert.deepEqual(result.scripts,['room-sfu-media.js?v=20261030-sfu2']);
+ assert.deepEqual(result.scripts,['room-sfu-media.js?v=20261030-pubrace1']);
 });
 test('X01 match routes to isolated SFU but not after media shutdown',()=>{
  assert.deepEqual(routedScript('match-media-router.js',previewHost).scripts,['match-sfu-media.js?v=20261030-sfu2']);
@@ -48,8 +48,8 @@ test('each page loads preview config/client before media router',()=>{
  for(const [page,router] of [['room.html','room-media-router.js'],['match.html','match-media-router.js']]){
   const source=read(page);
   const config=source.indexOf('sfu-config.js?v=20261030-sfu2');
-  const client=source.indexOf('sfu-client.js?v=20261030-sfu2');
-  const mediaRouter=source.indexOf(router+'?v=20261030-sfu2');
+  const client=source.indexOf('sfu-client.js?v=20261030-pubrace1');
+  const mediaRouter=source.indexOf(router+(page==='room.html'?'?v=20261030-pubrace1':'?v=20261030-sfu2'));
   assert.ok(config>=0&&client>config&&mediaRouter>client);
  }
 });

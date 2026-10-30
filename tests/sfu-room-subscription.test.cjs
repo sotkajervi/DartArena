@@ -12,6 +12,8 @@ function harness(){
  let attempts=0;
  let failing=false;
  let session=null;
+ let suspendedSession=null;
+ let releaseSuspended=null;
  let publicationCallback=null;
  class MockStream{
    constructor(){this.tracks=[]}
@@ -22,7 +24,13 @@ function harness(){
  const video={srcObject:null,muted:false,playsInline:false,readyState:0,videoWidth:0,videoHeight:0,pause(){},async play(){}};
  const placeholder={classList:{add(){},remove(){}},textContent:''};
  const roomDebug={};
- const client={async subscribe(){attempts++;if(failing)throw Error('temporary SFU failure')},close(){}};
+ const client={async subscribe(publication){
+   attempts++;
+   if(failing)throw Error('temporary SFU failure');
+   if(publication.sessionId===suspendedSession){
+     await new Promise(resolve=>{releaseSuspended=resolve});
+   }
+ },close(){}};
  const window={DartArenaSFU:function(){return client},DARTARENA_SFU:{workerUrl:'https://isolated.test'},addEventListener(){},navigator:{}};
  const elements={remoteVideo:video,remotePlaceholder:placeholder};
  const channel={
@@ -65,7 +73,9 @@ function harness(){
    debug:()=>window.DartArenaRoomMedia.debugText(),
    tick:ms=>{now+=ms},
    attempts:()=>attempts,
-   fail:value=>{failing=value}
+   fail:value=>{failing=value},
+   hold:sessionId=>{suspendedSession=sessionId},
+   release:()=>{assert.ok(releaseSuspended);releaseSuspended();releaseSuspended=null}
  };
 }
 
@@ -128,4 +138,32 @@ test('repeated announcements remain useful for recovery without overwhelming the
  assert.match(debug,/FIRST REMOTE PUBLICATION: 0s after load/);
  assert.match(debug,/FIRST PLAYABLE VIDEO: not confirmed/);
  assert.equal(h.attempts(),1,'unchanged publication must not recreate subscriber');
+});
+
+test('newer remote publication preempts an old in-flight subscription',async()=>{
+ const h=harness();
+ h.beginReception();
+ h.hold('session-1');
+ const old=h.receive(h.publish);
+ await Promise.resolve();
+ assert.equal(h.attempts(),1);
+ const replacement={sessionId:'session-2',tracks:['camera','microphone-1']};
+ await h.receive(replacement);
+ assert.equal(h.attempts(),2,'new publication must not wait for old network operations');
+ assert.match(h.debug(),/REMOTE PUBLICATION: session-2/);
+ assert.match(h.debug(),/SUBSCRIBE ok/);
+ h.release();
+ await old;
+ assert.match(h.debug(),/REMOTE PUBLICATION: session-2/);
+ assert.equal((h.debug().match(/SUBSCRIBE error/g)||[]).length,0);
+});
+
+test('temporary empty publication does not discard newer known media state',async()=>{
+ const h=harness();
+ h.beginReception();
+ await h.receive(h.publish);
+ await h.receive(null);
+ assert.equal(h.attempts(),1);
+ assert.match(h.debug(),/REMOTE PUBLICATION: session-1/);
+ assert.match(h.debug(),/REMOTE empty announcement ignored/);
 });
