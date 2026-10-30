@@ -10,6 +10,8 @@
   let publication=null;
   let remotePublication=null;
   let subscribedPublicationId=null;
+  let subscribedAt=0;
+  let firstVideoLogged=false;
   let heartbeat=null;
   let trackWatch=null;
   let publishing=false;
@@ -35,6 +37,10 @@
     const media=$('remoteVideo')?.srcObject;
     return media instanceof MediaStream&&media.getVideoTracks().some(t=>t.readyState==='live');
   };
+  const remoteHasUsableVideo=()=>{
+    const video=$('remoteVideo');
+    return remoteHasLiveVideo()&&video?.readyState>=2&&video.videoWidth>0&&video.videoHeight>0;
+  };
 
   function ensureSfu(){
     if(sfu)return sfu;
@@ -57,11 +63,13 @@
 
     publishing=true;
     lastError='';
+    const startedAt=Date.now();
+    log('PUBLISH start');
     setStatus('Publiserer kamera via Cloudflare…');
     try{
       publication=await client.publish(stream);
       publishedTrackSignature=signature;
-      log('PUBLISH ok',{sessionId:publication?.sessionId,tracks:publication?.tracks});
+      log('PUBLISH ok',{elapsedMs:Date.now()-startedAt,sessionId:publication?.sessionId,tracks:publication?.tracks});
       await broadcastPublication();
       if(remoteHasLiveVideo())setStatus(`Tilkoblet ${names?.[other]||'motstander'} via Cloudflare`);
       else setStatus('Kamera klart – venter på motstander via Cloudflare…');
@@ -79,16 +87,35 @@
 
   async function subscribeRemote(pub){
     if(!pub?.sessionId||!Array.isArray(pub.tracks)||subscribing)return;
-    if(subscribedPublicationId===pub.sessionId&&remoteHasLiveVideo())return;
+    if(subscribedPublicationId===pub.sessionId){
+      if(remoteHasUsableVideo())return;
+      // SFU subscription can finish before a decodable video frame arrives.
+      // Do not close/recreate an in-flight subscriber on every 1.8s heartbeat.
+      if(Date.now()-subscribedAt<8000)return;
+      log('VIDEO timeout – retrying subscription',{elapsedMs:Date.now()-subscribedAt});
+    }
     const client=ensureSfu();
     if(!client)return;
 
     subscribing=true;
     subscribedPublicationId=pub.sessionId;
+    subscribedAt=Date.now();
+    firstVideoLogged=false;
     lastError='';
+    log('SUBSCRIBE start',{sessionId:pub.sessionId});
     setStatus(`Kobler til ${names?.[other]||'motstander'} via Cloudflare…`);
     const video=$('remoteVideo');
-    if(video){try{video.pause()}catch{};video.srcObject=new MediaStream();video.muted=true;video.playsInline=true}
+    if(video){
+      try{video.pause()}catch{}
+      video.srcObject=new MediaStream();video.muted=true;video.playsInline=true;
+      const firstFrame=()=>{
+        if(firstVideoLogged||!remoteHasUsableVideo())return;
+        firstVideoLogged=true;
+        log('REMOTE first video frame',{elapsedMs:Date.now()-subscribedAt});
+      };
+      video.onloadeddata=firstFrame;
+      video.onplaying=firstFrame;
+    }
 
     try{
       await client.subscribe(pub,async event=>{
@@ -107,9 +134,10 @@
         }
         renderDebug();
       });
-      log('SUBSCRIBE ok',{sessionId:pub.sessionId,tracks:pub.tracks});
+      log('SUBSCRIBE ok',{elapsedMs:Date.now()-subscribedAt,sessionId:pub.sessionId,tracks:pub.tracks});
     }catch(error){
       subscribedPublicationId=null;
+      subscribedAt=0;
       lastError=error?.message||String(error);
       log('SUBSCRIBE error',lastError);
       setStatus('Kunne ikke koble til motstanderens video via Cloudflare. Prøver igjen…');
@@ -160,6 +188,8 @@
     sfu=null;
     publication=null;
     subscribedPublicationId=null;
+    subscribedAt=0;
+    firstVideoLogged=false;
     publishedTrackSignature='';
     $('remotePlaceholder')?.classList.remove('hidden');
     const video=$('remoteVideo');
@@ -208,6 +238,8 @@
       `REMOTE TRACKS: ${remoteTracks}`,
       `PUBLISHING: ${publishing}`,
       `SUBSCRIBING: ${subscribing}`,
+      `SUBSCRIBE AGE: ${subscribedAt?Math.round((Date.now()-subscribedAt)/1000)+'s':'none'}`,
+      `VIDEO FIRST FRAME: ${firstVideoLogged?'yes':'no'}`,
       `LAST ERROR: ${lastError||'none'}`,
       '',
       'LOG:',
