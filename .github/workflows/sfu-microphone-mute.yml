@@ -1,0 +1,34 @@
+name: SFU microphone mute preserves video regression
+on:
+  push:
+    branches:
+      - fix/sfu-mic-mute-no-video-republish-20261031
+  pull_request:
+    branches:
+      - security/sfu-auth-staging-20261028
+
+permissions:
+  contents: read
+
+jobs:
+  microphone-mute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check room-sfu-media.js
+          node --check match-sfu-media.js
+          node --check tests/sfu-room-subscription.test.cjs
+          node --check tests/sfu-match-network-recovery.test.cjs
+      - name: Mic mute stability, reconnect, auth and preview regressions
+        run: |
+          node --test tests/sfu-room-subscription.test.cjs tests/sfu-match-network-recovery.test.cjs tests/sfu-match-room-context.test.cjs tests/sfu-phase2-preview.test.cjs tests/post-match-media-lifecycle.test.cjs
+      - name: Cloudflare client authentication contract
+        run: node --test cloudflare/sfu-client-contract.test.mjs
+
+# No secrets or deploy actions. Production remains unchanged.
