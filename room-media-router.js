@@ -33,7 +33,7 @@
     setMode(mode);
     try{setStatus(mode==='sfu'?'Starter sikker video via Cloudflare…':'Direkte video kunne ikke kobles til – bytter til Cloudflare…')}catch{}
     const script=document.createElement('script');
-    script.src='room-sfu-media.js?v=20261030-pubrace1';
+    script.src='room-sfu-media.js?v=20261031-micmute1';
     script.async=false;
     script.onerror=()=>{
       console.error('[ROOM MEDIA ROUTER] Could not load SFU fallback');
