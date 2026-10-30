@@ -11,6 +11,7 @@
   let remotePublication=null;
   let subscribedPublicationId=null;
   let subscribedAt=0;
+  let subscriptionEpoch=0;
   let firstVideoLogged=false;
   let firstVideoAt=0;
   let remoteFirstSeenAt=0;
@@ -90,30 +91,34 @@
   }
 
   async function subscribeRemote(pub){
-    if(!pub?.sessionId||!Array.isArray(pub.tracks)||subscribing)return;
-    if(subscribedPublicationId===pub.sessionId){
+    if(!pub?.sessionId||!Array.isArray(pub.tracks))return;
+    const changed=subscribedPublicationId!==pub.sessionId;
+    // A NEW publication must preempt a still-pending old subscription.
+    // The old WebRTC signaling may take many seconds and must not delay video.
+    if(subscribing&&!changed)return;
+    if(!changed){
       if(remoteHasUsableVideo())return;
-      // SFU subscription can finish before a decodable video frame arrives.
-      // Do not close/recreate an in-flight subscriber on every 1.8s heartbeat.
+      // Allow enough time for the first decodable frame.
       if(Date.now()-subscribedAt<8000)return;
       log('VIDEO timeout – retrying subscription',{elapsedMs:Date.now()-subscribedAt});
     }
     const client=ensureSfu();
     if(!client)return;
 
+    const epoch=++subscriptionEpoch;
     subscribing=true;
     subscribedPublicationId=pub.sessionId;
     subscribedAt=Date.now();
     firstVideoLogged=false;
     lastError='';
-    log('SUBSCRIBE start',{sessionId:pub.sessionId});
+    log('SUBSCRIBE start',{sessionId:pub.sessionId,changed});
     setStatus(`Kobler til ${names?.[other]||'motstander'} via Cloudflare…`);
     const video=$('remoteVideo');
     if(video){
       try{video.pause()}catch{}
       video.srcObject=new MediaStream();video.muted=true;video.playsInline=true;
       const firstFrame=()=>{
-        if(firstVideoLogged||!remoteHasUsableVideo())return;
+        if(epoch!==subscriptionEpoch||firstVideoLogged||!remoteHasUsableVideo())return;
         firstVideoLogged=true;
         if(!firstVideoAt)firstVideoAt=Date.now();
         log('REMOTE first video frame',{elapsedMs:Date.now()-subscribedAt,sinceModuleMs:Date.now()-moduleStartedAt});
@@ -124,7 +129,7 @@
 
     try{
       await client.subscribe(pub,async event=>{
-        if(!video)return;
+        if(epoch!==subscriptionEpoch||remotePublication?.sessionId!==pub.sessionId||!video)return;
         let remote=video.srcObject;
         if(!(remote instanceof MediaStream)){remote=new MediaStream();video.srcObject=remote}
         const tracks=event.streams?.[0]?.getTracks?.()||[event.track];
@@ -139,15 +144,17 @@
         }
         renderDebug();
       });
+      if(epoch!==subscriptionEpoch)return;
       log('SUBSCRIBE ok',{elapsedMs:Date.now()-subscribedAt,sessionId:pub.sessionId,tracks:pub.tracks});
     }catch(error){
+      if(epoch!==subscriptionEpoch)return; // Old attempt was intentionally superseded.
       subscribedPublicationId=null;
       subscribedAt=0;
       lastError=error?.message||String(error);
       log('SUBSCRIBE error',lastError);
       setStatus('Kunne ikke koble til motstanderens video via Cloudflare. Prøver igjen…');
     }finally{
-      subscribing=false;
+      if(epoch===subscriptionEpoch)subscribing=false;
     }
   }
 
@@ -156,18 +163,22 @@
     sfuChannel=db.channel(`room-sfu-${challengeId}`)
       .on('broadcast',{event:'media-state'},async({payload})=>{
         if(!payload||payload.from!==other)return;
+        // A transient null announcement during initial camera setup is not an
+        // instruction to discard an already-seen, valid publication.
+        const incoming=payload.publication;
+        if(!incoming?.sessionId||!Array.isArray(incoming.tracks)){
+          if(remotePublication)log('REMOTE empty announcement ignored');
+          return;
+        }
         const previousId=remotePublication?.sessionId||null;
-        remotePublication=payload.publication||null;
-        const nextId=remotePublication?.sessionId||null;
-        if(nextId!==previousId){
-          if(nextId&&!remoteFirstSeenAt)remoteFirstSeenAt=Date.now();
-          log('REMOTE publication changed',{available:!!nextId,sinceModuleMs:Date.now()-moduleStartedAt});
+        remotePublication=incoming;
+        if(incoming.sessionId!==previousId){
+          if(!remoteFirstSeenAt)remoteFirstSeenAt=Date.now();
+          log('REMOTE publication changed',{available:true,sinceModuleMs:Date.now()-moduleStartedAt});
         }else{
-          // Keep the heartbeat as a late-join/recovery signal, but do not flood
-          // the bounded debug log with the same publication every 1.8 seconds.
           repeatedPublicationCount++;
         }
-        if(remotePublication)await subscribeRemote(remotePublication);
+        await subscribeRemote(remotePublication);
       })
       .subscribe(async status=>{
         log('CHANNEL',status);
@@ -203,6 +214,8 @@
     publication=null;
     subscribedPublicationId=null;
     subscribedAt=0;
+    subscriptionEpoch++;
+    subscribing=false;
     firstVideoLogged=false;
     publishedTrackSignature='';
     $('remotePlaceholder')?.classList.remove('hidden');
