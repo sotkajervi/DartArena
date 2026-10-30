@@ -12,6 +12,10 @@
   let subscribedPublicationId=null;
   let subscribedAt=0;
   let firstVideoLogged=false;
+  let firstVideoAt=0;
+  let remoteFirstSeenAt=0;
+  let repeatedPublicationCount=0;
+  const moduleStartedAt=Date.now();
   let heartbeat=null;
   let trackWatch=null;
   let publishing=false;
@@ -111,7 +115,8 @@
       const firstFrame=()=>{
         if(firstVideoLogged||!remoteHasUsableVideo())return;
         firstVideoLogged=true;
-        log('REMOTE first video frame',{elapsedMs:Date.now()-subscribedAt});
+        if(!firstVideoAt)firstVideoAt=Date.now();
+        log('REMOTE first video frame',{elapsedMs:Date.now()-subscribedAt,sinceModuleMs:Date.now()-moduleStartedAt});
       };
       video.onloadeddata=firstFrame;
       video.onplaying=firstFrame;
@@ -151,8 +156,17 @@
     sfuChannel=db.channel(`room-sfu-${challengeId}`)
       .on('broadcast',{event:'media-state'},async({payload})=>{
         if(!payload||payload.from!==other)return;
+        const previousId=remotePublication?.sessionId||null;
         remotePublication=payload.publication||null;
-        log('REMOTE publication',remotePublication?.sessionId||'none');
+        const nextId=remotePublication?.sessionId||null;
+        if(nextId!==previousId){
+          if(nextId&&!remoteFirstSeenAt)remoteFirstSeenAt=Date.now();
+          log('REMOTE publication changed',{available:!!nextId,sinceModuleMs:Date.now()-moduleStartedAt});
+        }else{
+          // Keep the heartbeat as a late-join/recovery signal, but do not flood
+          // the bounded debug log with the same publication every 1.8 seconds.
+          repeatedPublicationCount++;
+        }
         if(remotePublication)await subscribeRemote(remotePublication);
       })
       .subscribe(async status=>{
@@ -238,6 +252,10 @@
       `REMOTE TRACKS: ${remoteTracks}`,
       `PUBLISHING: ${publishing}`,
       `SUBSCRIBING: ${subscribing}`,
+      `ROOM MEDIA UPTIME: ${Math.round((Date.now()-moduleStartedAt)/1000)}s`,
+      `FIRST REMOTE PUBLICATION: ${remoteFirstSeenAt?Math.round((remoteFirstSeenAt-moduleStartedAt)/1000)+'s after load':'not received'}`,
+      `FIRST PLAYABLE VIDEO: ${firstVideoAt?Math.round((firstVideoAt-moduleStartedAt)/1000)+'s after load':'not confirmed'}`,
+      `REPEATED PUBLICATIONS: ${repeatedPublicationCount}`,
       `SUBSCRIBE AGE: ${subscribedAt?Math.round((Date.now()-subscribedAt)/1000)+'s':'none'}`,
       `VIDEO FIRST FRAME: ${firstVideoLogged?'yes':'no'}`,
       `LAST ERROR: ${lastError||'none'}`,
@@ -275,6 +293,7 @@
   window.DartArenaRoomMedia={mode:'sfu',republish:()=>ensurePublished(true),reconnect:()=>restartPeer(),debugText};
 
   buildDebug();
+  log('SFU module loaded');
   window.addEventListener('pagehide',()=>{
     clearInterval(heartbeat);
     clearInterval(trackWatch);
