@@ -61,7 +61,7 @@ test('Zoom-cam and camera changes use the selected local media stream',()=>{
  const s=read('match-sfu-media.js');
  assert.match(s,/await client\.publish\(safeStream\(\)\)/);
  assert.match(s,/const signature=trackSignature\(\)/);
- assert.match(s,/signature!==publishedSignature\)await publish\(true\)/);
+ assert.match(s,/signature!==publishedSignature\)\s*\{\s*await publish\(true\)/);
  assert.match(s,/if\(stopped\|\|window\.DARTARENA_POSTMATCH_MEDIA_STOPPED\)/);
 });
 test('secure SFU client always sends user and room context to isolated Worker',()=>{
