@@ -193,6 +193,10 @@
   setInterval(()=>{
     syncMic();
     syncCameraButton();
+    // SFU media restarts after outages. Its audio unlocker owns sound playback,
+    // including newly attached remote streams; do not force muted=false based on
+    // an old pre-outage audioUnlocked flag.
+    if(['sfu','sfu-fallback'].includes(window.DARTARENA_ACTIVE_MEDIA_MODE))return;
     if(audioUnlocked&&audioWanted&&remoteVideo)remoteVideo.muted=false;
     else syncRemoteAudio();
   },500);
