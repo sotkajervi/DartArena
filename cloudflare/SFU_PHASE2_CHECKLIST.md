@@ -61,3 +61,18 @@ PR #92 fixes exact match kind/ID, shows a visible camera-start failure if SFU pu
 Deployment request only for `dartarena-sfu-preview` plus `dartarena-realtime-security-test`; no main branch or production Worker changes: [deploy-sfu-preview]
 
 After approval and successful deploy: open a FRESH 501 challenge with two test users, check both preview waiting room video and both preview match video. Check audio and scoring, then leave one completed match and verify post-match cleanup. A live successful match test is required before considering the feature production-ready.
+
+## Match media recovers after temporary network loss – 2026-10-31
+
+Real two-PC test revealed one-sided recovery after one player's ~10 s network outage: the returning player saw the opponent again, but the opponent's video from the returning player remained missing. Root cause: local media tracks stay live while the SFU publisher RTCPeerConnection can be dead; the periodic watcher reused the stale publisher because the track signature did not change.
+
+Fix in PR #93 (merged ONLY to isolated SFU staging): browser offline/online recovery forces a NEW Cloudflare publisher session; unhealthy publisher connection/ICE state can independently cause repair after grace; a newly announced publication immediately supersedes a pending old match subscription. Cooldown avoids busy loops, cleanup removes reconnect listeners. Production is untouched.
+
+Validation:
+- Branch functional regression: https://github.com/sotkajervi/DartArena/actions/runs/41142253145 – pass.
+- Merged staging security and regression gate: https://github.com/sotkajervi/DartArena/actions/runs/41142354969 – pass.
+- New tests include offline/online, ICE fail, short vs prolonged disconnect, superseded remote publisher, and cleanup.
+
+Request approval-gated deployment of **only** the isolated preview and isolated authorized SFU Worker: [deploy-sfu-preview]
+
+After deployment, repeat same live 501 two-computer network test: disconnect one PC for ~10s, reconnect WITHOUT F5, and verify BOTH remote videos and both-way audio recover. Check scoring still synchronized. Do not deploy to main or production without separate explicit authorization and comprehensive checks.
