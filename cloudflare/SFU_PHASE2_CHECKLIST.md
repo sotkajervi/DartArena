@@ -46,3 +46,8 @@ PR #90 merged into isolated security staging only. It adds an eight-second grace
 Next isolated preview test: have two users connect using a fresh room, record time until camera/audio on each side and copy debug immediately after the first video frame. Compare MODULE loaded, CHANNEL, PUBLISH start/ok, REMOTE publication changed, SUBSCRIBE start/ok, REMOTE first video frame. Do not share access tokens, passwords, or session IDs. Do not promote to production on timing tests alone.
 
 Request protected isolated preview redeploy only: [deploy-sfu-preview]
+
+## Test newest remote publication first (2026-10-30)
+Real-world player logs showed an old subscription delayed approximately 9.4 s when the opponent created a newer video publication. PR #91 changes isolated waiting-room/client code to immediately preempt old in-flight subscriptions, ignore transient empty announcements, and guard against stale WebRTC callbacks and session IDs. The repair is tested (https://github.com/sotkajervi/DartArena/actions/runs/41139358593), and merged staging CI passed (https://github.com/sotkajervi/DartArena/actions/runs/41139443430). These automated checks do **not** establish real video latency.
+
+Request approval-gated isolated test deploy: [deploy-sfu-preview]
