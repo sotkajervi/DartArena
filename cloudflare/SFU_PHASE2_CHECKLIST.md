@@ -31,3 +31,9 @@
 - **Ingen av denne grenens commits har noen deploy-markør.** Eksisterende produksjons-Worker, `main` og Supabase-skjema skal ikke røres.
 - For å distribuere preview må endringene først bringes inn i beskyttet staging-gren, der test/publisering krever separat GitHub environment-godkjenning. Ikke distribuer fra denne grenen til produksjon.
 - Preview bruker samme Supabase prosjekt som DartArena. Bruk testkontoer og en kort, kontrollert kamp for å unngå å påvirke ekte kamper.
+
+## Preview-deploy-kontroll (30.10.2026)
+Denne staginggrenen inneholder nå den sammenslåtte fase 2-integrasjonen fra PR #89.
+En ny GitHub Actions-kjøring med markøren [deploy-sfu-preview] ber om godkjenning i miljøet `cloudflare-security-test` før noen publisering.
+Bare test-Worker og separat frontend-preview er deploymål. `main`, produksjons-Worker og aktive kamper endres ikke av denne koden.
+Kontroller at sikkerhetsjobben er grønn og at preview har riktig kilde før du godkjenner. Test med to testkontoer etterpå.
