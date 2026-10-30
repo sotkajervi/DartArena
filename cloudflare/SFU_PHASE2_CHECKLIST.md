@@ -1,0 +1,33 @@
+# SFU fase 2 – isolert integrasjon (30.10.2026)
+
+**Gren:** `feature/sfu-phase2-integration-20261030` (opprettet fra `security/sfu-auth-staging-20261028`). **Ikke produksjon.**
+
+## Bekreftet før kodeendringen
+- Isolert `/video-test`: to forskjellige kontoer fikk både lyd og video i aktivt venterom og i aktiv 501-kamp.
+- Etter avsluttet 501-kamp ble ny romtilgang avvist med HTTP 403.
+- Dette dokumenterer separat SFU-videotest, **ikke** integrert mediaflyt, automatisk lukking av eksisterende sessions eller godkjent sikkerhet mot alle angrep.
+
+## Inkludert i denne fasen
+- Tving SFU på **preview-hostname**, ikke på ordinær DartArena, og ikke gjennom en query-parameter.
+- Rut SFU for standard venterom og 501-kamp med samme rom-ID som DartArena bruker; behold ordinære spill- og scoringtabeller.
+- Bruk valgt kamerastream / Zoom-cam i SFU-transporten. Bytte av track forsøker republisering.
+- Ta med ny post-match media cleanup: ferdig kamp + synkronisert tilstedeværelse + én spiller har forlatt -> video/lyd lukkes etter 15 sekunders margin. En eksplisitt «Lukk kampfane» signaliserer avreise og viser resultatet hos gjenværende spiller.
+- SFU-modulen har `stop()` og stopper sine timere, channel og RTCPeerConnections. Videorouteren kan ikke starte SFU etter post-match shutdown.
+- Testene er automatiserte, men integrasjon med to reelle klienter må fortsatt verifiseres.
+
+## Gjennomfør faktisk integrert videotest etter godkjent isolert preview-deploy
+1. Verifiser at preview er oppdatert fra denne grenen, og at test Worker fortsatt er `dartarena-realtime-security-test`.
+2. Logg inn på **preview** med to testkontoer på hver sin enhet.
+3. Send én vanlig 501-utfordring via preview; åpne venterommet på begge.
+4. Kontroller at lyd/video vises **direkte i venterommet**, uten egen /video-test-fane. Åpne `#roomSfuDebug` om det oppstår problemer, og noter eventuelle feil – ikke del tilgangstoken.
+5. Godta 501 og kontroller automatisk navigasjon til `match.html?id=...` på preview. Kontroller nytt SFU-session/rom-ID, 2 kameraer og lyd begge veier.
+6. Bytt kamera/Zoom-cam, test poengregistrering, et kort nettbrudd og reconnect; kontroller at lyd og video overlever eller kobles til på nytt.
+7. Avslutt 501 og la begge bli på resultatsiden: video kan fortsatt være aktiv så lenge begge er til stede.
+8. La én spiller velge «Lukk kampfane». Kontroller at gjenværende spillers lyd/video stopper, resultat/statistikk beholdes, og SFU ikke starter igjen.
+9. Kontroller at gammel match-ID gir HTTP 403 for ny romtilgang. Test også en ikke-deltakende konto: ingen tilgang til publisering/abonnement.
+
+## Begrensninger
+- Ikke anta at tilskuervideo, turneringsventerom, Zoom-cam eller reconnect er ferdig testet før reelle end-to-end prøver.
+- **Ingen av denne grenens commits har noen deploy-markør.** Eksisterende produksjons-Worker, `main` og Supabase-skjema skal ikke røres.
+- For å distribuere preview må endringene først bringes inn i beskyttet staging-gren, der test/publisering krever separat GitHub environment-godkjenning. Ikke distribuer fra denne grenen til produksjon.
+- Preview bruker samme Supabase prosjekt som DartArena. Bruk testkontoer og en kort, kontrollert kamp for å unngå å påvirke ekte kamper.
