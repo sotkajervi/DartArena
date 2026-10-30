@@ -33,8 +33,11 @@
     renderDebug();
   };
 
+  // Track.enabled represents local mute/unmute. Do not replace the SFU
+  // publisher (and interrupt video) just because microphone was muted.
+  // Track IDs and readyState still reveal actual device replacements.
   const currentTrackSignature=()=>{
-    try{return (stream?.getTracks?.()||[]).map(t=>`${t.kind}:${t.id}:${t.readyState}:${t.enabled}`).sort().join('|')}
+    try{return (stream?.getTracks?.()||[]).map(t=>`${t.kind}:${t.id}:${t.readyState}`).sort().join('|')}
     catch{return''}
   };
 
