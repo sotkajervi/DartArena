@@ -90,3 +90,15 @@ Verification:
 Request approval-gated deployment of ONLY isolated `dartarena-sfu-preview` and `dartarena-realtime-security-test`: [deploy-sfu-preview]
 
 Live retest with two PCs: in waiting room and a 501 match, mute/unmute microphone repeatedly and verify both cameras remain continuous and microphone stops/returns. Then perform a separate ten-second offline/online test WITHOUT F5; a successful recovery only after reloading does not count as automatic reconnect. Production remains untouched.
+
+## Incoming SFU sound after temporary network outage – 2026-10-31
+
+On real two-PC X01 SFU test, video reconnected without reload after ~10s disconnection but the disconnected player's **incoming sound** required an F5 refresh. This means video reconnect is fixed, audio not yet.
+
+PR #95 is merged **only** into isolated staging. It restores the **inbound SFU subscriber** after the browser returns online (not only the outbound publisher), and repairs failed/closed or prolonged-disconnected subscriber PeerConnections, or a missing expected audio track after grace. Attempts are rate limited. It also prevents the old match-controls audio timer from overriding the SFU audio-autounlocker, and retries `video.play()` when remote media is unmuted but still paused.
+
+Tests: branch workflow https://github.com/sotkajervi/DartArena/actions/runs/41144600154 – 42 passed; stage security https://github.com/sotkajervi/DartArena/actions/runs/41144685188 – passed. Both are code/simulation validations, not a substitute for a two-PC test.
+
+Request the standard approval-gated **isolated test-only** Cloudflare preview deployment: [deploy-sfu-preview]
+
+Once deployed: open a **new** 501 match on both PCs; disconnect internet on one PC for ~10s, then reconnect WITHOUT F5; confirm BOTH remote video and incoming audio return automatically. Repeat microphone mute/unmute briefly to ensure earlier fix is preserved. If browser policy denies autoplay, explicit "Slå på lyd" must be shown, not silent failure. Do not deploy main or production Worker without separate approval.
