@@ -48,7 +48,7 @@ test('each page loads preview config/client before media router',()=>{
  for(const [page,router] of [['room.html','room-media-router.js'],['match.html','match-media-router.js']]){
   const source=read(page);
   const config=source.indexOf('sfu-config.js?v=20261030-sfu2');
-  const client=source.indexOf('sfu-client.js?v=20261031-micmute1');
+  const client=source.indexOf('sfu-client.js?v=20261030-pubrace1');
   const mediaRouter=source.indexOf(router+(page==='room.html'?'?v=20261031-micmute1':'?v=20261031-micmute1'));
   assert.ok(config>=0&&client>config&&mediaRouter>client);
  }
