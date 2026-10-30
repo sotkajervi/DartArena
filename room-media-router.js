@@ -25,15 +25,15 @@
     try{window.dispatchEvent(new CustomEvent('dartarena:media-mode',{detail:{mode}}))}catch{}
   }
 
-  function loadFallback(){
+  function loadFallback(mode='sfu-fallback'){
     if(fallbackLoaded)return;
     fallbackLoaded=true;
     clearInterval(timer);
     timer=null;
-    setMode('sfu-fallback');
+    setMode(mode);
     try{setStatus('Direkte video kunne ikke kobles til – bytter til Cloudflare…')}catch{}
     const script=document.createElement('script');
-    script.src='room-sfu-media.js?v=20261003-fallback1';
+    script.src='room-sfu-media.js?v=20261030-sfu2';
     script.async=false;
     script.onerror=()=>{
       console.error('[ROOM MEDIA ROUTER] Could not load SFU fallback');
@@ -43,8 +43,8 @@
   }
 
   // Explicit preview-only switch, never the default for normal players.
-  if(location.hostname==='dartarena-sfu-preview.sotkajervi.workers.dev'||new URLSearchParams(location.search).get('sfuSecurityTest')==='1'){
-    loadFallback();
+  if(location.hostname==='dartarena-sfu-preview.sotkajervi.workers.dev'){
+    loadFallback('sfu');
     return;
   }
 
