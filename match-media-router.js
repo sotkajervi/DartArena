@@ -61,7 +61,7 @@
   }
 
   function loadSfu(mode='sfu-fallback'){
-    if(sfuLoaded)return;
+    if(sfuLoaded||window.DARTARENA_POSTMATCH_MEDIA_STOPPED)return;
     sfuLoaded=true;
     clearInterval(timer);
     timer=null;
@@ -73,7 +73,7 @@
       placeholder.classList.remove('hidden');
     }
     const script=document.createElement('script');
-    script.src='match-sfu-media.js?v=20261014-pollcleanup1';
+    script.src='match-sfu-media.js?v=20261030-sfu2';
     script.async=false;
     script.onerror=()=>console.error('[MEDIA ROUTER] Could not load SFU fallback');
     document.head.appendChild(script);
@@ -95,7 +95,7 @@
 
   // Explicit preview-only switch. This preserves Zoom-cam because the SFU
   // module publishes the stream already selected and processed in match.js.
-  if(location.hostname==='dartarena-sfu-preview.sotkajervi.workers.dev'||new URLSearchParams(location.search).get('sfuSecurityTest')==='1'){
+  if(location.hostname==='dartarena-sfu-preview.sotkajervi.workers.dev'){
     loadSfu('sfu');
     return;
   }
