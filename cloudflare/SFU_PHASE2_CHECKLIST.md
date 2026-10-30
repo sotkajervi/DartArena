@@ -51,3 +51,13 @@ Request protected isolated preview redeploy only: [deploy-sfu-preview]
 Real-world player logs showed an old subscription delayed approximately 9.4 s when the opponent created a newer video publication. PR #91 changes isolated waiting-room/client code to immediately preempt old in-flight subscriptions, ignore transient empty announcements, and guard against stale WebRTC callbacks and session IDs. The repair is tested (https://github.com/sotkajervi/DartArena/actions/runs/41139358593), and merged staging CI passed (https://github.com/sotkajervi/DartArena/actions/runs/41139443430). These automated checks do **not** establish real video latency.
 
 Request approval-gated isolated test deploy: [deploy-sfu-preview]
+
+## Authenticated X01 room context – 2026-10-30
+
+Integrated 501 preview test reached the match page with a local camera picture but remote video black for over one minute. Diagnosed a missing authorization context in `match-sfu-media.js`: it instantiated the SFU client without `{kind:'match',id:<match UUID>}`, so the security gateway correctly denied all media sessions. Venterommet already supplied `{kind:'challenge',id:challengeId}`.
+
+PR #92 fixes exact match kind/ID, shows a visible camera-start failure if SFU publish fails, refreshes asset cache versions, and adds an actual request-header regression test. Branch workflow succeeded: https://github.com/sotkajervi/DartArena/actions/runs/41140277662. The protected staging workflow now also checks match-room headers before any preview deployment.
+
+Deployment request only for `dartarena-sfu-preview` plus `dartarena-realtime-security-test`; no main branch or production Worker changes: [deploy-sfu-preview]
+
+After approval and successful deploy: open a FRESH 501 challenge with two test users, check both preview waiting room video and both preview match video. Check audio and scoring, then leave one completed match and verify post-match cleanup. A live successful match test is required before considering the feature production-ready.
