@@ -54,7 +54,7 @@ jobs:
         run: node --test cloudflare/sfu-security.test.mjs cloudflare/sfu-config.test.mjs cloudflare/sfu-bootstrap-safe.test.mjs cloudflare/sfu-authorization-contract.test.mjs cloudflare/sfu-client-contract.test.mjs cloudflare/sfu-video-test-page.test.mjs
       - name: Prevent roomless SFU media requests in integrated preview
         run: |
-          node --test tests/sfu-match-network-recovery.test.cjs tests/sfu-match-room-context.test.cjs tests/sfu-phase2-preview.test.cjs tests/post-match-media-lifecycle.test.cjs
+          node --test tests/sfu-room-subscription.test.cjs tests/sfu-match-network-recovery.test.cjs tests/sfu-match-room-context.test.cjs tests/sfu-phase2-preview.test.cjs tests/post-match-media-lifecycle.test.cjs
       - name: Execute SQL authorization scenarios in ephemeral PostgreSQL (no Supabase calls)
         env:
           PGPASSWORD: testing-only
