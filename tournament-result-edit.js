@@ -49,24 +49,24 @@
     try{
       const {data:match,error}=await client
         .from('tournament_matches')
-        .select('id,tournament_id,stage,round_no,match_no,status,best_of,player1_id,player2_id,player1_legs,player2_legs,winner_id,live_match_id')
+        .select('id,tournament_id,stage,round_no,match_no,status,best_of,player1_id,player2_id,player1_legs,player2_legs,winner_id,live_match_id,updated_at')
         .eq('id',matchId)
         .single();
 
       if(error||!match)throw error||new Error('Kampen ble ikke funnet.');
-      if(!['pending','finished','wo'].includes(match.status))throw new Error('Kampen kan ikke registreres manuelt mens den spilles.');
+      if(!['pending','finished','wo'].includes(match.status)&&!(match.stage==='cup'&&match.status==='live'))throw new Error('Denne kampen kan ikke redigeres.');
       if(!match.player1_id||!match.player2_id)throw new Error('WO/BYE uten to spillere kan ikke endres til et vanlig kampresultat.');
 
       const [n1,n2]=await namesFor([match.player1_id,match.player2_id]);
       const isChicago=(match.stage==='cup'?cupVariant:groupVariant)==='chicago';
       const needed=targetWins(match.best_of);
-      const current=match.status==='pending'?'':`${Number(match.player1_legs||0)}-${Number(match.player2_legs||0)}`;
+      const current=['pending','live'].includes(match.status)?'':`${Number(match.player1_legs||0)}-${Number(match.player2_legs||0)}`;
       const dialog=await getDialog();
       if(!dialog?.prompt)throw new Error('DartArena-dialogen kunne ikke lastes. Oppdater turneringen og prøv igjen.');
       const unit=isChicago?'games':'legs';
       const promptMessage=`${n1} vs ${n2}\n${isChicago?'Chicago Style':'Best av '+match.best_of} • vinner må ha ${needed} ${unit}\n\nSkriv nytt resultat (${n1}-${n2}):`;
       const input=await dialog.prompt(promptMessage,{
-        title:match.status==='pending'?'Registrer resultat':'Korriger resultat',
+        title:['pending','live'].includes(match.status)?'Registrer resultat':'Korriger resultat',
         kicker:'DARTARENA · TURNERING',
         value:current,inputLabel:'NYTT RESULTAT',confirmText:'Lagre resultat'
       });
@@ -93,15 +93,33 @@
         if(!ok)return;
       }
 
-      const {error:rpcError}=await client.rpc(match.live_match_id?'correct_finished_tournament_result':'record_tournament_result',{
+      const externalCupMatch=match.stage==='cup'&&(match.status==='live'||(match.status==='pending'&&!!match.live_match_id));
+      if(externalCupMatch){
+        const approved=await dialog.confirm('Denne kampen har en aktiv eller tidligere tilkoblet scorer.\n\nBekreft at dere har avsluttet den i DartArena og spilt den utenfor systemet. Den gamle scoren kobles fra cupresultatet, men slettes ikke.',{title:'Registrer ekstern cupkamp?',tone:'warning',confirmText:'Koble fra og lagre'});
+        if(!approved)return;
+      }
+      const method=match.stage==='cup'?'manage_cup_result':match.live_match_id?'correct_finished_tournament_result':'record_tournament_result';
+      const args=match.stage==='cup'?{
+        p_tournament_match_id:matchId,
+        p_player1_legs:p1,
+        p_player2_legs:p2,
+        p_override_live:externalCupMatch,
+        p_expected_updated_at:match.updated_at
+      }:{
         p_tournament_match_id:matchId,
         p_player1_legs:p1,
         p_player2_legs:p2
-      });
+      };
+      const {error:rpcError}=await client.rpc(method,args);
       if(rpcError)throw rpcError;
 
-      await refreshTournament();
-      await dialog.alert('Resultatet er korrigert.',{title:'Resultat lagret',tone:'success'});
+      await dialog.alert('Resultatet er lagret.',{title:'Resultat lagret',tone:'success'});
+      if(match.stage==='cup'){
+        // Keep success feedback independent of expensive tournament-wide refreshes.
+        Promise.resolve(window.dartArenaLoadCup?.()).catch(error=>console.warn('Cup refresh after correction failed',error));
+      }else{
+        await refreshTournament();
+      }
     }catch(error){
       const message=String(error?.message||'Kunne ikke endre resultatet.')
         .replace('Cannot change cup winner because the next match has already started','Kan ikke bytte vinner fordi neste cupkamp allerede har startet.')
@@ -143,7 +161,7 @@
       const ids=[...new Set(undecorated.map(r=>r.dataset.match).filter(Boolean))];
       const {data,error}=await client.from('tournament_matches').select('id,status,stage,player1_id,player2_id,live_match_id').in('id',ids);
       if(error)return console.error('Could not inspect finished matches for admin edit',error);
-      const editable=new Set((data||[]).filter(m=>['pending','finished','wo'].includes(m.status)&&(m.status!=='pending'||!m.live_match_id)&&m.player1_id&&m.player2_id).map(m=>m.id));
+      const editable=new Set((data||[]).filter(m=>(m.stage==='cup'?['pending','finished','live','wo'].includes(m.status):['pending','finished','wo'].includes(m.status)&&(m.status!=='pending'||!m.live_match_id))&&m.player1_id&&m.player2_id).map(m=>m.id));
       undecorated.forEach(row=>{if(editable.has(row.dataset.match)){row.dataset.editPending=(data||[]).find(m=>m.id===row.dataset.match)?.status==='pending'?'1':'0';attachButton(row)}});
     }finally{decorating=false}
   }
