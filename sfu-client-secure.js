@@ -1,11 +1,11 @@
 class DartArenaSecureSFU {
   constructor(workerUrl,room,authClient=null){this.authClient=authClient;this.workerUrl=workerUrl.replace(/\/$/,'');this.room=room||null;this.publisher=null;this.subscriber=null;this.publisherSessionId=null;this.subscriberSessionId=null;window.__DartArenaLastSFU=this;}
-  async request(path,body,method='POST'){
+  async request(path,body,method='POST',intent='publish'){
     const authClient=this.authClient||(typeof db!=='undefined'?db:window.db);
     if(!authClient?.auth?.getSession)throw new Error('Supabase auth client unavailable');
     const send=async(token)=>{const r=await fetch(this.workerUrl+path,{
       method,headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,
-        'X-DartArena-Room-Kind':this.room?.kind||'','X-DartArena-Room-Id':this.room?.id||''},
+        'X-DartArena-Room-Kind':this.room?.kind||'','X-DartArena-Room-Id':this.room?.id||'','X-DartArena-SFU-Intent':intent},
       body:body===undefined?undefined:JSON.stringify(body)});
       const d=await r.json().catch(()=>({}));
       return{r,d};
@@ -40,7 +40,7 @@ class DartArenaSecureSFU {
     pc.ontrack=event=>{
       if(this.subscriber===pc&&pc.signalingState!=='closed')onTrack(event);
     };
-    const session=await this.request('/api/sfu/session');
+    const session=await this.request('/api/sfu/session',undefined,'POST','subscribe');
     assertCurrent();
     const sessionId=session.sessionId;
     this.subscriberSessionId=sessionId;
@@ -56,7 +56,7 @@ class DartArenaSecureSFU {
     assertCurrent();
     await this.waitForIce(pc);
     assertCurrent();
-    await this.request('/api/sfu/renegotiate',{sessionId,sessionDescription:pc.localDescription},'PUT');
+    await this.request('/api/sfu/renegotiate',{sessionId,sessionDescription:pc.localDescription},'PUT','subscribe');
     assertCurrent();
     return sessionId;
   }
