@@ -165,7 +165,7 @@
   async function refreshMatchViews(){
     if(window.dartArenaSimulationViewActive)return;
     const jobs=[];
-    if(typeof window.loadGroupLobby==='function')jobs.push(
+    if(typeof tournament!=='undefined'&&['groups','cup_setup'].includes(tournament?.status)&&typeof window.loadGroupLobby==='function')jobs.push(
       Promise.resolve(window.loadGroupLobby()).catch(err=>console.error('Tournament group refresh failed',err))
     );
     if(typeof window.dartArenaLoadCup==='function')jobs.push(
