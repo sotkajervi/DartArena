@@ -116,3 +116,16 @@ Verification: https://github.com/sotkajervi/DartArena/actions/runs/41199819644 (
 Request approval-gated deployment **only** to the isolated frontend preview and isolated security-test Worker. [deploy-sfu-preview]
 
 After successful approval/deploy, open a NEW 501 tournament match with both users. In waiting room choose the desired microphone on each account and check the level meter; after navigation to the live match confirm the outgoing microphone label matches selected input, both users hear each other, scoring and Zoom-cam still work, and spectator 403 floods have stopped. Do not interpret audio as repaired until verified in a real match. Production untouched.
+
+## Four-player canary and safe fallback – 2026-10-31
+
+PR #97 (merged ONLY to isolated staging) detects mixed frontend versions in the tournament waiting room. If one participant uses ordinary DartArena or a stale client while their opponent is on isolated SFU preview, the preview blocks «Jeg er klar» and shows the correct link. Both preview participants retain the normal flow. Adds a visible notice that preview spectator video is unavailable.
+
+Backup of the known working main site has been created at `backup/pre-sfu-production-20261031`, sourced from `5f15a68cd12621ccf91dc9549f2296b3c0047c17`. See `cloudflare/SFU_TOURNAMENT_CANARY_ROLLBACK_20261031.md` for a rollback procedure that **does not require a production deploy** and never promises seamless in-flight room handoff. Both sites share Supabase tournament state; no automatic database rollback.
+
+Branch tests: https://github.com/sotkajervi/DartArena/actions/runs/41202041826 – success.
+Staging security: https://github.com/sotkajervi/DartArena/actions/runs/41202184277 – success.
+
+Request approval-gated deployment to only isolated SFU frontend preview, not main or production Worker: [deploy-sfu-preview]
+
+Live criterion: four real players in two parallel rooms, correct bidirectional audio and video on each, no cross-room media, valid results + cup progression, and no 403 loop. **If live criterion fails, all players use old main site, and organizer verifies tournament status before continuing.** Preview does not support spectator video. Production unchanged.
