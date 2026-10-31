@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id),wait=setInterval(()=>{if(!window.supabase||!$('matchP1')||!$('matchP2'))return;clearInterval(wait);boot()},100);
 async function boot(){
  const matchId=new URLSearchParams(location.search).get('id');if(!matchId)return;
- const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
+ const db=window.DartArenaMatchDb||window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
  let {data:match}=await db.from('matches').select('id,player1_id,player2_id,current_set,current_leg,game_config').eq('id',matchId).single();if(!match)return;
  const chicago=String(match.game_config?.chicago??'false').toLowerCase()==='true';
  const addAvg=(card,id)=>{const el=document.createElement('div');el.id=id;el.className='live-avg';el.innerHTML='<span>AVG</span><b>0.00</b>';card.appendChild(el)};
