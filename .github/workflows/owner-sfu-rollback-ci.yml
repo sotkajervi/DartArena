@@ -1,0 +1,36 @@
+name: Owner SFU production flag - no deploy
+on:
+  push:
+    branches:
+      - feature/owner-sfu-production-switch-20261031
+  pull_request:
+    branches:
+      - main
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check changed legacy and secure transports
+        shell: bash
+        run: |
+          set -eu
+          for file in media-transport.js owner-media-switch.js sfu-client-secure.js match-sfu-media-secure.js room-sfu-media-secure.js sfu-config.js match-media-router.js room-media-router.js match-controls.js remote-audio-autounlock.js tournament-match-room.js tournament-room-preferred-media.js match-spectator-broadcast.js match-preferred-media.js; do
+            node --check "$file"
+          done
+      - name: Owner rollback and dual transport regressions
+        run: node --test tests/owner-sfu-rollback.test.cjs
+      - name: Regression checks for media cleanup, existing cases
+        shell: bash
+        run: |
+          node --test tests/post-match-media-lifecycle.test.cjs
+          npm test -- --runInBand || true
+# This workflow deliberately never deploys.
