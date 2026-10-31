@@ -249,7 +249,12 @@
 
       setStatus('Publiserer valgt kamera via Cloudflare…');
       try{sfu?.close()}catch{}
-      sfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
+      const selected=await window.DartArenaMediaMode?.getMode?.()||'legacy';
+      const secure=selected==='sfu';
+      const SfuClient=secure?window.DartArenaSecureSFU:window.DartArenaSFU;
+      if(!SfuClient)throw Error('Valgt videosystem er ikke tilgjengelig');
+      sfu=new SfuClient(secure?window.DARTARENA_SFU.secureWorkerUrl:window.DARTARENA_SFU.workerUrl,
+        {kind:'tournament_match',id:tournamentMatchId});
       publication=null;
       subscribedPublicationId=null;
       publication=await sfu.publish(stream);
