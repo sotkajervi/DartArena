@@ -200,7 +200,9 @@ async function subscribePublication(pid,publication){
   if(!publication?.sessionId||![tm.player1_id,tm.player2_id].includes(pid))return;
   const existing=subscriptions.get(pid);if(existing?.sessionId===publication.sessionId)return;
   try{existing?.client?.close()}catch{}
-  const client=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl),target=videoTarget(pid);subscriptions.set(pid,{client,sessionId:publication.sessionId});
+  const secure=window.DartArenaMediaMode?.current?.()==='sfu';
+  const client=secure?new window.DartArenaSecureSFU(window.DARTARENA_SFU.secureWorkerUrl,{kind:'match',id:tm.live_match_id}):new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
+  const target=videoTarget(pid);subscriptions.set(pid,{client,sessionId:publication.sessionId});
   target.placeholder.textContent='Kobler til kamera…';target.placeholder.classList.remove('hidden');
   try{
     await client.subscribe(publication,async e=>{
@@ -214,6 +216,7 @@ async function subscribePublication(pid,publication){
 async function requestMedia(){if(!mediaChannel)return;await mediaChannel.send({type:'broadcast',event:'spectator-request',payload:{at:Date.now()}}).catch(()=>{})}
 async function setupMedia(session){
   if(!tm.live_match_id)return;
+  await window.DartArenaMediaMode?.getMode?.();
   mediaChannel=db.channel(`match-spectator-media-${tm.live_match_id}`).on('broadcast',{event:'spectator-publication'},({payload})=>subscribePublication(payload?.from,payload?.publication)).subscribe(async status=>{if(status==='SUBSCRIBED')await requestMedia()});
   clearInterval(mediaRequestTimer);mediaRequestTimer=setInterval(()=>{if(subscriptions.size<2)requestMedia()},2200);
   presence=db.channel(`match-viewers-${tm.live_match_id}`,{config:{presence:{key:session.user.id}}}).on('presence',{event:'sync'},renderPresence).on('presence',{event:'join'},renderPresence).on('presence',{event:'leave'},renderPresence).subscribe(async status=>{if(status==='SUBSCRIBED'){await presence.track({user_id:session.user.id,role:'spectator',online_at:new Date().toISOString()});renderPresence()}});
