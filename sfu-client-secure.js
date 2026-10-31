@@ -1,7 +1,7 @@
 class DartArenaSecureSFU {
-  constructor(workerUrl,room){this.workerUrl=workerUrl.replace(/\/$/,'');this.room=room||null;this.publisher=null;this.subscriber=null;this.publisherSessionId=null;this.subscriberSessionId=null;window.__DartArenaLastSFU=this;}
+  constructor(workerUrl,room,authClient=null){this.authClient=authClient;this.workerUrl=workerUrl.replace(/\/$/,'');this.room=room||null;this.publisher=null;this.subscriber=null;this.publisherSessionId=null;this.subscriberSessionId=null;window.__DartArenaLastSFU=this;}
   async request(path,body,method='POST'){
-    const authClient=typeof db!=='undefined'?db:window.db;
+    const authClient=this.authClient||(typeof db!=='undefined'?db:window.db);
     if(!authClient?.auth?.getSession)throw new Error('Supabase auth client unavailable');
     const send=async(token)=>{const r=await fetch(this.workerUrl+path,{
       method,headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,
