@@ -32,5 +32,4 @@ jobs:
         shell: bash
         run: |
           node --test tests/post-match-media-lifecycle.test.cjs
-          npm test -- --runInBand || true
 # This workflow deliberately never deploys.
