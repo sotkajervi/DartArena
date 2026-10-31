@@ -161,6 +161,7 @@
       if(!session){setText('spectateTitle','Du må være innlogget');return}
       hardMuteVideo($('spectateVideo1'));hardMuteVideo($('spectateVideo2'));
       const allowed=await refresh();if(!allowed)return;
+      await window.DartArenaMediaMode?.getMode?.();
       await setupVideo();
       await setupFx();
       timer=setInterval(async()=>{
