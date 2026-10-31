@@ -107,8 +107,18 @@ body.match-page.da-result-open .video-slot-label{opacity:0!important;visibility:
    actions.prepend(full);actions.prepend(screenshot);applyResultRoles();
  }
  function draw(){const html=grid();if($('liveStats'))$('liveStats').innerHTML=html;if(match.status==='finished')enhanceFinalResult()}
- async function loadThrows(){const {data,error}=await db.from('match_throws').select('*').eq('match_id',matchId).order('created_at',{ascending:true});if(!error)throws=data||[];draw()}
- db.channel('stats-'+matchId).on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:`match_id=eq.${matchId}`},()=>loadThrows()).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{match=p.new;loadThrows()}).subscribe();
+ let refreshTimer=null,refreshRunning=false,refreshPending=false;
+ async function loadThrows(){
+  if(refreshRunning){refreshPending=true;return}
+  refreshRunning=true;
+  try{do{refreshPending=false;await loadThrowsNow()}while(refreshPending)}finally{refreshRunning=false}
+ }
+ function scheduleRefresh(){
+  clearTimeout(refreshTimer);
+  refreshTimer=setTimeout(()=>{loadThrows().catch(error=>console.warn('Match room read refresh failed',error))},180);
+ }
+ async function loadThrowsNow(){const {data,error}=await db.from('match_throws').select('*').eq('match_id',matchId).order('created_at',{ascending:true});if(!error)throws=data||[];draw()}
+ db.channel('stats-'+matchId).on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:`match_id=eq.${matchId}`},scheduleRefresh).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{match=p.new;scheduleRefresh()}).subscribe();
  await loadThrows();
 }
 })();
