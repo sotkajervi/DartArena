@@ -19,7 +19,7 @@ async function boot(){
    if(locked){
      input.disabled=true;
      btn.disabled=true;
-     input.value='';
+     if(legDelayActive())input.value='';
      input.blur();
      return;
    }
