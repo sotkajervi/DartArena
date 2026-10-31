@@ -2,6 +2,8 @@
 (()=>{
 if(window.__daReadyWatcher)return;
 window.__daReadyWatcher=true;
+// Disabled during live tournament incident. No popup, sounds or polling.
+return;
 const query=new URLSearchParams(location.search);
 const tournamentPage=location.pathname.endsWith('/tournament.html');
 const viewerPage=location.pathname.endsWith('/tournament-match-viewer.html');
