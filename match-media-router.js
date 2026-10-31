@@ -73,7 +73,7 @@
       placeholder.classList.remove('hidden');
     }
     const script=document.createElement('script');
-    script.src=secure?'match-sfu-media-secure.js?v=20261031-ownersfu1':'match-sfu-media.js?v=20261014-pollcleanup1';
+    script.src=secure?'match-sfu-media-secure.js?v=20261031-spectator1':'match-sfu-media.js?v=20261014-pollcleanup1';
     script.async=false;
     script.onerror=()=>console.error('[MEDIA ROUTER] Could not load SFU fallback');
     document.head.appendChild(script);
