@@ -9,13 +9,13 @@ async function boot(){
  const me=session.user.id;
  const isChicago=()=>String(match?.game_config?.chicago??'false').toLowerCase()==='true';
  const chicagoStage=()=>Number(match?.game_config?.chicago_stage||match?.current_leg||1);
- let legDelayUntil=0,legDelayTimer=null;
+ let legDelayUntil=0,legDelayTimer=null,scoreSubmitting=false;
  function legDelayActive(){return Date.now()<legDelayUntil}
  function syncEntryLock(){
    const input=$('matchScoreInput'),btn=$('matchScoreBtn');
    if(!input||!btn)return;
    const mine=match.status==='playing'&&match.turn_player_id===me;
-   const locked=mine&&legDelayActive();
+   const locked=scoreSubmitting||(mine&&legDelayActive());
    if(locked){
      input.disabled=true;
      btn.disabled=true;
@@ -51,16 +51,18 @@ async function boot(){
  db.channel('set-engine-'+matchId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{const oldSet=Number(match.current_set||1),oldLeg=Number(match.current_leg||1);match=p.new;const changedLeg=oldSet!==Number(match.current_set||1)||oldLeg!==Number(match.current_leg||1);draw();syncEntryLock()}).subscribe();
  async function submit(){
    const input=$('matchScoreInput'),raw=String(input.value??'').trim();
-   if(!raw||legDelayActive())return;
+   if(!raw||legDelayActive()||scoreSubmitting)return;
    const n=Number(raw);
    if(!Number.isInteger(n)||n<0||n>180||match.status!=='playing'||match.turn_player_id!==me)return;
    const scoreKey=me===match.player1_id?'player1_score':'player2_score',remaining=Number(match[scoreKey]);
    if(n===remaining)return; // checkout-engine håndterer checkout + pileantall
-   const btn=$('matchScoreBtn');btn.disabled=true;
+   scoreSubmitting=true;
+   syncEntryLock();
+   $('matchMessage').textContent='Lagrer score…';
    try{
      const rpc=isChicago()?'submit_chicago_x01_visit':'submit_x01_visit';
      const {data,error}=await db.rpc(rpc,{p_match_id:match.id,p_score:n});
-     if(error||!data){$('matchMessage').textContent=error?.message||'Kastet kunne ikke lagres.';return}
+     if(error||!data){$('matchMessage').textContent=error?.message||'Kastet kunne ikke lagres. Kontroller kampstatus før du prøver igjen.';return}
      match=data.match||data;
      input.value='';
      // Keep the last zoom while darts are removed; resume and reset when
@@ -68,10 +70,13 @@ async function boot(){
       if(match.status!=='playing'||match.turn_player_id!==me)window.DartArenaX01ZoomSession?.pauseTracking?.();
      $('matchMessage').textContent=data.bust?'Bust.':'';
      draw();
-   }finally{syncEntryLock()}
+   }catch(error){
+     $('matchMessage').textContent='Uklart om kastet ble lagret. Kontroller oppdatert score før du prøver igjen.';
+     console.warn('Score request failed',error);
+   }finally{scoreSubmitting=false;syncEntryLock()}
  }
  const scoreBtn=$('matchScoreBtn'),scoreInput=$('matchScoreInput');
- scoreBtn.addEventListener('click',e=>{if(!legDelayActive())return;e.preventDefault();e.stopImmediatePropagation()},true);
+ scoreBtn.addEventListener('click',e=>{if(!legDelayActive()&&!scoreSubmitting)return;e.preventDefault();e.stopImmediatePropagation()},true);
  scoreInput.addEventListener('keydown',e=>{if(e.key!=='Enter'||!legDelayActive())return;e.preventDefault();e.stopImmediatePropagation()},true);
  scoreBtn.onclick=e=>{e.stopImmediatePropagation();submit()};
  scoreInput.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();e.stopImmediatePropagation();submit()}};
