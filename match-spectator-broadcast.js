@@ -11,9 +11,17 @@
   }
 
   async function publishIfReady(){
-    // Spectator publish is not yet authorized by the secure SFU gateway.
-    // Never issue the roomless legacy requests while the new system is selected.
-    if((await window.DartArenaMediaMode?.getMode?.())==='sfu')return;
+    // Secure SFU: reuse the player's existing authenticated match publication.
+    // Never publish a second camera stream through the unsecured legacy gateway.
+    if((await window.DartArenaMediaMode?.getMode?.())==='sfu'){
+      if(stopped||!spectatorRequested)return;
+      const info=window.DartArenaMatchMedia?.publicationInfo?.();
+      if(info?.sessionId){
+        publication=info;
+        await announce();
+      }
+      return;
+    }
     if(stopped||!spectatorRequested||publishing||!window.DartArenaSFU||!window.DARTARENA_SFU)return;
     if(typeof stream==='undefined'||typeof profile==='undefined'||typeof m==='undefined'||!profile?.id||!m?.id||!stream?.active)return;
     const video=stream.getVideoTracks().find(t=>t.readyState==='live');
