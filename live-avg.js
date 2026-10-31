@@ -13,7 +13,17 @@ async function boot(){
  const calcAvg=(all,pid)=>{const v=(all||[]).filter(x=>x.player_id===pid),score=v.reduce((s,x)=>s+Number(x.score||0),0),darts=v.reduce((s,x)=>s+dartsFor(x),0);return darts?score/darts*3:0};
  const calcStageAvg=(all,pid,legNo)=>calcAvg((all||[]).filter(x=>Number(x.leg_no||1)===Number(legNo)),pid);
  const calcLegDarts=(all,pid,setNo,legNo)=>(all||[]).filter(x=>x.player_id===pid&&Number(x.set_no||1)===setNo&&Number(x.leg_no||1)===legNo).reduce((s,x)=>s+dartsFor(x),0);
+ let refreshTimer=null,refreshRunning=false,refreshPending=false;
  async function load(){
+  if(refreshRunning){refreshPending=true;return}
+  refreshRunning=true;
+  try{do{refreshPending=false;await loadNow()}while(refreshPending)}finally{refreshRunning=false}
+ }
+ function scheduleRefresh(){
+  clearTimeout(refreshTimer);
+  refreshTimer=setTimeout(()=>{load().catch(error=>console.warn('Match room read refresh failed',error))},180);
+ }
+ async function loadNow(){
   const [matchRes,throwsRes]=await Promise.all([
    db.from('matches').select('current_set,current_leg').eq('id',matchId).single(),
    db.from('match_throws').select('player_id,score,darts_used,is_checkout,set_no,leg_no').eq('match_id',matchId)
