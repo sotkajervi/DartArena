@@ -6,7 +6,7 @@
   const URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
   const KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
   const client=root.supabase.createClient(URL,KEY);
-  let panel=null;
+  let panel=null,initializing=false;
   function status(message,warning=false){
     const p=panel?.querySelector('[data-sfu-status]');
     if(p){p.textContent=message;p.style.color=warning?'#ffc078':'#b9d7d9'}
@@ -48,6 +48,9 @@
     }
   }
   async function init(){
+    if(panel||initializing)return;
+    initializing=true;
+    try{
     const {data:{session}}=await client.auth.getSession();
     if(!session)return;
     const {data:isOwner,error}=await client.rpc('is_owner');
@@ -73,6 +76,14 @@
     try{await read()}catch(error){status('Kunne ikke lese global videomodus. Gammel video er trygg standard.',true)}
     const onVisible=()=>{if(document.visibilityState==='visible')read().catch(()=>{})};
     document.addEventListener('visibilitychange',onVisible);
+    }finally{initializing=false}
   }
+  client.auth.onAuthStateChange((event)=>{
+    if(event==='SIGNED_OUT'){
+      panel?.remove();panel=null;
+    }else if(event==='SIGNED_IN'||event==='INITIAL_SESSION'){
+      setTimeout(()=>init().catch(error=>console.warn('[OWNER MEDIA]',error)),0);
+    }
+  });
   init().catch(error=>console.warn('[OWNER MEDIA]',error));
 })(window);
