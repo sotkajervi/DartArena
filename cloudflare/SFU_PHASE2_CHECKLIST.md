@@ -102,3 +102,17 @@ Tests: branch workflow https://github.com/sotkajervi/DartArena/actions/runs/4114
 Request the standard approval-gated **isolated test-only** Cloudflare preview deployment: [deploy-sfu-preview]
 
 Once deployed: open a **new** 501 match on both PCs; disconnect internet on one PC for ~10s, then reconnect WITHOUT F5; confirm BOTH remote video and incoming audio return automatically. Repeat microphone mute/unmute briefly to ensure earlier fix is preserved. If browser policy denies autoplay, explicit "Slå på lyd" must be shown, not silent failure. Do not deploy main or production Worker without separate approval.
+
+## Tournament 501 microphone choice and spectator 403 retry storm – 2026-10-31
+
+In a live two-PC tournament test, waiting room sound/video worked but Bjørn account could not hear opponent in the resulting X01 match. Player-side SFU debug showed a live, unmuted inbound audio track, connected subscriber, unpaused remote video, and volume 1. Opponent's physical outgoing microphone was "Mikrofonrekke (Intel Smart Sound Technology)", i.e. the browser default built-in microphone. This does **not** prove hardware mic silence; it indicates the chosen microphone from the waiting room may have been lost.
+
+PR #96 (merged **only** to staging) fixes that mismatch in X01. `match-preferred-media.js` uses the `dartarena-preferred-microphone` saved by the tournament waiting room; it retains Zoom-cam and handles unplugged/invalid camera/microphone device IDs by falling back to available defaults, never by masking permission errors.
+
+Preview also got a **fail-closed** guard against repeated unauthorized `/api/sfu/session` calls from `match-spectator-broadcast.js`: the isolated Worker does not support spectator publishing context, so spectator video is disabled in this preview until a separate secure design is implemented. This is **not a spectator feature fix** and must be tracked before production. Main and production Worker remain unchanged.
+
+Verification: https://github.com/sotkajervi/DartArena/actions/runs/41199819644 (test suite passes) and https://github.com/sotkajervi/DartArena/actions/runs/41199889020 (staging security passes).
+
+Request approval-gated deployment **only** to the isolated frontend preview and isolated security-test Worker. [deploy-sfu-preview]
+
+After successful approval/deploy, open a NEW 501 tournament match with both users. In waiting room choose the desired microphone on each account and check the level meter; after navigation to the live match confirm the outgoing microphone label matches selected input, both users hear each other, scoring and Zoom-cam still work, and spectator 403 floods have stopped. Do not interpret audio as repaired until verified in a real match. Production untouched.
