@@ -79,7 +79,9 @@
       blocked=false;
       retryAfter=0;
     }
-    if(video.muted){
+    // A reattached SFU stream can be unmuted but still paused after an outage.
+    // Audio must be restarted rather than trusting the old playback state.
+    if(video.muted||video.paused){
       if(blocked)showFallback();
       else void enableAudio();
     }else{

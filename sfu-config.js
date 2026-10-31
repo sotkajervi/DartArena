@@ -1,4 +1,8 @@
-window.DARTARENA_SFU = Object.freeze({ workerUrl: 'https://dartarena-realtime.sotkajervi.workers.dev' });
+// Legacy Worker remains untouched. Secure SFU only activates for new rooms after an Owner switch.
+window.DARTARENA_SFU = Object.freeze({
+  workerUrl: 'https://dartarena-realtime.sotkajervi.workers.dev',
+  secureWorkerUrl: 'https://dartarena-realtime-security-test.sotkajervi.workers.dev'
+});
 
 (()=>{
   if(window.__dartArenaPreferredMediaDevices)return;

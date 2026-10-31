@@ -1,4 +1,4 @@
-(()=>{
+(async()=>{
   if(window.__dartArenaRoomMediaRouter)return;
   window.__dartArenaRoomMediaRouter=true;
 
@@ -25,15 +25,15 @@
     try{window.dispatchEvent(new CustomEvent('dartarena:media-mode',{detail:{mode}}))}catch{}
   }
 
-  function loadFallback(){
+  function loadFallback(mode='sfu-fallback',secure=false){
     if(fallbackLoaded)return;
     fallbackLoaded=true;
     clearInterval(timer);
     timer=null;
-    setMode('sfu-fallback');
+    setMode(mode);
     try{setStatus('Direkte video kunne ikke kobles til – bytter til Cloudflare…')}catch{}
     const script=document.createElement('script');
-    script.src='room-sfu-media.js?v=20261003-fallback1';
+    script.src=secure?'room-sfu-media-secure.js?v=20261031-ownersfu1':'room-sfu-media.js?v=20261003-fallback1';
     script.async=false;
     script.onerror=()=>{
       console.error('[ROOM MEDIA ROUTER] Could not load SFU fallback');
@@ -42,6 +42,11 @@
     document.head.appendChild(script);
   }
 
+  const selected=await window.DartArenaMediaMode?.getMode?.()||'legacy';
+  if(selected==='sfu'){
+    loadFallback('sfu',true);
+    return;
+  }
   setMode('peer');
   window.DARTARENA_ACTIVE_MEDIA_MODE='peer';
 
