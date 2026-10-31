@@ -201,7 +201,7 @@ async function subscribePublication(pid,publication){
   const existing=subscriptions.get(pid);if(existing?.sessionId===publication.sessionId)return;
   try{existing?.client?.close()}catch{}
   const secure=window.DartArenaMediaMode?.current?.()==='sfu';
-  const client=secure?new window.DartArenaSecureSFU(window.DARTARENA_SFU.secureWorkerUrl,{kind:'match',id:tm.live_match_id}):new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
+  const client=secure?new window.DartArenaSecureSFU(window.DARTARENA_SFU.secureWorkerUrl,{kind:'match',id:tm.live_match_id},db):new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
   const target=videoTarget(pid);subscriptions.set(pid,{client,sessionId:publication.sessionId});
   target.placeholder.textContent='Kobler til kamera…';target.placeholder.classList.remove('hidden');
   try{
