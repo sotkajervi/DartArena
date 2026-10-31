@@ -23,6 +23,7 @@ let coinFlipRunning=false;
 let coinFlipFinished=false;
 let coinFlipFallback=null;
 let roomConnected=false;
+let remoteTransportMismatch=false;
 let roomRetryTimer=null;
 const roomInstanceId=crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`;
 let remoteInstanceId=null;
@@ -54,7 +55,7 @@ function setReadyUi(){
   $('localReadyText').textContent=localReady?'Klar':'Ikke klar';
   $('remoteReadyText').textContent=remoteReady?'Klar':'Ikke klar';
   $('readyBtn').textContent=localReady?'Ikke klar':'Jeg er klar';
-  $('readyBtn').disabled=!roomConnected||starting;
+  $('readyBtn').disabled=!roomConnected||starting||remoteTransportMismatch;
 }
 function resetReadyForStarterChange(message=''){
   localReady=false;
@@ -212,6 +213,24 @@ function setupChannel(){
   channel=db.channel(`tournament-room-${tournamentMatchId}`)
     .on('broadcast',{event:'state'},async({payload})=>{
       if(payload.from!==other)return;
+      const selected=await window.DartArenaMediaMode?.getMode?.()||'legacy';
+      if(payload.mediaMode!==selected){
+        const wasReady=localReady;
+        remoteTransportMismatch=true;
+        localReady=false;
+        remoteReady=false;
+        setReadyUi();
+        $('roomMessage').textContent='Forskjellige video-versjoner i samme venterom. Begge må åpne kamprommet på nytt fra hovedsiden etter at Owner har valgt videosystem.';
+        if(wasReady)await sendState();
+        return;
+      }
+      if(remoteTransportMismatch){
+        remoteTransportMismatch=false;
+        localReady=false;
+        remoteReady=false;
+        setReadyUi();
+        $('roomMessage').textContent='Begge bruker nå samme videosystem. Kontroller lyd og bilde før dere blir klare.';
+      }
       if(payload.instanceId&&remoteInstanceId&&payload.instanceId!==remoteInstanceId){
         remoteReady=false;
         remotePublication=null;
@@ -406,7 +425,8 @@ async function sendState(){
   await channel.send({
     type:'broadcast',
     event:'state',
-    payload:{from:me,ready:localReady,publication,instanceId:roomInstanceId}
+    payload:{from:me,ready:localReady,publication,instanceId:roomInstanceId,
+      mediaMode:await window.DartArenaMediaMode?.getMode?.()||'legacy'}
   });
 }
 
@@ -453,7 +473,7 @@ async function applyStarterChoice(choice,broadcast=false){
 }
 
 async function toggleReady(){
-  if(!roomConnected)return;
+  if(!roomConnected||remoteTransportMismatch)return;
   localReady=!localReady;
   setReadyUi();
   $('roomMessage').textContent=localReady?`Du er klar. Starter: ${starterText()}. Venter på motstanderen.`:'';
@@ -462,7 +482,7 @@ async function toggleReady(){
 }
 
 async function maybeStart(){
-  if(starting||!localReady||!remoteReady||!tm||tm.status!=='pending')return;
+  if(starting||remoteTransportMismatch||!localReady||!remoteReady||!tm||tm.status!=='pending')return;
   if(me!==tm.player1_id)return;
   starting=true;
   $('readyBtn').disabled=true;
