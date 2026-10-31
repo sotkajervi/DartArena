@@ -1,0 +1,30 @@
+name: Tournament microphone SFU preview test
+on:
+  push:
+    branches:
+      - fix/sfu-tournament-mic-preference-spectator-spam-20261031
+  pull_request:
+    branches:
+      - security/sfu-auth-staging-20261028
+permissions:
+  contents: read
+jobs:
+  mic-and-spectator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate source syntax
+        run: |
+          node --check match-preferred-media.js
+          node --check match.js
+          node --check match-spectator-broadcast.js
+          node --check tests/sfu-tournament-mic-context.test.cjs
+      - name: Confirm match microphone continuity, spectator gating and existing SFU behavior
+        run: |
+          node --test tests/sfu-tournament-mic-context.test.cjs tests/sfu-audio-autoplay-reconnect.test.cjs tests/sfu-match-network-recovery.test.cjs tests/sfu-match-room-context.test.cjs tests/sfu-phase2-preview.test.cjs tests/sfu-room-subscription.test.cjs tests/post-match-media-lifecycle.test.cjs
+
+# No Cloudflare deployment actions.
