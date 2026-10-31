@@ -82,7 +82,7 @@ function allowed(m){
 function buttonHtml(m){
  const player=[m.player1_id,m.player2_id].includes(userId);
  let url='',caption='';
- if(isBye(m))return '';
+ if(isBye(m))return '<div class="state">Frirunde (WO) – ingen motstander eller legresultat</div>';
  if(finished(m)){url='tournament-match-stats.html?id='+encodeURIComponent(m.id);caption='Statistikk'}
  else if(m.status==='live'){
    url=player&&m.live_match_id?'match.html?id='+encodeURIComponent(m.live_match_id)+'&tournamentMatch='+encodeURIComponent(m.id):
@@ -91,8 +91,8 @@ function buttonHtml(m){
  }else if(player&&allowed(m)){url='tournament-match-room.html?id='+encodeURIComponent(m.id);caption='Min kamp'}
  let actions=url?'<a class="action" href="'+safe(url)+'">'+caption+'</a>':'';
  if(tournament&&tournament.owner_id===userId&&
-   ['pending','finished'].includes(m.status)&&(!m.live_match_id||m.status==='finished')&&m.player1_id&&m.player2_id){
-   actions+='<button type="button" data-result="'+safe(m.id)+'">Legg inn resultat</button>';
+   ['pending','finished','live','wo'].includes(m.status)&&m.player1_id&&m.player2_id){
+   actions+='<button type="button" data-result="'+safe(m.id)+'">'+(m.status==='pending'?'Legg inn resultat':'Rediger resultat')+'</button>';
  }
  return actions?'<div class="controls">'+actions+'</div>':'';
 }
@@ -130,7 +130,7 @@ async function load(){
   if(!userId)throw new Error('Du må være logget inn i DartArena i denne nettleseren.');
   const [t,rows]=await Promise.all([
    request(db.from('tournaments').select('id,name,status,owner_id').eq('id',id).single(),'Turneringen'),
-   request(db.from('tournament_matches').select('id,round_no,match_no,status,best_of,player1_id,player2_id,winner_id,player1_legs,player2_legs,live_match_id').eq('tournament_id',id).eq('stage','cup').order('round_no').order('match_no'),'Cupkampene')
+   request(db.from('tournament_matches').select('id,round_no,match_no,status,best_of,player1_id,player2_id,winner_id,player1_legs,player2_legs,live_match_id,updated_at').eq('tournament_id',id).eq('stage','cup').order('round_no').order('match_no'),'Cupkampene')
   ]);
   if(!t)throw new Error('Turneringen finnes ikke.');
   tournament=t;matches=rows||[];
@@ -157,24 +157,33 @@ async function saveResult(matchId,button){
  if(busy||button.disabled)return;
  const m=matches.find(m=>m.id===matchId);
  if(!m||tournament.owner_id!==userId)return;
- if(m.status==='live'||(m.status==='pending'&&m.live_match_id))return alert('Aktive kamper må fullføres i kamprommet.');
+ if(!m.player1_id||!m.player2_id)return alert('Kan ikke registrere legs på en frirunde uten motstander.');
  const n=Math.floor(Number(m.best_of||5)/2)+1;
  const input=prompt('Resultat '+(names[m.player1_id]||'Spiller 1')+' – '+(names[m.player2_id]||'Spiller 2')+
-  '\nBest av '+m.best_of+'. Skriv f.eks. '+n+'-1:',m.status==='finished'?Number(m.player1_legs||0)+'-'+Number(m.player2_legs||0):'');
+  '\nBest av '+m.best_of+'. Skriv f.eks. '+n+'-1:',m.status==='finished'||m.status==='wo'?Number(m.player1_legs||0)+'-'+Number(m.player2_legs||0):'');
  if(input===null)return;
  const match=String(input).trim().match(/^(\d+)\s*[-–:]\s*(\d+)$/);
  if(!match)return alert('Skriv resultat som '+n+'-1.');
  const a=Number(match[1]),b=Number(match[2]);
  if(!((a===n&&b<n)||(b===n&&a<n)))return alert('Vinneren må ha '+n+' legs.');
- if(!confirm('Registrere '+a+'–'+b+' i denne cupkampen?'))return;
+ const abandon=m.status==='live'||(m.status==='pending'&&!!m.live_match_id);
+ if(abandon){
+  if(!confirm('Denne kampen er markert som aktiv i DartArena.\n\nHar dere avsluttet spillingen i DartArena og gjennomført kampen utenfor systemet?\n\nHvis du fortsetter, frakobles kampens gamle scorer fra cupresultatet.'))return;
+ }
+ const winnerId=a>b?m.player1_id:m.player2_id;
+ if(m.winner_id&&winnerId!==m.winner_id){
+  if(!confirm('Du bytter vinneren av en ferdig cupkamp. Dette kan endre neste runde dersom den ennå ikke har startet.\n\nEr resultatet bekreftet?'))return;
+ }
+ if(!confirm('Lagre '+a+'–'+b+' i cupkampen?'))return;
  button.disabled=true;button.textContent='Lagrer…';
  try{
-  await request(db.rpc(m.live_match_id?'correct_finished_tournament_result':'record_tournament_result',{
-   p_tournament_match_id:m.id,p_player1_legs:a,p_player2_legs:b
-  }),'Lagring',14000);
+  await request(db.rpc('manage_cup_result',{
+   p_tournament_match_id:m.id,p_player1_legs:a,p_player2_legs:b,
+   p_override_live:abandon,p_expected_updated_at:m.updated_at
+  }),'Lagring',16000);
   alert('Resultatet er lagret.');await load();
  }catch(error){alert('Resultatet ble ikke bekreftet lagret: '+(error.message||String(error))+'\nKontroller kampstatus før du prøver igjen.')}
- finally{button.disabled=false;button.textContent='Legg inn resultat'}
+ finally{button.disabled=false;button.textContent=m.status==='pending'?'Legg inn resultat':'Rediger resultat'}
 }
 bracket.addEventListener('click',event=>{
  const button=event.target.closest('[data-result]');
