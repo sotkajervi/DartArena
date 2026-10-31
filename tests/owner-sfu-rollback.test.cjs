@@ -74,10 +74,10 @@ test('main pages load shared server-side config before their media routers and k
 test('legacy fallback scripts are retained and new modules are opt-in',()=>{
  const waiting=read('room-media-router.js'),match=read('match-media-router.js');
  assert.match(waiting,/selected==='sfu'/);
- assert.match(waiting,/room-sfu-media-secure\.js\?v=20261031-owner1/);
+ assert.match(waiting,/room-sfu-media-secure\.js\?v=20261031-ownersfu1/);
  assert.match(waiting,/room-sfu-media\.js\?v=20261003-fallback1/);
  assert.match(match,/selected==='sfu'/);
- assert.match(match,/match-sfu-media-secure\.js\?v=20261031-owner1/);
+ assert.match(match,/match-sfu-media-secure\.js\?v=20261031-ownersfu1/);
  assert.match(match,/match-sfu-media\.js\?v=20261014-pollcleanup1/);
  assert.match(match,/if\(new URLSearchParams\(location.search\).has\('tournamentMatch'\)\)/);
 });
