@@ -23,6 +23,9 @@ let coinFlipRunning=false;
 let coinFlipFinished=false;
 let coinFlipFallback=null;
 let roomConnected=false;
+const siteSafety=window.DartArenaTournamentSiteSafety;
+const isolatedPreview=siteSafety?.isPreview(location.hostname)===true;
+let remoteSiteMismatch=false;
 let roomRetryTimer=null;
 const roomInstanceId=crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`;
 let remoteInstanceId=null;
@@ -54,7 +57,7 @@ function setReadyUi(){
   $('localReadyText').textContent=localReady?'Klar':'Ikke klar';
   $('remoteReadyText').textContent=remoteReady?'Klar':'Ikke klar';
   $('readyBtn').textContent=localReady?'Ikke klar':'Jeg er klar';
-  $('readyBtn').disabled=!roomConnected||starting;
+  $('readyBtn').disabled=!roomConnected||starting||remoteSiteMismatch;
 }
 function resetReadyForStarterChange(message=''){
   localReady=false;
@@ -170,6 +173,13 @@ async function boot(){
   $('remoteReadyName').textContent=names[other]||'Motstander';
   setReadyUi();
   setStarterUi();
+  if(isolatedPreview){
+    const notice=document.createElement('p');
+    notice.id='isolatedSfuNotice';
+    notice.className='muted compact';
+    notice.textContent='SFU-test: Begge spillere må åpne testadressen. Tilskuervideo er foreløpig ikke tilgjengelig.';
+    $('roomMeta').insertAdjacentElement('afterend',notice);
+  }
 
   $('backBtn').onclick=()=>history.length>1?history.back():location.href='./';
   $('readyBtn').onclick=toggleReady;
@@ -212,6 +222,25 @@ function setupChannel(){
   channel=db.channel(`tournament-room-${tournamentMatchId}`)
     .on('broadcast',{event:'state'},async({payload})=>{
       if(payload.from!==other)return;
+      if(isolatedPreview&&!siteSafety.compatible(location.hostname,payload.siteTag)){
+        const mustResend=localReady;
+        const newMismatch=!remoteSiteMismatch;
+        remoteSiteMismatch=true;
+        localReady=false;
+        remoteReady=false;
+        remotePublication=null;
+        if(newMismatch)resetRemoteVideo('Motstanderen bruker en annen DartArena-versjon.');
+        setReadyUi();
+        $('roomMessage').textContent='Ulike nettsider: Begge må åpne https://dartarena-sfu-preview.sotkajervi.workers.dev/ og gå inn i kampen på nytt. Kampstart er sperret.';
+        if(mustResend)await sendState();
+        return;
+      }
+      if(remoteSiteMismatch){
+        remoteSiteMismatch=false;
+        remoteReady=false;
+        localReady=false;
+        $('roomMessage').textContent='Begge er nå på SFU-testen. Kontroller lyd/video og trykk «Jeg er klar» på nytt.';
+      }
       if(payload.instanceId&&remoteInstanceId&&payload.instanceId!==remoteInstanceId){
         remoteReady=false;
         remotePublication=null;
@@ -401,7 +430,7 @@ async function sendState(){
   await channel.send({
     type:'broadcast',
     event:'state',
-    payload:{from:me,ready:localReady,publication,instanceId:roomInstanceId}
+    payload:{from:me,ready:localReady,publication,instanceId:roomInstanceId,siteTag:siteSafety?.tag(location.hostname)||'standard-site'}
   });
 }
 
@@ -448,7 +477,7 @@ async function applyStarterChoice(choice,broadcast=false){
 }
 
 async function toggleReady(){
-  if(!roomConnected)return;
+  if(!roomConnected||remoteSiteMismatch)return;
   localReady=!localReady;
   setReadyUi();
   $('roomMessage').textContent=localReady?`Du er klar. Starter: ${starterText()}. Venter på motstanderen.`:'';
@@ -457,7 +486,7 @@ async function toggleReady(){
 }
 
 async function maybeStart(){
-  if(starting||!localReady||!remoteReady||!tm||tm.status!=='pending')return;
+  if(starting||remoteSiteMismatch||!localReady||!remoteReady||!tm||tm.status!=='pending')return;
   if(me!==tm.player1_id)return;
   starting=true;
   $('readyBtn').disabled=true;
