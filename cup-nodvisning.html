@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DartArena · Cup nødvisning</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,Arial,sans-serif;background:#071113;color:#e9f7f7}
+*{box-sizing:border-box}body{margin:0;background:#071113;color:#e9f7f7}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #235057;padding:16px max(18px,calc((100vw - 1300px)/2))}
+h1{margin:0;font-size:24px;color:#00eaf4;letter-spacing:.03em}h2{font-size:16px;color:#00eaf4;margin:0 0 12px}
+p{line-height:1.5}small,.muted{color:#a3bec2}
+main{max-width:1320px;margin:0 auto;padding:18px}
+button,a.action{border:1px solid #27bdc3;border-radius:9px;background:#0c383b;color:#f0ffff;padding:10px 14px;cursor:pointer;font:inherit;text-decoration:none;display:inline-block}
+button:hover,a.action:hover{background:#155057}button:disabled{opacity:.5;cursor:wait}
+#status{padding:13px 15px;border:1px solid #23646b;background:#0c2024;border-radius:10px;margin-bottom:16px}
+#error{color:#ffb8b8;margin-top:7px;white-space:pre-wrap}
+.rounds{display:flex;gap:14px;overflow-x:auto;align-items:flex-start;padding-bottom:22px}
+.round{min-width:235px;flex:1 0 235px;background:#0d1c1f;border:1px solid #29585b;border-radius:12px;padding:12px;display:grid;gap:12px}
+.game{padding:12px;border-radius:10px;background:#152b2e;border:1px solid #335457}
+.game.finished{border-color:#35764a}.game.live{border-color:#ddaf4a}
+.line{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:14px;overflow-wrap:anywhere}
+.line.winner{color:#6ef1a3;font-weight:750}
+.score{color:#e5f0f1;text-align:center;font-size:20px;font-weight:800;border-block:1px solid #2c4b4f;margin:5px 0;padding:6px}
+.controls{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.controls button{font-size:12px;padding:7px 9px}
+.state{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#a7c7cd}
+#meta{font-size:13px;color:#abc5ca}
+</style>
+</head>
+<body>
+<header><h1>DartArena · Cup</h1><nav><a class="action" id="back" href="index.html">Vanlig turnering</a></nav></header>
+<main>
+<p class="muted">Nødvisning med minimale databasekall. Ingen automatisk oppdatering, statistikk eller puljehistorikk. Bruk samme kamp som i hovedturneringen.</p>
+<div id="status">Kobler til turneringen…</div>
+<div class="controls" style="margin-bottom:16px"><button id="refresh" type="button">Oppdater cupen</button><span id="meta"></span></div>
+<div id="bracket" class="rounds" aria-live="polite"></div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+<script>
+(function(){
+'use strict';
+const params=new URLSearchParams(location.search);
+const id=params.get('id');
+const status=document.getElementById('status'),bracket=document.getElementById('bracket');
+const refresh=document.getElementById('refresh'),meta=document.getElementById('meta');
+document.getElementById('back').href='tournament.html?id='+encodeURIComponent(id||'');
+if(!id){status.textContent='Mangler turnerings-ID i lenken.';refresh.disabled=true;return}
+if(!window.supabase){status.textContent='Supabase-biblioteket kunne ikke lastes. Prøv en annen nettleser.';refresh.disabled=true;return}
+const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
+let userId=null,tournament=null,matches=[],names={},busy=false;
+const safe=v=>String(v==null?'':v).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+async function request(builder,description,limit=13000){
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),limit);
+ try{
+  const result=await builder.abortSignal(controller.signal);
+  if(result.error)throw result.error;
+  return result.data;
+ }catch(error){
+  if(controller.signal.aborted)throw new Error(description+' tok mer enn '+Math.round(limit/1000)+' sekunder. Supabase svarer for tregt.');
+  throw error;
+ }finally{clearTimeout(timer)}
+}
+async function sessionWithTimeout(){
+ let timer;
+ try{return await Promise.race([
+   db.auth.getSession(),
+   new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Innloggingen svarte ikke innen 8 sekunder.')),8000)})
+ ])}finally{clearTimeout(timer)}
+}
+function finished(m){return m.status==='finished'||m.status==='wo'}
+function isBye(m){return m.status==='wo'&&(!m.player1_id||!m.player2_id)}
+function allowed(m){
+ if(m.status!=='pending'||!m.player1_id||!m.player2_id)return false;
+ if(matches.some(other=>other.id!==m.id&&other.status==='live'&&
+  [m.player1_id,m.player2_id].some(uid=>uid===other.player1_id||uid===other.player2_id)))return false;
+ const prev=matches.filter(prev=>prev.round_no===m.round_no-1&&
+  (prev.match_no===m.match_no*2-1||prev.match_no===m.match_no*2));
+ if(m.round_no>1&&(prev.length!==2||prev.some(x=>!finished(x))||
+  prev[0].winner_id!==m.player1_id||prev[1].winner_id!==m.player2_id))return false;
+ return true;
+}
+function buttonHtml(m){
+ const player=[m.player1_id,m.player2_id].includes(userId);
+ let url='',caption='';
+ if(isBye(m))return '';
+ if(finished(m)){url='tournament-match-stats.html?id='+encodeURIComponent(m.id);caption='Statistikk'}
+ else if(m.status==='live'){
+   url=player&&m.live_match_id?'match.html?id='+encodeURIComponent(m.live_match_id)+'&tournamentMatch='+encodeURIComponent(m.id):
+      'tournament-match-viewer.html?id='+encodeURIComponent(m.id);
+   caption=player?'Til kampen':'Se kamp';
+ }else if(player&&allowed(m)){url='tournament-match-room.html?id='+encodeURIComponent(m.id);caption='Min kamp'}
+ let actions=url?'<a class="action" href="'+safe(url)+'">'+caption+'</a>':'';
+ if(tournament&&tournament.owner_id===userId&&
+   ['pending','finished'].includes(m.status)&&(!m.live_match_id||m.status==='finished')&&m.player1_id&&m.player2_id){
+   actions+='<button type="button" data-result="'+safe(m.id)+'">Legg inn resultat</button>';
+ }
+ return actions?'<div class="controls">'+actions+'</div>':'';
+}
+function render(){
+ if(!tournament)return;
+ const rounds=[...new Set(matches.map(m=>Number(m.round_no)))].sort((a,b)=>a-b);
+ const max=rounds.length?Math.max(...rounds):0;
+ const group=rounds.map(round=>{
+  const games=matches.filter(m=>Number(m.round_no)===round).sort((a,b)=>mNumber(a)-mNumber(b));
+  let heading=round===max?'Finale':round===max-1?'Semifinaler':round===max-2?'Kvartfinaler':'Runde '+round;
+  return '<section class="round"><h2>'+heading+'</h2>'+games.map(m=>{
+   const winner1=m.player1_id&&m.player1_id===m.winner_id;
+   const winner2=m.player2_id&&m.player2_id===m.winner_id;
+   const label=m.status==='live'?'LIVE':m.status==='wo'?'WO':m.status==='finished'?'FERDIG':'VENTER';
+   const p1=names[m.player1_id]||(m.player1_id?'Spiller':'Venter');
+   const p2=names[m.player2_id]||(m.player2_id?'Spiller':'Venter');
+   const score=finished(m)&&!isBye(m)?Number(m.player1_legs||0)+' – '+Number(m.player2_legs||0):isBye(m)?'WO':'VS';
+   return '<article class="game '+safe(m.status)+'"><div class="state">'+safe(label)+' · Bo'+Number(m.best_of||5)+'</div>'+
+    '<div class="line '+(winner1?'winner':'')+'"><span>'+safe(p1)+'</span></div>'+
+    '<div class="score">'+score+'</div>'+
+    '<div class="line '+(winner2?'winner':'')+'"><span>'+safe(p2)+'</span></div>'+buttonHtml(m)+'</article>';
+  }).join('')+'</section>';
+ }).join('');
+ bracket.innerHTML=group||'<p>Ingen cupkamper registrert.</p>';
+ meta.textContent=matches.filter(finished).length+' av '+matches.length+' ferdig · Sist hentet '+new Date().toLocaleTimeString('nb-NO');
+}
+function mNumber(m){return Number(m.match_no||0)}
+async function load(){
+ if(busy)return;
+ busy=true;refresh.disabled=true;status.textContent='Henter cupoppsett…';
+ try{
+  const sr=await sessionWithTimeout();
+  if(sr.error)throw sr.error;
+  userId=sr.data?.session?.user?.id;
+  if(!userId)throw new Error('Du må være logget inn i DartArena i denne nettleseren.');
+  const [t,rows]=await Promise.all([
+   request(db.from('tournaments').select('id,name,status,owner_id').eq('id',id).single(),'Turneringen'),
+   request(db.from('tournament_matches').select('id,round_no,match_no,status,best_of,player1_id,player2_id,winner_id,player1_legs,player2_legs,live_match_id').eq('tournament_id',id).eq('stage','cup').order('round_no').order('match_no'),'Cupkampene')
+  ]);
+  if(!t)throw new Error('Turneringen finnes ikke.');
+  tournament=t;matches=rows||[];
+  if(!['cup','finished'].includes(t.status))throw new Error('Turneringen er ikke i cupfasen ('+t.status+').');
+  status.textContent=t.name+' · '+(t.status==='finished'?'Avsluttet':'Cup pågår');
+  render();
+  const ids=[...new Set(matches.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))];
+  if(ids.length){
+   try{
+    const profiles=await request(db.from('profiles').select('id,username').in('id',ids),'Spillernavn',9000);
+    names=Object.fromEntries((profiles||[]).map(p=>[p.id,p.username]));
+    render();
+   }catch(error){
+    console.warn('Cup names unavailable',error);
+    status.textContent+=' · Spillernavn kunne ikke oppdateres';
+   }
+  }
+ }catch(error){
+  status.textContent='Kunne ikke hente cupen.';
+  bracket.innerHTML='<p id="error">'+safe(error.message||String(error))+'</p>';
+ }finally{busy=false;refresh.disabled=false}
+}
+async function saveResult(matchId,button){
+ if(busy||button.disabled)return;
+ const m=matches.find(m=>m.id===matchId);
+ if(!m||tournament.owner_id!==userId)return;
+ if(m.status==='live'||(m.status==='pending'&&m.live_match_id))return alert('Aktive kamper må fullføres i kamprommet.');
+ const n=Math.floor(Number(m.best_of||5)/2)+1;
+ const input=prompt('Resultat '+(names[m.player1_id]||'Spiller 1')+' – '+(names[m.player2_id]||'Spiller 2')+
+  '\nBest av '+m.best_of+'. Skriv f.eks. '+n+'-1:',m.status==='finished'?Number(m.player1_legs||0)+'-'+Number(m.player2_legs||0):'');
+ if(input===null)return;
+ const match=String(input).trim().match(/^(\d+)\s*[-–:]\s*(\d+)$/);
+ if(!match)return alert('Skriv resultat som '+n+'-1.');
+ const a=Number(match[1]),b=Number(match[2]);
+ if(!((a===n&&b<n)||(b===n&&a<n)))return alert('Vinneren må ha '+n+' legs.');
+ if(!confirm('Registrere '+a+'–'+b+' i denne cupkampen?'))return;
+ button.disabled=true;button.textContent='Lagrer…';
+ try{
+  await request(db.rpc(m.live_match_id?'correct_finished_tournament_result':'record_tournament_result',{
+   p_tournament_match_id:m.id,p_player1_legs:a,p_player2_legs:b
+  }),'Lagring',14000);
+  alert('Resultatet er lagret.');await load();
+ }catch(error){alert('Resultatet ble ikke bekreftet lagret: '+(error.message||String(error))+'\nKontroller kampstatus før du prøver igjen.')}
+ finally{button.disabled=false;button.textContent='Legg inn resultat'}
+}
+bracket.addEventListener('click',event=>{
+ const button=event.target.closest('[data-result]');
+ if(button)saveResult(button.dataset.result,button);
+});
+refresh.addEventListener('click',load);
+load();
+})();
+</script>
+</body>
+</html>
