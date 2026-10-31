@@ -450,7 +450,7 @@
     renderDebug();
   },1000);
 
-  window.DartArenaMatchMedia={mode:'sfu',stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
+  window.DartArenaMatchMedia={mode:'sfu',publicationInfo:()=>!stopped&&publication?{sessionId:publication.sessionId,tracks:[...publication.tracks]}:null,stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
     if(stopped||window.DARTARENA_POSTMATCH_MEDIA_STOPPED)return;
     try{sfu?.close()}catch{}
     subscriptionEpoch++;
