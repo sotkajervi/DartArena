@@ -1,4 +1,4 @@
-(()=>{
+(async()=>{
   if(window.__dartArenaMediaRouter)return;
   window.__dartArenaMediaRouter=true;
 
@@ -60,7 +60,7 @@
     return true;
   }
 
-  function loadSfu(mode='sfu-fallback'){
+  function loadSfu(mode='sfu-fallback',secure=false){
     if(sfuLoaded)return;
     sfuLoaded=true;
     clearInterval(timer);
@@ -73,7 +73,7 @@
       placeholder.classList.remove('hidden');
     }
     const script=document.createElement('script');
-    script.src='match-sfu-media.js?v=20261014-pollcleanup1';
+    script.src=secure?'match-sfu-media-secure.js?v=20261031-ownersfu1':'match-sfu-media.js?v=20261014-pollcleanup1';
     script.async=false;
     script.onerror=()=>console.error('[MEDIA ROUTER] Could not load SFU fallback');
     document.head.appendChild(script);
@@ -91,6 +91,13 @@
       console.warn('[MEDIA ROUTER] fallback broadcast failed',error);
     }
     loadSfu('sfu-fallback');
+  }
+
+  // Read owner-controlled global choice; a failed read uses the working legacy path.
+  const selected=await window.DartArenaMediaMode?.getMode?.()||'legacy';
+  if(selected==='sfu'){
+    loadSfu('sfu',true);
+    return;
   }
 
   // Tournament players have already established Cloudflare media in their
