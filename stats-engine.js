@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id),wait=setInterval(()=>{if(!window.supabase||!$('matchView')||!window.DartArenaX01Stats)return;clearInterval(wait);boot()},100);
 async function boot(){
  const matchId=new URLSearchParams(location.search).get('id');if(!matchId)return;
- const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
+ const db=window.DartArenaMatchDb||window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
  const {data:{session}}=await db.auth.getSession();if(!session)return;
  let {data:match}=await db.from('matches').select('*').eq('id',matchId).single();if(!match)return;
  if(String(match.game_config?.chicago??'false').toLowerCase()==='true')return;
