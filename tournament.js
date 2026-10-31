@@ -479,36 +479,54 @@ function headToHead(a,b,matches){
   return m.winner_id===a?-1:m.winner_id===b?1:0;
 }
 
+// Cache averages for completed matches: rendering the group lobby must not
+// reload every historical dart throw. A changed result invalidates that match.
+const groupAverageCache=new Map();
+let groupAverageLoad=null;
+function groupAverageKey(match){
+  return [match.id,match.live_match_id,match.updated_at||'',match.player1_legs,match.player2_legs,match.winner_id||''].join(':');
+}
 async function groupMatchAverages(matches){
   if(tournamentIsChicago())return new Map();
   const completed=(matches||[]).filter(m=>m.status==='finished'&&!m.is_wo&&m.live_match_id);
-  const liveIds=[...new Set(completed.map(m=>m.live_match_id).filter(Boolean))];
-  if(!liveIds.length)return new Map();
-  let visits;
-  try{
-    const fetchVisits=window.DartArenaTournamentStatsFetch?.fetchAllVisits;
-    if(typeof fetchVisits!=='function')throw Error('Group averages pagination unavailable');
-    visits=await fetchVisits(db,'match_throws',liveIds,'match_id,player_id,score,is_checkout,darts_used');
-  }catch(error){console.warn('Could not load complete group match averages',error);return new Map()}
-  const tournamentByLive=new Map(completed.map(m=>[m.live_match_id,m]));
-  const totals=new Map();
-  for(const visit of visits||[]){
-    const tm=tournamentByLive.get(visit.match_id);
-    if(!tm||![tm.player1_id,tm.player2_id].includes(visit.player_id))continue;
-    const key=`${tm.id}:${visit.player_id}`;
-    const row=totals.get(key)||{score:0,darts:0};
-    row.score+=Number(visit.score||0);
-    row.darts+=visit.is_checkout?Math.max(1,Number(visit.darts_used||3)):3;
-    totals.set(key,row);
+  if(!completed.length)return new Map();
+  // A previous lobby render may still be fetching the same history.
+  if(groupAverageLoad)await groupAverageLoad;
+  const missing=completed.filter(m=>!groupAverageCache.has(groupAverageKey(m)));
+  if(missing.length){
+    groupAverageLoad=(async()=>{
+      const fetchVisits=window.DartArenaTournamentStatsFetch?.fetchAllVisits;
+      if(typeof fetchVisits!=='function')throw Error('Group averages pagination unavailable');
+      const liveIds=[...new Set(missing.map(m=>m.live_match_id))];
+      const visits=await fetchVisits(db,'match_throws',liveIds,'match_id,player_id,score,is_checkout,darts_used');
+      const totals=new Map();
+      for(const visit of visits||[]){
+        const key=`${visit.match_id}:${visit.player_id}`;
+        const row=totals.get(key)||{score:0,darts:0};
+        row.score+=Number(visit.score||0);
+        row.darts+=visit.is_checkout?Math.max(1,Number(visit.darts_used||3)):3;
+        totals.set(key,row);
+      }
+      // Commit a complete batch only after every visit page was loaded.
+      for(const match of missing){
+        const values=new Map();
+        for(const playerId of [match.player1_id,match.player2_id].filter(Boolean)){
+          const row=totals.get(`${match.live_match_id}:${playerId}`);
+          if(row?.darts)values.set(playerId,row.score/row.darts*3);
+        }
+        groupAverageCache.set(groupAverageKey(match),values);
+      }
+    })();
+    try{await groupAverageLoad}
+    catch(error){console.warn('Could not load complete group match averages',error)}
+    finally{groupAverageLoad=null}
   }
-  const out=new Map();
-  for(const tm of completed){
-    for(const playerId of [tm.player1_id,tm.player2_id].filter(Boolean)){
-      const row=totals.get(`${tm.id}:${playerId}`);
-      if(row?.darts)out.set(`${tm.id}:${playerId}`,row.score/row.darts*3);
-    }
+  const result=new Map();
+  for(const match of completed){
+    const values=groupAverageCache.get(groupAverageKey(match));
+    for(const [playerId,average] of values||[])result.set(`${match.id}:${playerId}`,average);
   }
-  return out;
+  return result;
 }
 
 async function loadGroupLobby(){
