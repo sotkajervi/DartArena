@@ -307,9 +307,9 @@
 
   // Safety net for missed Realtime events. It only reloads the UI when the
   // database snapshot actually changed, so idle tournament pages stay quiet.
-  reconcileTimer=setInterval(()=>scheduleSync(false),15000);
-  // Cheap, score-only safety polling while tournament matches are in progress.
-  scorePollTimer=setInterval(pollLiveLegs,3000);
+  reconcileTimer=setInterval(()=>scheduleSync(false),30000);
+  // Slower fallback: Realtime handles immediate legs; polling must not overload DB.
+  scorePollTimer=setInterval(pollLiveLegs,10000);
 
   setTimeout(async()=>{
     try{
