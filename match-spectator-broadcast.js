@@ -11,6 +11,9 @@
   }
 
   async function publishIfReady(){
+    // Spectator publish is not yet authorized by the secure SFU gateway.
+    // Never issue the roomless legacy requests while the new system is selected.
+    if((await window.DartArenaMediaMode?.getMode?.())==='sfu')return;
     if(stopped||!spectatorRequested||publishing||!window.DartArenaSFU||!window.DARTARENA_SFU)return;
     if(typeof stream==='undefined'||typeof profile==='undefined'||typeof m==='undefined'||!profile?.id||!m?.id||!stream?.active)return;
     const video=stream.getVideoTracks().find(t=>t.readyState==='live');
