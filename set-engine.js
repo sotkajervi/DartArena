@@ -48,7 +48,7 @@ async function boot(){
    }
  }
  draw();
- db.channel('set-engine-'+matchId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{const oldSet=Number(match.current_set||1),oldLeg=Number(match.current_leg||1);match=p.new;const changedLeg=oldSet!==Number(match.current_set||1)||oldLeg!==Number(match.current_leg||1);// A new leg must accept the first Enter immediately; turn ownership remains enforced by submit().draw();syncEntryLock()}).subscribe();
+ db.channel('set-engine-'+matchId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{const oldSet=Number(match.current_set||1),oldLeg=Number(match.current_leg||1);match=p.new;const changedLeg=oldSet!==Number(match.current_set||1)||oldLeg!==Number(match.current_leg||1);draw();syncEntryLock()}).subscribe();
  async function submit(){
    const input=$('matchScoreInput'),raw=String(input.value??'').trim();
    if(!raw||legDelayActive())return;
