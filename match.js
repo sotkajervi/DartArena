@@ -46,17 +46,31 @@ async function startCamera(){
     // This is a player-selected video source, not a privileged admin feature.
     // Match access is already validated when the authenticated player joins.
     const useZoom=!!(Z&&config&&Z.selected(localStorage));
+    const defaultVideo={width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}};
     const constraints={
-      video:{...(useZoom?{deviceId:{exact:config.deviceId}}:{}),width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},
+      video:{...(useZoom?{deviceId:{exact:config.deviceId}}:{}),...defaultVideo},
       audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}
     };
+    // Tournament waiting room saves the actual microphone device. Reapply
+    // that choice after navigation; otherwise getUserMedia silently picks the
+    // browser's default (often the laptop's built-in microphone).
+    let preferredMicId='';
+    try{preferredMicId=localStorage.getItem('dartarena-preferred-microphone')||''}catch{}
     let raw;
-    try{raw=await navigator.mediaDevices.getUserMedia(constraints)}
-    catch(error){
-      if(!useZoom||!['NotFoundError','OverconstrainedError'].includes(error?.name))throw error;
-      raw=await navigator.mediaDevices.getUserMedia({
-        ...constraints,video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}}
+    if(window.DartArenaMatchPreferredMedia?.capture){
+      const result=await window.DartArenaMatchPreferredMedia.capture(navigator.mediaDevices,constraints,{
+        preferredMicId,cameraFallbackVideo:useZoom?defaultVideo:null
       });
+      raw=result.stream;
+      if(result.usedDefaultMic)console.warn('Selected waiting-room microphone unavailable; using browser default microphone');
+      if(result.usedDefaultCamera)console.warn('Selected camera unavailable; using browser default camera');
+    }else{
+      // Preserve previous device startup if the optional helper did not load.
+      try{raw=await navigator.mediaDevices.getUserMedia(constraints)}
+      catch(error){
+        if(!useZoom||!['NotFoundError','OverconstrainedError'].includes(error?.name))throw error;
+        raw=await navigator.mediaDevices.getUserMedia({...constraints,video:defaultVideo});
+      }
     }
     stream=raw;
     if(useZoom){
