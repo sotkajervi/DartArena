@@ -135,7 +135,25 @@ async function decorateTournamentMatches(){
     if(staleCup)healStaleCupSoon();
   }finally{tournamentDecorating=false}
 }
-function scheduleTournamentDecorate(){clearTimeout(tournamentDecorateTimer);tournamentDecorateTimer=setTimeout(decorateTournamentMatches,80)}
-new MutationObserver(scheduleTournamentDecorate).observe(document.documentElement,{subtree:true,childList:true});
+// Restrict expensive access lookups to actual match-card insertions/removals.
+// Score text, labels and unrelated page mutations must not trigger Supabase reads.
+let tournamentLastDecorateAt=0;
+function scheduleTournamentDecorate(){
+  clearTimeout(tournamentDecorateTimer);
+  const delay=Math.max(250,1500-(Date.now()-tournamentLastDecorateAt));
+  tournamentDecorateTimer=setTimeout(()=>{
+    tournamentLastDecorateAt=Date.now();
+    decorateTournamentMatches();
+  },delay);
+}
+function matchCardsChanged(mutations){
+  const selector='.match-row[data-match]:not(.simulation-match),.cup-match[data-match]';
+  return mutations.some(m=>[...m.addedNodes,...m.removedNodes].some(node=>
+    node.nodeType===1&&(node.matches?.(selector)||node.querySelector?.(selector))
+  ));
+}
+new MutationObserver(mutations=>{
+  if(matchCardsChanged(mutations))scheduleTournamentDecorate();
+}).observe(document.documentElement,{subtree:true,childList:true});
 window.addEventListener('dartarena:tournament-loaded',scheduleTournamentDecorate);
 scheduleTournamentDecorate();
