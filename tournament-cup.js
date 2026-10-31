@@ -72,6 +72,15 @@
     const defaults=loadCupFormat(rounds);document.querySelectorAll('#cupFormatSettings select[data-cup-round]').forEach(s=>{const r=Number(s.dataset.cupRound),n=Number(s.value);if(r&&validBestOf(n))defaults[r]=n});return defaults
   }
   async function data(){
+    // Emergency live-cup mode: bracket is already seeded. Do not refetch every
+    // completed group fixture, player, and historic throw just to render it.
+    if(tournament?.status==='cup'){
+      const {data:cupMatches,error}=await db.from('tournament_matches')
+        .select('*').eq('tournament_id',id).eq('stage','cup')
+        .order('round_no').order('match_no');
+      if(error)throw Error('Kunne ikke lese cupkampene: '+error.message);
+      return {groups:[],players:[],gm:[],cm:cupMatches||[]};
+    }
     // Official cup seeding uses human group players and official group matches ONLY.
     // AI Rival is an optional training opponent and must never occupy a seed.
     const [groupsResult,playersResult,groupsMatchesResult,cupMatchesResult]=await Promise.all([
@@ -197,7 +206,7 @@
     if(last.length!==1||last[0].id!==final.id||Number(final.match_no)!==1)return;
     const {error}=await db.from('tournaments').update({status:'finished',updated_at:new Date().toISOString()}).eq('id',id).eq('owner_id',me).eq('status','cup');if(error){console.error('Could not archive completed tournament',error);return}tournament.status='finished';setTimeout(()=>{try{if(typeof load==='function')load()}catch{}},80)
   }
-  async function loadCup(){
+  async function renderCupInternal(){
     if(!tournament||!['cup_setup','cup','finished'].includes(tournament.status))return;
     if(tournament.tournament_type==='cup'&&tournament.status==='cup_setup')return;
     const d=await data();const setup=$('cupSetup'),lobby=$('cupLobby');if(!setup||!lobby)return;
@@ -217,6 +226,25 @@
     $('cupProgress').textContent=final?.winner_id?`Vinner: ${names[final.winner_id]||'Spiller'}`:`${d.cm.filter(done).length} / ${d.cm.length} kamper ferdig`;
     if(advancementBlocked)$('cupProgress').textContent+=' • Vinner venter på overføring til neste runde';
     await finishTournamentIfNeeded(final,d.cm);
+  }
+  // Deduplicate overlapping realtime updates; only one render request at a time.
+  let cupRenderPromise=null,cupRerenderPending=false;
+  async function loadCup(){
+    if(cupRenderPromise){cupRerenderPending=true;return cupRenderPromise}
+    cupRenderPromise=renderCupInternal();
+    try{
+      return await cupRenderPromise;
+    }catch(error){
+      console.error('Cup display failed',error);
+      const progress=$('cupProgress');
+      if(progress)progress.textContent='Kunne ikke laste cupen. Oppdater siden.';
+    }finally{
+      cupRenderPromise=null;
+      if(cupRerenderPending){
+        cupRerenderPending=false;
+        setTimeout(()=>loadCup(),350);
+      }
+    }
   }
   document.addEventListener('click',e=>{if(tournament?.tournament_type==='groups_cup'&&e.target.closest('#buildCupBtn'))buildCup()});
   window.addEventListener('dartarena:tournament-loaded',loadCup);window.dartArenaLoadCup=loadCup;
