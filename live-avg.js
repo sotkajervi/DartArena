@@ -38,8 +38,8 @@ async function boot(){
   $('liveDarts2').querySelector('b').textContent=String(calcLegDarts(data,match.player2_id,setNo,legNo));
  }
  const channel=db.channel('live-avg-'+matchId)
-  .on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:`match_id=eq.${matchId}`},load)
-  .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},load)
+  .on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:`match_id=eq.${matchId}`},scheduleRefresh)
+  .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},scheduleRefresh)
   .subscribe();
  await load();
 }
