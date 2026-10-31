@@ -98,7 +98,7 @@ async function boot(){
     .on('postgres_changes',{event:'*',schema:'public',table:'tournaments',filter:`id=eq.${id}`},load)
     .on('postgres_changes',{event:'*',schema:'public',table:'tournament_members',filter:`tournament_id=eq.${id}`},load)
     .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${id}`},()=>{
-      if(window.DartArenaGroupResultsLayout?.show(tournament))loadGroupLobby();
+      if(['groups','cup_setup'].includes(tournament?.status))loadGroupLobby();
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'tournament_ai_group_matches',filter:`tournament_id=eq.${id}`},()=>{
       if(tournament?.status==='groups')loadGroupLobby();
@@ -141,7 +141,9 @@ async function load(){
 
   renderPage();
   window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
-  if(window.DartArenaGroupResultsLayout?.show(t))await loadGroupLobby();
+  if(['groups','cup_setup'].includes(t.status) && window.DartArenaGroupResultsLayout?.show(t))await loadGroupLobby();
+  // During live cup, do not fetch the full finished group history on every tournament refresh.
+  if(['cup','finished'].includes(t.status))$('groupLobby')?.classList.add('hidden');
   window.dispatchEvent(new CustomEvent('dartarena:tournament-loaded',{detail:{id:t.id,status:t.status,tournamentType:t.tournament_type,gameVariant:t.game_variant||'x01',cupGameVariant:t.cup_game_variant||t.game_variant||'x01'}}));
 }
 
