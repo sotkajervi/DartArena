@@ -1,5 +1,13 @@
 // Publish each player's local camera to Cloudflare SFU only when a spectator is present.
 (()=>{
+  // Spectators are not yet an authorized room context in the isolated SFU
+  // Worker. A no-context publisher is rejected with 403 and would retry
+  // forever. Do not attempt unauthorized SFU calls in preview: spectators
+  // need a separate read-only authorization design before launch.
+  if(location.hostname==='dartarena-sfu-preview.sotkajervi.workers.dev'){
+    console.info('[SPECTATOR MEDIA] Video publishing disabled in isolated SFU preview until spectator access is authorized.');
+    return;
+  }
   const params=new URLSearchParams(location.search),liveMatchId=params.get('id');
   if(!liveMatchId||!window.supabase)return;
   const client=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
