@@ -118,7 +118,7 @@ body.match-page.da-result-open .video-slot-label{opacity:0!important;visibility:
   refreshTimer=setTimeout(()=>{loadThrows().catch(error=>console.warn('Match room read refresh failed',error))},180);
  }
  async function loadThrowsNow(){const {data,error}=await db.from('match_throws').select('*').eq('match_id',matchId).order('created_at',{ascending:true});if(!error)throws=data||[];draw()}
- const roomChannel=db.channel('stats-'+matchId).on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:`match_id=eq.${matchId}`},scheduleRefresh).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{match=p.new;scheduleRefresh()}).subscribe();
+ const roomChannel=db.channel('stats-'+matchId).on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:`match_id=eq.${matchId}`},scheduleRefresh).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{match=p.new;draw()}).subscribe();
  window.addEventListener('pagehide',()=>{clearTimeout(refreshTimer);db.removeChannel(roomChannel).catch(()=>{})},{once:true});
  await loadThrows();
 }
