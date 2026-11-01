@@ -41,6 +41,7 @@ async function boot(){
   .on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:`match_id=eq.${matchId}`},scheduleRefresh)
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},scheduleRefresh)
   .subscribe();
+ window.addEventListener('pagehide',()=>{clearTimeout(refreshTimer);db.removeChannel(channel).catch(()=>{})},{once:true});
  await load();
 }
 })();
