@@ -426,8 +426,11 @@
   window.addEventListener('offline',onOffline);
   window.addEventListener('online',onOnline);
 
+  let watchdogRunning=false;
   watcher=setInterval(async()=>{
-    if(stopped)return;
+    if(stopped||watchdogRunning)return;
+    watchdogRunning=true;
+    try{
     disableDirectP2P();
     setupChannel();
     const signature=trackSignature();
@@ -448,6 +451,8 @@
       }
     }
     renderDebug();
+    }catch(error){console.warn('[SFU] watchdog failed',error)}
+    finally{watchdogRunning=false}
   },1000);
 
   window.DartArenaMatchMedia={mode:'sfu',publicationInfo:()=>!stopped&&publication?{sessionId:publication.sessionId,tracks:[...publication.tracks]}:null,stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
