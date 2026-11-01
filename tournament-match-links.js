@@ -1,5 +1,5 @@
 // Tournament match routing and access states for group rows and cup bracket cards.
-const tournamentLinkDb=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
+const tournamentLinkDb=window.DartArenaTournamentDb||window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
 let tournamentLinkUid=null,tournamentDecorateTimer=null,tournamentDecorating=false,tournamentCupHealTimer=null;
 
 function ensureTournamentMatchStyles(){
