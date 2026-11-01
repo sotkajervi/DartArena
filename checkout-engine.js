@@ -6,8 +6,9 @@ async function boot(){
  const {data:{session}}=await db.auth.getSession();if(!session)return;
  let {data:match}=await db.from('matches').select('*').eq('id',matchId).single();if(!match)return;
  const me=session.user.id;let busy=false;
- db.channel('checkout-engine-'+matchId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{match=p.new}).subscribe();
+ const roomChannel=db.channel('checkout-engine-'+matchId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{match=p.new}).subscribe();
 
+ window.addEventListener('pagehide',()=>db.removeChannel(roomChannel).catch(()=>{}),{once:true});
  const singles=Array.from({length:20},(_,i)=>i+1),doubles=Array.from({length:20},(_,i)=>(i+1)*2).concat(50),triples=Array.from({length:20},(_,i)=>(i+1)*3),all=[0,...singles,...doubles,...triples,25,50];
  function canCheckout(score,darts){if(darts===1)return doubles.includes(score);if(darts===2)return all.some(a=>doubles.includes(score-a));if(darts===3)return all.some(a=>all.some(b=>doubles.includes(score-a-b)));return false}
  function possibleDarts(score){return[1,2,3].filter(d=>canCheckout(score,d))}
