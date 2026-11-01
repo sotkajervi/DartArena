@@ -24,11 +24,9 @@ async function boot(){
   refreshTimer=setTimeout(()=>{load().catch(error=>console.warn('Match room read refresh failed',error))},180);
  }
  async function loadNow(){
-  const [matchRes,throwsRes]=await Promise.all([
-   db.from('matches').select('current_set,current_leg').eq('id',matchId).single(),
-   db.from('match_throws').select('player_id,score,darts_used,is_checkout,set_no,leg_no').eq('match_id',matchId)
-  ]);
-  if(matchRes.data){match.current_set=matchRes.data.current_set;match.current_leg=matchRes.data.current_leg}
+  // Match leg/set is kept current by the existing Realtime match payload.
+  // Avoid a second matches SELECT for every throw/average refresh.
+  const throwsRes=await db.from('match_throws').select('player_id,score,darts_used,is_checkout,set_no,leg_no').eq('match_id',matchId);
   const data=throwsRes.data||[],setNo=Number(match.current_set||1),legNo=Number(match.current_leg||1);
   const avg1=chicago?calcStageAvg(data,match.player1_id,legNo):calcAvg(data,match.player1_id);
   const avg2=chicago?calcStageAvg(data,match.player2_id,legNo):calcAvg(data,match.player2_id);
@@ -39,7 +37,7 @@ async function boot(){
  }
  const channel=db.channel('live-avg-'+matchId)
   .on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:`match_id=eq.${matchId}`},scheduleRefresh)
-  .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},scheduleRefresh)
+  .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},payload=>{if(payload.new){match.current_set=payload.new.current_set;match.current_leg=payload.new.current_leg}scheduleRefresh()})
   .subscribe();
  window.addEventListener('pagehide',()=>{clearTimeout(refreshTimer);db.removeChannel(channel).catch(()=>{})},{once:true});
  await load();
