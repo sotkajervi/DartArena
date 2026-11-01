@@ -87,6 +87,7 @@ async function boot(){
   match=updated;syncScoreDisplay(updated);const message=$('matchMessage');if(message)message.textContent=`Kast korrigert: ${t.score} → ${score}.`;await load();
  }
  const roomChannel=db.channel('throw-log-'+matchId).on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:`match_id=eq.${matchId}`},scheduleRefresh).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{const oldSet=match.current_set,oldLeg=match.current_leg;match=p.new;syncScoreDisplay(match);if(oldSet!==match.current_set||oldLeg!==match.current_leg)scheduleRefresh()}).subscribe();
+ window.addEventListener('pagehide',()=>{clearTimeout(refreshTimer);db.removeChannel(roomChannel).catch(()=>{})},{once:true});
  await load();
  // Kept as a compatibility surface. New X01 visits are written atomically by submit_x01_visit/submit_match_checkout.
  window.DartArenaThrowLog={refresh:load};
