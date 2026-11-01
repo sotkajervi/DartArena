@@ -85,9 +85,20 @@ async function boot(){
     $('leaderTransferBtn').disabled=!$('leaderTransferSelect').value;
   };
   $('leaderTransferBtn').onclick=transferTournamentLeader;
-  window.addEventListener('dartarena:tournament-refresh',()=>{
-    load().catch(error=>console.error('Tournament refresh failed',error));
-  });
+  // Coalesce bursts of tournament Realtime events into one refresh.
+  let pageRefreshTimer=null,groupRefreshTimer=null;
+  const schedulePageRefresh=()=>{
+    clearTimeout(pageRefreshTimer);
+    pageRefreshTimer=setTimeout(()=>load().catch(error=>console.error('Tournament refresh failed',error)),250);
+  };
+  const scheduleGroupRefresh=()=>{
+    clearTimeout(groupRefreshTimer);
+    groupRefreshTimer=setTimeout(()=>{
+      if(['groups','cup_setup'].includes(tournament?.status))
+        loadGroupLobby().catch(error=>console.warn('Group lobby refresh failed',error));
+    },350);
+  };
+  window.addEventListener('dartarena:tournament-refresh',schedulePageRefresh);
   $('drawGroupsBtn').onclick=drawGroups;
   $('redrawGroupsBtn').onclick=drawGroups;
   $('startGroupsBtn').onclick=startGroups;
@@ -96,13 +107,13 @@ async function boot(){
   $('groupBestOf').onchange=()=>{drawnGroups=null;renderSetup();};
 
   db.channel('tournament-'+id)
-    .on('postgres_changes',{event:'*',schema:'public',table:'tournaments',filter:`id=eq.${id}`},load)
-    .on('postgres_changes',{event:'*',schema:'public',table:'tournament_members',filter:`tournament_id=eq.${id}`},load)
+    .on('postgres_changes',{event:'*',schema:'public',table:'tournaments',filter:`id=eq.${id}`},schedulePageRefresh)
+    .on('postgres_changes',{event:'*',schema:'public',table:'tournament_members',filter:`tournament_id=eq.${id}`},schedulePageRefresh)
     .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${id}`},()=>{
-      if(['groups','cup_setup'].includes(tournament?.status))loadGroupLobby();
+      if(['groups','cup_setup'].includes(tournament?.status))scheduleGroupRefresh();
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'tournament_ai_group_matches',filter:`tournament_id=eq.${id}`},()=>{
-      if(tournament?.status==='groups')loadGroupLobby();
+      if(tournament?.status==='groups')scheduleGroupRefresh();
     })
     .subscribe();
 
