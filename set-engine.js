@@ -48,7 +48,7 @@ async function boot(){
    }
  }
  draw();
- db.channel('set-engine-'+matchId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{const oldSet=Number(match.current_set||1),oldLeg=Number(match.current_leg||1);match=p.new;const changedLeg=oldSet!==Number(match.current_set||1)||oldLeg!==Number(match.current_leg||1);draw();syncEntryLock()}).subscribe();
+ const roomChannel=db.channel('set-engine-'+matchId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{const oldSet=Number(match.current_set||1),oldLeg=Number(match.current_leg||1);match=p.new;const changedLeg=oldSet!==Number(match.current_set||1)||oldLeg!==Number(match.current_leg||1);draw();syncEntryLock()}).subscribe();
  async function submit(){
    const input=$('matchScoreInput'),raw=String(input.value??'').trim();
    if(!raw||legDelayActive()||scoreSubmitting)return;
@@ -81,6 +81,6 @@ async function boot(){
  scoreBtn.onclick=e=>{e.stopImmediatePropagation();submit()};
  scoreInput.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();e.stopImmediatePropagation();submit()}};
  syncEntryLock();
- window.addEventListener('pagehide',()=>clearTimeout(legDelayTimer),{once:true});
+ window.addEventListener('pagehide',()=>{clearTimeout(legDelayTimer);db.removeChannel(roomChannel).catch(()=>{})},{once:true});
 }
 })();
