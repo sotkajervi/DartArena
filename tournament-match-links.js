@@ -14,6 +14,11 @@ function ensureTournamentMatchStyles(){
     .cup-match.my-tournament-match .match-access-label{color:#00eaf4}
     .match-row.my-tournament-match .match-state{color:#00eaf4;font-weight:850}
     .match-row.match-locked .match-state{color:var(--muted)}
+    /* Status color comes from already loaded tournament matches. No polling or popup. */
+    .match-row.da-finished,.cup-match.da-finished{outline:2px solid #ed5c69!important;outline-offset:-2px;border-radius:10px}
+    .match-row.da-live,.cup-match.da-live{outline:2px solid #e9b749!important;outline-offset:-2px;border-radius:10px}
+    .match-row.da-finished.my-tournament-match,.cup-match.da-finished.my-tournament-match{border-color:#ed5c69!important;box-shadow:0 0 0 1px rgba(237,92,105,.24),0 0 18px rgba(237,92,105,.16)!important}
+    .match-row.da-live.my-tournament-match,.cup-match.da-live.my-tournament-match{border-color:#e9b749!important;box-shadow:0 0 0 1px rgba(233,183,73,.22),0 0 18px rgba(233,183,73,.15)!important}
   `;document.head.appendChild(s);
 }
 
@@ -91,6 +96,8 @@ function setGroupAccessLabel(row,text){const el=row.querySelector('.match-state'
 function applyMatchAccess(row,match,uid){
   const isPlayer=!!uid&&[match.player1_id,match.player2_id].includes(uid),bye=isTournamentBye(match),finished=['finished','wo'].includes(match.status),live=match.status==='live',pending=match.status==='pending',ready=!!(match.player1_id&&match.player2_id);
   row.classList.toggle('my-tournament-match',isPlayer);
+  row.classList.toggle('da-finished',finished);
+  row.classList.toggle('da-live',live);
   let label,title,clickable=true;
   if(bye){label='';title='BYE';clickable=false}
   else if(finished){label='Se statistikk';title='Åpne kampstatistikk'}
