@@ -8,14 +8,14 @@
   // not end the live match or replace this tab.
   document.getElementById('openLobbyTabBtn')?.classList.remove('hidden');
 
-  const client=window.supabase.createClient(
+  const client=window.DartArenaMatchDb||window.supabase.createClient(
     'https://jqpxlbhwvskhjbqrbidk.supabase.co',
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
   );
 
   const cancelBtn=document.getElementById('cancelMatchBtn');
   const message=text=>{const el=document.getElementById('matchMessage');if(el)el.textContent=text};
-  let synced=false,tournamentId=null,cancelling=false;
+  let synced=false,syncing=false,tournamentId=null,cancelling=false,syncChannel=null;
 
   async function cancelTournamentMatch(){
     if(cancelling)return;
@@ -63,7 +63,9 @@
   }
 
   async function syncIfFinished(row){
-    if(synced||!row||row.status!=='finished')return;
+    if(synced||syncing||!row||row.status!=='finished')return;
+    syncing=true;
+    try{
     const {error}=await client.rpc('finish_tournament_match',{
       p_tournament_match_id:tournamentMatchId,
       p_live_match_id:liveMatchId
@@ -76,6 +78,7 @@
     synced=true;
     await advanceCupIfNeeded();
     try{window.opener?.postMessage({type:'dartarena-tournament-match-finished',id:tournamentMatchId},location.origin)}catch{}
+    }finally{syncing=false}
   }
 
   async function boot(){
@@ -85,10 +88,11 @@
     ]);
     tournamentId=tm?.tournament_id||null;
     await syncIfFinished(live);
-    client.channel(`tournament-sync-${liveMatchId}`)
+    syncChannel=client.channel(`tournament-sync-${liveMatchId}`)
       .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${liveMatchId}`},payload=>syncIfFinished(payload.new))
       .subscribe();
   }
 
+  window.addEventListener('pagehide',()=>{if(syncChannel)client.removeChannel(syncChannel).catch(()=>{})},{once:true});
   boot().catch(error=>console.error('Tournament match sync init failed',error));
 })();
