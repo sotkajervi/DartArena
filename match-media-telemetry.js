@@ -16,6 +16,7 @@
   let sampleTimer=null;
   let flushTimer=null;
   let flushing=false;
+  let failureCount=0,nextFlushAt=0;
   let buffer=[];
   const previous=new Map();
 
@@ -125,15 +126,29 @@
   }
 
   async function flush(){
-    if((stopped&&buffer.length===0)||flushing||!buffer.length)return;
+    if((stopped&&buffer.length===0)||flushing||!buffer.length||Date.now()<nextFlushAt)return;
     flushing=true;
     const batch=buffer.splice(0,buffer.length);
     try{
       const{error}=await telemetryDb.from('match_media_telemetry').insert(batch);
       if(error)throw error;
+      failureCount=0;
+      nextFlushAt=0;
     }catch(error){
-      console.warn('[MEDIA TELEMETRY] flush failed',error);
-      buffer=[...batch,...buffer].slice(-600);
+      failureCount++;
+      const permissionError=String(error?.code||'')==='42501'||/permission denied|row-level security/i.test(error?.message||'');
+      if(permissionError){
+        // Telemetry is noncritical: stop retrying an unauthorized write every 10 seconds.
+        stopped=true;
+        clearInterval(sampleTimer);
+        clearInterval(flushTimer);
+        buffer=[];
+        console.warn('[MEDIA TELEMETRY] disabled: database denied telemetry writes');
+      }else{
+        nextFlushAt=Date.now()+Math.min(300000,10000*2**Math.min(5,failureCount-1));
+        buffer=[...batch,...buffer].slice(-600);
+        if(failureCount===1)console.warn('[MEDIA TELEMETRY] flush failed; retrying with backoff',error);
+      }
     }finally{
       flushing=false;
     }
