@@ -86,7 +86,7 @@ async function boot(){
   if(error||!updated){await notice('Korrigeringen kunne ikke lagres: '+(error?.message||'ukjent feil'),'Kunne ikke lagre','danger');return}
   match=updated;syncScoreDisplay(updated);const message=$('matchMessage');if(message)message.textContent=`Kast korrigert: ${t.score} → ${score}.`;await load();
  }
- db.channel('throw-log-'+matchId).on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:`match_id=eq.${matchId}`},scheduleRefresh).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{const oldSet=match.current_set,oldLeg=match.current_leg;match=p.new;syncScoreDisplay(match);if(oldSet!==match.current_set||oldLeg!==match.current_leg)scheduleRefresh()}).subscribe();
+ const roomChannel=db.channel('throw-log-'+matchId).on('postgres_changes',{event:'*',schema:'public',table:'match_throws',filter:`match_id=eq.${matchId}`},scheduleRefresh).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{const oldSet=match.current_set,oldLeg=match.current_leg;match=p.new;syncScoreDisplay(match);if(oldSet!==match.current_set||oldLeg!==match.current_leg)scheduleRefresh()}).subscribe();
  await load();
  // Kept as a compatibility surface. New X01 visits are written atomically by submit_x01_visit/submit_match_checkout.
  window.DartArenaThrowLog={refresh:load};
