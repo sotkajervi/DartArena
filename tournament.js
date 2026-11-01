@@ -1,6 +1,7 @@
 const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
 const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+window.DartArenaTournamentDb=db;
 const $=id=>document.getElementById(id);
 const id=new URLSearchParams(location.search).get('id');
 const TOURNAMENT_GAMES=[170,301,501,1001];
