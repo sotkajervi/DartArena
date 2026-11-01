@@ -265,6 +265,19 @@
     },100);
   }
 
+  // Reuse the existing tournament_matches Realtime payload to recolor cards.
+  // No additional query, interval or notification is started.
+  function updateMatchCardColor(row){
+    if(!row?.id||window.dartArenaSimulationViewActive)return;
+    const finished=row.status==='finished'||row.status==='wo';
+    const playing=row.status==='live';
+    document.querySelectorAll('.match-row[data-match],.cup-match[data-match]').forEach(card=>{
+      if(card.dataset.match!==row.id)return;
+      card.classList.toggle('da-finished',finished);
+      card.classList.toggle('da-live',playing);
+    });
+  }
+
   function realtimeChange(){
     if(document.visibilityState==='hidden')hiddenDirty=true;
     else scheduleSync(true);
@@ -300,7 +313,7 @@
     },realtimeChange)
     .on('postgres_changes',{
       event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${tournamentId}`
-    },realtimeChange)
+    },payload=>{updateMatchCardColor(payload.new);realtimeChange()})
     .subscribe(status=>{
       if(status==='SUBSCRIBED')scheduleSync(true);
     });
