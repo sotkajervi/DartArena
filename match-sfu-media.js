@@ -291,8 +291,11 @@
     clearInterval(boot);
   },150);
 
+  let watchdogRunning=false;
   watcher=setInterval(async()=>{
-    if(stopped)return;
+    if(stopped||watchdogRunning)return;
+    watchdogRunning=true;
+    try{
     disableDirectP2P();
     setupChannel();
     const signature=trackSignature();
@@ -307,6 +310,8 @@
       }
     }
     renderDebug();
+    }catch(error){console.warn('[SFU] watchdog failed',error)}
+    finally{watchdogRunning=false}
   },1000);
 
   window.DartArenaMatchMedia={mode:'sfu',stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
