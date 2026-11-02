@@ -207,7 +207,7 @@ async function boot(){
   $('starterChoice').onchange=changeStarterChoice;
   // The existing waiting room remains authoritative until scene migration is enabled.
   // Adapter is shared so both UIs use the exact same server-backed readiness logic.
-  if(window.DartArenaPreMatchScene){
+  if(new URLSearchParams(location.search).has('preMatchSceneDev')&&window.DartArenaPreMatchScene){
     embeddedPreMatchControls=window.DartArenaPreMatchScene.bindRoomControls({
       setStarter:async choice=>{
         if(!['me','opponent','random'].includes(choice))return;
@@ -217,6 +217,7 @@ async function boot(){
       setReady:()=>toggleReady()
     });
     syncEmbeddedPreMatch();
+    window.DartArenaPreMatchScene.preMatch().catch(error=>console.warn('Pre-match scene failed',error));
   }
 
   setupChannel();
