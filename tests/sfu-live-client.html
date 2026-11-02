@@ -4,6 +4,12 @@
 <style>body{font:15px system-ui;background:#0b1820;color:#e9f4f6;max-width:850px;margin:30px auto;padding:0 16px}input,textarea,button,select{font:inherit;padding:8px;background:#142832;color:white;border:1px solid #507480;border-radius:5px}input,textarea{width:100%;box-sizing:border-box}button{cursor:pointer;margin:5px}label{display:block;margin:12px 0}pre{overflow:auto;background:#081116;padding:15px;white-space:pre-wrap}video{width:320px;max-width:95%;background:black}.notice{color:#f4ce7d}</style></head><body>
 <h1>SFU testklient (kun godkjente testrom)</h1>
 <p class="notice">Dette er en ekte WebRTC-klient, ikke en automatisk belastningstest. Krever innlogging og at kontoen er deltaker i et aktivt testkamprom. Ingen endringer i produksjonsmodus.</p>
+<fieldset><legend>Testkonto (Supabase)</legend>
+<label>E-post<input id="email" type="email" autocomplete="username"></label>
+<label>Passord<input id="password" type="password" autocomplete="current-password"></label>
+<button id="login" type="button">Logg inn</button><button id="logout" type="button">Logg ut</button>
+<p id="authStatus">Ikke logget inn</p>
+</fieldset>
 <label>Match-ID (UUID fra godkjent testkamp)<input id="match" placeholder="UUID" autocomplete="off"></label>
 <label>Testvarighet i sekunder (maks 120)<input id="duration" type="number" min="5" max="120" value="30"></label>
 <button id="start">Start syntetisk publisering</button><button id="stop" disabled>Stopp og frigjør</button>
@@ -17,6 +23,7 @@
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
+const auth=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
 let sfu,stream,canvas,tick,shutdownTimer,statsTimer,startedAt,received=0;
 const report={events:[],samples:[]};
 function log(label,detail){report.events.push({at:new Date().toISOString(),label,detail:String(detail||'').slice(0,160)});render()}
@@ -51,7 +58,6 @@ async function start(){
   const seconds=Number($('duration').value);
   if(!Number.isInteger(seconds)||seconds<5||seconds>120)throw Error('Varighet må være 5–120 sekunder');
   if(!window.supabase||!window.DartArenaSecureSFU||!window.DARTARENA_SFU?.secureWorkerUrl)throw Error('Klientbibliotek mangler');
-  const auth=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
   const session=await auth.auth.getSession();
   if(!session.data?.session?.access_token)throw Error('Ikke innlogget på denne origin; logg inn på DartArena her først');
   // Browser-generated video: no user camera or microphone permission.
@@ -85,6 +91,20 @@ async function subscribe(){
   log('subscribed','Received track events: '+received);
  }catch(e){log('subscribe-error',e.message)}
 }
+async function refreshAuth(){
+ const {data}=await auth.auth.getSession();
+ $('authStatus').textContent=data?.session?.user?'Innlogget som '+data.session.user.email:'Ikke logget inn';
+}
+$('login').onclick=async()=>{
+ const email=$('email').value.trim(),password=$('password').value;
+ if(!email||!password){log('login-error','E-post og passord kreves');return}
+ const {error}=await auth.auth.signInWithPassword({email,password});
+ $('password').value='';
+ if(error)log('login-error',error.message);
+ await refreshAuth();
+};
+$('logout').onclick=async()=>{stop();await auth.auth.signOut();await refreshAuth()};
+refreshAuth();
 $('start').onclick=start;$('stop').onclick=stop;$('subscribe').onclick=subscribe;
 window.addEventListener('pagehide',stop);
 log('ready','Only 1 test client per tab; no automatic multi-client traffic');
