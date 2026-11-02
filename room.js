@@ -8,6 +8,10 @@ const isOfferer=()=>profile?.id===c?.challenger_id;
 const setStatus=t=>{$('cameraStatus').textContent=t};
 const selectedGame=()=>$('roomGame')?.value||'501';
 const isSpecialGame=()=>['chicago','cricket','half_it','half_it_standard','sixty_one','jdc'].includes(selectedGame());
+// X01 game values share one engine and one eventual seamless media handoff.
+const SEAMLESS_X01_GAMES=Object.freeze(['170','301','501','1001']);
+const isSeamlessX01=(raw,variant)=>SEAMLESS_X01_GAMES.includes(String(raw||''))&&(!variant||variant==='x01');
+window.DartArenaChallengeX01=Object.freeze({games:SEAMLESS_X01_GAMES,isSupported:isSeamlessX01});
 const pageForVariant=v=>v==='cricket'?'cricket.html':v==='half_it'?'half-it.html':v==='sixty_one'?'61-match.html':v==='jdc'?'jdc-match.html':'match.html';
 function setMatchMode(mode){const special=isSpecialGame();matchMode=special?'legs':mode==='sets'?'sets':'legs';$('legsModeBtn').classList.toggle('active',matchMode==='legs');$('setsModeBtn').classList.toggle('active',matchMode==='sets');$('setsField').classList.toggle('hidden',matchMode!=='sets')}
 function syncGameMode(){const g=selectedGame(),special=isSpecialGame(),chicago=g==='chicago',half=g==='half_it'||g==='half_it_standard',sixty=g==='sixty_one',jdc=g==='jdc';$('setsModeBtn').disabled=special;$('legsModeBtn').disabled=half||jdc||chicago;$('legsField').classList.toggle('hidden',half||jdc||chicago);$('sixtyOneTimeField').classList.toggle('hidden',!sixty);if(half||jdc)$('roomLegs').value='1';if(chicago)$('roomLegs').value='3';if(special)setMatchMode('legs')}
