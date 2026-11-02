@@ -4,7 +4,7 @@
 (()=>{
  'use strict';
  if(window.DartArenaMatchSceneHost)return;
- let stage=null,videoAnchor=null,active=false;
+ let stage=null,videoAnchor=null,active=false,lobbyButton=null,lobbyAnchor=null;
  const MATCH_STYLES=[
   'match-controls.css?v=20260928-ui2',
   'opponent-focus.css?v=20261026-owncam-pip1',
@@ -61,6 +61,16 @@
   originalGrid.replaceWith(slot);
   // stage itself owns its ID; only adopt the original match-room children.
   stage.append(...Array.from(original.childNodes).map(node=>document.importNode(node,true)));
+  // The real lobby button already has handlers from the tournament page.
+  // Avoid duplicate IDs: reuse that button instead of cloning its match.html twin.
+  lobbyButton=document.getElementById('openLobbyTabBtn');
+  const matchLobby=stage.querySelector('#openLobbyTabBtn');
+  if(lobbyButton&&matchLobby){
+    lobbyAnchor=document.createComment('Tournament lobby button anchor');
+    lobbyButton.before(lobbyAnchor);
+    matchLobby.replaceWith(lobbyButton);
+    lobbyButton.classList.remove('hidden');
+  }
   main.appendChild(stage);
   return stage;
  }
@@ -83,6 +93,7 @@
  function restore(){
   if(!stage||!active)return;
   videoAnchor.after(document.getElementById('videoGrid'));
+  if(lobbyButton&&lobbyAnchor)lobbyAnchor.after(lobbyButton);
   document.getElementById('videoGrid').classList.add('waiting-video-grid');
   for(const node of [...document.getElementById('matchView').children])if(node!==stage)node.hidden=false;
   stage.hidden=true;
