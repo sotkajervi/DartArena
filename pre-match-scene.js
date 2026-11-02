@@ -49,20 +49,37 @@
   holder=scene.querySelector('.da-prematch-videos');
   return scene;
  }
- function preMatch(){
+ let transitionInProgress=false;
+ async function moveVideo(nextParent,afterAnchor=false){
+  const video=document.getElementById('videoGrid');
+  if(!video)throw Error('Video elements missing');
+  const reduceMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const first=video.getBoundingClientRect();
+  if(afterAnchor)anchor.after(video);else nextParent.appendChild(video);
+  const last=video.getBoundingClientRect();
+  if(reduceMotion||!first.width||!last.width)return;
+  const deltaX=first.left-last.left,deltaY=first.top-last.top;
+  const sx=first.width/last.width,sy=first.height/last.height;
+  if(!Number.isFinite(sx)||!Number.isFinite(sy))return;
+  const animation=video.animate([
+   {transform:'translate('+deltaX+'px,'+deltaY+'px) scale('+sx+','+sy+')',opacity:.82},
+   {transform:'translate(0,0) scale(1,1)',opacity:1}
+  ],{duration:480,easing:'cubic-bezier(.2,.75,.2,1)'});
+  await animation.finished.catch(()=>{});
+ }
+ async function preMatch(){
   attach();
-  if(phase==='pre')return;
-  holder.appendChild(document.getElementById('videoGrid'));
+  if(phase==='pre'||transitionInProgress)return;
+  transitionInProgress=true;
   scene.hidden=false;
   document.body.classList.add('da-prematch-active');
-  phase='pre';
+  try{await moveVideo(holder)}finally{phase='pre';transitionInProgress=false}
  }
- function match(){
-  if(!scene||phase==='match')return;
-  anchor.after(document.getElementById('videoGrid'));
+ async function match(){
+  if(!scene||phase==='match'||transitionInProgress)return;
+  transitionInProgress=true;
   document.body.classList.remove('da-prematch-active');
-  scene.hidden=true;
-  phase='match';
+  try{await moveVideo(null,true)}finally{scene.hidden=true;phase='match';transitionInProgress=false}
  }
  window.DartArenaPreMatchScene={attach,preMatch,match,phase:()=>phase};
  // Deliberately do not auto-enter the scene: match.js currently requires an already-created live match ID.
