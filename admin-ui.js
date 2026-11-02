@@ -79,7 +79,7 @@
       const info=await inspectTournament(id);
       button.textContent=info.force?'Tvangsslett':'Slett';
       button.classList.toggle('admin-force-delete',info.force);
-      button.title=info.force?'Admin: tvangsslett turnering og tilknyttet kampdata':'Admin: slett oppsatt turnering';
+      button.title=info.force?'Owner: tvangsslett turnering og tilknyttet kampdata':'Owner: slett oppsatt turnering';
     }catch(error){console.warn('Could not inspect tournament delete mode',error)}
   }
 
@@ -121,21 +121,21 @@
   }
 
   function decorateTournamentRows(){
-    if(!isAdmin)return;
+    if(!isOwner)return;
     document.querySelectorAll('.tournament-row').forEach(row=>{
       if(row.querySelector('.admin-delete-tournament'))return;
       const open=row.querySelector('[data-open],[data-history-open]');
       const id=open?.dataset.open||open?.dataset.historyOpen;
       if(!id)return;
       const actions=open.closest('.challenge-actions');if(!actions)return;
-      const button=document.createElement('button');button.type='button';button.className='small-btn admin-delete-tournament';button.textContent='Slett';button.title='Admin: slett turnering';
+      const button=document.createElement('button');button.type='button';button.className='small-btn admin-delete-tournament';button.textContent='Slett';button.title='Owner: slett turnering';
       button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();deleteTournament(id,button,row)});
       actions.appendChild(button);setDeleteButtonMode(button,id);
     });
   }
 
   function decorateCurrentTournament(){
-    if(!isAdmin||!document.getElementById('tName'))return;
+    if(!isOwner||!document.getElementById('tName'))return;
     if(document.getElementById('adminDeleteCurrentTournament'))return;
     const id=new URLSearchParams(location.search).get('id');
     const actions=document.querySelector('.lobby-top .top-actions');
@@ -206,7 +206,7 @@
     if(ownerError)console.warn('Owner role check failed',ownerError);
     isAdmin=adminFlag===true;
     isOwner=ownerFlag===true;
-    if(!isAdmin){resetAdminUi();return;}
+    if(!isAdmin&&!isOwner){resetAdminUi();return;}
     ensureStyles();subscribeChatDeletes();decorate();observe();
   }
 
