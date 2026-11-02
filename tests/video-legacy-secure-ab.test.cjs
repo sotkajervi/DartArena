@@ -88,7 +88,7 @@ function transport(which){
 
 async function runRound(which){
   const t=transport(which);
-  const clients=Array.from({length:participants},(_,i)=>t.newClient(roomIdFor(Math.floor(i/2)));
+  const clients=Array.from({length:participants},(_,i)=>t.newClient(roomIdFor(Math.floor(i/2))));
   const publications=await Promise.all(clients.map(c=>c.publish(t.stream)));
   assert.equal(publications.length,12);
   const subscribed=await Promise.all(clients.map((client,i)=>client.subscribe(publications[i%2?i-1:i+1],()=>{})));
