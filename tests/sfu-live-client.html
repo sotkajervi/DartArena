@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="nb"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DartArena SFU test (isolert)</title>
+<style>body{font:15px system-ui;background:#0b1820;color:#e9f4f6;max-width:850px;margin:30px auto;padding:0 16px}input,textarea,button,select{font:inherit;padding:8px;background:#142832;color:white;border:1px solid #507480;border-radius:5px}input,textarea{width:100%;box-sizing:border-box}button{cursor:pointer;margin:5px}label{display:block;margin:12px 0}pre{overflow:auto;background:#081116;padding:15px;white-space:pre-wrap}video{width:320px;max-width:95%;background:black}.notice{color:#f4ce7d}</style></head><body>
+<h1>SFU testklient (kun godkjente testrom)</h1>
+<p class="notice">Dette er en ekte WebRTC-klient, ikke en automatisk belastningstest. Krever innlogging og at kontoen er deltaker i et aktivt testkamprom. Ingen endringer i produksjonsmodus.</p>
+<label>Match-ID (UUID fra godkjent testkamp)<input id="match" placeholder="UUID" autocomplete="off"></label>
+<label>Testvarighet i sekunder (maks 120)<input id="duration" type="number" min="5" max="120" value="30"></label>
+<button id="start">Start syntetisk publisering</button><button id="stop" disabled>Stopp og frigjør</button>
+<label>Min publikasjon – kopier kun til den andre testdeltakeren<textarea id="publication" rows="3" readonly></textarea></label>
+<label>Motpartens publikasjon – lim inn JSON fra den andre testdeltakeren<textarea id="remote" rows="3"></textarea></label>
+<button id="subscribe" disabled>Koble til motpart</button>
+<div><video id="preview" muted autoplay playsinline></video><video id="incoming" muted autoplay playsinline></video></div>
+<h3>Resultater (ingen adgangstokener)</h3><pre id="results"></pre>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+<script src="../sfu-config.js"></script><script src="../sfu-client-secure.js"></script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+let sfu,stream,canvas,tick,shutdownTimer,statsTimer,startedAt,received=0;
+const report={events:[],samples:[]};
+function log(label,detail){report.events.push({at:new Date().toISOString(),label,detail:String(detail||'').slice(0,160)});render()}
+function render(){ $('results').textContent=JSON.stringify(report,null,2) }
+function stop(){
+ clearInterval(tick);clearInterval(statsTimer);clearTimeout(shutdownTimer);
+ try{sfu?.close()}catch{};sfu=null;
+ try{stream?.getTracks().forEach(t=>t.stop())}catch{};stream=null;
+ $('preview').srcObject=null;$('incoming').srcObject=null;
+ $('start').disabled=false;$('stop').disabled=true;$('subscribe').disabled=true;
+ $('publication').value='';log('stopped','All local peers and tracks closed');
+}
+async function stats(){
+ if(!sfu)return;
+ for(const [side,pc] of [['publish',sfu.publisher],['subscribe',sfu.subscriber]]){
+  if(!pc)continue;
+  const sample={seconds:Math.round((Date.now()-startedAt)/1000),side,state:pc.connectionState,ice:pc.iceConnectionState,bytesSent:0,bytesReceived:0,packetsLost:0,rttMs:null};
+  for(const item of (await pc.getStats()).values()){
+   if(item.type==='outbound-rtp'&&!item.isRemote)sample.bytesSent+=item.bytesSent||0;
+   if(item.type==='inbound-rtp'&&!item.isRemote){sample.bytesReceived+=item.bytesReceived||0;sample.packetsLost+=item.packetsLost||0}
+   if(item.type==='candidate-pair'&&item.nominated&&item.state==='succeeded'&&typeof item.currentRoundTripTime==='number')sample.rttMs=Math.round(item.currentRoundTripTime*1000);
+  }
+  report.samples.push(sample);
+ }
+ render();
+}
+async function start(){
+ $('start').disabled=true;
+ try{
+  const id=$('match').value.trim();
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))throw Error('Ugyldig match-ID');
+  const seconds=Number($('duration').value);
+  if(!Number.isInteger(seconds)||seconds<5||seconds>120)throw Error('Varighet må være 5–120 sekunder');
+  if(!window.supabase||!window.DartArenaSecureSFU||!window.DARTARENA_SFU?.secureWorkerUrl)throw Error('Klientbibliotek mangler');
+  const auth=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
+  const session=await auth.auth.getSession();
+  if(!session.data?.session?.access_token)throw Error('Ikke innlogget på denne origin; logg inn på DartArena her først');
+  // Browser-generated video: no user camera or microphone permission.
+  canvas=document.createElement('canvas');canvas.width=320;canvas.height=180;
+  const ctx=canvas.getContext('2d');let frame=0;
+  const draw=()=>{ctx.fillStyle='#12242e';ctx.fillRect(0,0,320,180);ctx.fillStyle='#28c9ce';ctx.fillRect((frame++*3)%300,80,20,20);ctx.fillStyle='white';ctx.font='18px sans-serif';ctx.fillText('DartArena SFU TEST',12,35)};
+  draw();tick=setInterval(draw,100);
+  stream=canvas.captureStream(10);
+  $('preview').srcObject=stream;
+  sfu=new DartArenaSecureSFU(window.DARTARENA_SFU.secureWorkerUrl,{kind:'match',id},auth);
+  startedAt=Date.now();
+  const pub=await sfu.publish(stream);
+  $('publication').value=JSON.stringify(pub);
+  $('stop').disabled=false;$('subscribe').disabled=false;
+  log('published','Secure worker accepted authorized publication');
+  statsTimer=setInterval(()=>stats().catch(e=>log('stats-error',e.message)),1000);
+  shutdownTimer=setTimeout(stop,seconds*1000);
+ }catch(e){log('error',e.message);stop()}
+}
+async function subscribe(){
+ try{
+  if(!sfu)throw Error('Start publisering først');
+  const publication=JSON.parse($('remote').value);
+  if(!publication||typeof publication.sessionId!=='string'||!Array.isArray(publication.tracks))throw Error('Ugyldig publikasjonsdata');
+  await sfu.subscribe(publication,event=>{
+   const video=$('incoming');
+   const current=video.srcObject instanceof MediaStream?video.srcObject:new MediaStream();
+   for(const track of (event.streams?.[0]?.getTracks()||[event.track]))if(track&&!current.getTracks().some(t=>t.id===track.id)){current.addTrack(track);received++}
+   video.srcObject=current;video.play().catch(()=>{});
+  });
+  log('subscribed','Received track events: '+received);
+ }catch(e){log('subscribe-error',e.message)}
+}
+$('start').onclick=start;$('stop').onclick=stop;$('subscribe').onclick=subscribe;
+window.addEventListener('pagehide',stop);
+log('ready','Only 1 test client per tab; no automatic multi-client traffic');
+</script></body></html>
