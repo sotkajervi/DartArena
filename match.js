@@ -1,7 +1,7 @@
 const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK',db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY),$=id=>document.getElementById(id);
 // Share one authenticated client and one Realtime socket across match-room modules.
 window.DartArenaMatchDb=db;
-let matchId=new URLSearchParams(location.search).get('id');
+let matchId=new URLSearchParams(location.search).get('samePageDev')==='1'?null:new URLSearchParams(location.search).get('id');
 let matchBootStarted=false;
 let profile,m,other,names={},channel,stream=null,pc=null,remoteStream=null;
 let zoomCamSession=null,pictureSession=null;
