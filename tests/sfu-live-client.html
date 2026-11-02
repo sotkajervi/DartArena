@@ -11,12 +11,14 @@
 <p id="authStatus">Ikke logget inn</p>
 </fieldset>
 <label>Match-ID (UUID fra godkjent testkamp)<input id="match" placeholder="UUID" autocomplete="off"></label>
+<label>Videokvalitet<select id="quality"><option value="low">Lav – 320×180 / 10 FPS (tidligere test)</option><option value="hd" selected>720p – 1280×720 / 30 FPS (realistisk bevegelse)</option></select></label>
 <label>Testvarighet i sekunder (maks 120)<input id="duration" type="number" min="5" max="120" value="30"></label>
 <button id="start">Start syntetisk publisering</button><button id="stop" disabled>Stopp og frigjør</button>
 <label>Min publikasjon – kopier kun til den andre testdeltakeren<textarea id="publication" rows="3" readonly></textarea></label>
 <label>Motpartens publikasjon – lim inn JSON fra den andre testdeltakeren<textarea id="remote" rows="3"></textarea></label>
 <button id="subscribe" disabled>Koble til motpart</button>
 <div><video id="preview" muted autoplay playsinline></video><video id="incoming" muted autoplay playsinline></video></div>
+<p id="summary" aria-live="polite">Start en test for å se trafikk, bitrate og tilkoblingsstatus.</p>
 <h3>Resultater (ingen adgangstokener)</h3><pre id="results"></pre>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
 <script src="../sfu-config.js"></script><script src="../sfu-client-secure.js"></script>
@@ -25,12 +27,23 @@
 const $=id=>document.getElementById(id);
 const auth=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
 let sfu,stream,canvas,tick,shutdownTimer,statsTimer,startedAt,received=0,channel=null,currentPub=null,subscribedRemote=null,authUser=null;
-const report={events:[],samples:[]};
+const report={events:[],samples:[],config:null};
+const lastSamples={};
+function summary(){
+ let lines=[];
+ for(const side of ['publish','subscribe']){
+  const sample=[...report.samples].reverse().find(s=>s.side===side);
+  if(!sample)continue;
+  lines.push(side+': '+sample.state+' | '+(side==='publish'?'ut':'inn')+' '+(sample.bitrateKbps??0)+' kbit/s | tap '+sample.packetsLost+' | RTT '+(sample.rttMs??'–')+' ms');
+ }
+ $('summary').textContent=lines.length?lines.join(' | '):'Kobler til …';
+}
 function log(label,detail){report.events.push({at:new Date().toISOString(),label,detail:String(detail||'').slice(0,160)});render()}
-function render(){ $('results').textContent=JSON.stringify(report,null,2) }
+function render(){ summary();$('results').textContent=JSON.stringify(report,null,2) }
 function stop(){
  if(channel){const old=channel;channel=null;auth.removeChannel(old).catch(()=>{});}
  currentPub=null;subscribedRemote=null;
+ for(const key of Object.keys(lastSamples))delete lastSamples[key];
  clearInterval(tick);clearInterval(statsTimer);clearTimeout(shutdownTimer);
  try{sfu?.close()}catch{};sfu=null;
  try{stream?.getTracks().forEach(t=>t.stop())}catch{};stream=null;
@@ -48,6 +61,10 @@ async function stats(){
    if(item.type==='inbound-rtp'&&!item.isRemote){sample.bytesReceived+=item.bytesReceived||0;sample.packetsLost+=item.packetsLost||0}
    if(item.type==='candidate-pair'&&item.nominated&&item.state==='succeeded'&&typeof item.currentRoundTripTime==='number')sample.rttMs=Math.round(item.currentRoundTripTime*1000);
   }
+  const total=side==='publish'?sample.bytesSent:sample.bytesReceived;
+  const previous=lastSamples[side];
+  sample.bitrateKbps=previous&&sample.seconds>previous.seconds?Math.round((total-previous.total)*8/(sample.seconds-previous.seconds))/1000:0;
+  lastSamples[side]={total,seconds:sample.seconds};
   report.samples.push(sample);
  }
  render();
@@ -64,19 +81,44 @@ async function start(){
   if(!session.data?.session?.access_token)throw Error('Logg inn først');
   authUser=session.data.session.user.id;
   // Browser-generated video: no user camera or microphone permission.
-  canvas=document.createElement('canvas');canvas.width=320;canvas.height=180;
+  const hd=$('quality').value==='hd';
+  const width=hd?1280:320,height=hd?720:180,fps=hd?30:10;
+  report.config={width,height,fps,synthetic:true,startedAt:new Date().toISOString()};
+  canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
   const ctx=canvas.getContext('2d');let frame=0;
-  const draw=()=>{ctx.fillStyle='#12242e';ctx.fillRect(0,0,320,180);ctx.fillStyle='#28c9ce';ctx.fillRect((frame++*3)%300,80,20,20);ctx.fillStyle='white';ctx.font='18px sans-serif';ctx.fillText('DartArena SFU TEST',12,35)};
-  draw();tick=setInterval(draw,100);
-  stream=canvas.captureStream(10);
+  const draw=()=>{
+   const n=frame++, t=n/fps;
+   // Moving detail and changing colors prevent a static-image bitrate from being mistaken for webcam load.
+   ctx.fillStyle='#102731';ctx.fillRect(0,0,width,height);
+   const tile=hd?48:20;
+   for(let y=0;y<height;y+=tile)for(let x=0;x<width;x+=tile){
+     const v=Math.sin(x*.037+t*2.9)+Math.cos(y*.052-t*2.1);
+     ctx.fillStyle='hsl('+((x+y+n*4)%360)+' 55% '+Math.round(36+v*13)+'%)';
+     ctx.fillRect(x,y,tile-1,tile-1);
+   }
+   ctx.fillStyle='#efffff';ctx.font=(hd?40:16)+'px sans-serif';
+   ctx.fillText('DartArena SFU  '+width+'x'+height+' '+fps+' FPS',15,hd?65:26);
+   ctx.fillStyle='#05f5e0';ctx.fillRect(Math.round((Math.sin(t*3)+1)*.45*(width-120)),height*.63,hd?120:35,hd?120:35);
+  };
+  draw();tick=setInterval(draw,1000/fps);
+  stream=canvas.captureStream(fps);
   $('preview').srcObject=stream;
   sfu=new DartArenaSecureSFU(window.DARTARENA_SFU.secureWorkerUrl,{kind:'match',id},auth);
   startedAt=Date.now();
   const pub=await sfu.publish(stream);
+  if(hd&&sfu.publisher){
+   const sender=sfu.publisher.getSenders().find(s=>s.track?.kind==='video');
+   if(sender){
+    const parameters=sender.getParameters();
+    parameters.encodings=parameters.encodings?.length?parameters.encodings:[{}];
+    parameters.encodings[0].maxBitrate=1800000;
+    await sender.setParameters(parameters).catch(e=>log('bitrate-cap-warning',e.message));
+   }
+  }
   $('publication').value=JSON.stringify(pub);
   $('stop').disabled=false;$('subscribe').disabled=false;
   currentPub=pub;
-  log('published','Secure worker accepted authorized publication');
+  log('published','Secure worker accepted authorized publication '+width+'x'+height+'/'+fps);
   const topic='sfu-test-auto-'+id;
   channel=auth.channel(topic,{config:{broadcast:{self:false}}});
   channel.on('broadcast',{event:'publication'},({payload})=>{
