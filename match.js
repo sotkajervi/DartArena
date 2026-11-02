@@ -154,6 +154,31 @@ $('cameraBtn').onclick=async()=>{if(!stream)return startCamera();localReady=fals
 async function setPlayersUnavailable(){if(m)await db.from('profiles').update({status:'unavailable'}).in('id',[m.player1_id,m.player2_id])}
 function cleanup(){leaving=true;localReady=false;clearInterval(readyTimer);clearTimeout(answerWatchTimer);clearTimeout(handshakeTimer);clearTimeout(disconnectTimer);clearTimeout(trackMuteTimer);clearInterval(statsTimer);stream?.getTracks().forEach(t=>t.stop());pictureSession?.stop();pictureSession?.sourceTrack?.stop();pictureSession=null;stream=null;
 if(zoomCamSession){zoomCamSession.stop();zoomCamSession.sourceTrack?.stop();zoomCamSession=null;window.DartArenaX01ZoomSession=null}destroyPeer(false);if(channel)db.removeChannel(channel)}
-$('cancelMatchBtn').onclick=async()=>{if(!m||m.status!=='playing'||!confirm(window.DartArenaI18n?.t?.('Vil du avbryte kampen?')||'Vil du avbryte kampen?'))return;const{error}=await db.from('matches').update({status:'cancelled',finished_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',m.id);if(error)return $('matchMessage').textContent='Kunne ikke avbryte: '+error.message;await setPlayersUnavailable();window.opener?.postMessage({type:'dartarena-match-ended',id:m.id},location.origin);window.close()};
+$('cancelMatchBtn').onclick=async()=>{
+ if(!m||m.status!=='playing')return;
+ const params=new URLSearchParams(location.search);
+ const inTournamentRoom=location.pathname.endsWith('/tournament-match-room')||location.pathname.endsWith('/tournament-match-room.html');
+ const tournamentMatchId=params.get('tournamentMatch')||(inTournamentRoom&&params.get('samePageDev')==='1'?params.get('id'):null);
+ const text=tournamentMatchId?'Vil du avbryte denne turneringskampen?\\n\\nKampen nullstilles og kan startes på nytt.':(window.DartArenaI18n?.t?.('Vil du avbryte kampen?')||'Vil du avbryte kampen?');
+ if(!confirm(text))return;
+ const button=$('cancelMatchBtn');button.disabled=true;
+ try{
+  if(tournamentMatchId){
+   // Atomic cancellation: never cancel only the live match of a tournament.
+   const {data,error}=await db.rpc('cancel_tournament_match',{p_tournament_match_id:tournamentMatchId,p_live_match_id:m.id});
+   if(error)throw error;
+   window.opener?.postMessage({type:'dartarena-tournament-match-cancelled',id:tournamentMatchId},location.origin);
+   const url=new URL('tournament.html',location.href);
+   if(data)url.searchParams.set('id',data);
+   location.replace(url.href);
+   return;
+  }
+  const {error}=await db.from('matches').update({status:'cancelled',finished_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',m.id);
+  if(error)throw error;
+  await setPlayersUnavailable();
+  window.opener?.postMessage({type:'dartarena-match-ended',id:m.id},location.origin);
+  window.close();
+ }catch(error){$('matchMessage').textContent='Kunne ikke avbryte: '+(error?.message||error);button.disabled=false}
+};
 $('closeMatchBtn').onclick=()=>{if(m?.status==='playing'&&!confirm(window.DartArenaI18n?.t?.('Kampen pågår fortsatt. Lukk kampfanen?')||'Kampen pågår fortsatt. Lukk kampfanen?'))return;window.close()};
 window.addEventListener('beforeunload',cleanup);
