@@ -1,0 +1,789 @@
+const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
+const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=id=>document.getElementById(id);
+const id=new URLSearchParams(location.search).get('id');
+const TOURNAMENT_GAMES=[170,301,501,1001];
+const TOURNAMENT_VARIANTS=['x01','chicago'];
+
+let me=null;
+let tournament=null;
+let members=[];
+let names={};
+let drawnGroups=null;
+const AI_RIVAL_ID='00000000-0000-4000-8000-0000000000a1';
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function getDialog(){for(let i=0;i<40&&!window.DartArenaDialog;i++)await sleep(50);return window.DartArenaDialog||null}
+
+function esc(v=''){
+  return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmt(d){
+  return new Intl.DateTimeFormat('nb-NO',{dateStyle:'full',timeStyle:'short'}).format(new Date(d));
+}
+function statusText(s){
+  return ({registration:'Påmelding åpen',groups_setup:'Klargjør puljer',groups:'Puljespill',cup_setup:'Klargjør cup',cup:'Cup',finished:'Ferdig',cancelled:'Avbrutt'})[s]||s;
+}
+function getParticipants(){
+  return members.filter(x=>x.role==='participant');
+}
+function validTournamentGame(value){
+  return TOURNAMENT_GAMES.includes(Number(value));
+}
+function tournamentIsChicago(t=tournament){
+  return String(t?.game_variant||'x01').toLowerCase()==='chicago';
+}
+function tournamentCupIsChicago(t=tournament){
+  return String(t?.cup_game_variant||t?.game_variant||'x01').toLowerCase()==='chicago';
+}
+function formatGameLabel(game,variant){
+  if(String(variant||'x01').toLowerCase()==='chicago')return'Chicago Style';
+  return String(validTournamentGame(game)?Number(game):501);
+}
+function tournamentGameLabel(t=tournament){
+  return formatGameLabel(t?.game,t?.game_variant);
+}
+function tournamentCupGameLabel(t=tournament){
+  return formatGameLabel(t?.cup_game??t?.game,t?.cup_game_variant??t?.game_variant);
+}
+function tournamentTypeLabel(t){
+  return t.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup';
+}
+function tournamentMeta(t){
+  if(t.tournament_type==='groups_cup'){
+    return `${tournamentTypeLabel(t)} • Puljer: ${tournamentGameLabel(t)} • Cup: ${tournamentCupGameLabel(t)} • ${fmt(t.starts_at)}`;
+  }
+  return `${tournamentTypeLabel(t)} • ${tournamentCupGameLabel(t)} • ${fmt(t.starts_at)}`;
+}
+
+function showTournamentUnavailable(message='Turneringen finnes ikke lenger.'){
+  tournament=null;
+  $('tName').textContent='Turnering utilgjengelig';
+  $('tMeta').textContent='';
+  $('tStatus').textContent='Utilgjengelig';
+  $('tInfo').textContent=message;
+  $('participantTitle').textContent='Påmeldte';
+  $('participantList').innerHTML='<p class="muted">Gå tilbake til hovedlobbyen.</p>';
+  ['joinBtn','leaveBtn','ownerActions','groupSetup','groupLobby','cupSetup','cupLobby'].forEach(key=>$(key)?.classList.add('hidden'));
+  document.getElementById('tournamentGameField')?.remove();
+  document.getElementById('tournamentCupGameField')?.remove();
+}
+
+async function boot(){
+  const {data:{session}}=await db.auth.getSession();
+  if(!session){location.href='index.html';return;}
+  me=session.user.id;
+  if(!id){location.href='index.html';return;}
+
+  $('backBtn').onclick=()=>location.href='index.html';
+  $('joinBtn').onclick=join;
+  $('leaveBtn').onclick=leave;
+  $('closeRegistrationBtn').onclick=closeRegistration;
+  $('cancelTournamentBtn').onclick=cancelTournament;
+  $('leaderTransferSelect').onchange=()=>{
+    $('leaderTransferBtn').disabled=!$('leaderTransferSelect').value;
+  };
+  $('leaderTransferBtn').onclick=transferTournamentLeader;
+  window.addEventListener('dartarena:tournament-refresh',()=>{
+    load().catch(error=>console.error('Tournament refresh failed',error));
+  });
+  $('drawGroupsBtn').onclick=drawGroups;
+  $('redrawGroupsBtn').onclick=drawGroups;
+  $('startGroupsBtn').onclick=startGroups;
+  $('groupCount').onchange=()=>{drawnGroups=null;renderSetup();};
+  $('advanceCount').onchange=()=>{drawnGroups=null;renderSetup();};
+  $('groupBestOf').onchange=()=>{drawnGroups=null;renderSetup();};
+
+  db.channel('tournament-'+id)
+    .on('postgres_changes',{event:'*',schema:'public',table:'tournaments',filter:`id=eq.${id}`},load)
+    .on('postgres_changes',{event:'*',schema:'public',table:'tournament_members',filter:`tournament_id=eq.${id}`},load)
+    .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${id}`},()=>{
+      if(window.DartArenaGroupResultsLayout?.show(tournament))loadGroupLobby();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'tournament_ai_group_matches',filter:`tournament_id=eq.${id}`},()=>{
+      if(tournament?.status==='groups')loadGroupLobby();
+    })
+    .subscribe();
+
+  await load();
+}
+
+async function load(){
+  const {data:t,error}=await db.from('tournaments').select('*').eq('id',id).maybeSingle();
+  if(error){
+    console.error('Tournament load failed',error);
+    showTournamentUnavailable('Turneringen kunne ikke lastes akkurat nå.');
+    return;
+  }
+  if(!t){
+    showTournamentUnavailable('Turneringen finnes ikke lenger eller er slettet.');
+    return;
+  }
+
+  tournament=t;
+  const {data:m,error:memberError}=await db.from('tournament_members')
+    .select('user_id,role,joined_at')
+    .eq('tournament_id',id)
+    .order('joined_at');
+  if(memberError){
+    console.error('Tournament members load failed',memberError);
+    members=[];
+  }else{
+    members=m||[];
+  }
+
+  const ids=[...new Set([t.owner_id,...members.map(x=>x.user_id)].filter(Boolean))];
+  if(ids.length){
+    const {data:p,error:profileError}=await db.from('profiles').select('id,username').in('id',ids);
+    if(profileError)console.error('Tournament profiles load failed',profileError);
+    else names={...names,...Object.fromEntries((p||[]).map(x=>[x.id,x.username]))};
+  }
+
+  renderPage();
+  window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
+  if(window.DartArenaGroupResultsLayout?.show(t))await loadGroupLobby();
+  window.dispatchEvent(new CustomEvent('dartarena:tournament-loaded',{detail:{id:t.id,status:t.status,tournamentType:t.tournament_type,gameVariant:t.game_variant||'x01',cupGameVariant:t.cup_game_variant||t.game_variant||'x01'}}));
+}
+
+function renderLeaderTransfer(){
+  const select=$('leaderTransferSelect');
+  const button=$('leaderTransferBtn');
+  const hint=$('leaderTransferHint');
+  if(!select||!button||!hint||!tournament)return;
+  const isLeader=tournament.owner_id===me&&!['finished','cancelled'].includes(tournament.status);
+  const candidates=getParticipants().filter(x=>x.user_id!==tournament.owner_id);
+  const previous=select.value;
+  select.innerHTML='<option value="">Velg påmeldt deltaker</option>'+
+    candidates.sort((a,b)=>(names[a.user_id]||'').localeCompare(names[b.user_id]||'','nb'))
+      .map(x=>`<option value="${esc(x.user_id)}">${esc(names[x.user_id]||'Spiller')}</option>`).join('');
+  select.value=isLeader&&candidates.some(x=>x.user_id===previous)?previous:'';
+  select.disabled=!isLeader||!candidates.length;
+  button.disabled=!isLeader||!select.value;
+  hint.textContent=candidates.length
+    ?'Ny leder overtar styringen av turneringen. Du forblir deltaker hvis du er påmeldt.'
+    :'Ingen andre påmeldte deltakere å overføre til ennå.';
+}
+
+async function transferTournamentLeader(){
+  if(!tournament||tournament.owner_id!==me)return;
+  const newOwnerId=$('leaderTransferSelect')?.value;
+  if(!newOwnerId||!getParticipants().some(x=>x.user_id===newOwnerId))return;
+  const name=names[newOwnerId]||'denne deltakeren';
+  const dialog=await getDialog();
+  const message=`Overføre turneringslederrollen til ${name}?\n\n${name} vil overta styringen av turneringen. Du mister lederrollen, men forblir påmeldt som spiller hvis du er registrert. Overføringen fjerner deg ikke fra pågående kamper.`;
+  const ok=dialog
+    ?await dialog.confirm(message,{title:'Overfør turneringsleder',tone:'warning',confirmText:'Overfør lederrollen'})
+    :confirm(message);
+  if(!ok)return;
+
+  const button=$('leaderTransferBtn'),old=button.textContent;
+  button.disabled=true;
+  button.textContent='Overfører…';
+  try{
+    const {error}=await db.rpc('transfer_tournament_leader',{
+      p_tournament_id:id,
+      p_new_owner_id:newOwnerId
+    });
+    if(error)throw error;
+    await load();
+  }catch(e){
+    console.error('Could not transfer tournament leader',e);
+    alert('Kunne ikke overføre lederrollen: '+(e.message||e));
+  }finally{
+    button.textContent=old;
+    button.disabled=tournament?.owner_id!==me||!$('leaderTransferSelect')?.value;
+  }
+}
+
+function renderPage(){
+  const t=tournament;
+  if(!t)return;
+  const participants=getParticipants();
+  $('tName').textContent=t.name;
+  $('tMeta').textContent=tournamentMeta(t);
+  $('tStatus').textContent=statusText(t.status);
+  $('participantTitle').textContent=`Påmeldte (${participants.length})`;
+
+  const ownerJoined=participants.some(x=>x.user_id===t.owner_id);
+  const rows=[
+    {user_id:t.owner_id,role:'owner',playing:ownerJoined},
+    ...participants.filter(x=>x.user_id!==t.owner_id).map(x=>({...x,playing:true}))
+  ];
+  $('participantList').innerHTML=rows.map(x=>`<div class="player-row"><div class="player-main"><div class="avatar">${esc((names[x.user_id]||'?')[0].toUpperCase())}</div><div><div class="player-name ${x.role==='owner'?'role-admin':'role-participant'}" data-user-id="${esc(x.user_id)}">${esc(names[x.user_id]||'Spiller')}</div><div class="status">${x.role==='owner'?(x.playing?'Turneringsleder • Påmeldt':'Turneringsleder • Ikke påmeldt'):'Deltaker'}</div></div></div></div>`).join('');
+
+  const joined=members.some(x=>x.role==='participant'&&x.user_id===me);
+  const owner=t.owner_id===me;
+  const open=t.registration_open&&t.status==='registration';
+  const active=!['finished','cancelled'].includes(t.status);
+  $('joinBtn').classList.toggle('hidden',!open||joined);
+  $('leaveBtn').classList.toggle('hidden',!open||!joined);
+  $('ownerActions').classList.toggle('hidden',!owner||!active);
+  renderLeaderTransfer();
+  $('closeRegistrationBtn').classList.toggle('hidden',!open);
+  $('groupSetup').classList.toggle('hidden',!(owner&&t.status==='groups_setup'));
+  window.DartArenaGroupResultsLayout?.sync(t);
+
+  if(t.status==='cancelled')$('tInfo').textContent='Turneringen er avbrutt av turneringsleder.';
+  else if(open)$('tInfo').textContent='Spillere og turneringsleder kan melde seg på og av frem til påmeldingen stenges.';
+  else if(t.status==='groups_setup')$('tInfo').textContent='Påmeldingen er stengt. Turneringsleder velger spill og setter opp puljene.';
+  else if(t.status==='cup_setup')$('tInfo').textContent='Påmeldingen er stengt. Turneringsleder velger spill og setter opp cupen.';
+  else if(t.status==='groups')$('tInfo').textContent='Puljespillet er i gang. Tabeller og kamper oppdateres live.';
+  else $('tInfo').textContent='Påmeldingen er stengt.';
+
+  ensureTournamentGameSelector(owner);
+  if(owner&&t.status==='groups_setup')renderSetup();
+}
+
+function syncTournamentGameUi(){
+  const groupChicago=tournamentIsChicago();
+  const cupChicago=tournamentCupIsChicago();
+  const bestField=$('groupBestOf')?.closest('label');
+  if(bestField)bestField.classList.toggle('hidden',groupChicago);
+
+  const groupHelp=document.getElementById('tournamentGameHelp');
+  if(groupHelp)groupHelp.textContent=groupChicago
+    ?'301 DIDO • Cricket • 501 SIDO • først til 2 games'
+    :'X01 • velg Best av legs for puljekampene';
+
+  const cupHelp=document.getElementById('tournamentCupGameHelp');
+  if(cupHelp)cupHelp.textContent=cupChicago
+    ?'Chicago Style i cup • fast først til 2 games'
+    :`${tournamentCupGameLabel()} • Best of velges separat per cuprunde`;
+
+  const groupHelpText=$('groupLobby')?.querySelector('.muted.compact');
+  if(groupHelpText)groupHelpText.textContent=groupChicago
+    ?'Trykk på en kamp for kamprom, tilskuervisning eller statistikk. Rangering: kampseire → game-differanse → vunne games → innbyrdes.'
+    :'Trykk på en kamp for kamprom, tilskuervisning eller statistikk. Rangering: kampseire → leg-differanse → vunne legs → innbyrdes.';
+}
+
+function gameOptions(){
+  return '<option value="170">170</option><option value="301">301</option><option value="501">501</option><option value="1001">1001</option><option value="chicago">Chicago Style</option>';
+}
+
+function setFormatSelectValue(select,game,variant){
+  if(!select)return;
+  select.value=String(variant||'x01').toLowerCase()==='chicago'?'chicago':String(validTournamentGame(game)?Number(game):501);
+}
+
+function ensureFormatField({id,selectId,helpId,label,anchor,game,variant,onchange}){
+  if(!anchor)return null;
+  let field=document.getElementById(id);
+  if(!field){
+    field=document.createElement('label');
+    field.id=id;
+    field.className='field';
+    field.innerHTML=`<span>${label}</span><select id="${selectId}">${gameOptions()}</select><small id="${helpId}" style="display:block;margin-top:7px;letter-spacing:0;text-transform:none;color:var(--muted)"></small>`;
+    anchor.insertAdjacentElement('beforebegin',field);
+    field.querySelector('select').onchange=onchange;
+  }else if(field.nextElementSibling!==anchor){
+    anchor.insertAdjacentElement('beforebegin',field);
+  }
+  const select=field.querySelector('select');
+  setFormatSelectValue(select,game,variant);
+  return field;
+}
+
+function ensureTournamentGameSelector(owner){
+  const groupField=document.getElementById('tournamentGameField');
+  const cupField=document.getElementById('tournamentCupGameField');
+  const setupStatus=tournament?.status==='groups_setup'||tournament?.status==='cup_setup';
+  if(!owner||!setupStatus){
+    groupField?.remove();
+    cupField?.remove();
+    syncTournamentGameUi();
+    return;
+  }
+
+  if(tournament.status==='groups_setup'&&tournament.tournament_type==='groups_cup'){
+    const anchor=$('groupCount')?.closest('label');
+    if(!anchor)return;
+    ensureFormatField({
+      id:'tournamentCupGameField',selectId:'tournamentCupGame',helpId:'tournamentCupGameHelp',
+      label:'Cupspill',anchor,game:tournament.cup_game??501,variant:tournament.cup_game_variant??'x01',
+      onchange:event=>saveTournamentFormat(event.currentTarget,'cup')
+    });
+    ensureFormatField({
+      id:'tournamentGameField',selectId:'tournamentGame',helpId:'tournamentGameHelp',
+      label:'Puljespill',anchor:document.getElementById('tournamentCupGameField')||anchor,
+      game:tournament.game,variant:tournament.game_variant,
+      onchange:event=>saveTournamentFormat(event.currentTarget,'group')
+    });
+  }else{
+    groupField?.remove();
+    const anchor=$('buildCupBtn');
+    if(!anchor)return;
+    ensureFormatField({
+      id:'tournamentCupGameField',selectId:'tournamentCupGame',helpId:'tournamentCupGameHelp',
+      label:'Cupspill',anchor,game:tournament.cup_game??tournament.game,variant:tournament.cup_game_variant??tournament.game_variant,
+      onchange:event=>saveTournamentFormat(event.currentTarget,'cup')
+    });
+  }
+  syncTournamentGameUi();
+}
+
+async function saveTournamentFormat(select,scope){
+  if(!tournament||tournament.owner_id!==me||!select)return;
+  const chicago=select.value==='chicago';
+  const game=chicago?501:Number(select.value);
+  const gameVariant=chicago?'chicago':'x01';
+  if(!chicago&&!validTournamentGame(game))return;
+
+  const isCup=scope==='cup';
+  const previousGame=isCup?Number(tournament.cup_game??tournament.game)||501:Number(tournament.game)||501;
+  const previousVariant=isCup?String((tournament.cup_game_variant??tournament.game_variant) || 'x01'):String(tournament.game_variant||'x01');
+  const update=isCup
+    ?{cup_game:game,cup_game_variant:gameVariant,updated_at:new Date().toISOString()}
+    :{game,game_variant:gameVariant,updated_at:new Date().toISOString()};
+
+  // Ren cup keeps legacy game fields aligned as well.
+  if(isCup&&tournament.tournament_type==='cup'){
+    update.game=game;
+    update.game_variant=gameVariant;
+  }
+
+  select.disabled=true;
+  try{
+    const {error}=await db.from('tournaments')
+      .update(update)
+      .eq('id',id)
+      .eq('owner_id',me)
+      .eq('status',tournament.status);
+    if(error)throw error;
+
+    if(isCup){
+      tournament.cup_game=game;
+      tournament.cup_game_variant=gameVariant;
+      if(tournament.tournament_type==='cup'){
+        tournament.game=game;
+        tournament.game_variant=gameVariant;
+      }
+    }else{
+      tournament.game=game;
+      tournament.game_variant=gameVariant;
+      drawnGroups=null;
+    }
+
+    $('tMeta').textContent=tournamentMeta(tournament);
+    syncTournamentGameUi();
+    if(tournament.status==='groups_setup')renderSetup();
+  }catch(error){
+    console.error('Tournament game update failed',error);
+    setFormatSelectValue(select,previousGame,previousVariant);
+    syncTournamentGameUi();
+    alert('Kunne ikke lagre spillvalg: '+(error.message||error));
+  }finally{
+    select.disabled=false;
+  }
+}
+
+async function saveTournamentGame(select){
+  return saveTournamentFormat(select,'group');
+}
+
+function renderSetup(){
+  // Only actual competitors determine group count and qualification capacity.
+  const n=getParticipants().length;
+  const g=$('groupCount');
+  ensureTournamentGameSelector(tournament?.owner_id===me);
+  if(Number(g.dataset.playerCount||0)!==n){
+    g.dataset.playerCount=String(n);
+    g.replaceChildren();
+  }
+  if(!g.options.length){
+    const opts=[];
+    for(let x=1;x<=Math.min(n,16);x++)opts.push(`<option value="${x}">${x} ${x===1?'pulje':'puljer'}</option>`);
+    g.innerHTML=opts.join('')||'<option value="1">1 pulje</option>';
+  }
+  syncTournamentGameUi();
+  const gc=Number(g.value||1);
+  const a=$('advanceCount');
+  const old=a.value;
+  const maxPer=Math.max(1,Math.ceil(n/gc));
+  let adv='<option value="all">Alle videre</option>';
+  for(let x=1;x<=maxPer;x++)adv+=`<option value="${x}">Topp ${x} fra hver pulje</option>`;
+  a.innerHTML=adv;
+  if([...a.options].some(o=>o.value===old))a.value=old;
+  $('drawState').textContent=drawnGroups?'Trekkingen er klar':'Ikke trukket';
+  $('drawGroupsBtn').classList.toggle('hidden',!!drawnGroups);
+  $('redrawGroupsBtn').classList.toggle('hidden',!drawnGroups);
+  $('startGroupsBtn').classList.toggle('hidden',!drawnGroups);
+  $('startGroupsBtn').textContent='Start puljespill';
+  if(!drawnGroups)$('groupPreview').innerHTML='<p class="muted">Puljene vises her etter trekning.</p>';
+  else renderGroups();
+}
+
+function shuffled3(arr){
+  let out=[...arr];
+  for(let r=0;r<3;r++){
+    for(let i=out.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [out[i],out[j]]=[out[j],out[i]];
+    }
+  }
+  return out;
+}
+
+function drawGroups(){
+  // AI is placed after the human draw; it must not move anyone between groups.
+  const players=shuffled3(getParticipants());
+  const count=Number($('groupCount').value);
+  drawnGroups=Array.from({length:count},()=>[]);
+  players.forEach((p,i)=>drawnGroups[i%count].push(p));
+  if(window.DartArenaSelectedAIRival)drawnGroups[0]?.push({user_id:AI_RIVAL_ID,ai_rival:true});
+  renderSetup();
+}
+
+function renderGroups(){
+  $('groupPreview').innerHTML=drawnGroups.map((group,i)=>`<div class="player-row" style="display:block"><div class="player-name" style="color:#00eaf4;margin-bottom:8px">Pulje ${i+1}</div>${group.map((p,j)=>`<div class="status" style="padding:5px 0;color:var(--text)">${p.ai_rival?'Trening: ':j+1+'. '}<span class="da-role-player" data-user-id="${esc(p.user_id)}">${esc(p.ai_rival?('AI Rival – '+(window.DartArenaSelectedAIRival?.name||'Spiller')+' (teller ikke)'):(names[p.user_id]||'Spiller'))}</span></div>`).join('')}</div>`).join('');
+  window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
+}
+
+function roundRobin(players){
+  let a=players.map(p=>p.user_id);
+  if(a.length%2)a.push(null);
+  const rounds=[];
+  for(let r=0;r<a.length-1;r++){
+    const games=[];
+    for(let i=0;i<a.length/2;i++){
+      const p1=a[i],p2=a[a.length-1-i];
+      if(p1&&p2)games.push([p1,p2]);
+    }
+    rounds.push(games);
+    a=[a[0],a[a.length-1],...a.slice(1,-1)];
+  }
+  return rounds;
+}
+
+function standings(players,matches){
+  // AI Rival fixtures are optional training, never official group results.
+  const humans=players.filter(p=>p.user_id!==AI_RIVAL_ID&&!p.is_ai_rival);
+  const official=matches.filter(m=>!m.is_ai_rival&&m.player1_id!==AI_RIVAL_ID&&m.player2_id!==AI_RIVAL_ID);
+  const s=Object.fromEntries(humans.map(p=>[p.user_id,{id:p.user_id,k:0,w:0,lf:0,la:0,d:0}]));
+  official.filter(m=>['finished','wo'].includes(m.status)).forEach(m=>{
+    if(!s[m.player1_id]||!s[m.player2_id])return;
+    s[m.player1_id].k++;s[m.player2_id].k++;
+    const a=Number(m.player1_legs||0),b=Number(m.player2_legs||0);
+    s[m.player1_id].lf+=a;s[m.player1_id].la+=b;
+    s[m.player2_id].lf+=b;s[m.player2_id].la+=a;
+    if(m.winner_id&&s[m.winner_id])s[m.winner_id].w++;
+  });
+  Object.values(s).forEach(x=>x.d=x.lf-x.la);
+  return Object.values(s).sort((a,b)=>b.w-a.w||b.d-a.d||b.lf-a.lf||headToHead(a.id,b.id,official)||String(names[a.id]||'').localeCompare(String(names[b.id]||'')));
+}
+
+function headToHead(a,b,matches){
+  const m=matches.find(x=>['finished','wo'].includes(x.status)&&((x.player1_id===a&&x.player2_id===b)||(x.player1_id===b&&x.player2_id===a)));
+  if(!m?.winner_id)return 0;
+  return m.winner_id===a?-1:m.winner_id===b?1:0;
+}
+
+async function groupMatchAverages(matches){
+  if(tournamentIsChicago())return new Map();
+  const completed=(matches||[]).filter(m=>m.status==='finished'&&!m.is_wo&&m.live_match_id);
+  const liveIds=[...new Set(completed.map(m=>m.live_match_id).filter(Boolean))];
+  if(!liveIds.length)return new Map();
+  let visits;
+  try{
+    const fetchVisits=window.DartArenaTournamentStatsFetch?.fetchAllVisits;
+    if(typeof fetchVisits!=='function')throw Error('Group averages pagination unavailable');
+    visits=await fetchVisits(db,'match_throws',liveIds,'match_id,player_id,score,is_checkout,darts_used');
+  }catch(error){console.warn('Could not load complete group match averages',error);return new Map()}
+  const tournamentByLive=new Map(completed.map(m=>[m.live_match_id,m]));
+  const totals=new Map();
+  for(const visit of visits||[]){
+    const tm=tournamentByLive.get(visit.match_id);
+    if(!tm||![tm.player1_id,tm.player2_id].includes(visit.player_id))continue;
+    const key=`${tm.id}:${visit.player_id}`;
+    const row=totals.get(key)||{score:0,darts:0};
+    row.score+=Number(visit.score||0);
+    row.darts+=visit.is_checkout?Math.max(1,Number(visit.darts_used||3)):3;
+    totals.set(key,row);
+  }
+  const out=new Map();
+  for(const tm of completed){
+    for(const playerId of [tm.player1_id,tm.player2_id].filter(Boolean)){
+      const row=totals.get(`${tm.id}:${playerId}`);
+      if(row?.darts)out.set(`${tm.id}:${playerId}`,row.score/row.darts*3);
+    }
+  }
+  return out;
+}
+
+async function loadGroupLobby(){
+  const [{data:groups,error:ge},{data:players,error:pe},{data:matches,error:me2}]=await Promise.all([
+    db.from('tournament_groups').select('*').eq('tournament_id',id).order('group_no'),
+    db.from('tournament_group_players').select('*').eq('tournament_id',id).order('seed_no'),
+    db.from('tournament_matches').select('*').eq('tournament_id',id).eq('stage','group').order('round_no').order('match_no')
+  ]);
+  if(ge||pe||me2){console.error(ge||pe||me2);return;}
+  const {data:aiFixtures,error:aiError}=await db.from('tournament_ai_group_matches').select('*').eq('tournament_id',id).order('round_no').order('match_no');
+  if(aiError){console.warn('AI Rival fixtures unavailable',aiError);return;}
+  if(aiFixtures?.length){
+    const {data:aiConfig,error:aiConfigError}=await db.from('tournament_ai_rivals').select('model_player_id,group_id').eq('tournament_id',id).maybeSingle();
+    if(aiConfigError||!aiConfig)return;
+    const {data:profile}=await db.from('profiles').select('username').eq('id',aiConfig.model_player_id).maybeSingle();
+    names[AI_RIVAL_ID]='AI Rival – '+(profile?.username||'Spiller');
+    // Do not register AI as a ranked group player. Fixtures still display below.
+    for(const f of aiFixtures){
+      matches.push({id:f.id,tournament_id:id,stage:'group',group_id:f.group_id,round_no:f.round_no,match_no:f.match_no,
+        player1_id:f.ai_as_player1?AI_RIVAL_ID:f.human_id,player2_id:f.ai_as_player1?f.human_id:AI_RIVAL_ID,
+        player1_legs:f.ai_as_player1?f.ai_legs:f.human_legs,player2_legs:f.ai_as_player1?f.human_legs:f.ai_legs,
+        winner_id:f.status==='finished'?(f.winner_is_ai?AI_RIVAL_ID:f.human_id):null,
+        status:f.status,is_ai_rival:true,model_player_id:aiConfig.model_player_id,best_of:f.best_of});
+    }
+  }
+  const liveIds=[...new Set(matches.filter(m=>m.status==='live'&&m.live_match_id).map(m=>m.live_match_id))];
+  if(liveIds.length){
+    const {data:liveRows,error:liveError}=await db.from('matches')
+      .select('id,player1_legs,player2_legs')
+      .in('id',liveIds);
+    if(liveError)console.warn('Could not load live tournament scores',liveError);
+    else{
+      const liveById=new Map((liveRows||[]).map(row=>[row.id,row]));
+      matches.forEach(match=>{
+        const live=liveById.get(match.live_match_id);
+        if(live){
+          match._live_player1_legs=Number(live.player1_legs||0);
+          match._live_player2_legs=Number(live.player2_legs||0);
+        }
+      });
+    }
+  }
+  const userIds=[...new Set(players.map(p=>p.user_id))];
+  const missing=userIds.filter(uid=>!names[uid]);
+  if(missing.length){
+    const {data:p}=await db.from('profiles').select('id,username').in('id',missing);
+    Object.assign(names,Object.fromEntries((p||[]).map(x=>[x.id,x.username])));
+  }
+  const groupAvgs=await groupMatchAverages(matches);
+  for(const match of matches){
+    match._player1_avg=groupAvgs.get(`${match.id}:${match.player1_id}`)??null;
+    match._player2_avg=groupAvgs.get(`${match.id}:${match.player2_id}`)??null;
+  }
+  const officialMatches=matches.filter(m=>!m.is_ai_rival);
+  const trainingMatches=matches.filter(m=>m.is_ai_rival);
+  const done=officialMatches.filter(m=>['finished','wo'].includes(m.status)).length;
+  const archive=tournament?.status==='finished';
+  const readonly=tournament?.status!=='groups';
+  $('groupLobby')?.classList.toggle('group-archive-full',readonly);
+  const groupLabel=$('groupLobby')?.querySelector('.heading small');
+  if(groupLabel)groupLabel.textContent=readonly?'PULJERESULTATER':'LIVE';
+  const groupHeading=$('groupLobby')?.querySelector('.heading h2');
+  if(groupHeading)groupHeading.textContent=readonly?'Endelig puljestilling':'Puljespill';
+  matches.sort((a,b)=>Number(a.round_no)-Number(b.round_no)||Number(a.match_no)-Number(b.match_no));
+  $('groupProgress').textContent=readonly?`${officialMatches.length} puljekamper`:`${done} / ${officialMatches.length} puljekamper ferdig`;
+  if(trainingMatches.length)$('groupProgress').textContent+=' · '+trainingMatches.length+' AI-treningskamper';
+  const collapseArchivedGroups=readonly;
+  $('liveGroups').innerHTML=groups.map(g=>{
+    const gp=players.filter(p=>p.group_id===g.id&&!p.is_ai_rival&&p.user_id!==AI_RIVAL_ID);
+    const gm=matches.filter(m=>m.group_id===g.id&&!m.is_ai_rival);
+    const ai=matches.filter(m=>m.group_id===g.id&&m.is_ai_rival);
+    const table=standings(gp,gm);
+    const qualify=g.advance_mode==='all'?table.length:Number(g.advance_count||0);
+    const rounds=[...new Set(gm.map(m=>m.round_no))];
+    const roundHtml=rounds.map(r=>`<div class="round-block"><div class="round-title">Runde ${r}</div>${gm.filter(m=>m.round_no===r).map(matchHtml).join('')}</div>`).join('');
+    const trainingHtml=ai.length?`<details class="group-matches-details ai-training-matches" ${collapseArchivedGroups?'':'open'}><summary><span>AI-TRENINGSKAMPER</span><span class="group-match-summary-meta">${ai.length} kamper <span class="group-match-chevron" aria-hidden="true">⌄</span></span></summary><p class="muted compact" style="margin:10px 0">Resultatene teller ikke i puljetabellen og påvirker ikke cup eller seeding.</p><div class="group-rounds">${ai.map(matchHtml).join('')}</div></details>`:'';
+    return `<div class="group-card"><div class="heading"><div><small>PULJE ${g.group_no}</small><h2>${gp.length} spillere</h2></div><div class="status">${tournamentIsChicago()? 'Chicago Style' : `${Number(tournament?.game)||501} • Best av ${g.best_of}`}</div></div><div class="group-standings-scroll" role="region" tabindex="0" aria-label="Pulje ${g.group_no} – tabell"><table class="standings"><thead><tr><th>#</th><th>Spiller</th><th title="Kamper spilt">K</th><th title="Seire">V</th><th title="Tap">T</th><th title="Seiersprosent">V%</th><th>${tournamentIsChicago()?'Games':'Legs'}</th><th title="Differanse">+/−</th></tr></thead><tbody>${table.map((x,i)=>`<tr class="${i<qualify?'qualify':''}"><td>${i+1}</td><td><span class="da-role-player" data-user-id="${esc(x.id)}">${esc(names[x.id]||'Spiller')}</span></td><td>${x.k}</td><td>${x.w}</td><td>${x.k-x.w}</td><td>${x.k?Math.round(x.w/x.k*100):0}%</td><td>${x.lf}–${x.la}</td><td>${x.d>0?'+':''}${x.d}</td></tr>`).join('')}</tbody></table></div><details class="group-matches-details" ${collapseArchivedGroups?'':'open'}><summary><span>Puljekamper</span><span class="group-match-summary-meta">${gm.length} kamper <span class="group-match-chevron" aria-hidden="true">⌄</span></span></summary><div class="group-rounds">${roundHtml}</div></details>${trainingHtml}</div>`;
+  }).join('');
+  window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
+  if(collapseArchivedGroups){
+    const details=[...$('liveGroups').querySelectorAll('.group-matches-details')];
+    details.forEach(detail=>{detail.open=false;detail.removeAttribute('open')});
+    details.forEach(detail=>detail.addEventListener('toggle',()=>{
+      if(!detail.open)return;
+      details.forEach(other=>{if(other!==detail){other.open=false;other.removeAttribute('open')}});
+    }));
+  }
+}
+
+function matchHtml(m){
+  const playerLabel=uid=>'<span class="da-role-player" data-user-id="'+esc(uid||'')+'">'+esc(names[uid]||'Spiller')+'</span>';
+  const p1=m.player1_id===AI_RIVAL_ID?'<span style="color:#00eaf4">'+esc(names[AI_RIVAL_ID]||'AI Rival')+'</span>':playerLabel(m.player1_id);
+  const p2=m.player2_id===AI_RIVAL_ID?'<span style="color:#00eaf4">'+esc(names[AI_RIVAL_ID]||'AI Rival')+'</span>':playerLabel(m.player2_id);
+  const done=['finished','wo'].includes(m.status);
+  const live=m.status==='live';
+  const score=live
+    ?`${Number(m._live_player1_legs??m.player1_legs??0)}–${Number(m._live_player2_legs??m.player2_legs??0)}`
+    :done
+      ?`${Number(m.player1_legs||0)}–${Number(m.player2_legs||0)}`
+      :'VS';
+  const humanId=m.is_ai_rival?(m.player1_id===AI_RIVAL_ID?m.player2_id:m.player1_id):null;
+  const canStartAI=m.is_ai_rival&&m.status==='pending'&&humanId===me&&tournament?.status==='groups';
+  const state=m.is_ai_rival?(done?'AI • Ferdig':canStartAI?'Klar til AI-kamp':'Venter på spiller'):live?'LIVE':m.status==='finished'?'Ferdig':m.status==='wo'?'WO':'Klar';
+  const avg=v=>Number.isFinite(Number(v))&&Number(v)>0?`<span class="group-match-avg">${Number(v).toFixed(1).replace('.',',')} AVG</span>`:'';
+  const p1Winner=done&&m.winner_id===m.player1_id;
+  const p2Winner=done&&m.winner_id===m.player2_id;
+  const archiveResult=tournament?.status==='finished'&&done;
+  const middle=archiveResult?`<span class="group-match-result">${score}</span>`:'<span class="muted">vs</span>';
+  return `<div class="match-row ${live?'live-match':''} ${canStartAI?'ai-rival-ready':''}" ${m.is_ai_rival?'data-ai-match="'+esc(m.id)+'" data-ai-model="'+esc(m.model_player_id)+'" data-ai-best-of="'+Number(m.best_of)+'" data-ai-status="'+esc(m.status)+'" data-ai-human="'+esc(humanId)+'"':'data-match="'+esc(m.id)+'"'}>
+    <div class="match-players"><span class="group-match-player ${p1Winner?'winner':''}"><strong>${p1}</strong>${avg(m._player1_avg)}</span>${middle}<span class="group-match-player ${p2Winner?'winner':''}"><strong>${p2}</strong>${avg(m._player2_avg)}</span></div>
+    <div class="match-meta"><div class="match-score">${score}</div>${canStartAI?'<button type="button" class="primary ai-rival-start-btn" aria-label="Start AI-kamp mot '+esc(names[AI_RIVAL_ID]||'AI Rival')+'">Start AI-kamp</button>':''}<div class="match-state">${state}</div></div>
+  </div>`;
+}
+
+async function startGroups(){
+  if(!drawnGroups||tournament?.owner_id!==me)return;
+  const dialog=await getDialog();
+  const ok=dialog
+    ?await dialog.confirm('Starte puljespillet med denne trekningen?\n\nEtter start er puljene låst.',{title:'Start puljespill',confirmText:'Start puljespill'})
+    :confirm('Starte puljespillet med denne trekningen? Etter start er puljene låst.');
+  if(!ok)return;
+  const btn=$('startGroupsBtn');
+  btn.disabled=true;
+  btn.textContent='Starter…';
+  try{
+    const selection=document.getElementById('tournamentGame')?.value||(tournamentIsChicago()?'chicago':String(tournament.game||501));
+    const chicago=selection==='chicago';
+    const game=chicago?501:Number(selection);
+    const gameVariant=chicago?'chicago':'x01';
+    if(!chicago&&!validTournamentGame(game))throw new Error('Velg et gyldig puljespill.');
+    if(drawnGroups?.some(group=>group.some(p=>p.ai_rival))&&(chicago||![170,501,1001].includes(game)))throw new Error('AI Rival i puljer støtter 170, 501 og 1001. 301 DI/DO krever eget turneringsformat og er foreløpig bare tilgjengelig som AI-kamp utenfor turnering.');
+
+    const cupSelection=document.getElementById('tournamentCupGame')?.value||(tournamentCupIsChicago()?'chicago':String(tournament.cup_game||501));
+    const cupChicago=cupSelection==='chicago';
+    const cupGame=cupChicago?501:Number(cupSelection);
+    const cupGameVariant=cupChicago?'chicago':'x01';
+    if(!cupChicago&&!validTournamentGame(cupGame))throw new Error('Velg et gyldig cupspill.');
+
+    const bestOf=chicago?3:Number($('groupBestOf').value);
+    const advance=$('advanceCount').value;
+    const advanceMode=advance==='all'?'all':'top';
+    const advanceCount=advance==='all'?null:Number(advance);
+    const {data:existing,error:existingErr}=await db.from('tournament_groups').select('id').eq('tournament_id',id).limit(1);
+    if(existingErr)throw existingErr;
+    if(existing?.length)throw new Error('Puljeoppsettet er allerede lagret for denne turneringen.');
+
+    const groupRows=drawnGroups.map((_,i)=>({tournament_id:id,group_no:i+1,best_of:bestOf,advance_mode:advanceMode,advance_count:advanceCount}));
+    const {data:savedGroups,error:gErr}=await db.from('tournament_groups').insert(groupRows).select('id,group_no');
+    if(gErr)throw gErr;
+    const byNo=Object.fromEntries(savedGroups.map(g=>[g.group_no,g]));
+
+    const playerRows=[];
+    drawnGroups.forEach((group,gi)=>group.forEach((p,pi)=>{if(!p.ai_rival)playerRows.push({tournament_id:id,group_id:byNo[gi+1].id,user_id:p.user_id,seed_no:pi+1});}));
+    const {error:pErr}=await db.from('tournament_group_players').insert(playerRows);
+    if(pErr)throw pErr;
+
+    const matchRows=[];
+    const aiRows=[];
+    drawnGroups.forEach((group,gi)=>{
+      const humans=group.filter(p=>!p.ai_rival&&p.user_id!==AI_RIVAL_ID);
+      const officialRounds=roundRobin(humans);
+      let matchNo=1;
+      officialRounds.forEach((round,ri)=>round.forEach(([p1,p2])=>{
+        matchRows.push({
+          tournament_id:id,stage:'group',group_id:byNo[gi+1].id,
+          round_no:ri+1,match_no:matchNo++,player1_id:p1,player2_id:p2,
+          best_of:bestOf,status:'pending',is_wo:false
+        });
+      }));
+      // Optional training fixtures follow the official round-robin. They do not
+      // change official opponents, round numbering, group standings or cup seed.
+      if(group.some(p=>p.ai_rival)){
+        const trainingRound=officialRounds.length+1;
+        humans.forEach((p,i)=>aiRows.push({
+          tournament_id:id,group_id:byNo[gi+1].id,round_no:trainingRound,
+          match_no:matchNo++,human_id:p.user_id,ai_as_player1:i%2===1,
+          best_of:bestOf
+        }));
+      }
+    });
+    if(aiRows.length){
+      const {error:aiErr}=await db.from('tournament_ai_rivals').update({group_id:aiRows[0].group_id}).eq('tournament_id',id);
+      if(aiErr)throw aiErr;
+      const {error:fixturesErr}=await db.from('tournament_ai_group_matches').insert(aiRows);
+      if(fixturesErr)throw fixturesErr;
+    }
+    if(matchRows.length){
+      const {error:mErr}=await db.from('tournament_matches').insert(matchRows);
+      if(mErr)throw mErr;
+    }
+
+    const {error:tErr}=await db.from('tournaments')
+      .update({status:'groups',game,game_variant:gameVariant,cup_game:cupGame,cup_game_variant:cupGameVariant,updated_at:new Date().toISOString()})
+      .eq('id',id)
+      .eq('owner_id',me)
+      .eq('status','groups_setup');
+    if(tErr)throw tErr;
+    tournament.game=game;
+    tournament.game_variant=gameVariant;
+    tournament.cup_game=cupGame;
+    tournament.cup_game_variant=cupGameVariant;
+    drawnGroups=null;
+    await load();
+    alert(`Puljespillet er startet. ${matchRows.length+aiRows.length} kamper er satt opp.`);
+  }catch(e){
+    console.error(e);
+    alert('Kunne ikke starte puljespillet: '+(e.message||e));
+  }finally{
+    btn.disabled=false;
+    btn.textContent='Start puljespill';
+  }
+}
+
+async function join(){
+  const b=$('joinBtn'),old=b.textContent;
+  b.disabled=true;b.textContent='Melder på…';
+  try{
+    const {error}=await db.from('tournament_members').insert({tournament_id:id,user_id:me,role:'participant'});
+    if(error)throw error;
+    await load();
+  }catch(e){alert(e.message||e);}
+  finally{b.disabled=false;b.textContent=old;}
+}
+
+async function leave(){
+  const b=$('leaveBtn'),old=b.textContent;
+  b.disabled=true;b.textContent='Melder av…';
+  try{
+    const {error}=await db.from('tournament_members').delete().eq('tournament_id',id).eq('user_id',me).eq('role','participant');
+    if(error)throw error;
+    await load();
+  }catch(e){alert(e.message||e);}
+  finally{b.disabled=false;b.textContent=old;}
+}
+
+async function closeRegistration(){
+  const dialog=await getDialog();
+  const ok=dialog
+    ?await dialog.confirm('Stenge påmeldingen?\n\nSpillere kan ikke melde seg av etter dette.',{title:'Steng påmelding',tone:'warning',confirmText:'Steng påmelding'})
+    :confirm('Stenge påmeldingen? Spillere kan ikke melde seg av etter dette.');
+  if(!ok)return;
+  const b=$('closeRegistrationBtn'),old=b.textContent;
+  b.disabled=true;b.textContent='Stenger…';
+  try{
+    const nextStatus=tournament.tournament_type==='groups_cup'?'groups_setup':'cup_setup';
+    const {error}=await db.from('tournaments')
+      .update({registration_open:false,status:nextStatus,updated_at:new Date().toISOString()})
+      .eq('id',id)
+      .eq('owner_id',me);
+    if(error)throw error;
+    await load();
+  }catch(e){alert(e.message||e);}
+  finally{b.disabled=false;b.textContent=old;}
+}
+
+async function cancelTournament(){
+  if(!tournament||['finished','cancelled'].includes(tournament.status))return;
+  const dialog=await getDialog();
+  const text='Er du sikker på at du vil avbryte turneringen?\n\nTurneringen avsluttes og kan ikke fortsettes. Data slettes ikke.';
+  const ok=dialog
+    ?await dialog.confirm(text,{title:'Avbryt turnering',tone:'danger',confirmText:'Avbryt turnering'})
+    :confirm(text);
+  if(!ok)return;
+  const b=$('cancelTournamentBtn'),old=b.textContent;
+  b.disabled=true;b.textContent='Avbryter…';
+  try{
+    const {error}=await db.from('tournaments')
+      .update({status:'cancelled',registration_open:false,updated_at:new Date().toISOString()})
+      .eq('id',id)
+      .eq('owner_id',me);
+    if(error)throw error;
+    await load();
+  }catch(e){alert(e.message||e);}
+  finally{b.disabled=false;b.textContent=old;}
+}
+
+boot().catch(error=>{
+  console.error('Tournament boot failed',error);
+  showTournamentUnavailable('Turneringen kunne ikke lastes.');
+});
