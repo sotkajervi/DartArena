@@ -44,6 +44,7 @@ window.DartArenaTournamentRoomState=Object.freeze({
   client:()=>db,
   channel:()=>channel,
   stream:()=>stream,
+  setStream:next=>{stream=next||null;return stream},
   publisher:()=>sfu,
   ready:()=>({local:localReady,remote:remoteReady,connected:roomConnected}),
   isStarting:()=>starting
