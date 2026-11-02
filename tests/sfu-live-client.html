@@ -24,11 +24,13 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const auth=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
-let sfu,stream,canvas,tick,shutdownTimer,statsTimer,startedAt,received=0;
+let sfu,stream,canvas,tick,shutdownTimer,statsTimer,startedAt,received=0,channel=null,currentPub=null,subscribedRemote=null,authUser=null;
 const report={events:[],samples:[]};
 function log(label,detail){report.events.push({at:new Date().toISOString(),label,detail:String(detail||'').slice(0,160)});render()}
 function render(){ $('results').textContent=JSON.stringify(report,null,2) }
 function stop(){
+ if(channel){const old=channel;channel=null;auth.removeChannel(old).catch(()=>{});}
+ currentPub=null;subscribedRemote=null;
  clearInterval(tick);clearInterval(statsTimer);clearTimeout(shutdownTimer);
  try{sfu?.close()}catch{};sfu=null;
  try{stream?.getTracks().forEach(t=>t.stop())}catch{};stream=null;
@@ -59,7 +61,8 @@ async function start(){
   if(!Number.isInteger(seconds)||seconds<5||seconds>120)throw Error('Varighet må være 5–120 sekunder');
   if(!window.supabase||!window.DartArenaSecureSFU||!window.DARTARENA_SFU?.secureWorkerUrl)throw Error('Klientbibliotek mangler');
   const session=await auth.auth.getSession();
-  if(!session.data?.session?.access_token)throw Error('Ikke innlogget på denne origin; logg inn på DartArena her først');
+  if(!session.data?.session?.access_token)throw Error('Logg inn først');
+  authUser=session.data.session.user.id;
   // Browser-generated video: no user camera or microphone permission.
   canvas=document.createElement('canvas');canvas.width=320;canvas.height=180;
   const ctx=canvas.getContext('2d');let frame=0;
@@ -72,7 +75,27 @@ async function start(){
   const pub=await sfu.publish(stream);
   $('publication').value=JSON.stringify(pub);
   $('stop').disabled=false;$('subscribe').disabled=false;
+  currentPub=pub;
   log('published','Secure worker accepted authorized publication');
+  const topic='sfu-test-auto-'+id;
+  channel=auth.channel(topic,{config:{broadcast:{self:false}}});
+  channel.on('broadcast',{event:'publication'},({payload})=>{
+    if(!payload||payload.from===authUser||!payload.publication?.sessionId)return;
+    if(subscribedRemote===payload.publication.sessionId)return;
+    $('remote').value=JSON.stringify(payload.publication);
+    subscribedRemote=payload.publication.sessionId;
+    subscribe().catch(e=>log('subscribe-error',e.message));
+  });
+  channel.on('broadcast',{event:'request-publication'},()=>{
+    if(currentPub&&channel)channel.send({type:'broadcast',event:'publication',payload:{from:authUser,publication:currentPub}}).catch(e=>log('signal-error',e.message));
+  });
+  const status=await new Promise((resolve,reject)=>{
+    const timeout=setTimeout(()=>reject(Error('Supabase Realtime timeout')),8000);
+    channel.subscribe(s=>{if(s==='SUBSCRIBED'){clearTimeout(timeout);resolve(s)}else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'){clearTimeout(timeout);reject(Error('Realtime '+s))}});
+  });
+  log('signaling','Supabase channel '+status);
+  await channel.send({type:'broadcast',event:'publication',payload:{from:authUser,publication:pub}});
+  await channel.send({type:'broadcast',event:'request-publication',payload:{from:authUser}});
   statsTimer=setInterval(()=>stats().catch(e=>log('stats-error',e.message)),1000);
   shutdownTimer=setTimeout(stop,seconds*1000);
  }catch(e){log('error',e.message);stop()}
@@ -88,7 +111,7 @@ async function subscribe(){
    for(const track of (event.streams?.[0]?.getTracks()||[event.track]))if(track&&!current.getTracks().some(t=>t.id===track.id)){current.addTrack(track);received++}
    video.srcObject=current;video.play().catch(()=>{});
   });
-  log('subscribed','Received track events: '+received);
+  log('subscribed','Subscriber connected; received track events: '+received);
  }catch(e){log('subscribe-error',e.message)}
 }
 async function refreshAuth(){
