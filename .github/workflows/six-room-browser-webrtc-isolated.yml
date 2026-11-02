@@ -1,0 +1,37 @@
+name: Six-room WebRTC browser stress (isolated)
+on:
+  push:
+    branches:
+      - test/real-browser-webrtc-six-rooms-20261102
+permissions:
+  contents: read
+jobs:
+  six-rooms:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify synthetic browser test and SFU A/B syntax
+        run: |
+          node --check tests/real-browser-six-room-load.cjs
+          node --check tests/video-legacy-secure-ab.test.cjs
+      - name: Re-run DartArena real-client SFU protocol A/B (fake Worker)
+        run: node --test tests/video-legacy-secure-ab.test.cjs
+      - name: Install browser harness outside project without repo dependencies
+        run: |
+          mkdir -p /tmp/dartarena-browser-test
+          npm install --prefix /tmp/dartarena-browser-test --no-save --ignore-scripts playwright@1.56.1
+          if command -v google-chrome >/dev/null; then google-chrome --version; else
+            NODE_PATH=/tmp/dartarena-browser-test/node_modules npx --yes playwright@1.56.1 install --with-deps chromium
+          fi
+      - name: Run six independent RTC rooms / 12 actual Chromium tabs
+        env:
+          NODE_PATH: /tmp/dartarena-browser-test/node_modules
+          CI: 'true'
+        run: node tests/real-browser-six-room-load.cjs
+# Synthetic local RTC only. No app deploy, Supabase API calls, Cloudflare Worker calls or real test accounts.
