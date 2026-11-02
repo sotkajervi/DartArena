@@ -50,6 +50,9 @@
        if(typeof transferCapture!=='function'||!transferCapture()){
          throw Error('Kamerastrømmen kunne ikke overføres');
        }
+       // Keep the processor alive after the waiting-room engine releases media.
+       window.DartArenaTransferredMediaOwnership=
+         window.DartArenaTournamentMediaOwnership?.take?.()||null;
        // match.js is now safe to load: tournament engine is IIFE scoped.
        // The match page owns the new authenticated SFU session.
        await script('match-preferred-media.js?v=20261031-owner1');
