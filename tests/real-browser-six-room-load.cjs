@@ -105,6 +105,7 @@ async function main(){
       await Promise.all(pages.map(p=>p.waitForFunction(()=>window.info().scores>=1,null,{timeout:15000})));
       const states=await Promise.all(pages.map(p=>p.evaluate(()=>window.info())));
       const stats=await Promise.all(pages.map(p=>p.evaluate(()=>window.stats())));
+      console.log('BROWSER STATES',JSON.stringify(states));
       assert.ok(states.every(s=>s.connectionState==='connected'&&s.errors.length===0&&s.unexpectedPeers===0));
       assert.ok(stats.every(s=>s.videoBytes>0&&s.videoSent>0),'All twelve clients must exchange real video');
       const data={name,elapsedMs:Math.round(performance.now()-started),connected:states.length,
