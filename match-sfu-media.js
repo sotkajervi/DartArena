@@ -135,9 +135,18 @@
     lastError='';
     const video=el('remoteVideo');
     const placeholder=el('remotePlaceholder');
+    // In the opt-in same-page transition, retain the waiting-room image until
+    // a new video track is received. Do not overwrite it with an empty stream.
+    const seamless=new URLSearchParams(location.search).get('samePageDev')==='1';
+    const incomingStream=seamless?new MediaStream():null;
+    const activateIncoming=()=>{
+      if(!seamless||!video||video.srcObject===incomingStream)return;
+      if(!incomingStream.getVideoTracks().some(t=>t.readyState==='live'&&!t.muted))return;
+      video.srcObject=incomingStream;
+      video.play().catch(()=>{});
+    };
     if(video){
-      try{video.pause()}catch{}
-      video.srcObject=new MediaStream();
+      if(!seamless){try{video.pause()}catch{};video.srcObject=new MediaStream();}
       video.muted=true;
       video.playsInline=true;
       video.onplaying=()=>placeholder?.classList.add('hidden');
@@ -150,8 +159,8 @@
     try{
       await client.subscribe(pub,async event=>{
         if(!video)return;
-        let rs=video.srcObject;
-        if(!(rs instanceof MediaStream)){
+        let rs=seamless?incomingStream:video.srcObject;
+        if(!seamless&&!(rs instanceof MediaStream)){
           rs=new MediaStream();
           video.srcObject=rs;
         }
@@ -159,12 +168,14 @@
         for(const track of tracks){
           if(track&&!rs.getTracks().some(t=>t.id===track.id)){
             rs.addTrack(track);
+            activateIncoming();
             lastRemoteTrackAt=Date.now();
             note(`REMOTE ${track.kind} track`,{id:track.id,state:track.readyState,muted:track.muted});
           }
           if(track?.kind==='video'){
             track.onunmute=async()=>{
               lastRemoteTrackAt=Date.now();
+              activateIncoming();
               try{await video.play()}catch{}
               if(track.readyState==='live')placeholder?.classList.add('hidden');
             };
@@ -172,7 +183,7 @@
         }
         video.muted=true;
         video.playsInline=true;
-        await video.play().catch(()=>{});
+        if(!seamless||video.srcObject===incomingStream)await video.play().catch(()=>{});
         if(rs.getVideoTracks().some(t=>t.readyState==='live')){
           placeholder?.classList.add('hidden');
         }
