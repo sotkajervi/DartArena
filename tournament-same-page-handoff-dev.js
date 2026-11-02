@@ -45,9 +45,11 @@
        await host.enter();
        document.body.classList.add('match-page');
        document.body.classList.remove('da-prematch-active');
-       if(typeof transferCapture==='function')transferCapture();
-       else releaseWaitingRoom?.();
-       released=true;
+       // Stage the same local tracks while the waiting room remains connected.
+       // Only the match engine may claim this capture.
+       if(typeof transferCapture!=='function'||!transferCapture()){
+         throw Error('Kamerastrømmen kunne ikke overføres');
+       }
        // match.js is now safe to load: tournament engine is IIFE scoped.
        // The match page owns the new authenticated SFU session.
        await script('match-preferred-media.js?v=20261031-owner1');
@@ -93,14 +95,21 @@
          if([...document.scripts].some(el=>el.src&&new URL(el.src).pathname.endsWith('/'+path)))continue;
          await script(src);
        }
+       // Do not cut the waiting-room transport until both a new publication
+       // and a live subscribed opponent video are visible in the match session.
+       const deadline=Date.now()+15000;
+       while(!window.DartArenaMatchMedia?.readyForHandoff?.()){
+         if(Date.now()>deadline)throw Error('Kampvideo ble ikke klar før overgang');
+         await new Promise(resolve=>setTimeout(resolve,250));
+       }
+       releaseWaitingRoom?.();
+       released=true;
        return true;
      }catch(err){
        console.error('[same-page match handoff]',err);
-       if(!released){
-         entering=false;
-         window.DartArenaMatchSceneHost?.restore?.();
-         return false;
-       }
+       // Scoring may already have booted, so a clean navigation is safer
+       // than trying to resume the old room with two engines active.
+       if(!released)window.DartArenaCaptureHandoff?.discard?.();
        // After transport teardown, never revive the old SFU room.
        // Navigate only as a recovery path, not as a second active connection.
        const url=new URL('match.html',location.href);
