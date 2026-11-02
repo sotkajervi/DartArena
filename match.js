@@ -1,7 +1,8 @@
 const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK',db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY),$=id=>document.getElementById(id);
 // Share one authenticated client and one Realtime socket across match-room modules.
 window.DartArenaMatchDb=db;
-const matchId=new URLSearchParams(location.search).get('id');
+let matchId=(/\/tournament-match-room(?:\.html)?$/.test(location.pathname)&&new URLSearchParams(location.search).get('samePageDev')==='1')?null:new URLSearchParams(location.search).get('id');
+let matchBootStarted=false;
 let profile,m,other,names={},channel,stream=null,pc=null,remoteStream=null;
 let zoomCamSession=null,pictureSession=null;
 let localReady=false,remoteReady=false,leaving=false,generation=1,lastSignal='START',candidatePath='?';
@@ -11,7 +12,30 @@ const ICE={iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.googl
 const isOfferer=()=>profile?.id===m?.player1_id;
 function debug(extra=''){const e=$('webrtcDebug');if(!e)return;e.textContent=`VIDEO DEBUG • RT:${channel?'ON':'OFF'} | Local:${localReady?'YES':'NO'} | Remote:${remoteReady?'YES':'NO'} | Role:${isOfferer()?'OFFER':'ANSWER'} | Peer:${pc?.connectionState||'none'} | ICE:${pc?.iceConnectionState||'none'} | Path:${candidatePath} | Signal:${pc?.signalingState||'none'} | Gen:${generation} | Recovery:${recoveryState} | Last:${lastSignal}${extra?' | '+extra:''}`}
 function showRemote(text){const p=$('remotePlaceholder');if(p){p.textContent=text;p.classList.remove('hidden')}}function hideRemote(){$('remotePlaceholder')?.classList.add('hidden')}
-(async()=>{const{data:{session}}=await db.auth.getSession();if(!session||!matchId)return location.replace('./');({data:profile}=await db.from('profiles').select('*').eq('id',session.user.id).single());const{data,error}=await db.from('matches').select('*').eq('id',matchId).single();m=data;if(error||!m||![m.player1_id,m.player2_id].includes(profile.id))return location.replace('./');other=profile.id===m.player1_id?m.player2_id:m.player1_id;const{data:p}=await db.from('profiles').select('id,username').in('id',[m.player1_id,m.player2_id]);names=Object.fromEntries((p||[]).map(x=>[x.id,x.username]));$('matchName1').textContent=names[m.player1_id]||'Spiller 1';$('matchName2').textContent=names[m.player2_id]||'Spiller 2';$('localVideoName').textContent=names[profile.id]||'Spiller';$('remoteVideoName').textContent=names[other]||'Spiller';$('matchTitle').textContent=`${names[m.player1_id]||'Spiller 1'} vs ${names[m.player2_id]||'Spiller 2'}`;$('matchFormat').textContent=`${m.game} • BEST OF ${m.legs}`;render();setupChannel()})();
+async function bootMatchWithId(liveMatchId){
+ if(matchBootStarted)return;
+ if(!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(liveMatchId||''))throw Error('Invalid live match ID');
+ matchBootStarted=true;
+ matchId=liveMatchId;
+ try{
+ const{data:{session}}=await db.auth.getSession();if(!session||!matchId)return location.replace('./');({data:profile}=await db.from('profiles').select('*').eq('id',session.user.id).single());const{data,error}=await db.from('matches').select('*').eq('id',matchId).single();m=data;if(error||!m||![m.player1_id,m.player2_id].includes(profile.id))return location.replace('./');other=profile.id===m.player1_id?m.player2_id:m.player1_id;const{data:p}=await db.from('profiles').select('id,username').in('id',[m.player1_id,m.player2_id]);names=Object.fromEntries((p||[]).map(x=>[x.id,x.username]));$('matchName1').textContent=names[m.player1_id]||'Spiller 1';$('matchName2').textContent=names[m.player2_id]||'Spiller 2';$('localVideoName').textContent=names[profile.id]||'Spiller';$('remoteVideoName').textContent=names[other]||'Spiller';$('matchTitle').textContent=`${names[m.player1_id]||'Spiller 1'} vs ${names[m.player2_id]||'Spiller 2'}`;$('matchFormat').textContent=`${m.game} • BEST OF ${m.legs}`;render();setupChannel();
+ }catch(error){matchBootStarted=false;throw error;}
+}
+// Explicit read-only interface for migrating dependent scripts away from shared globals.
+window.DartArenaMatchEngineState=Object.freeze({
+  match:()=>m,
+  matchId:()=>matchId,
+  profile:()=>profile,
+  opponentId:()=>other,
+  client:()=>db,
+  channel:()=>channel,
+  stream:()=>stream,
+  peer:()=>pc,
+  ready:()=>({local:localReady,remote:remoteReady}),
+  isLeaving:()=>leaving
+});
+window.DartArenaBootLiveMatch=bootMatchWithId;
+if(matchId)bootMatchWithId(matchId).catch(error=>console.error('Live match boot failed',error));
 function syncZoomCamTurn(previous,next){
   if(!zoomCamSession||!profile||!next)return;
   const mine=next.status==='playing'&&next.turn_player_id===profile.id;
@@ -27,7 +51,7 @@ async function score(v){const raw=String(v??'').trim();if(!raw)return;const n=Nu
 $('matchScoreBtn').onclick=()=>score($('matchScoreInput').value);$('matchScoreInput').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();score(e.target.value)}};
 function setupChannel(){channel=db.channel('match-'+m.id,{config:{broadcast:{ack:true}}}).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${m.id}`},async p=>{const previous=m;m=p.new;syncZoomCamTurn(previous,m);render();if(m.status!=='playing')await setPlayersUnavailable()}).on('broadcast',{event:'ready'},async({payload})=>{if(payload.from!==other)return;remoteReady=true;lastSignal=`READY g${payload.generation||1}`;debug();if(isOfferer()&&recoveryState==='idle')await ensureOffer();else if(!isOfferer()&&!pc)armAnswerWatch()}).on('broadcast',{event:'signal'},async({payload})=>{if(payload.from!==other)return;remoteReady=true;await handleSignal(payload)}).on('broadcast',{event:'reset-request'},async({payload})=>{if(payload.from!==other||!isOfferer()||leaving)return;lastSignal=`RESET request ${payload.reason||''}`;debug();if(recoveryState!=='idle')return;await startOffererRecovery(payload.reason||'remote')}).subscribe(async s=>{lastSignal=`RT ${s}`;debug();if(s==='SUBSCRIBED'){await startCamera();startHeartbeat()}})}
 function startHeartbeat(){clearInterval(readyTimer);readyTimer=setInterval(()=>{if(!leaving&&localReady)send('ready',{generation});if(!isOfferer()&&localReady&&remoteReady&&!pc&&recoveryState==='idle')armAnswerWatch()},5000)}
-function armAnswerWatch(){if(isOfferer()||leaving||!localReady||!remoteReady||pc||answerWatchTimer||recoveryState!=='idle')return;answerWatchTimer=setTimeout(async()=>{answerWatchTimer=null;if(!pc&&recoveryState==='idle')await requestReset('answer-no-peer')},5000)}
+function armAnswerWatch(){if((/\/tournament-match-room(?:\.html)?$/.test(location.pathname)&&new URLSearchParams(location.search).get('samePageDev')==='1'))return;if(isOfferer()||leaving||!localReady||!remoteReady||pc||answerWatchTimer||recoveryState!=='idle')return;answerWatchTimer=setTimeout(async()=>{answerWatchTimer=null;if(!pc&&recoveryState==='idle')await requestReset('answer-no-peer')},5000)}
 function zoomCamNotice(message,failed=false){
   let note=$('zoomCamMatchStatus');
   if(!note){
@@ -53,8 +77,20 @@ async function startCamera(){
       video:{...(useZoom?{deviceId:{exact:config.deviceId}}:{}),width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},
       audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}
     };
-    let raw;
-    try{raw=await navigator.mediaDevices.getUserMedia(constraints)}
+    let raw=window.DartArenaCaptureHandoff?.claim()||null;
+    const reusedCapture=!!raw;
+    if(reusedCapture){
+      const ownership=window.DartArenaTransferredMediaOwnership||null;
+      window.DartArenaTransferredMediaOwnership=null;
+      zoomCamSession=ownership?.zoomSession||null;
+      pictureSession=ownership?.pictureSession||null;
+      if(zoomCamSession){
+        window.DartArenaX01ZoomSession=zoomCamSession;
+        if(m?.turn_player_id===profile?.id&&m?.status==='playing')zoomCamSession.resetToT20?.();
+        else zoomCamSession.pauseTracking?.();
+      }
+    }
+    try{if(!raw)raw=await navigator.mediaDevices.getUserMedia(constraints)}
     catch(error){
       if(!useZoom||!['NotFoundError','OverconstrainedError'].includes(error?.name))throw error;
       raw=await navigator.mediaDevices.getUserMedia({
@@ -62,7 +98,9 @@ async function startCamera(){
       });
     }
     stream=raw;
-    if(useZoom){
+    // Tournament video may already be Zoom-cam/picture processed. Never process
+    // the same transferred MediaStream a second time.
+    if(useZoom&&!reusedCapture){
       try{
         zoomCamSession=Z.create(raw,config);
         stream=zoomCamSession.stream;
@@ -78,7 +116,7 @@ async function startCamera(){
     }else if(Z?.loadConfig(localStorage)){
       zoomCamNotice('Zoom-cam er kalibrert, men ikke valgt. Aktiver den i Cam-test eller venterommet.');
     }
-    if(!zoomCamSession){
+    if(!zoomCamSession&&!reusedCapture){
       try{pictureSession=window.DartArenaCameraPicture?.createStream(raw)||null;
         if(pictureSession)stream=pictureSession.stream;
       }catch(error){console.warn('Bildejustering ikke tilgjengelig, sender originalvideo',error)}
@@ -102,7 +140,7 @@ function createPeer(){if(pc||!stream?.active)return pc;clearTimeout(answerWatchT
 function markConnected(p,myGen){if(p!==pc)return;clearTimeout(handshakeTimer);handshakeTimer=null;clearTimeout(disconnectTimer);disconnectTimer=null;recoveryState='idle';recoveryStartedAt=0;lastSignal='CONNECTED';debug();startStatsWatch(p,myGen)}
 function armDisconnectGrace(p,reason){if(p!==pc||disconnectTimer)return;disconnectTimer=setTimeout(()=>{disconnectTimer=null;if(p===pc&&(p.connectionState==='disconnected'||p.iceConnectionState==='disconnected'))hardFailure(p,reason)},8000)}
 function hardFailure(p,reason){if(p!==pc)return;clearTimeout(disconnectTimer);disconnectTimer=null;lastSignal=`HARD FAIL ${reason}`;debug();if(isOfferer())startOffererRecovery(reason);else requestReset(reason)}
-async function ensureOffer(){if(leaving||!isOfferer()||!localReady||!remoteReady||recoveryState!=='idle')return;if(pc)return;const p=createPeer();if(!p)return;await sendOffer(p)}
+async function ensureOffer(){if((/\/tournament-match-room(?:\.html)?$/.test(location.pathname)&&new URLSearchParams(location.search).get('samePageDev')==='1'))return;if(leaving||!isOfferer()||!localReady||!remoteReady||recoveryState!=='idle')return;if(pc)return;const p=createPeer();if(!p)return;await sendOffer(p)}
 async function sendOffer(p){try{recoveryState='handshake';const offer=await p.createOffer();if(p!==pc)return;await p.setLocalDescription(offer);lastSignal=`OFFER sent g${generation}`;debug();await send('signal',{description:p.localDescription.toJSON?p.localDescription.toJSON():p.localDescription,generation});clearTimeout(handshakeTimer);handshakeTimer=setTimeout(()=>{if(p===pc&&p.connectionState!=='connected'){lastSignal='HANDSHAKE timeout';debug();recoveryState='idle';if(isOfferer())startOffererRecovery('handshake-timeout');else requestReset('handshake-timeout')}},15000)}catch(e){lastSignal=`OFFER error ${e?.name||''}`;debug();recoveryState='idle'}}
 async function startOffererRecovery(reason){if(leaving||!isOfferer()||recoveryState!=='idle')return;recoveryState='resetting';recoveryStartedAt=Date.now();generation+=1;lastSignal=`RESET g${generation} ${reason}`;debug();destroyPeer();await send('reset',{generation,reason});setTimeout(async()=>{if(leaving||recoveryState!=='resetting')return;recoveryState='idle';await ensureOffer()},700)}
 async function requestReset(reason){if(leaving||isOfferer())return;const now=Date.now();if(recoveryState!=='idle'||now-lastRecoveryRequestAt<12000)return;lastRecoveryRequestAt=now;recoveryState='waiting-reset';lastSignal=`REQUEST RESET ${reason}`;debug();destroyPeer();await send('reset-request',{reason,generation});clearTimeout(handshakeTimer);handshakeTimer=setTimeout(()=>{if(recoveryState==='waiting-reset'){recoveryState='idle';lastSignal='RESET request timeout';debug();armAnswerWatch()}},15000)}
@@ -116,6 +154,31 @@ $('cameraBtn').onclick=async()=>{if(!stream)return startCamera();localReady=fals
 async function setPlayersUnavailable(){if(m)await db.from('profiles').update({status:'unavailable'}).in('id',[m.player1_id,m.player2_id])}
 function cleanup(){leaving=true;localReady=false;clearInterval(readyTimer);clearTimeout(answerWatchTimer);clearTimeout(handshakeTimer);clearTimeout(disconnectTimer);clearTimeout(trackMuteTimer);clearInterval(statsTimer);stream?.getTracks().forEach(t=>t.stop());pictureSession?.stop();pictureSession?.sourceTrack?.stop();pictureSession=null;stream=null;
 if(zoomCamSession){zoomCamSession.stop();zoomCamSession.sourceTrack?.stop();zoomCamSession=null;window.DartArenaX01ZoomSession=null}destroyPeer(false);if(channel)db.removeChannel(channel)}
-$('cancelMatchBtn').onclick=async()=>{if(!m||m.status!=='playing'||!confirm(window.DartArenaI18n?.t?.('Vil du avbryte kampen?')||'Vil du avbryte kampen?'))return;const{error}=await db.from('matches').update({status:'cancelled',finished_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',m.id);if(error)return $('matchMessage').textContent='Kunne ikke avbryte: '+error.message;await setPlayersUnavailable();window.opener?.postMessage({type:'dartarena-match-ended',id:m.id},location.origin);window.close()};
+$('cancelMatchBtn').onclick=async()=>{
+ if(!m||m.status!=='playing')return;
+ const params=new URLSearchParams(location.search);
+ const inTournamentRoom=location.pathname.endsWith('/tournament-match-room')||location.pathname.endsWith('/tournament-match-room.html');
+ const tournamentMatchId=params.get('tournamentMatch')||(inTournamentRoom&&params.get('samePageDev')==='1'?params.get('id'):null);
+ const text=tournamentMatchId?'Vil du avbryte denne turneringskampen?\\n\\nKampen nullstilles og kan startes på nytt.':(window.DartArenaI18n?.t?.('Vil du avbryte kampen?')||'Vil du avbryte kampen?');
+ if(!confirm(text))return;
+ const button=$('cancelMatchBtn');button.disabled=true;
+ try{
+  if(tournamentMatchId){
+   // Atomic cancellation: never cancel only the live match of a tournament.
+   const {data,error}=await db.rpc('cancel_tournament_match',{p_tournament_match_id:tournamentMatchId,p_live_match_id:m.id});
+   if(error)throw error;
+   window.opener?.postMessage({type:'dartarena-tournament-match-cancelled',id:tournamentMatchId},location.origin);
+   const url=new URL('tournament.html',location.href);
+   if(data)url.searchParams.set('id',data);
+   location.replace(url.href);
+   return;
+  }
+  const {error}=await db.from('matches').update({status:'cancelled',finished_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',m.id);
+  if(error)throw error;
+  await setPlayersUnavailable();
+  window.opener?.postMessage({type:'dartarena-match-ended',id:m.id},location.origin);
+  window.close();
+ }catch(error){$('matchMessage').textContent='Kunne ikke avbryte: '+(error?.message||error);button.disabled=false}
+};
 $('closeMatchBtn').onclick=()=>{if(m?.status==='playing'&&!confirm(window.DartArenaI18n?.t?.('Kampen pågår fortsatt. Lukk kampfanen?')||'Kampen pågår fortsatt. Lukk kampfanen?'))return;window.close()};
 window.addEventListener('beforeunload',cleanup);

@@ -1,7 +1,8 @@
 (()=>{
   const params=new URLSearchParams(location.search);
-  const tournamentMatchId=params.get('tournamentMatch');
-  const liveMatchId=params.get('id');
+  const samePage=params.get('samePageDev')==='1';
+  const tournamentMatchId=samePage?params.get('id'):params.get('tournamentMatch');
+  const liveMatchId=samePage?window.DartArenaMatchEngineState?.matchId?.():params.get('id');
   if(!tournamentMatchId||!liveMatchId)return;
 
   // Tournament matches have their own close/cancel controls. Lobby access must
@@ -49,7 +50,18 @@
     cancelBtn.classList.remove('hidden');
     cancelBtn.disabled=false;
     cancelBtn.title='Avbryt denne turneringskampen og gjør den klar til omstart';
-    cancelBtn.onclick=cancelTournamentMatch;
+    // The match engine also owns onclick and may overwrite it during bootstrap.
+    // Capture the click before its generic cancellation handler runs.
+    cancelBtn.addEventListener('click',event=>{
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      cancelTournamentMatch().catch(error=>{
+        message('Kunne ikke avbryte turneringskampen: '+(error?.message||error));
+        cancelling=false;
+        cancelBtn.disabled=false;
+        cancelBtn.textContent='Avbryt kamp';
+      });
+    },{capture:true});
   }
 
   async function advanceCupIfNeeded(){

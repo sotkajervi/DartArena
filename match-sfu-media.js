@@ -24,9 +24,10 @@
   const safeProfile=()=>{try{return profile||null}catch{return null}};
   const safeMatch=()=>{try{return m||null}catch{return null}};
   const safeOther=()=>{try{return other||null}catch{return null}};
-  const safeStream=()=>{try{return stream||null}catch{return null}};
-  const safeDb=()=>{try{return db||null}catch{return null}};
-  const safeMatchId=()=>{try{return matchId||new URLSearchParams(location.search).get('id')}catch{return new URLSearchParams(location.search).get('id')}};
+  const engine=()=>window.DartArenaMatchEngineState;
+  const safeStream=()=>engine()?.stream?.()||null;
+  const safeDb=()=>engine()?.client?.()||null;
+  const safeMatchId=()=>engine()?.matchId?.()||new URLSearchParams(location.search).get('id');
   const el=id=>document.getElementById(id);
 
   function note(message,data){
@@ -134,9 +135,18 @@
     lastError='';
     const video=el('remoteVideo');
     const placeholder=el('remotePlaceholder');
+    // In the opt-in same-page transition, retain the waiting-room image until
+    // a new video track is received. Do not overwrite it with an empty stream.
+    const seamless=new URLSearchParams(location.search).get('samePageDev')==='1';
+    const incomingStream=seamless?new MediaStream():null;
+    const activateIncoming=()=>{
+      if(!seamless||!video||video.srcObject===incomingStream)return;
+      if(!incomingStream.getVideoTracks().some(t=>t.readyState==='live'&&!t.muted))return;
+      video.srcObject=incomingStream;
+      video.play().catch(()=>{});
+    };
     if(video){
-      try{video.pause()}catch{}
-      video.srcObject=new MediaStream();
+      if(!seamless){try{video.pause()}catch{};video.srcObject=new MediaStream();}
       video.muted=true;
       video.playsInline=true;
       video.onplaying=()=>placeholder?.classList.add('hidden');
@@ -149,8 +159,8 @@
     try{
       await client.subscribe(pub,async event=>{
         if(!video)return;
-        let rs=video.srcObject;
-        if(!(rs instanceof MediaStream)){
+        let rs=seamless?incomingStream:video.srcObject;
+        if(!seamless&&!(rs instanceof MediaStream)){
           rs=new MediaStream();
           video.srcObject=rs;
         }
@@ -158,12 +168,14 @@
         for(const track of tracks){
           if(track&&!rs.getTracks().some(t=>t.id===track.id)){
             rs.addTrack(track);
+            activateIncoming();
             lastRemoteTrackAt=Date.now();
             note(`REMOTE ${track.kind} track`,{id:track.id,state:track.readyState,muted:track.muted});
           }
           if(track?.kind==='video'){
             track.onunmute=async()=>{
               lastRemoteTrackAt=Date.now();
+              activateIncoming();
               try{await video.play()}catch{}
               if(track.readyState==='live')placeholder?.classList.add('hidden');
             };
@@ -171,7 +183,7 @@
         }
         video.muted=true;
         video.playsInline=true;
-        await video.play().catch(()=>{});
+        if(!seamless||video.srcObject===incomingStream)await video.play().catch(()=>{});
         if(rs.getVideoTracks().some(t=>t.readyState==='live')){
           placeholder?.classList.add('hidden');
         }
@@ -314,7 +326,7 @@
     finally{watchdogRunning=false}
   },1000);
 
-  window.DartArenaMatchMedia={mode:'sfu',stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
+  window.DartArenaMatchMedia={mode:'sfu',readyForHandoff:()=>!stopped&&!!publication?.sessionId&&!!subscribedPublicationId&&!!remotePublication?.sessionId&&subscribedPublicationId===remotePublication.sessionId&&!!sfu?.subscriber&&sfu.subscriber.connectionState==='connected'&&!!document.getElementById('remoteVideo')?.srcObject?.getVideoTracks?.().some(track=>track.readyState==='live'),stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
     try{sfu?.close()}catch{}
     sfu=null;
     publication=null;

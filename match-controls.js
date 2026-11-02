@@ -19,8 +19,15 @@
   let cameraBusy=false;
   let cameraControlChannel=null;
 
+  // X01 uses the engine API. Other game modes retain their legacy globals.
+  const engine=()=>window.DartArenaMatchEngineState;
   function getStream(){
+    if(engine())return engine().stream?.()||null;
     try{return typeof stream!=='undefined'?stream:null}catch{return null}
+  }
+  function currentIdentity(){
+    if(engine())return {client:engine().client?.(),match:engine().matchId?.(),user:engine().profile?.()?.id,opponent:engine().opponentId?.()};
+    try{return {client:db,match:matchId,user:profile?.id,opponent:other}}catch{return {}}
   }
   function liveVideoTracks(){return getStream()?.getVideoTracks?.().filter(t=>t.readyState==='live')||[]}
   function cameraOn(){const tracks=liveVideoTracks();return tracks.length>0&&tracks.some(t=>t.enabled)}
@@ -44,8 +51,9 @@
 
   async function broadcastCamera(enabled){
     try{
-      if(!cameraControlChannel||typeof profile==='undefined'||!profile?.id)return;
-      await cameraControlChannel.send({type:'broadcast',event:'camera-visibility',payload:{from:profile.id,enabled:!!enabled}});
+      const {user}=currentIdentity();
+      if(!cameraControlChannel||!user)return;
+      await cameraControlChannel.send({type:'broadcast',event:'camera-visibility',payload:{from:user,enabled:!!enabled}});
     }catch{}
   }
 
@@ -128,11 +136,12 @@
 
   function setupCameraControlChannel(){
     try{
-      if(typeof db==='undefined'||typeof matchId==='undefined'||!matchId||typeof profile==='undefined'||!profile?.id||typeof other==='undefined'||!other)return false;
+      const {client,match,user,opponent}=currentIdentity();
+      if(!client||!match||!user||!opponent)return false;
       if(cameraControlChannel)return true;
-      cameraControlChannel=db.channel('camera-visibility-'+matchId)
+      cameraControlChannel=client.channel('camera-visibility-'+match)
         .on('broadcast',{event:'camera-visibility'},({payload})=>{
-          if(!payload||payload.from!==other)return;
+          if(!payload||payload.from!==opponent)return;
           if(!payload.enabled){
             if(remotePlaceholder){remotePlaceholder.textContent='Motstanderens kamera er av';remotePlaceholder.classList.remove('hidden')}
           }else{
@@ -203,6 +212,6 @@
 
   window.addEventListener('beforeunload',()=>{
     clearInterval(channelWait);
-    try{if(cameraControlChannel&&typeof db!=='undefined')db.removeChannel(cameraControlChannel)}catch{}
+    try{const client=currentIdentity().client;if(cameraControlChannel&&client)client.removeChannel(cameraControlChannel)}catch{}
   },{once:true});
 })();

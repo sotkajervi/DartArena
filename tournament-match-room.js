@@ -1,3 +1,5 @@
+(()=>{
+'use strict';
 const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
 const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
@@ -35,6 +37,40 @@ let remoteLastTime=0;
 let remoteLastProgress=Date.now();
 let remoteRetryAfter=0;
 let queuedRemotePublication=null;
+let embeddedPreMatchControls=null;
+let preferredCameraStarter=null;
+window.DartArenaTournamentRoomState=Object.freeze({
+  tournamentMatchId:()=>tournamentMatchId,
+  tournamentMatch:()=>tm,
+  userId:()=>me,
+  opponentId:()=>other,
+  client:()=>db,
+  channel:()=>channel,
+  stream:()=>stream,
+  setStream:next=>{stream=next||null;return stream},
+  publisher:()=>sfu,
+  setPublisher:next=>{sfu=next||null;return sfu},
+  publication:()=>publication,
+  setPublication:next=>{publication=next||null;return publication},
+  resetSubscription:()=>{subscribedPublicationId=null},
+  ready:()=>({local:localReady,remote:remoteReady,connected:roomConnected}),
+  isStarting:()=>starting,
+  setReadyUi:()=>setReadyUi(),
+  setStatus:message=>setStatus(message),
+  sendState:()=>sendState(),
+  remotePublication:()=>remotePublication,
+  subscribeRemote:pub=>subscribeRemote(pub),
+  cameraErrorText:error=>cameraErrorText(error),
+  setCameraStarter:fn=>{if(typeof fn!=='function')throw Error('Invalid camera starter');preferredCameraStarter=fn}
+});
+function syncEmbeddedPreMatch(){
+  embeddedPreMatchControls?.update({
+    starterChoice:starterValueForLocal(),localReady,remoteReady,
+    localName:names[me]||'Du',remoteName:names[other]||'Motstander',
+    starting,connected:roomConnected&&!remoteTransportMismatch,
+    message:$('roomMessage')?.textContent||''
+  });
+}
 
 function setStatus(text){$('cameraStatus').textContent=text;}
 function starterValueForLocal(){
@@ -48,6 +84,7 @@ function starterText(){
 function setStarterUi(){
   const select=$('starterChoice');
   if(select)select.value=starterValueForLocal();
+  syncEmbeddedPreMatch();
 }
 function setReadyUi(){
   $('localReadyDot').classList.toggle('on',localReady);
@@ -56,6 +93,7 @@ function setReadyUi(){
   $('remoteReadyText').textContent=remoteReady?'Klar':'Ikke klar';
   $('readyBtn').textContent=localReady?'Ikke klar':'Jeg er klar';
   $('readyBtn').disabled=!roomConnected||starting||remoteTransportMismatch;
+  syncEmbeddedPreMatch();
 }
 function resetReadyForStarterChange(message=''){
   localReady=false;
@@ -73,7 +111,24 @@ function cameraErrorText(e){
   return e?.message||'Kamera kunne ikke startes.';
 }
 function matchUrl(liveId){return `match.html?id=${encodeURIComponent(liveId)}&tournamentMatch=${encodeURIComponent(tournamentMatchId)}`;}
-function goToMatch(liveId){cleanup();location.href=matchUrl(liveId);}
+let transitionStarted=false;
+async function goToMatch(liveId){
+  if(transitionStarted||!liveId)return;
+  transitionStarted=true;
+  const bridge=window.DartArenaTournamentHandoff;
+  if(typeof bridge?.enter==='function'){
+    try{
+      if(await bridge.enter({
+        liveMatchId:liveId,
+        tournamentMatchId,
+        releaseWaitingRoom:()=>cleanup({keepCapture:true}),
+        transferCapture:()=>!!stream?.getVideoTracks?.().some(t=>t.readyState==='live')&&!!stream?.getAudioTracks?.().some(t=>t.readyState==='live')&&window.DartArenaCaptureHandoff?.transfer?.(stream)===true
+      })===true)return;
+    }catch(error){console.error('Same-page match handoff failed',error)}
+  }
+  cleanup();
+  location.href=matchUrl(liveId);
+}
 
 async function loadLiveMatch(liveId){
   const {data,error}=await db.from('matches')
@@ -149,7 +204,33 @@ async function boot(){
     return;
   }
 
-  if(tm.status==='live'&&tm.live_match_id){goToMatch(tm.live_match_id);return;}
+  if(tm.status==='live'&&tm.live_match_id){
+    // Explicit test-only recovery for a tournament match stuck in live status.
+    // Never reset automatically or modify another match.
+    if(new URLSearchParams(location.search).get('recover')==='1'){
+      $('roomTitle').textContent='Gjenopprett turneringskamp';
+      $('roomMessage').textContent='Kampen står fortsatt som pågår. Du kan avbryte den og starte den på nytt fra turneringen.';
+      const btn=document.createElement('button');
+      btn.type='button';btn.className='danger';btn.textContent='Avbryt og nullstill denne kampen';
+      $('roomMessage').after(btn);
+      btn.onclick=async()=>{
+        if(!confirm('Avbryte denne turneringskampen og gjøre den klar til å starte på nytt?'))return;
+        btn.disabled=true;btn.textContent='Nullstiller…';
+        const {error}=await db.rpc('cancel_tournament_match',{
+          p_tournament_match_id:tournamentMatchId,
+          p_live_match_id:tm.live_match_id
+        });
+        if(error){
+          $('roomMessage').textContent='Kunne ikke nullstille: '+error.message;
+          btn.disabled=false;btn.textContent='Prøv nullstilling på nytt';
+          return;
+        }
+        location.replace('tournament.html?id='+encodeURIComponent(tm.tournament_id));
+      };
+      return;
+    }
+    goToMatch(tm.live_match_id);return;
+  }
   if(['finished','wo'].includes(tm.status)){
     location.replace(`tournament-match-stats.html?id=${encodeURIComponent(tournamentMatchId)}`);
     return;
@@ -177,6 +258,20 @@ async function boot(){
   $('retryCameraBtn').onclick=startCamera;
   $('remoteAudioBtn').onclick=toggleRemoteAudio;
   $('starterChoice').onchange=changeStarterChoice;
+  // The existing waiting room remains authoritative until scene migration is enabled.
+  // Adapter is shared so both UIs use the exact same server-backed readiness logic.
+  if(new URLSearchParams(location.search).has('preMatchSceneDev')&&window.DartArenaPreMatchScene){
+    embeddedPreMatchControls=window.DartArenaPreMatchScene.bindRoomControls({
+      setStarter:async choice=>{
+        if(!['me','opponent','random'].includes(choice))return;
+        $('starterChoice').value=choice;
+        await changeStarterChoice();
+      },
+      setReady:()=>toggleReady()
+    });
+    syncEmbeddedPreMatch();
+    window.DartArenaPreMatchScene.preMatch().catch(error=>console.warn('Pre-match scene failed',error));
+  }
 
   setupChannel();
 }
@@ -316,6 +411,7 @@ function setupChannel(){
 }
 
 async function startCamera(){
+  if(preferredCameraStarter)return preferredCameraStarter();
   $('retryCameraBtn').classList.add('hidden');
   setStatus('Starter kamera…');
   try{
@@ -477,6 +573,7 @@ async function toggleReady(){
   localReady=!localReady;
   setReadyUi();
   $('roomMessage').textContent=localReady?`Du er klar. Starter: ${starterText()}. Venter på motstanderen.`:'';
+  syncEmbeddedPreMatch();
   await sendState();
   await maybeStart();
 }
@@ -538,7 +635,11 @@ async function toggleRemoteAudio(){
   try{await v.play();}catch{v.muted=true;b.textContent='Slå på lyd';}
 }
 
-function cleanup(){
+function cleanup({preserveCapture=false,keepCapture=false}={}){
+  // Only the same-document match engine may take ownership of the local stream.
+  // Normal navigation must always close the camera and microphone.
+  const capturePreserved=preserveCapture&&
+    !!window.DartArenaCaptureHandoff?.transfer?.(stream);
   if(channel&&me&&!starting){
     try{channel.send({type:'broadcast',event:'room-leave',payload:{from:me,instanceId:roomInstanceId}}).catch?.(()=>{})}catch{}
   }
@@ -555,10 +656,12 @@ function cleanup(){
   coinFlipFallback=null;
   try{sfu?.close();}catch{}
   sfu=null;
-  stream?.getTracks().forEach(t=>t.stop());
+  if(!capturePreserved&&!keepCapture)stream?.getTracks().forEach(t=>t.stop());
   stream=null;
   if(channel){try{db.removeChannel(channel);}catch{}}
   channel=null;
 }
 window.addEventListener('pagehide',cleanup);
 boot().catch(e=>{console.error(e);$('roomMessage').textContent=e.message||'Kunne ikke åpne venterommet.';});
+
+})();

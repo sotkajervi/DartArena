@@ -1,7 +1,7 @@
 (()=>{
 const $=id=>document.getElementById(id),wait=setInterval(()=>{if(!window.supabase||!$('matchView')||!window.DartArenaX01Stats)return;clearInterval(wait);boot()},100);
 async function boot(){
- const matchId=new URLSearchParams(location.search).get('id');if(!matchId)return;
+ const matchId=(window.DartArenaMatchEngineState?.matchId?.()||new URLSearchParams(location.search).get('id'));if(!matchId)return;
  const db=window.DartArenaMatchDb||window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
  const {data:{session}}=await db.auth.getSession();if(!session)return;
  let {data:match}=await db.from('matches').select('*').eq('id',matchId).single();if(!match)return;
@@ -45,7 +45,7 @@ body.match-page.da-result-open .video-slot-label{opacity:0!important;visibility:
  .da-result-statlist.x01-expanded-statlist .da-result-statrow span{font-size:9px}
  .da-result-statlist.x01-expanded-statlist .da-result-statrow b{font-size:13px}
 }`;document.head.appendChild(style);
- const actions=document.querySelector('.match-head .top-actions');
+ const actions=document.querySelector('#matchView > .match-head .top-actions')||document.querySelector('.match-head .top-actions');
  const statsBtn=document.createElement('button');statsBtn.id='liveStatsBtn';statsBtn.type='button';statsBtn.className='outline da-live-stats-btn';statsBtn.textContent='Statistikk';
  const overlay=document.createElement('div');overlay.id='liveStatsOverlay';overlay.className='da-live-stats-overlay hidden';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','liveStatsTitle');
  overlay.innerHTML='<section class="da-live-stats-dialog"><div class="da-live-stats-head"><div class="da-live-stats-title"><small>HELE KAMPEN</small><h2 id="liveStatsTitle">Live-statistikk</h2></div><button id="liveStatsClose" type="button" class="outline da-live-stats-close">Lukk</button></div><div id="liveStats"></div></section>';

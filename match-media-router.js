@@ -13,10 +13,12 @@
   let fallbackChannelTimer=null;
   let fallbackRequested=false;
 
-  const safePeer=()=>{try{return typeof pc!=='undefined'?pc:null}catch{return null}};
-  const bothReady=()=>{try{return !!localReady&&!!remoteReady}catch{return false}};
-  const safeDb=()=>{try{return typeof db!=='undefined'?db:null}catch{return null}};
-  const safeMatchId=()=>{try{return typeof matchId!=='undefined'?matchId:new URLSearchParams(location.search).get('id')}catch{return new URLSearchParams(location.search).get('id')}};
+  // Depend on the match engine interface, not its shared top-level declarations.
+  const engine=()=>window.DartArenaMatchEngineState;
+  const safePeer=()=>engine()?.peer?.()||null;
+  const bothReady=()=>{const ready=engine()?.ready?.();return !!ready?.local&&!!ready?.remote};
+  const safeDb=()=>engine()?.client?.()||null;
+  const safeMatchId=()=>engine()?.matchId?.()||new URLSearchParams(location.search).get('id');
 
   function remoteCameraExplicitlyOff(){
     const text=(document.getElementById('remotePlaceholder')?.textContent||'').toLowerCase();
@@ -103,7 +105,8 @@
   // Tournament players have already established Cloudflare media in their
   // waiting room. Avoid a second, usually unsuccessful direct Peer negotiation
   // before the SFU fallback. Normal challenges retain Peer-first behavior.
-  if(new URLSearchParams(location.search).has('tournamentMatch')){
+  if(new URLSearchParams(location.search).has('tournamentMatch')||
+     new URLSearchParams(location.search).get('samePageDev')==='1'){
     loadSfu('sfu');
     return;
   }

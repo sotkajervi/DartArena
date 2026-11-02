@@ -2,7 +2,7 @@
   if(window.__dartArenaSharedResults)return;
   window.__dartArenaSharedResults=true;
 
-  const matchId=new URLSearchParams(location.search).get('id');
+  const matchId=(window.DartArenaMatchEngineState?.matchId?.()||new URLSearchParams(location.search).get('id'));
   const resultDb=window.supabase?window.supabase.createClient(
     'https://jqpxlbhwvskhjbqrbidk.supabase.co',
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
@@ -317,7 +317,7 @@
     refresh:()=>refresh()
   });
 
-  const resultTournamentMatchId=new URLSearchParams(location.search).get('tournamentMatch');
+  const resultTournamentMatchId=new URLSearchParams(location.search).get('tournamentMatch')||(location.pathname.endsWith('/tournament-match-room')||location.pathname.endsWith('/tournament-match-room.html')?new URLSearchParams(location.search).get('id'):null);
   async function resultReturnUrl(){
     if(!resultTournamentMatchId)return './';
     const known=window.DartArenaTournamentReturnUrl;

@@ -10,7 +10,49 @@
   <link rel="stylesheet" href="button-theme.css?v=20261009-brandcyan1">
   <link rel="stylesheet" href="room-device-selector.css?v=20260929-device1">
   <link rel="stylesheet" href="waiting-room-audio-cue.css?v=20261013-camoverlay1">
+  <link rel="stylesheet" href="pre-match-scene.css?v=20261102-dev2">
   <style>
+    /* Compact desktop waiting room: all controls visible on a laptop screen.
+       Never apply these rules once the original match scene is active. */
+    @media (min-width: 901px) and (min-height: 650px) {
+      body:not(.match-page) #matchView.shell {
+        margin: 10px auto 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      body:not(.match-page) #matchView > .match-head {
+        margin-bottom: 0;
+        gap: 12px;
+      }
+      body:not(.match-page) #matchView > .match-head h1 {font-size: 21px; margin: 1px 0}
+      body:not(.match-page) #matchView > .match-head p {margin: 2px 0; line-height: 1.2}
+      body:not(.match-page) #matchView > #videoGrid {
+        margin-bottom: 0;
+        gap: 10px;
+      }
+      body:not(.match-page) #matchView #videoGrid > .video-card {
+        aspect-ratio: auto;
+        height: clamp(170px, 28dvh, 275px);
+      }
+      body:not(.match-page) #matchView > .camera-controls {margin: 0}
+      body:not(.match-page) #matchView > .camera-controls .field {margin: 4px 0}
+      body:not(.match-page) #matchView > .card {
+        margin-top: 0!important;
+        padding: 12px 16px;
+      }
+      body:not(.match-page) #matchView > .card h2 {font-size: 18px; margin: 2px 0}
+      body:not(.match-page) #matchView > .card > p.muted {margin: 4px 0; font-size: 12px}
+      body:not(.match-page) #matchView .starter-choice {margin: 6px 0 2px}
+      body:not(.match-page) #matchView .ready-panel {margin-top: 8px;gap: 8px}
+      body:not(.match-page) #matchView .ready-state {padding: 8px}
+      body:not(.match-page) #matchView .room-actions {margin-top: 8px}
+      body:not(.match-page) #matchView #roomMessage {margin: 5px 0 0}
+      body:not(.match-page) #matchView .da-prematch-scene {padding: 10px 12px; margin: 0}
+      body:not(.match-page) #matchView .da-prematch-title {margin-bottom: 6px}
+      body:not(.match-page) #matchView .da-prematch-scene .camera-controls {margin-top: 6px}
+      body:not(.match-page) #matchView .da-prematch-scene .ready-panel {margin-top: 8px}
+    }
     .ready-panel{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
     .ready-state{border:1px solid var(--border);border-radius:14px;padding:14px;background:rgba(255,255,255,.025)}
     .ready-state strong{display:block;margin-bottom:5px}
@@ -30,7 +72,7 @@
     <div class="live"><i></i> TURNERINGSKAMP</div>
   </header>
 
-  <main class="shell">
+  <main class="shell" id="matchView">
     <div class="match-head">
       <div>
         <small>VENTEROM</small>
@@ -41,7 +83,7 @@
       <div class="top-actions"><button id="openLobbyTabBtn" class="outline" type="button">Åpne lobby i ny fane</button><button id="backBtn" class="outline">Til turnering</button></div>
     </div>
 
-    <div class="video-grid waiting-video-grid">
+    <div id="videoGrid" class="video-grid waiting-video-grid">
       <div class="video-card">
         <video id="localVideo" autoplay playsinline muted></video>
         <div id="localPlaceholder" class="video-placeholder">Starter kamera…</div>
@@ -99,15 +141,27 @@
     </section>
   </main>
 
+  <script>
+    // Production tournament matches use the tested seamless handoff by default.
+    // Test Pages keeps the explicit samePageDev=1 opt-in for controlled trials.
+    if(location.hostname==='sotkajervi.github.io'&&!new URLSearchParams(location.search).has('samePageDev')){
+      const url=new URL(location.href);
+      url.searchParams.set('samePageDev','1');
+      history.replaceState(history.state,'',url.href);
+    }
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
-  <script src="sfu-config.js?v=20261031-owner1"></script>
+  <script src="pre-match-scene.js?v=20261102-real-controls3"></script>
+  <script src="match-scene-host.js?v=20261102-live-center5"></script>
+  <script src="tournament-same-page-handoff-dev.js?v=20261102-single-lobby6"></script>
+  <script src="match-capture-handoff.js?v=20261102-dev1"></script><script src="sfu-config.js?v=20261031-owner1"></script>
   <script src="sfu-client.js?v=20260928-ui2"></script><script src="sfu-client-secure.js?v=20261031-owner1"></script><script src="media-transport.js?v=20261031-owner1"></script>
   <script src="room-coin-flip.js?v=20261002-coin9"></script>
-  <script src="tournament-match-room.js?v=20261031-owner1"></script>
+  <script src="tournament-match-room.js?v=20261102-scope1"></script>
   <script src="autozoom/tracker.js?v=20261013-zoomcam1"></script>
   <script src="camera-picture.js?v=20261023-picture2"></script>
   <script src="autozoom/zoom-cam.js?v=20261026-liveadjust2"></script>
-  <script src="tournament-room-preferred-media.js?v=20261031-owner1"></script>
+  <script src="tournament-room-preferred-media.js?v=20261102-scope1"></script>
   <script src="tournament-match-game-meta.js?v=20261006-splitformat1"></script>
   <script src="role-visuals.js?v=20260928-ui2"></script>
   <script src="waiting-room-audio-cue.js?v=20261013-camoverlay1"></script>

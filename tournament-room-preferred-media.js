@@ -4,6 +4,7 @@
   if(window.__dartArenaTournamentPreferredMedia)return;
   window.__dartArenaTournamentPreferredMedia=true;
 
+  const $=id=>document.getElementById(id);
   const CAMERA_KEY='dartarena-preferred-camera';
   const MIC_KEY='dartarena-preferred-microphone';
   const cameraSelect=document.getElementById('cameraDeviceSelect');
@@ -11,6 +12,21 @@
   const micLevelFill=document.getElementById('micLevelFill');
   const micLevelText=document.getElementById('micLevelText');
   let zoomSession=null,pictureSession=null;
+  // Transfer processed camera ownership with the stream. Otherwise Zoom-cam
+  // tracking remains owned by the waiting room and cannot follow match turns.
+  window.DartArenaTournamentMediaOwnership={
+    take:()=>{
+      const handoff={zoomSession,pictureSession};
+      zoomSession=null;
+      pictureSession=null;
+      stopMeter().catch(()=>{});
+      return handoff;
+    }
+  };
+  const state=()=>window.DartArenaTournamentRoomState;
+  const roomStream=()=>state()?.stream?.()||null;
+  const roomPublisher=()=>state()?.publisher?.()||null;
+  const updateRoomStream=next=>window.DartArenaTournamentRoomState?.setStream?.(next);
   let switching=false;
   let meterContext=null,meterSource=null,meterAnalyser=null,meterFrame=0;
 
@@ -36,7 +52,7 @@
       ?zoomSession.sourceTrack
       :kind==='video'&&pictureSession?.sourceTrack?.readyState==='live'
       ?pictureSession.sourceTrack
-      :stream?.getTracks?.().find(t=>t.kind===kind&&t.readyState==='live');
+      :roomStream()?.getTracks?.().find(t=>t.kind===kind&&t.readyState==='live');
     return track?.getSettings?.().deviceId||'';
   }
 
@@ -176,14 +192,14 @@
     await stopMeter();
     if(zoomSession){zoomSession.stop();zoomSession.sourceTrack?.stop();zoomSession=null;}
     if(pictureSession){pictureSession.stop();pictureSession.sourceTrack?.stop();pictureSession=null;}
-    if(stream){
-      try{stream.getTracks().forEach(track=>track.stop())}catch{}
-      stream=null;
+    if(roomStream()){
+      try{roomStream().getTracks().forEach(track=>track.stop())}catch{}
+      updateRoomStream(null);
     }
-    try{sfu?.close()}catch{}
-    sfu=null;
-    publication=null;
-    subscribedPublicationId=null;
+    try{roomPublisher()?.close()}catch{}
+    state()?.setPublisher?.(null);
+    state()?.setPublication?.(null);
+    state()?.resetSubscription?.();
     const video=$('localVideo');
     if(video){video.pause?.();video.srcObject=null}
   }
@@ -195,8 +211,8 @@
     retry?.classList.add('hidden');
     if(cameraSelect)cameraSelect.disabled=true;
     if(micSelect)micSelect.disabled=true;
-    setReadyUi();
-    setStatus('Starter valgt kamera…');
+    state()?.setReadyUi?.();
+    state()?.setStatus?.('Starter valgt kamera…');
 
     try{
       const Z=window.DartArenaZoomCam;
@@ -211,27 +227,27 @@
       const wrongCamera=!!wantedCamera&&activeCamera!==wantedCamera;
       const wrongMic=!!wantedMic&&activeMic!==wantedMic;
 
-      if(stream&&(wrongCamera||wrongMic))await tearDownLocalPublication();
-      if(!stream){
+      if(roomStream()&&(wrongCamera||wrongMic))await tearDownLocalPublication();
+      if(!roomStream()){
         const raw=await getPreferredStream(wantedCamera,wantedMic);
-        stream=raw;
+        updateRoomStream(raw);
         const Z=window.DartArenaZoomCam;
         if(Z?.selected(localStorage)){
           const config=Z.loadConfig(localStorage);
           if(config){
-            try{zoomSession=Z.create(raw,config);stream=zoomSession.stream}
+            try{zoomSession=Z.create(raw,config);updateRoomStream(zoomSession.stream)}
             catch(error){console.warn('Tournament Zoomcam unavailable; regular video used',error);zoomSession=null}
           }
         }
       }
 
       if(!zoomSession&&!pictureSession){
-        try{pictureSession=window.DartArenaCameraPicture?.createStream(stream)||null;
-          if(pictureSession)stream=pictureSession.stream;
+        try{pictureSession=window.DartArenaCameraPicture?.createStream(roomStream())||null;
+          if(pictureSession)updateRoomStream(pictureSession.stream);
         }catch(error){console.warn('Turnering: bildejustering ikke tilgjengelig',error)}
       }
-      const videoTrack=zoomSession?.sourceTrack||pictureSession?.sourceTrack||stream.getVideoTracks()[0];
-      const audioTrack=stream.getAudioTracks()[0];
+      const videoTrack=zoomSession?.sourceTrack||pictureSession?.sourceTrack||roomStream().getVideoTracks()[0];
+      const audioTrack=roomStream().getAudioTracks()[0];
       const actualCamera=videoTrack?.getSettings?.().deviceId||'';
       const actualMic=audioTrack?.getSettings?.().deviceId||'';
 
@@ -239,7 +255,7 @@
       if(actualMic)localStorage.setItem(MIC_KEY,actualMic);
 
       const v=$('localVideo');
-      v.srcObject=stream;
+      v.srcObject=roomStream();
       v.muted=true;
       v.playsInline=true;
       await v.play().catch(()=>{});
@@ -247,29 +263,33 @@
       await startMeter(audioTrack);
       await refreshDevices();
 
-      setStatus('Publiserer valgt kamera via Cloudflare…');
-      try{sfu?.close()}catch{}
+      state()?.setStatus?.('Publiserer valgt kamera via Cloudflare…');
+      try{roomPublisher()?.close()}catch{}
       const selected=await window.DartArenaMediaMode?.getMode?.()||'legacy';
       const secure=selected==='sfu';
       const SfuClient=secure?window.DartArenaSecureSFU:window.DartArenaSFU;
       if(!SfuClient)throw Error('Valgt videosystem er ikke tilgjengelig');
-      sfu=new SfuClient(secure?window.DARTARENA_SFU.secureWorkerUrl:window.DARTARENA_SFU.workerUrl,
-        {kind:'tournament_match',id:tournamentMatchId});
-      publication=null;
-      subscribedPublicationId=null;
-      publication=await sfu.publish(stream);
+      const nextSfu=new SfuClient(secure?window.DARTARENA_SFU.secureWorkerUrl:window.DARTARENA_SFU.workerUrl,
+        {kind:'tournament_match',id:state()?.tournamentMatchId?.()});
+      state()?.setPublisher?.(nextSfu);
+      state()?.setPublication?.(null);
+      state()?.resetSubscription?.();
+      state()?.setPublication?.(await nextSfu.publish(roomStream()));
 
-      setReadyUi();
-      setStatus('Valgt kamera klart – dette brukes i kampen');
-      await sendState();
-      if(remotePublication)await subscribeRemote(remotePublication);
+      state()?.setReadyUi?.();
+      state()?.setStatus?.('Valgt kamera klart – dette brukes i kampen');
+      await state()?.sendState?.();
+      if(state()?.remotePublication?.())await state()?.subscribeRemote?.(state().remotePublication());
     }catch(error){
       console.error('Tournament preferred camera error',error);
-      publication=null;
-      setReadyUi();
+      state()?.setPublication?.(null);
+      try{roomPublisher()?.close()}catch{}
+      state()?.setPublisher?.(null);
+      state()?.resetSubscription?.();
+      state()?.setReadyUi?.();
       $('localPlaceholder')?.classList.remove('hidden');
       if($('localPlaceholder'))$('localPlaceholder').textContent='Kamera ikke startet';
-      setStatus(cameraErrorText(error));
+      state()?.setStatus?.(state()?.cameraErrorText?.(error)||'Kamera kunne ikke startes');
       retry?.classList.remove('hidden');
       await refreshDevices();
     }finally{
@@ -297,10 +317,10 @@
 
     if(typeof localReady!=='undefined'&&localReady){
       localReady=false;
-      try{setReadyUi()}catch{}
+      try{state()?.setReadyUi?.()}catch{}
       const msg=$('roomMessage');
       if(msg)msg.textContent='Kamera/mikrofon endret. Marker deg klar igjen.';
-      try{await sendState()}catch{}
+      try{await state()?.sendState?.()}catch{}
     }
 
     await tearDownLocalPublication();
@@ -313,7 +333,7 @@
   document.addEventListener('pointerdown',()=>meterContext?.resume?.().catch(()=>{}),{passive:true});
 
   // Replace the tournament waiting-room camera starter before the realtime channel subscribes.
-  if(typeof startCamera==='function')startCamera=startPreferredCamera;
+  state()?.setCameraStarter?.(startPreferredCamera);
 
   refreshDevices();
 
@@ -322,7 +342,7 @@
   const timer=setInterval(()=>{
     checks++;
     if(checks>40){clearInterval(timer);return}
-    if(typeof me==='undefined'||!me||typeof stream==='undefined'||!stream)return;
+    if(!window.DartArenaTournamentRoomState?.userId?.()||!window.DartArenaTournamentRoomState?.stream?.())return;
     const wanted=localStorage.getItem(CAMERA_KEY)||'';
     const active=currentDeviceId('video');
     if(wanted&&active&&wanted!==active){
@@ -331,7 +351,7 @@
     }else if(active){
       clearInterval(timer);
       refreshDevices();
-      startMeter(stream.getAudioTracks?.()[0]);
+      startMeter(roomStream()?.getAudioTracks?.()[0]);
     }
   },250);
 

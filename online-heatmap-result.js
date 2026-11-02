@@ -7,7 +7,7 @@
 'use strict';
 const G=window.DartArenaAutoZoom,H=window.DartArenaHeatmapMath,Chart=window.DartArenaHeatmapChart;
 const Z=window.DartArenaZoomCam;
-const matchId=new URLSearchParams(location.search).get('id');
+const matchId=(window.DartArenaMatchEngineState?.matchId?.()||new URLSearchParams(location.search).get('id'));
 if(!G||!H||!Chart||!Z||!matchId||!window.supabase||
    new URLSearchParams(location.search).has('tournamentMatch'))return;
 const db=window.supabase.createClient(

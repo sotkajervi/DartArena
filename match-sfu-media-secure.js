@@ -31,14 +31,42 @@
   const PUBLISHER_REPAIR_COOLDOWN_MS=12000;
   const SUBSCRIBER_DISCONNECT_GRACE_MS=7000;
   const SUBSCRIBER_REPAIR_COOLDOWN_MS=12000;
+  // Limit every SFU API attempt, including failed initial connections and watchdog retries.
+  const MAX_AUTO_REPAIRS=5;
+  const REPAIR_WINDOW_MS=5*60*1000;
+  const repairAttempts={publisher:[],subscriber:[]};
+  const repairLimitLogged={publisher:false,subscriber:false};
   const log=[];
+  function allowRepair(side){
+    const now=Date.now();
+    const attempts=repairAttempts[side].filter(t=>now-t<REPAIR_WINDOW_MS);
+    repairAttempts[side]=attempts;
+    if(attempts.length>=MAX_AUTO_REPAIRS){
+      if(!repairLimitLogged[side]){
+        note('AUTO REPAIR LIMIT',{side,max:MAX_AUTO_REPAIRS,windowMs:REPAIR_WINDOW_MS});
+        repairLimitLogged[side]=true;
+      }
+      setStatus('Video kan ikke gjenopprettes automatisk. Prøv manuell tilkobling.');
+      return false;
+    }
+    repairLimitLogged[side]=false;
+    attempts.push(now);
+    return true;
+  }
+  function clearRepairLimits(){
+    repairAttempts.publisher=[];
+    repairAttempts.subscriber=[];
+    repairLimitLogged.publisher=false;
+    repairLimitLogged.subscriber=false;
+  }
 
   const safeProfile=()=>{try{return profile||null}catch{return null}};
   const safeMatch=()=>{try{return m||null}catch{return null}};
   const safeOther=()=>{try{return other||null}catch{return null}};
-  const safeStream=()=>{try{return stream||null}catch{return null}};
-  const safeDb=()=>{try{return db||null}catch{return null}};
-  const safeMatchId=()=>{try{return matchId||new URLSearchParams(location.search).get('id')}catch{return new URLSearchParams(location.search).get('id')}};
+  const engine=()=>window.DartArenaMatchEngineState;
+  const safeStream=()=>engine()?.stream?.()||null;
+  const safeDb=()=>engine()?.client?.()||null;
+  const safeMatchId=()=>engine()?.matchId?.()||new URLSearchParams(location.search).get('id');
   const el=id=>document.getElementById(id);
 
   function note(message,data){
@@ -197,7 +225,7 @@
     }
 
     const client=ensureClient();
-    if(!client)return;
+    if(!client||!allowRepair('publisher'))return;
     publishing=true;
     lastError='';
     try{
@@ -240,7 +268,7 @@
     }
 
     const client=ensureClient();
-    if(!client)return;
+    if(!client||!allowRepair('subscriber'))return;
 
     const epoch=++subscriptionEpoch;
     subscribing=true;
@@ -250,9 +278,18 @@
     lastError='';
     const video=el('remoteVideo');
     const placeholder=el('remotePlaceholder');
+    // In the opt-in same-page transition, retain the waiting-room image until
+    // a new video track is received. Do not overwrite it with an empty stream.
+    const seamless=new URLSearchParams(location.search).get('samePageDev')==='1';
+    const incomingStream=seamless?new MediaStream():null;
+    const activateIncoming=()=>{
+      if(!seamless||!video||video.srcObject===incomingStream)return;
+      if(!incomingStream.getVideoTracks().some(t=>t.readyState==='live'&&!t.muted))return;
+      video.srcObject=incomingStream;
+      video.play().catch(()=>{});
+    };
     if(video){
-      try{video.pause()}catch{}
-      video.srcObject=new MediaStream();
+      if(!seamless){try{video.pause()}catch{};video.srcObject=new MediaStream();}
       video.muted=true;
       video.playsInline=true;
       video.onplaying=()=>{if(epoch===subscriptionEpoch)placeholder?.classList.add('hidden')};
@@ -265,8 +302,8 @@
     try{
       await client.subscribe(pub,async event=>{
         if(stopped||epoch!==subscriptionEpoch||remotePublication?.sessionId!==pub.sessionId||window.DARTARENA_POSTMATCH_MEDIA_STOPPED||!video)return;
-        let rs=video.srcObject;
-        if(!(rs instanceof MediaStream)){
+        let rs=seamless?incomingStream:video.srcObject;
+        if(!seamless&&!(rs instanceof MediaStream)){
           rs=new MediaStream();
           video.srcObject=rs;
         }
@@ -274,6 +311,7 @@
         for(const track of tracks){
           if(track&&!rs.getTracks().some(t=>t.id===track.id)){
             rs.addTrack(track);
+            activateIncoming();
             lastRemoteTrackAt=Date.now();
             note(`REMOTE ${track.kind} track`,{id:track.id,state:track.readyState,muted:track.muted});
           }
@@ -281,6 +319,7 @@
             track.onunmute=async()=>{
               if(epoch!==subscriptionEpoch||stopped)return;
               lastRemoteTrackAt=Date.now();
+              activateIncoming();
               try{await video.play()}catch{}
               if(epoch===subscriptionEpoch&&track.readyState==='live')placeholder?.classList.add('hidden');
             };
@@ -288,7 +327,7 @@
         }
         video.muted=true;
         video.playsInline=true;
-        await video.play().catch(()=>{});
+        if(!seamless||video.srcObject===incomingStream)await video.play().catch(()=>{});
         if(rs.getVideoTracks().some(t=>t.readyState==='live')){
           placeholder?.classList.add('hidden');
         }
@@ -455,8 +494,9 @@
     finally{watchdogRunning=false}
   },1000);
 
-  window.DartArenaMatchMedia={mode:'sfu',publicationInfo:()=>!stopped&&publication?{sessionId:publication.sessionId,tracks:[...publication.tracks]}:null,stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
+  window.DartArenaMatchMedia={mode:'sfu',publicationInfo:()=>!stopped&&publication?{sessionId:publication.sessionId,tracks:[...publication.tracks]}:null,readyForHandoff:()=>!stopped&&!!publication?.sessionId&&!!subscribedPublicationId&&!!remotePublication?.sessionId&&subscribedPublicationId===remotePublication.sessionId&&!!sfu?.subscriber&&sfu.subscriber.connectionState==='connected'&&!!document.getElementById('remoteVideo')?.srcObject?.getVideoTracks?.().some(track=>track.readyState==='live'),stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
     if(stopped||window.DARTARENA_POSTMATCH_MEDIA_STOPPED)return;
+    clearRepairLimits();
     try{sfu?.close()}catch{}
     subscriptionEpoch++;
     subscribing=false;
@@ -477,6 +517,7 @@
   function stopMedia(){
     if(stopped)return;
     stopped=true;
+    clearRepairLimits();
     clearInterval(boot);
     clearInterval(watcher);
     clearInterval(heartbeat);

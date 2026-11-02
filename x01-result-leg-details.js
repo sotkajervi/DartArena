@@ -2,7 +2,7 @@
   if(window.__dartArenaX01ResultLegDetails)return;
   window.__dartArenaX01ResultLegDetails=true;
 
-  const matchId=new URLSearchParams(location.search).get('id');
+  const matchId=(window.DartArenaMatchEngineState?.matchId?.()||new URLSearchParams(location.search).get('id'));
   if(!matchId||!window.supabase)return;
 
   const db=window.supabase.createClient(
