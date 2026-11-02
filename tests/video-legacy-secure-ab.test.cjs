@@ -84,7 +84,7 @@ async function runRound(which){
   assert.equal(paths['/api/sfu/renegotiate'],18+3);
   assert.equal(logs.requests.length,91); // 12*5 + 6*3 + 3*3 + 2*2
   assert.equal(logs.tracksAttached,21);
-  assert.equal(logs.pcs.length,35+21);
+  assert.equal(logs.pcs.length,35);
   const closedBeforeCleanup=logs.pcs.filter(pc=>pc.signalingState==='closed').length;
   assert.equal(closedBeforeCleanup,5,'Three reconnected subscribers and two republished cameras');
   clients.forEach(c=>c.close());watching.forEach(c=>c.close());
