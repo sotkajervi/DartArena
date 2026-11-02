@@ -1,8 +1,9 @@
 (()=>{
   if(window.__dartArenaMatchMediaTelemetry)return;
   const params=new URLSearchParams(location.search);
-  const matchId=params.get('id');
-  const tournamentMatchId=params.get('tournamentMatch')||null;
+  const samePage=params.get('samePageDev')==='1';
+  const matchId=samePage?window.DartArenaMatchEngineState?.matchId?.():params.get('id');
+  const tournamentMatchId=samePage?params.get('id'):params.get('tournamentMatch')||null;
   if(!matchId||!window.supabase)return;
   window.__dartArenaMatchMediaTelemetry=true;
 
