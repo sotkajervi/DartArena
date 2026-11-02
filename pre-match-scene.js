@@ -17,7 +17,34 @@
   scene.className='da-prematch-scene';
   scene.hidden=true;
   scene.setAttribute('aria-label','Før kamp');
-  scene.innerHTML='<div class="da-prematch-title">FØR KAMP</div><div class="da-prematch-videos"></div><div class="da-prematch-info">Kamera og lyd beholdes gjennom overgangen. Startervalg, myntkast og Klar kobles til eksisterende kamplogikk i neste trinn.</div>';
+  scene.innerHTML=`
+    <div class="da-prematch-title">VENTEROM</div>
+    <div class="da-prematch-videos"></div>
+    <div class="camera-controls">
+      <div class="room-device-controls">
+        <label class="field">Kamera <select id="preCameraSelect" disabled><option>Gjeldende kamera</option></select></label>
+        <label class="field">Mikrofon <select id="preMicSelect" disabled><option>Gjeldende mikrofon</option></select></label>
+      </div>
+    </div>
+    <section class="card da-prematch-ready">
+      <small>KLARSTATUS</small>
+      <h2>Kampen starter når begge er klare</h2>
+      <p class="muted">Velg hvem som begynner før begge markerer seg klare.</p>
+      <label class="field starter-choice">Hvem begynner?
+        <select id="preStarterChoice" disabled>
+          <option value="me">Jeg begynner</option>
+          <option value="opponent">Motstander begynner</option>
+          <option value="random" selected>Myntkast</option>
+        </select>
+      </label>
+      <p class="muted compact starter-help">Hvis valget endres, nullstilles klarstatusen.</p>
+      <div class="ready-panel">
+        <div class="ready-state"><strong id="preLocalName">Du</strong><span id="preLocalDot" class="ready-dot"></span><span id="preLocalReady">Ikke klar</span></div>
+        <div class="ready-state"><strong id="preRemoteName">Motstander</strong><span id="preRemoteDot" class="ready-dot"></span><span id="preRemoteReady">Ikke klar</span></div>
+      </div>
+      <div class="room-actions"><button id="preReadyBtn" class="primary" disabled>Jeg er klar</button></div>
+      <p id="preRoomMessage" class="message">Pre-kamp er ennå ikke koblet til serverens Klar- og startervalg.</p>
+    </section>`;
   container.prepend(scene);
   holder=scene.querySelector('.da-prematch-videos');
   return scene;
@@ -38,4 +65,6 @@
   phase='match';
  }
  window.DartArenaPreMatchScene={attach,preMatch,match,phase:()=>phase};
+ // Deliberately do not auto-enter the scene: match.js currently requires an already-created live match ID.
+ // A separate guarded migration of the tournament start RPC is required before enabling multiplayer readiness.
 })();
