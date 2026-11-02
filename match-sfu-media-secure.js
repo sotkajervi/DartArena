@@ -483,7 +483,7 @@
     finally{watchdogRunning=false}
   },1000);
 
-  window.DartArenaMatchMedia={mode:'sfu',publicationInfo:()=>!stopped&&publication?{sessionId:publication.sessionId,tracks:[...publication.tracks]}:null,stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
+  window.DartArenaMatchMedia={mode:'sfu',publicationInfo:()=>!stopped&&publication?{sessionId:publication.sessionId,tracks:[...publication.tracks]}:null,readyForHandoff:()=>!stopped&&!!publication?.sessionId&&!!subscribedPublicationId&&!!document.getElementById('remoteVideo')?.srcObject?.getVideoTracks?.().some(track=>track.readyState==='live'),stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
     if(stopped||window.DARTARENA_POSTMATCH_MEDIA_STOPPED)return;
     clearRepairLimits();
     try{sfu?.close()}catch{}
