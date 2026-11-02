@@ -141,9 +141,8 @@ test('12 simulated players + spectators: legacy vs secure SFU negotiation on a f
   assert.equal(legacy.fakeRtcConnections,secure.fakeRtcConnections);
   assert.equal(legacy.authGetSessionCalls,0);
   assert.equal(secure.authGetSessionCalls,secure.sfuWorkerRequests);
-  // Diagnostic: actual code currently marks /subscribe requests as publish.
-  // Keep A/B test running to compare both systems; report mismatch separately.
-  assert.ok(secure.intentMismatches>=0);
+  // Enforce subscribe intent, including when the player reconnects or a spectator joins.
+  assert.equal(secure.intentMismatches,0,'All subscribe requests must use subscribe-only intent');
   const routes=[
     await checkRouter('legacy','tournament'),await checkRouter('sfu','tournament'),
     await checkRouter('legacy','ordinary'),await checkRouter('sfu','ordinary')
