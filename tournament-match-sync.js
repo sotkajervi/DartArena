@@ -1,7 +1,8 @@
 (()=>{
   const params=new URLSearchParams(location.search);
-  const tournamentMatchId=params.get('tournamentMatch');
-  const liveMatchId=params.get('id');
+  const samePage=params.get('samePageDev')==='1';
+  const tournamentMatchId=samePage?params.get('id'):params.get('tournamentMatch');
+  const liveMatchId=samePage?window.DartArenaMatchEngineState?.matchId?.():params.get('id');
   if(!tournamentMatchId||!liveMatchId)return;
 
   // Tournament matches have their own close/cancel controls. Lobby access must
