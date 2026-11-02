@@ -271,6 +271,9 @@
     }catch(error){
       console.error('Tournament preferred camera error',error);
       state()?.setPublication?.(null);
+      try{roomPublisher()?.close()}catch{}
+      state()?.setPublisher?.(null);
+      state()?.resetSubscription?.();
       setReadyUi();
       $('localPlaceholder')?.classList.remove('hidden');
       if($('localPlaceholder'))$('localPlaceholder').textContent='Kamera ikke startet';
