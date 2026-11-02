@@ -1,112 +1,85 @@
-/* Isolated pre-match scene foundation. NOT enabled for live matches yet.
- * Keeps the existing #videoGrid element (and its WebRTC media elements)
- * across scene transitions; never clones video or creates a new connection.
+/* Pre-match scene, developer opt-in. Reparents the actual waiting room
+ * controls; does not duplicate handlers, devices, or WebRTC video elements.
+ * Match layout is unchanged when the scene is inactive.
  */
 (()=>{
  'use strict';
  if(window.DartArenaPreMatchScene)return;
- let phase='match',holder=null,anchor=null,scene=null;
- function attach({container=document.getElementById('matchView')}={}){
-  if(scene)return scene;
-  const video=document.getElementById('videoGrid');
-  if(!video||!container)throw Error('Existing match video elements are required');
-  anchor=document.createComment('DartArena original video position');
-  video.before(anchor);
-  scene=document.createElement('section');
-  scene.id='preMatchScene';
-  scene.className='da-prematch-scene';
-  scene.hidden=true;
-  scene.setAttribute('aria-label','Før kamp');
-  scene.innerHTML=`
-    <div class="da-prematch-title">VENTEROM</div>
-    <div class="da-prematch-videos"></div>
-    <div class="camera-controls">
-      <div class="room-device-controls">
-        <label class="field">Kamera <select id="preCameraSelect" disabled><option>Gjeldende kamera</option></select></label>
-        <label class="field">Mikrofon <select id="preMicSelect" disabled><option>Gjeldende mikrofon</option></select></label>
-      </div>
-    </div>
-    <section class="card da-prematch-ready">
-      <small>KLARSTATUS</small>
-      <h2>Kampen starter når begge er klare</h2>
-      <p class="muted">Velg hvem som begynner før begge markerer seg klare.</p>
-      <label class="field starter-choice">Hvem begynner?
-        <select id="preStarterChoice" disabled>
-          <option value="me">Jeg begynner</option>
-          <option value="opponent">Motstander begynner</option>
-          <option value="random" selected>Myntkast</option>
-        </select>
-      </label>
-      <p class="muted compact starter-help">Hvis valget endres, nullstilles klarstatusen.</p>
-      <div class="ready-panel">
-        <div class="ready-state"><strong id="preLocalName">Du</strong><span id="preLocalDot" class="ready-dot"></span><span id="preLocalReady">Ikke klar</span></div>
-        <div class="ready-state"><strong id="preRemoteName">Motstander</strong><span id="preRemoteDot" class="ready-dot"></span><span id="preRemoteReady">Ikke klar</span></div>
-      </div>
-      <div class="room-actions"><button id="preReadyBtn" class="primary" disabled>Jeg er klar</button></div>
-      <p id="preRoomMessage" class="message">Pre-kamp er ennå ikke koblet til serverens Klar- og startervalg.</p>
-    </section>`;
-  container.prepend(scene);
-  holder=scene.querySelector('.da-prematch-videos');
-  return scene;
+ let scene=null,phase='match',busy=false;
+ const moved=[];
+ const el=id=>document.getElementById(id);
+ function attach({container=el('matchView')}={}){
+   if(scene)return scene;
+   if(!container||!el('videoGrid'))throw Error('Pre-match host or video is missing');
+   scene=document.createElement('section');
+   scene.id='preMatchScene';
+   scene.className='da-prematch-scene';
+   scene.hidden=true;
+   scene.setAttribute('aria-label','Før kamp');
+   scene.innerHTML='<div class="da-prematch-title">VENTEROM</div><div class="da-prematch-videos"></div><div class="da-prematch-controls"></div>';
+   container.prepend(scene);
+   return scene;
  }
- let transitionInProgress=false;
- async function moveVideo(nextParent,afterAnchor=false){
-  const video=document.getElementById('videoGrid');
-  if(!video)throw Error('Video elements missing');
-  const reduceMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  const first=video.getBoundingClientRect();
-  if(afterAnchor)anchor.after(video);else nextParent.appendChild(video);
-  const last=video.getBoundingClientRect();
-  if(reduceMotion||!first.width||!last.width)return;
-  const deltaX=first.left-last.left,deltaY=first.top-last.top;
-  const sx=first.width/last.width,sy=first.height/last.height;
-  if(!Number.isFinite(sx)||!Number.isFinite(sy))return;
-  const animation=video.animate([
-   {transform:'translate('+deltaX+'px,'+deltaY+'px) scale('+sx+','+sy+')',opacity:.82},
-   {transform:'translate(0,0) scale(1,1)',opacity:1}
-  ],{duration:480,easing:'cubic-bezier(.2,.75,.2,1)'});
-  await animation.finished.catch(()=>{});
+ function move(node,parent){
+   if(!node)return;
+   if(!moved.some(entry=>entry.node===node)){
+     const anchor=document.createComment('Original position: '+(node.id||node.className));
+     node.before(anchor);
+     moved.push({node,anchor});
+   }
+   parent.appendChild(node);
+ }
+ async function animateMove(node,parent){
+   if(!node)return;
+   const before=node.getBoundingClientRect();
+   move(node,parent);
+   const after=node.getBoundingClientRect();
+   if(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches)return;
+   if(!before.width||!after.width||typeof node.animate!=='function')return;
+   const animation=node.animate([
+     {transform:'translate('+(before.x-after.x)+'px,'+(before.y-after.y)+'px) scale('+(before.width/after.width)+','+(before.height/after.height)+')'},
+     {transform:'none'}
+   ],{duration:480,easing:'cubic-bezier(.2,.75,.2,1)'});
+   await animation.finished.catch(()=>{});
  }
  async function preMatch(){
-  attach();
-  if(phase==='pre'||transitionInProgress)return;
-  transitionInProgress=true;
-  scene.hidden=false;
-  document.body.classList.add('da-prematch-active');
-  try{await moveVideo(holder)}finally{phase='pre';transitionInProgress=false}
+   attach();
+   if(phase==='pre'||busy)return;
+   busy=true;
+   try{
+     scene.hidden=false;
+     const video=el('videoGrid');
+     const controls=scene.querySelector('.da-prematch-controls');
+     // These are the existing waiting-room DOM nodes, not reconstructed inputs.
+     const device=el('roomDeviceControls')?.closest('.camera-controls');
+     const ready=el('readyBtn')?.closest('section.card');
+     if(device)move(device,controls);
+     if(ready)move(ready,controls);
+     document.body.classList.add('da-prematch-active');
+     await animateMove(video,scene.querySelector('.da-prematch-videos'));
+     phase='pre';
+   }finally{busy=false}
  }
  async function match(){
-  if(!scene||phase==='match'||transitionInProgress)return;
-  transitionInProgress=true;
-  document.body.classList.remove('da-prematch-active');
-  try{await moveVideo(null,true)}finally{scene.hidden=true;phase='match';transitionInProgress=false}
+   if(!scene||phase==='match'||busy)return;
+   busy=true;
+   try{
+     document.body.classList.remove('da-prematch-active');
+     for(const entry of [...moved].reverse()){
+       if(entry.node===el('videoGrid'))continue;
+       entry.anchor.after(entry.node);
+     }
+     const video=el('videoGrid'),original=moved.find(entry=>entry.node===video);
+     if(original)await animateMove(video,original.anchor.parentNode);
+     if(original)original.anchor.after(video);
+     scene.hidden=true;
+     phase='match';
+   }finally{busy=false}
  }
- function bindRoomControls(adapter){
-  attach();
-  if(!adapter||typeof adapter.setStarter!=='function'||typeof adapter.setReady!=='function')throw Error('Pre-match adapter missing');
-  const starter=document.getElementById('preStarterChoice');
-  const ready=document.getElementById('preReadyBtn');
-  starter.disabled=false;
-  ready.disabled=false;
-  starter.onchange=()=>adapter.setStarter(starter.value);
-  ready.onclick=()=>adapter.setReady();
-  function update(state={}){
-    if(!scene)return;
-    if(state.starterChoice)starter.value=state.starterChoice;
-    document.getElementById('preLocalName').textContent=state.localName||'Du';
-    document.getElementById('preRemoteName').textContent=state.remoteName||'Motstander';
-    for(const [prefix,isReady] of [['Local',!!state.localReady],['Remote',!!state.remoteReady]]){
-      document.getElementById('pre'+prefix+'Dot').classList.toggle('on',isReady);
-      document.getElementById('pre'+prefix+'Ready').textContent=isReady?'Klar':'Ikke klar';
-    }
-    ready.textContent=state.localReady?'Ikke klar':'Jeg er klar';
-    ready.disabled=!!state.starting||state.connected===false;
-    starter.disabled=!!state.starting;
-    if(typeof state.message==='string')document.getElementById('preRoomMessage').textContent=state.message;
-  }
-  return {update,dispose(){starter.onchange=null;ready.onclick=null;starter.disabled=true;ready.disabled=true}};
+ // Existing tournament-match-room.js remains sole owner of server-backed controls.
+ function bindRoomControls(){
+   attach();
+   return {update(){},dispose(){}};
  }
  window.DartArenaPreMatchScene={attach,preMatch,match,bindRoomControls,phase:()=>phase};
- // Deliberately do not auto-enter the scene: match.js currently requires an already-created live match ID.
- // A separate guarded migration of the tournament start RPC is required before enabling multiplayer readiness.
 })();
