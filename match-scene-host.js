@@ -10,6 +10,19 @@
   const main=document.getElementById('matchView');
   const video=document.getElementById('videoGrid');
   if(!main||!video)throw Error('Tournament room layout unavailable');
+  // Match controls and media CSS rely on these exact card IDs.
+  const cards=video.querySelectorAll('.video-card');
+  if(cards.length!==2)throw Error('Expected two existing camera cards');
+  cards[0].id='localVideoCard';
+  cards[0].classList.add('local-card');
+  cards[1].id='remoteVideoCard';
+  cards[1].classList.add('remote-card');
+  if(!document.getElementById('micBtn')){
+    const mic=document.createElement('button');
+    mic.id='micBtn';mic.type='button';mic.className='outline';
+    mic.textContent='Mikrofon på';
+    cards[0].appendChild(mic);
+  }
   videoAnchor=document.createComment('Original tournament video position');
   video.before(videoAnchor);
   stage=document.createElement('section');
