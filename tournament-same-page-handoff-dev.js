@@ -40,7 +40,7 @@
      try{
        const host=window.DartArenaMatchSceneHost;
        if(!host)throw Error('Kamp-scene er ikke lastet');
-       host.prepare();
+       await host.prepare();
        // No second document or iframe. The same video nodes are moved into place.
        await host.enter();
        document.body.classList.add('match-page');
