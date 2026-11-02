@@ -5,6 +5,25 @@
  'use strict';
  if(window.DartArenaMatchSceneHost)return;
  let stage=null,videoAnchor=null,active=false;
+ const MATCH_STYLES=[
+  'match-controls.css?v=20260928-ui2',
+  'opponent-focus.css?v=20261026-owncam-pip1',
+  'match-mobile-scroll.css?v=20261002-mobile1',
+  'match-own-turn.css?v=20261027-i18naudit1',
+  'score-meta.css?v=20261004-legdarts1',
+  'fx-live.css?v=20261023-sweep2',
+  'online-heatmap-result.css?v=20261023-heatmap4',
+  'shared-results.css?v=20261023-heatmap3',
+  'stable-video-labels.css?v=20260930-label1'
+ ];
+ function loadMatchStyles(){
+  for(const href of MATCH_STYLES){
+   if([...document.querySelectorAll('link[rel="stylesheet"]')].some(link=>link.getAttribute('href')===href))continue;
+   const link=document.createElement('link');
+   link.rel='stylesheet';link.href=href;
+   document.head.appendChild(link);
+  }
+ }
  function prepare(){
   if(stage)return stage;
   const main=document.getElementById('matchView');
@@ -45,6 +64,7 @@
  async function enter(){
   if(active)return;
   prepare();
+  loadMatchStyles();
   const video=document.getElementById('videoGrid');
   const old=video.getBoundingClientRect();
   stage.hidden=false;
