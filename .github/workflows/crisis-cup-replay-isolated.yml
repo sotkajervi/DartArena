@@ -1,0 +1,21 @@
+name: Crisis cup transition replay (isolated)
+on:
+  push:
+    branches:
+      - test/cup-transition-replay-20261102
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Real frontend JS A/B - historical and current with popup off
+        run: node --test tests/crash-cup-transition-replay.test.cjs
+# Simulated DB, no network or deployment. Main and Supabase are never mutated.
