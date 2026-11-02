@@ -204,7 +204,33 @@ async function boot(){
     return;
   }
 
-  if(tm.status==='live'&&tm.live_match_id){goToMatch(tm.live_match_id);return;}
+  if(tm.status==='live'&&tm.live_match_id){
+    // Explicit test-only recovery for a tournament match stuck in live status.
+    // Never reset automatically or modify another match.
+    if(new URLSearchParams(location.search).get('recover')==='1'){
+      $('roomTitle').textContent='Gjenopprett turneringskamp';
+      $('roomMessage').textContent='Kampen står fortsatt som pågår. Du kan avbryte den og starte den på nytt fra turneringen.';
+      const btn=document.createElement('button');
+      btn.type='button';btn.className='danger';btn.textContent='Avbryt og nullstill denne kampen';
+      $('roomMessage').after(btn);
+      btn.onclick=async()=>{
+        if(!confirm('Avbryte denne turneringskampen og gjøre den klar til å starte på nytt?'))return;
+        btn.disabled=true;btn.textContent='Nullstiller…';
+        const {error}=await db.rpc('cancel_tournament_match',{
+          p_tournament_match_id:tournamentMatchId,
+          p_live_match_id:tm.live_match_id
+        });
+        if(error){
+          $('roomMessage').textContent='Kunne ikke nullstille: '+error.message;
+          btn.disabled=false;btn.textContent='Prøv nullstilling på nytt';
+          return;
+        }
+        location.replace('tournament.html?id='+encodeURIComponent(tm.tournament_id));
+      };
+      return;
+    }
+    goToMatch(tm.live_match_id);return;
+  }
   if(['finished','wo'].includes(tm.status)){
     location.replace(`tournament-match-stats.html?id=${encodeURIComponent(tournamentMatchId)}`);
     return;
