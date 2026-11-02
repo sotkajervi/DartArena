@@ -76,7 +76,7 @@
          'set-engine.js?v=20261102-live-id-fix3',
          'x01-leg-starter-marker.js?v=20261102-live-id-fix3',
          'checkout-engine.js?v=20261102-live-id-fix3',
-         'secure-match-cancel.js?v=20261013-lobbytab1',
+         'secure-match-cancel.js?v=20261102-samepage-lobby6',
          'x01-stats.js?v=20260929-first9a',
          'match-room-polish.js?v=20261002-matchrooms2',
          'result-screenshot.js?v=20261023-shareheat1',
