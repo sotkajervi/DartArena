@@ -1,0 +1,224 @@
+// DartArena cup bracket: builds an NDF-style seeded knockout bracket from completed groups.
+(function(){
+  const $=id=>document.getElementById(id);
+  const done=m=>['finished','wo'].includes(m.status);
+  const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+  const CUP_FORMAT_KEY=`dartarena-cup-format-${id}`;
+  const FX=window.DartArenaFXLive;
+  let cupFx=null,cupFxId=null;
+  function syncCupFx(matches){
+    if(!FX||!$('cupBracket')||window.dartArenaSimulationViewActive)return;
+    if(cupFxId!==id){cupFx?.destroy();cupFx=null;cupFxId=null}
+    if(!cupFx){
+      try{cupFx=FX.createCup({tournamentId:id,level:'cinematic',
+        effects:{...FX.DEFAULT_EFFECTS,neon_relay:false}});cupFxId=id}
+      catch(error){console.warn('Cup FX unavailable',error);return}
+    }
+    cupFx.afterBracketRender(matches);
+  }
+  window.addEventListener('pagehide',()=>{cupFx?.destroy();cupFx=null;cupFxId=null});
+
+  function isChicagoTournament(){try{return String(tournament?.cup_game_variant||tournament?.game_variant||'x01').toLowerCase()==='chicago'}catch{return false}}
+  function nextPow2(n){let x=1;while(x<n)x*=2;return x}
+  function seedOrder(size){let a=[1,2];while(a.length<size){const n=a.length*2,out=[];for(const x of a)out.push(x,n+1-x);a=out}return a.slice(0,size)}
+
+  const NDF_SLOTS={
+    '2:16':['1P1','8P2','5P1','4P2','3P1','6P2','7P1','2P2','2P1','7P2','6P1','3P2','4P1','5P2','8P1','1P2'],
+    '2:32':['1P1','16P2','9P1','8P2','5P1','12P2','13P1','4P2','3P1','14P2','11P1','6P2','7P1','10P2','15P1','2P2','2P1','15P2','10P1','7P2','6P1','11P2','14P1','3P2','4P1','13P2','12P1','5P2','8P1','9P2','16P1','1P2'],
+    '4:16':['1P1','4P3','3P2','2P4','2P3','3P1','4P4','1P2','1P3','4P1','3P4','2P2','2P1','3P3','4P2','1P4'],
+    '4:8':['1P1','2P4','2P3','1P2','1P3','2P2','2P1','1P4'],
+    '8:32':['1P1','4P7','3P4','2P6','2P5','3P3','4P8','1P2','1P3','4P5','3P2','2P8','2P7','3P1','4P6','1P4','1P5','4P3','3P8','2P2','2P1','3P7','4P4','1P6','1P7','4P1','3P6','2P4','2P3','3P5','4P2','1P8'],
+    '8:16':['1P1','2P6','2P5','1P2','1P3','2P8','2P7','1P4','1P5','2P2','2P1','1P6','1P7','2P4','2P3','1P8'],
+    '16:32':['1P1','2P15','2P16','1P2','1P3','2P13','2P14','1P4','1P5','2P11','2P12','1P6','1P7','2P9','2P10','1P8','1P9','2P7','2P8','1P10','1P11','2P5','2P6','1P12','1P13','2P3','2P4','1P14','1P15','2P1','2P2','1P16']
+  };
+
+  function ndfSeededSlots(q,size){
+    const groupCount=Math.max(0,...q.map(p=>Number(p.group)||0));
+    const template=NDF_SLOTS[`${groupCount}:${size}`];
+    if(!template)return null;
+    const byLabel=new Map(q.map(p=>[p.seedLabel||`${p.pos}P${p.group}`,p]));
+    const slots=template.map(label=>byLabel.get(label)||null);
+    return slots.filter(Boolean).length===q.length?slots:null;
+  }
+  function seededSlots(q,size){
+    const ndf=ndfSeededSlots(q,size);if(ndf)return ndf;
+    const seeded=[...q].sort((a,b)=>a.pos-b.pos||a.group-b.group).map((p,i)=>({...p,seedNo:i+1,seedLabel:p.seedLabel||`${p.pos}P${p.group}`}));
+    const bySeed=new Map(seeded.map(p=>[p.seedNo,p]));
+    return seedOrder(size).map(seed=>bySeed.get(seed)||null);
+  }
+
+  function cupRoundName(round,total){const left=total/(2**(round-1));if(left===2)return 'Finale';if(left===4)return 'Semifinale';if(left===8)return 'Kvartfinale';if(left===16)return 'Åttedelsfinale';if(left===32)return '1/16-finale';return `Runde ${round}`}
+  function cupFormatDefaults(rounds){const out={};for(let r=1;r<=rounds;r++)out[r]=r===rounds?7:5;return out}
+  function validBestOf(n){n=Number(n);return Number.isInteger(n)&&n>=3&&n<=21&&n%2===1}
+  function loadCupFormat(rounds){const defaults=cupFormatDefaults(rounds);try{const saved=JSON.parse(localStorage.getItem(CUP_FORMAT_KEY)||'{}');for(let r=1;r<=rounds;r++){const n=Number(saved[r]);if(validBestOf(n))defaults[r]=n}}catch{}return defaults}
+  function saveCupFormat(){const values={};document.querySelectorAll('#cupFormatSettings select[data-cup-round]').forEach(s=>values[s.dataset.cupRound]=Number(s.value));try{localStorage.setItem(CUP_FORMAT_KEY,JSON.stringify(values))}catch{}}
+  function formatOptions(selected){return Array.from({length:10},(_,i)=>i*2+3).map(n=>`<option value="${n}" ${n===selected?'selected':''}>Bo${n}</option>`).join('')}
+  function renderCupFormat(q){
+    const btn=$('buildCupBtn');if(!btn)return;let box=$('cupFormatSettings');
+    if(tournament?.owner_id!==me){box?.remove();return}
+    if(isChicagoTournament()){
+      box?.remove();
+      const info=$('cupSetupInfo');
+      if(info)info.textContent=`${q.length} spillere er klare for sluttspillet. Chicago Style spilles 301 DIDO • Cricket • 501 SIDO i hver cupkamp.`;
+      return;
+    }
+    const size=nextPow2(q.length),rounds=Math.log2(size),format=loadCupFormat(rounds);
+    if(!box){box=document.createElement('div');box.id='cupFormatSettings';box.style.cssText='margin:10px 0 12px;padding:10px 12px;border:1px solid rgba(0,234,244,.25);border-radius:12px;background:rgba(9,20,22,.72)';btn.insertAdjacentElement('beforebegin',box)}
+    box.innerHTML=`<div style="display:flex;align-items:flex-end;gap:9px;flex-wrap:wrap"><div style="min-width:145px;margin-right:2px"><small>KAMPFORMAT</small><div style="font-weight:900;font-size:14px;margin-top:3px">Best of per runde</div></div>${Array.from({length:rounds},(_,i)=>i+1).map(r=>`<label class="field" style="margin:0;min-width:112px;flex:1 1 112px"><span style="display:block;font-size:10px;font-weight:800;margin-bottom:3px">${cupRoundName(r,size)}</span><select data-cup-round="${r}" style="margin-top:0;padding:8px 10px">${formatOptions(format[r])}</select></label>`).join('')}</div>`;
+    box.querySelectorAll('select[data-cup-round]').forEach(s=>s.addEventListener('change',saveCupFormat));
+  }
+  function selectedCupFormats(rounds){
+    if(isChicagoTournament())return Object.fromEntries(Array.from({length:rounds},(_,i)=>[i+1,3]));
+    const defaults=loadCupFormat(rounds);document.querySelectorAll('#cupFormatSettings select[data-cup-round]').forEach(s=>{const r=Number(s.dataset.cupRound),n=Number(s.value);if(r&&validBestOf(n))defaults[r]=n});return defaults
+  }
+  async function data(){
+    // Official cup seeding uses human group players and official group matches ONLY.
+    // AI Rival is an optional training opponent and must never occupy a seed.
+    const [groupsResult,playersResult,groupsMatchesResult,cupMatchesResult]=await Promise.all([
+      db.from('tournament_groups').select('*').eq('tournament_id',id).order('group_no'),
+      db.from('tournament_group_players').select('*').eq('tournament_id',id),
+      db.from('tournament_matches').select('*').eq('tournament_id',id).eq('stage','group'),
+      db.from('tournament_matches').select('*').eq('tournament_id',id).eq('stage','cup').order('round_no').order('match_no')
+    ]);
+    const error=[groupsResult,playersResult,groupsMatchesResult,cupMatchesResult].find(result=>result.error)?.error;
+    if(error)throw Error('Kunne ikke lese cupgrunnlaget: '+error.message);
+    const aiId='00000000-0000-4000-8000-0000000000a1';
+    return {
+      groups:groupsResult.data||[],
+      players:(playersResult.data||[]).filter(p=>p.user_id!==aiId),
+      gm:(groupsMatchesResult.data||[]).filter(m=>m.player1_id!==aiId&&m.player2_id!==aiId),
+      cm:cupMatchesResult.data||[]
+    };
+  }
+  function qualifiers(d){
+    const out=[];
+    for(const g of d.groups){
+      const gp=d.players.filter(p=>p.group_id===g.id);
+      const matches=d.gm.filter(m=>m.group_id===g.id);
+      const table=standings(gp,matches);
+      const n=g.advance_mode==='all'?table.length:Math.min(table.length,Number(g.advance_count||0));
+      table.slice(0,n).forEach((p,i)=>out.push({
+        id:p.id,group:g.group_no,pos:i+1,seedLabel:`${i+1}P${g.group_no}`
+      }));
+    }
+    return out;
+  }
+  async function buildCup(){
+    if(tournament?.tournament_type!=='groups_cup'||tournament.owner_id!==me)return;const d=await data();if(d.cm.length)return alert('Cupen er allerede opprettet.');if(d.players.length<2||d.gm.some(m=>!done(m)))return alert('Alle offisielle puljekamper må være ferdige, og minst to ekte spillere må delta.');
+    const q=qualifiers(d);if(q.length<2)return alert('Minst to spillere må gå videre til cup.');
+    const size=nextPow2(q.length),rounds=Math.log2(size),slots=seededSlots(q,size),roundFormats=selectedCupFormats(rounds);
+    const rows=[];let matchNo=1;for(let i=0;i<size/2;i++){const a=slots[i*2],b=slots[i*2+1];const humanA=a||null,humanB=b||null,won=humanA&&!humanB?humanA:!humanA&&humanB?humanB:null;rows.push({tournament_id:id,stage:'cup',round_no:1,match_no:matchNo++,player1_id:humanA?.id||null,player2_id:humanB?.id||null,best_of:roundFormats[1],status:won?'wo':'pending',winner_id:won?.id||null,is_wo:!!won})}
+    for(let r=2;r<=rounds;r++){const count=size/(2**r);for(let i=0;i<count;i++)rows.push({tournament_id:id,stage:'cup',round_no:r,match_no:i+1,player1_id:null,player2_id:null,best_of:roundFormats[r],status:'pending',is_wo:false})}
+    const {error}=await db.from('tournament_matches').insert(rows);if(error)return alert('Kunne ikke opprette cup: '+error.message);const {error:te}=await db.from('tournaments').update({status:'cup',updated_at:new Date().toISOString()}).eq('id',id).eq('owner_id',me);if(te)return alert(te.message);await load();await loadCup();
+  }
+  async function advanceWinners(matches){
+    const needsAdvance=()=>matches.some(source=>{
+      if(!done(source)||!source.winner_id)return false;
+      const target=matches.find(m=>Number(m.round_no)===Number(source.round_no)+1&&Number(m.match_no)===Math.ceil(Number(source.match_no)/2));
+      const field=Number(source.match_no)%2===1?'player1_id':'player2_id';
+      return target&&!target[field];
+    });
+    if(!needsAdvance())return false;
+    if(tournament?.status!=='cup')return true;
+    try{
+      const {data:saved,error}=await db.rpc('advance_tournament_cup',{p_tournament_id:id});
+      if(error){console.warn('Cup advancement failed',error);return true}
+      if(!Array.isArray(saved))return true;
+      for(const row of saved){
+        const existing=matches.find(m=>m.id===row.id);
+        if(existing)Object.assign(existing,row);
+      }
+      return needsAdvance();
+    }catch(error){console.error('Cup advancement failed',error);return true}
+  }
+  function avgLabel(value){const n=Number(value);return Number.isFinite(n)&&n>0?`${n.toFixed(1).replace('.',',')} AVG`:''}
+  function cupPlayerHtml(playerId,seedById,{bye=false,avg=null}={}){
+    if(!playerId)return bye?'<span class="cup-bye">BYE</span>':'<span class="cup-name muted">Venter</span>';
+    const seed=seedById.get(playerId)||'',label=avgLabel(avg);
+    return `${seed?`<span class="cup-seed">${esc(seed)}</span>`:''}<span class="cup-name"><span class="da-role-player" data-user-id="${esc(playerId)}">${esc(names[playerId]||'Spiller')}</span></span>${label?`<span class="cup-avg">${esc(label)}</span>`:''}`;
+  }
+  async function cupMatchAverages(cupMatches){
+    if(isChicagoTournament())return new Map();
+    const completed=(cupMatches||[]).filter(m=>m.status==='finished'&&!m.is_wo&&m.live_match_id);
+    const liveIds=[...new Set(completed.map(m=>m.live_match_id).filter(Boolean))];
+    if(!liveIds.length)return new Map();
+    const {data:visits,error}=await db.from('match_throws')
+      .select('match_id,player_id,score,is_checkout,darts_used')
+      .in('match_id',liveIds);
+    if(error){console.warn('Could not load cup match averages',error);return new Map()}
+    const tournamentByLive=new Map(completed.map(m=>[m.live_match_id,m]));
+    const totals=new Map();
+    for(const visit of visits||[]){
+      const tm=tournamentByLive.get(visit.match_id);
+      if(!tm||![tm.player1_id,tm.player2_id].includes(visit.player_id))continue;
+      const key=`${tm.id}:${visit.player_id}`;
+      const row=totals.get(key)||{score:0,darts:0};
+      row.score+=Number(visit.score||0);
+      row.darts+=visit.is_checkout?Math.max(1,Number(visit.darts_used||3)):3;
+      totals.set(key,row);
+    }
+    const out=new Map();
+    for(const tm of completed){
+      const byPlayer=new Map();
+      for(const playerId of [tm.player1_id,tm.player2_id].filter(Boolean)){
+        const row=totals.get(`${tm.id}:${playerId}`);
+        if(row?.darts)byPlayer.set(playerId,row.score/row.darts*3);
+      }
+      out.set(tm.id,byPlayer);
+    }
+    return out;
+  }
+  async function loadCupLiveLegs(cupMatches){
+    // Tournament matches only hold the final result. While a cup match is
+    // running, its current leg score lives on the linked online match.
+    const liveIds=[...new Set(cupMatches
+      .filter(match=>match.status==='live'&&match.live_match_id)
+      .map(match=>match.live_match_id))];
+    if(!liveIds.length)return;
+    const {data:liveRows,error}=await db.from('matches')
+      .select('id,player1_legs,player2_legs')
+      .in('id',liveIds);
+    if(error){
+      console.warn('Could not load live cup leg scores',error);
+      return;
+    }
+    const byId=new Map((liveRows||[]).map(match=>[match.id,match]));
+    cupMatches.forEach(match=>{
+      if(match.status!=='live')return;
+      const live=byId.get(match.live_match_id);
+      if(!live)return;
+      match._live_player1_legs=Number(live.player1_legs||0);
+      match._live_player2_legs=Number(live.player2_legs||0);
+    });
+  }
+  async function finishTournamentIfNeeded(final,matches){
+    if(!final?.winner_id||tournament?.status!=='cup'||tournament?.owner_id!==me)return;
+    const max=Math.max(...matches.map(m=>Number(m.round_no||0))),last=matches.filter(m=>Number(m.round_no||0)===max);
+    if(last.length!==1||last[0].id!==final.id||Number(final.match_no)!==1)return;
+    const {error}=await db.from('tournaments').update({status:'finished',updated_at:new Date().toISOString()}).eq('id',id).eq('owner_id',me).eq('status','cup');if(error){console.error('Could not archive completed tournament',error);return}tournament.status='finished';setTimeout(()=>{try{if(typeof load==='function')load()}catch{}},80)
+  }
+  async function loadCup(){
+    if(!tournament||!['cup_setup','cup','finished'].includes(tournament.status))return;
+    if(tournament.tournament_type==='cup'&&tournament.status==='cup_setup')return;
+    const d=await data();const setup=$('cupSetup'),lobby=$('cupLobby');if(!setup||!lobby)return;
+    setup.classList.toggle('hidden',tournament.status!=='cup_setup');lobby.classList.toggle('hidden',!['cup','finished'].includes(tournament.status));
+    if(tournament.status==='cup_setup'){const allDone=d.players.length>=2&&d.gm.every(done),q=allDone?qualifiers(d):[];$('cupSetupInfo').textContent=allDone?`${q.length} spillere er klare for sluttspillet. Cupen bruker NDF-oppsett der dette er definert, og viser puljeplassering som 1P1, 2P1 osv.`:'Cupen kan opprettes når alle puljekampene er ferdige.';$('buildCupBtn').disabled=!allDone;if(allDone&&q.length>=2)renderCupFormat(q);return}
+    if(!d.cm.length)return;const advancementBlocked=await advanceWinners(d.cm);const ids=[...new Set(d.cm.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))],missing=ids.filter(x=>!names[x]);if(missing.length){const {data:p}=await db.from('profiles').select('id,username').in('id',missing);Object.assign(names,Object.fromEntries((p||[]).map(x=>[x.id,x.username])))}
+    await loadCupLiveLegs(d.cm);
+    const seedById=new Map(qualifiers(d).map(p=>[p.id,p.seedLabel]));
+    const matchAverages=await cupMatchAverages(d.cm);
+    const max=Math.max(...d.cm.map(m=>m.round_no));
+    const finalRound=d.cm.filter(m=>Number(m.round_no)===Number(max));
+    const final=finalRound.length===1?finalRound[0]:null;
+    $('cupBracket').innerHTML=Array.from({length:max},(_,i)=>i+1).map(r=>{const rm=d.cm.filter(m=>m.round_no===r),bo=rm[0]?.best_of;return `<div class="cup-round"><div class="cup-round-title">${cupRoundName(r,2**max)}${isChicagoTournament()?' • Chicago Style':bo?` • Bo${bo}`:''}</div>${rm.map(m=>{const score=m.status==='live'?`${Number(m._live_player1_legs??m.player1_legs??0)}–${Number(m._live_player2_legs??m.player2_legs??0)}`:done(m)&&!m.is_wo?`${m.player1_legs||0}–${m.player2_legs||0}`:m.is_wo?'WO':'vs',aBye=r===1&&m.is_wo&&!m.player1_id,bBye=r===1&&m.is_wo&&!m.player2_id;const avgs=matchAverages.get(m.id);return `<div class="cup-match" data-match="${m.id}"><div class="cup-player ${m.winner_id===m.player1_id&&m.player1_id?'winner':''}">${aBye&&m.ai_rival_wo?'<span class="cup-bye">AI Rival · WO</span>':cupPlayerHtml(m.player1_id,seedById,{bye:aBye,avg:avgs?.get(m.player1_id)})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner_id===m.player2_id&&m.player2_id?'winner':''}">${bBye&&m.ai_rival_wo?'<span class="cup-bye">AI Rival · WO</span>':cupPlayerHtml(m.player2_id,seedById,{bye:bBye,avg:avgs?.get(m.player2_id)})}</div></div>`}).join('')}</div>`}).join('');
+    syncCupFx(d.cm);
+    window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
+    if(finalRound.length!==1){$('cupProgress').textContent='Cupoppsettet må kontrolleres: ugyldig finalerunde';return}
+    $('cupProgress').textContent=final?.winner_id?`Vinner: ${names[final.winner_id]||'Spiller'}`:`${d.cm.filter(done).length} / ${d.cm.length} kamper ferdig`;
+    if(advancementBlocked)$('cupProgress').textContent+=' • Vinner venter på overføring til neste runde';
+    await finishTournamentIfNeeded(final,d.cm);
+  }
+  document.addEventListener('click',e=>{if(tournament?.tournament_type==='groups_cup'&&e.target.closest('#buildCupBtn'))buildCup()});
+  window.addEventListener('dartarena:tournament-loaded',loadCup);window.dartArenaLoadCup=loadCup;
+  setTimeout(()=>{if(typeof tournament!=='undefined'&&tournament)loadCup()},700);
+})();
