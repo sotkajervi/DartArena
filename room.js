@@ -11,7 +11,30 @@ window.DartArenaChallengeRoomState=Object.freeze({
   stream:()=>stream,
   pictureSession:()=>roomPictureSession,
   remoteStream:()=>remoteStream,
-  isConnected:()=>!!(pc?.connectionState==='connected')
+  isConnected:()=>!!(pc?.connectionState==='connected'),
+  takeMediaOwnership:()=>{
+    const ownership={pictureSession:roomPictureSession||null,zoomSession:null};
+    roomPictureSession=null;
+    window.DartArenaRoomPictureSession=null;
+    return ownership;
+  },
+  releaseForHandoff:()=>{
+    clearInterval(helloTimer);
+    helloTimer=null;
+    clearTimeout(reconnectTimer);
+    reconnectTimer=null;
+    localReady=false;
+    // Close the old RTCPeerConnection without resetting the video nodes
+    // and without stopping tracks, now owned by match.js.
+    if(pc){
+      pc.ontrack=pc.onicecandidate=pc.onconnectionstatechange=pc.oniceconnectionstatechange=null;
+      try{pc.close()}catch{}
+      pc=null;
+    }
+    try{window.DartArenaRoomMedia?.stop?.()}catch(error){console.warn(error)}
+    if(channel){try{db.removeChannel(channel)}catch{}channel=null}
+    stream=null;
+  }
 });
 const isOfferer=()=>profile?.id===c?.challenger_id;
 const setStatus=t=>{$('cameraStatus').textContent=t};
