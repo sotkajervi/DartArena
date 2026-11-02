@@ -12,6 +12,17 @@
   const micLevelFill=document.getElementById('micLevelFill');
   const micLevelText=document.getElementById('micLevelText');
   let zoomSession=null,pictureSession=null;
+  // Transfer processed camera ownership with the stream. Otherwise Zoom-cam
+  // tracking remains owned by the waiting room and cannot follow match turns.
+  window.DartArenaTournamentMediaOwnership={
+    take:()=>{
+      const handoff={zoomSession,pictureSession};
+      zoomSession=null;
+      pictureSession=null;
+      stopMeter().catch(()=>{});
+      return handoff;
+    }
+  };
   const state=()=>window.DartArenaTournamentRoomState;
   const roomStream=()=>state()?.stream?.()||null;
   const roomPublisher=()=>state()?.publisher?.()||null;
