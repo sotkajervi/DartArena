@@ -64,8 +64,8 @@ async function startCamera(){
       video:{...(useZoom?{deviceId:{exact:config.deviceId}}:{}),width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},
       audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}
     };
-    let raw;
-    try{raw=await navigator.mediaDevices.getUserMedia(constraints)}
+    let raw=window.DartArenaCaptureHandoff?.claim()||null;
+    try{if(!raw)raw=await navigator.mediaDevices.getUserMedia(constraints)}
     catch(error){
       if(!useZoom||!['NotFoundError','OverconstrainedError'].includes(error?.name))throw error;
       raw=await navigator.mediaDevices.getUserMedia({
