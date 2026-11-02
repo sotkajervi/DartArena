@@ -4,6 +4,15 @@ let profile,c,other,names={},channel,stream,pc,pendingProposal=null,leaving=fals
 let pendingCandidates=[],reconnectTimer=null,remoteStream=null,helloTimer=null,offerBusy=false;
 let roomPictureSession=null;
 const ICE={iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302','stun:stun2.l.google.com:19302']}]};
+window.DartArenaChallengeRoomState=Object.freeze({
+  client:()=>db,
+  user:()=>profile?.id||null,
+  challengeId:()=>challengeId,
+  stream:()=>stream,
+  pictureSession:()=>roomPictureSession,
+  remoteStream:()=>remoteStream,
+  isConnected:()=>!!(pc?.connectionState==='connected')
+});
 const isOfferer=()=>profile?.id===c?.challenger_id;
 const setStatus=t=>{$('cameraStatus').textContent=t};
 const selectedGame=()=>$('roomGame')?.value||'501';
