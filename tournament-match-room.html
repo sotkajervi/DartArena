@@ -141,6 +141,15 @@
     </section>
   </main>
 
+  <script>
+    // Production tournament matches use the tested seamless handoff by default.
+    // Test Pages keeps the explicit samePageDev=1 opt-in for controlled trials.
+    if(location.hostname==='sotkajervi.github.io'&&!new URLSearchParams(location.search).has('samePageDev')){
+      const url=new URL(location.href);
+      url.searchParams.set('samePageDev','1');
+      history.replaceState(history.state,'',url.href);
+    }
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
   <script src="pre-match-scene.js?v=20261102-real-controls3"></script>
   <script src="match-scene-host.js?v=20261102-live-center5"></script>
