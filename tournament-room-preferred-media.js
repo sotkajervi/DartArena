@@ -322,7 +322,7 @@
   const timer=setInterval(()=>{
     checks++;
     if(checks>40){clearInterval(timer);return}
-    if(typeof me==='undefined'||!me||typeof stream==='undefined'||!stream)return;
+    if(!window.DartArenaTournamentRoomState?.userId?.()||!window.DartArenaTournamentRoomState?.stream?.())return;
     const wanted=localStorage.getItem(CAMERA_KEY)||'';
     const active=currentDeviceId('video');
     if(wanted&&active&&wanted!==active){
