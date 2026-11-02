@@ -7,6 +7,8 @@ const vm=require('node:vm');
 const root=path.resolve(__dirname,'..');
 const historical=fs.readFileSync(path.join(__dirname,'fixtures/tournament-crisis-20261031.js'),'utf8');
 const current=fs.readFileSync(path.join(root,'tournament.js'),'utf8');
+const historicalRefresh=fs.readFileSync(path.join(__dirname,'fixtures/tournament-live-refresh-crisis-20261031.js'),'utf8');
+const currentRefresh=fs.readFileSync(path.join(root,'tournament-live-refresh.js'),'utf8');
 const fetchVisits=fs.readFileSync(path.join(root,'tournament-stats-fetch.js'),'utf8');
 
 // No HTTP requests, database credentials, Supabase access, production writes, or browser network.
@@ -114,7 +116,7 @@ function queryFor(state,table){
   };
   return query;
 }
-function browser(state,source,index){
+function browser(state,source,index,refreshSource){
   const nodes=new Map(),timers=new Map(),channels=[];
   let nextId=0;
   const node=id=>{if(!nodes.has(id))nodes.set(id,makeNode());return nodes.get(id)};
@@ -140,7 +142,7 @@ function browser(state,source,index){
     DartArenaFXLive:null
   };
   const document={
-    getElementById:node,querySelectorAll:()=>[],
+    visibilityState:'visible',getElementById:node,querySelectorAll:()=>[],
     addEventListener(){},body:{append(){}},createElement:makeNode
   };
   const context={
@@ -159,13 +161,15 @@ function browser(state,source,index){
     'Boot replacement must match real source');
   vm.runInNewContext(fetchVisits,context,{filename:'tournament-stats-fetch.js'});
   vm.runInNewContext(injected,context,{filename:'tournament.js'});
+  vm.runInNewContext(refreshSource,context,{filename:'tournament-live-refresh.js'});
   return {
     get err(){return context.__bootError},
     channels,events,
     async fire(table,record){
-      const target='tournament-'+tid;
-      const cb=channels.find(x=>x.name===target)?.listeners
-        .filter(x=>x.params?.table===table).map(x=>x.cb)||[];
+      const cb=channels.flatMap(x=>x.listeners
+        .filter(listener=>listener.params?.table===table &&
+          (x.name==='tournament-'+tid||x.name.startsWith('tournament-live-refresh-')))
+        .map(x=>x.cb));
       assert.ok(cb.length,'tournament Realtime listener must exist for '+table);
       for(const fn of cb)fn({eventType:'UPDATE',new:record});
     },
@@ -183,10 +187,12 @@ function browser(state,source,index){
 const countsObject=state=>Object.fromEntries([...state.counts.entries()].sort((a,b)=>a[0].localeCompare(b[0])));
 const diff=(end,start)=>Object.fromEntries(Object.keys(end).map(key=>[key,end[key]-(start[key]||0)]));
 const sum=o=>Object.values(o).reduce((a,b)=>a+b,0);
-async function scenario(label,source){
+async function scenario(label,source,refreshSource){
   const state=makeState();
-  const browsers=Array.from({length:12},(_,i)=>browser(state,source,i));
+  const browsers=Array.from({length:12},(_,i)=>browser(state,source,i,refreshSource));
   await wait(35);
+  await Promise.all(browsers.map(b=>b.runTimers()));
+  await wait(10);
   assert.equal(browsers.filter(b=>b.err).length,0,'Boot did not fail');
   assert.equal(browsers.every(b=>b.channels.some(ch=>ch.name==='tournament-'+tid)),true,
     'All 12 clients subscribed to tournament Realtime');
@@ -240,13 +246,13 @@ test('Crash-cup transition: 12 clients replay historical and current actual grou
   assert.equal(current.includes("if(['groups','cup_setup'].includes(tournament?.status))"),true);
   assert.equal(historical.includes('const groupAverageCache=new Map()'),false);
   assert.equal(current.includes('const groupAverageCache=new Map()'),true);
-  const crisis=await scenario('crisis-2026-10-31-21:00-popup-off',historical);
-  const repaired=await scenario('main-2026-11-02-popup-off',current);
+  const crisis=await scenario('crisis-2026-10-31-21:00-popup-off',historical,historicalRefresh);
+  const repaired=await scenario('main-2026-11-02-popup-off',current,currentRefresh);
   assert.ok(crisis.cupRealtimeBurstReads>0,'Historical cup updates must reload group data');
   assert.equal(repaired.cupBurstByTable.tournament_groups||0,0,'Current cup updates must not reload groups');
   assert.equal(repaired.cupBurstByTable.match_throws||0,0,'Current cup updates must not re-fetch historical throws');
   assert.ok(crisis.cupRealtimeBurstReads>repaired.cupRealtimeBurstReads,
     'Cup burst must cause fewer reads in current build');
-  console.log('REAL FRONTEND JS / SYNTHETIC DATABASE: LAST GROUP MATCH -> CUP -> 23 REALTIME MATCH EVENTS');
+  console.log('REAL TOURNAMENT + LIVE REFRESH JS / SYNTHETIC DATABASE: LAST GROUP MATCH -> CUP -> 23 REALTIME MATCH EVENTS');
   console.log(JSON.stringify({crisis,current:repaired,avoidedAtCupBurst:crisis.cupRealtimeBurstReads-repaired.cupRealtimeBurstReads},null,2));
 });
