@@ -137,7 +137,7 @@
     const placeholder=el('remotePlaceholder');
     // In the opt-in same-page transition, retain the waiting-room image until
     // a new video track is received. Do not overwrite it with an empty stream.
-    const seamless=new URLSearchParams(location.search).get('samePageDev')==='1';
+    const seamless=(new URLSearchParams(location.search).get('samePageDev')==='1'||new URLSearchParams(location.search).get('challengeSeamlessDev')==='1');
     const incomingStream=seamless?new MediaStream():null;
     const activateIncoming=()=>{
       if(!seamless||!video||video.srcObject===incomingStream)return;
