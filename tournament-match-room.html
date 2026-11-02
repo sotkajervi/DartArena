@@ -53,6 +53,22 @@
       body:not(.match-page) #matchView .da-prematch-scene .camera-controls {margin-top: 6px}
       body:not(.match-page) #matchView .da-prematch-scene .ready-panel {margin-top: 8px}
     }
+    /* Laptop-height fit: ensure the Ready action stays above the fold.
+       Scoped to the waiting room only; the live match retains original sizing. */
+    @media (min-width:901px) and (min-height:650px) and (max-height:1000px) {
+      body:not(.match-page) #matchView #videoGrid > .video-card {
+        height: clamp(125px, 21dvh, 195px);
+      }
+      body:not(.match-page) #matchView > .match-head {margin-bottom:0}
+      body:not(.match-page) #matchView > .card {padding:9px 14px}
+      body:not(.match-page) #matchView > .card h2 {font-size:16px}
+      body:not(.match-page) #matchView .starter-help {margin:2px 0;font-size:11px}
+      body:not(.match-page) #matchView .starter-choice {margin:4px 0 0}
+      body:not(.match-page) #matchView .ready-panel {margin-top:5px}
+      body:not(.match-page) #matchView .ready-state {padding:6px 8px}
+      body:not(.match-page) #matchView .room-actions {margin-top:5px}
+      body:not(.match-page) #matchView .da-prematch-scene {padding:6px 10px}
+    }
     .ready-panel{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
     .ready-state{border:1px solid var(--border);border-radius:14px;padding:14px;background:rgba(255,255,255,.025)}
     .ready-state strong{display:block;margin-bottom:5px}
