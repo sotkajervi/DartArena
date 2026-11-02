@@ -31,6 +31,7 @@
   const PUBLISHER_REPAIR_COOLDOWN_MS=12000;
   const SUBSCRIBER_DISCONNECT_GRACE_MS=7000;
   const SUBSCRIBER_REPAIR_COOLDOWN_MS=12000;
+  // Limit every SFU API attempt, including failed initial connections and watchdog retries.
   const MAX_AUTO_REPAIRS=5;
   const REPAIR_WINDOW_MS=5*60*1000;
   const repairAttempts={publisher:[],subscriber:[]};
@@ -136,7 +137,6 @@
     if(!(()=>{try{return !!localReady}catch{return false}})())return;
     const now=Date.now();
     if(now-lastPublisherRepairAt<PUBLISHER_REPAIR_COOLDOWN_MS)return;
-    if(!allowRepair('publisher'))return;
     lastPublisherRepairAt=now;
     note('PUBLISH reconnect',{reason,previous:publication?.sessionId||'none'});
     // A working camera track can still have a failed WebRTC uplink.
@@ -171,7 +171,6 @@
     if(window.navigator?.onLine===false)return;
     const now=Date.now();
     if(now-lastSubscriberRepairAt<SUBSCRIBER_REPAIR_COOLDOWN_MS)return;
-    if(!allowRepair('subscriber'))return;
     lastSubscriberRepairAt=now;
     subscriberRecoveryPending=false;
     subscriberDisconnectedAt=0;
@@ -225,7 +224,7 @@
     }
 
     const client=ensureClient();
-    if(!client)return;
+    if(!client||!allowRepair('publisher'))return;
     publishing=true;
     lastError='';
     try{
@@ -268,7 +267,7 @@
     }
 
     const client=ensureClient();
-    if(!client)return;
+    if(!client||!allowRepair('subscriber'))return;
 
     const epoch=++subscriptionEpoch;
     subscribing=true;
