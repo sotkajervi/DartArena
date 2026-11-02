@@ -47,7 +47,7 @@ class DartArenaSecureSFU {
     const tracks=(publication.tracks||[]).map(trackName=>({
       location:'remote',sessionId:publication.sessionId,trackName
     }));
-    const result=await this.request('/api/sfu/subscribe',{sessionId,tracks});
+    const result=await this.request('/api/sfu/subscribe',{sessionId,tracks},'POST','subscribe');
     assertCurrent();
     if(!result.sessionDescription)throw new Error('SFU subscribe returned no sessionDescription');
     await pc.setRemoteDescription(result.sessionDescription);
