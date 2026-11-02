@@ -24,9 +24,10 @@
   const safeProfile=()=>{try{return profile||null}catch{return null}};
   const safeMatch=()=>{try{return m||null}catch{return null}};
   const safeOther=()=>{try{return other||null}catch{return null}};
-  const safeStream=()=>{try{return stream||null}catch{return null}};
-  const safeDb=()=>{try{return db||null}catch{return null}};
-  const safeMatchId=()=>{try{return matchId||new URLSearchParams(location.search).get('id')}catch{return new URLSearchParams(location.search).get('id')}};
+  const engine=()=>window.DartArenaMatchEngineState;
+  const safeStream=()=>engine()?.stream?.()||null;
+  const safeDb=()=>engine()?.client?.()||null;
+  const safeMatchId=()=>engine()?.matchId?.()||new URLSearchParams(location.search).get('id');
   const el=id=>document.getElementById(id);
 
   function note(message,data){
