@@ -31,7 +31,33 @@
   const PUBLISHER_REPAIR_COOLDOWN_MS=12000;
   const SUBSCRIBER_DISCONNECT_GRACE_MS=7000;
   const SUBSCRIBER_REPAIR_COOLDOWN_MS=12000;
+  const MAX_AUTO_REPAIRS=5;
+  const REPAIR_WINDOW_MS=5*60*1000;
+  const repairAttempts={publisher:[],subscriber:[]};
+  const repairLimitLogged={publisher:false,subscriber:false};
   const log=[];
+  function allowRepair(side){
+    const now=Date.now();
+    const attempts=repairAttempts[side].filter(t=>now-t<REPAIR_WINDOW_MS);
+    repairAttempts[side]=attempts;
+    if(attempts.length>=MAX_AUTO_REPAIRS){
+      if(!repairLimitLogged[side]){
+        note('AUTO REPAIR LIMIT',{side,max:MAX_AUTO_REPAIRS,windowMs:REPAIR_WINDOW_MS});
+        repairLimitLogged[side]=true;
+      }
+      setStatus('Video kan ikke gjenopprettes automatisk. Prøv manuell tilkobling.');
+      return false;
+    }
+    repairLimitLogged[side]=false;
+    attempts.push(now);
+    return true;
+  }
+  function clearRepairLimits(){
+    repairAttempts.publisher=[];
+    repairAttempts.subscriber=[];
+    repairLimitLogged.publisher=false;
+    repairLimitLogged.subscriber=false;
+  }
 
   const safeProfile=()=>{try{return profile||null}catch{return null}};
   const safeMatch=()=>{try{return m||null}catch{return null}};
@@ -110,6 +136,7 @@
     if(!(()=>{try{return !!localReady}catch{return false}})())return;
     const now=Date.now();
     if(now-lastPublisherRepairAt<PUBLISHER_REPAIR_COOLDOWN_MS)return;
+    if(!allowRepair('publisher'))return;
     lastPublisherRepairAt=now;
     note('PUBLISH reconnect',{reason,previous:publication?.sessionId||'none'});
     // A working camera track can still have a failed WebRTC uplink.
@@ -144,6 +171,7 @@
     if(window.navigator?.onLine===false)return;
     const now=Date.now();
     if(now-lastSubscriberRepairAt<SUBSCRIBER_REPAIR_COOLDOWN_MS)return;
+    if(!allowRepair('subscriber'))return;
     lastSubscriberRepairAt=now;
     subscriberRecoveryPending=false;
     subscriberDisconnectedAt=0;
@@ -457,6 +485,7 @@
 
   window.DartArenaMatchMedia={mode:'sfu',publicationInfo:()=>!stopped&&publication?{sessionId:publication.sessionId,tracks:[...publication.tracks]}:null,stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
     if(stopped||window.DARTARENA_POSTMATCH_MEDIA_STOPPED)return;
+    clearRepairLimits();
     try{sfu?.close()}catch{}
     subscriptionEpoch++;
     subscribing=false;
@@ -477,6 +506,7 @@
   function stopMedia(){
     if(stopped)return;
     stopped=true;
+    clearRepairLimits();
     clearInterval(boot);
     clearInterval(watcher);
     clearInterval(heartbeat);
