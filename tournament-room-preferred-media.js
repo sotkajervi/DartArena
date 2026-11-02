@@ -11,6 +11,8 @@
   const micLevelFill=document.getElementById('micLevelFill');
   const micLevelText=document.getElementById('micLevelText');
   let zoomSession=null,pictureSession=null;
+  const roomStream=()=>window.DartArenaTournamentRoomState?.stream?.()||null;
+  const updateRoomStream=next=>window.DartArenaTournamentRoomState?.setStream?.(next);
   let switching=false;
   let meterContext=null,meterSource=null,meterAnalyser=null,meterFrame=0;
 
@@ -36,7 +38,7 @@
       ?zoomSession.sourceTrack
       :kind==='video'&&pictureSession?.sourceTrack?.readyState==='live'
       ?pictureSession.sourceTrack
-      :stream?.getTracks?.().find(t=>t.kind===kind&&t.readyState==='live');
+      :roomStream()?.getTracks?.().find(t=>t.kind===kind&&t.readyState==='live');
     return track?.getSettings?.().deviceId||'';
   }
 
@@ -176,9 +178,9 @@
     await stopMeter();
     if(zoomSession){zoomSession.stop();zoomSession.sourceTrack?.stop();zoomSession=null;}
     if(pictureSession){pictureSession.stop();pictureSession.sourceTrack?.stop();pictureSession=null;}
-    if(stream){
-      try{stream.getTracks().forEach(track=>track.stop())}catch{}
-      stream=null;
+    if(roomStream()){
+      try{roomStream().getTracks().forEach(track=>track.stop())}catch{}
+      updateRoomStream(null);
     }
     try{sfu?.close()}catch{}
     sfu=null;
@@ -211,27 +213,27 @@
       const wrongCamera=!!wantedCamera&&activeCamera!==wantedCamera;
       const wrongMic=!!wantedMic&&activeMic!==wantedMic;
 
-      if(stream&&(wrongCamera||wrongMic))await tearDownLocalPublication();
-      if(!stream){
+      if(roomStream()&&(wrongCamera||wrongMic))await tearDownLocalPublication();
+      if(!roomStream()){
         const raw=await getPreferredStream(wantedCamera,wantedMic);
-        stream=raw;
+        updateRoomStream(raw);
         const Z=window.DartArenaZoomCam;
         if(Z?.selected(localStorage)){
           const config=Z.loadConfig(localStorage);
           if(config){
-            try{zoomSession=Z.create(raw,config);stream=zoomSession.stream}
+            try{zoomSession=Z.create(raw,config);updateRoomStream(zoomSession.stream)}
             catch(error){console.warn('Tournament Zoomcam unavailable; regular video used',error);zoomSession=null}
           }
         }
       }
 
       if(!zoomSession&&!pictureSession){
-        try{pictureSession=window.DartArenaCameraPicture?.createStream(stream)||null;
-          if(pictureSession)stream=pictureSession.stream;
+        try{pictureSession=window.DartArenaCameraPicture?.createStream(roomStream())||null;
+          if(pictureSession)updateRoomStream(pictureSession.stream);
         }catch(error){console.warn('Turnering: bildejustering ikke tilgjengelig',error)}
       }
-      const videoTrack=zoomSession?.sourceTrack||pictureSession?.sourceTrack||stream.getVideoTracks()[0];
-      const audioTrack=stream.getAudioTracks()[0];
+      const videoTrack=zoomSession?.sourceTrack||pictureSession?.sourceTrack||roomStream().getVideoTracks()[0];
+      const audioTrack=roomStream().getAudioTracks()[0];
       const actualCamera=videoTrack?.getSettings?.().deviceId||'';
       const actualMic=audioTrack?.getSettings?.().deviceId||'';
 
@@ -239,7 +241,7 @@
       if(actualMic)localStorage.setItem(MIC_KEY,actualMic);
 
       const v=$('localVideo');
-      v.srcObject=stream;
+      v.srcObject=roomStream();
       v.muted=true;
       v.playsInline=true;
       await v.play().catch(()=>{});
@@ -257,7 +259,7 @@
         {kind:'tournament_match',id:tournamentMatchId});
       publication=null;
       subscribedPublicationId=null;
-      publication=await sfu.publish(stream);
+      publication=await sfu.publish(roomStream());
 
       setReadyUi();
       setStatus('Valgt kamera klart – dette brukes i kampen');
@@ -331,7 +333,7 @@
     }else if(active){
       clearInterval(timer);
       refreshDevices();
-      startMeter(stream.getAudioTracks?.()[0]);
+      startMeter(roomStream()?.getAudioTracks?.()[0]);
     }
   },250);
 
