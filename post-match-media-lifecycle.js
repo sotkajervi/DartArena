@@ -7,7 +7,7 @@
   if(typeof module==='object'&&module.exports)module.exports={shouldClose};
   if(!root||!root.document||!root.supabase||root.__DartArenaPostMatchLifecycle)return;
   const doc=root.document;
-  const matchId=new URLSearchParams(root.location.search).get('id');
+  const matchId=(root.DartArenaMatchEngineState?.matchId?.()||new URLSearchParams(root.location.search).get('id'));
   if(!matchId)return;
   root.__DartArenaPostMatchLifecycle=true;
   const GRACE_MS=15000;
