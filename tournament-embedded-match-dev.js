@@ -34,10 +34,11 @@
       frame.addEventListener('load',resolve,{once:true});
       frame.addEventListener('error',()=>reject(new Error('Kampmodus kunne ikke åpnes')),{once:true});
     });
+    // Stop the tournament media context BEFORE booting the live-match context.
+    releaseWaitingRoom();
     frame.src=uri.href;
     await Promise.race([loaded,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Tidsavbrudd ved kampstart')),12000))]);
     // A cross-document match must acquire its own authenticated media context.
-    releaseWaitingRoom();
     stage.hidden=false;
     main.hidden=true;
     stage.animate?.([{opacity:0,transform:'translateY(14px)'},{opacity:1,transform:'translateY(0)'}],{duration:480,easing:'ease-out'});
