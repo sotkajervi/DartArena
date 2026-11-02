@@ -1,7 +1,8 @@
 const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK',db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY),$=id=>document.getElementById(id);
 // Share one authenticated client and one Realtime socket across match-room modules.
 window.DartArenaMatchDb=db;
-const matchId=new URLSearchParams(location.search).get('id');
+let matchId=new URLSearchParams(location.search).get('id');
+let matchBootStarted=false;
 let profile,m,other,names={},channel,stream=null,pc=null,remoteStream=null;
 let zoomCamSession=null,pictureSession=null;
 let localReady=false,remoteReady=false,leaving=false,generation=1,lastSignal='START',candidatePath='?';
@@ -11,7 +12,17 @@ const ICE={iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.googl
 const isOfferer=()=>profile?.id===m?.player1_id;
 function debug(extra=''){const e=$('webrtcDebug');if(!e)return;e.textContent=`VIDEO DEBUG • RT:${channel?'ON':'OFF'} | Local:${localReady?'YES':'NO'} | Remote:${remoteReady?'YES':'NO'} | Role:${isOfferer()?'OFFER':'ANSWER'} | Peer:${pc?.connectionState||'none'} | ICE:${pc?.iceConnectionState||'none'} | Path:${candidatePath} | Signal:${pc?.signalingState||'none'} | Gen:${generation} | Recovery:${recoveryState} | Last:${lastSignal}${extra?' | '+extra:''}`}
 function showRemote(text){const p=$('remotePlaceholder');if(p){p.textContent=text;p.classList.remove('hidden')}}function hideRemote(){$('remotePlaceholder')?.classList.add('hidden')}
-(async()=>{const{data:{session}}=await db.auth.getSession();if(!session||!matchId)return location.replace('./');({data:profile}=await db.from('profiles').select('*').eq('id',session.user.id).single());const{data,error}=await db.from('matches').select('*').eq('id',matchId).single();m=data;if(error||!m||![m.player1_id,m.player2_id].includes(profile.id))return location.replace('./');other=profile.id===m.player1_id?m.player2_id:m.player1_id;const{data:p}=await db.from('profiles').select('id,username').in('id',[m.player1_id,m.player2_id]);names=Object.fromEntries((p||[]).map(x=>[x.id,x.username]));$('matchName1').textContent=names[m.player1_id]||'Spiller 1';$('matchName2').textContent=names[m.player2_id]||'Spiller 2';$('localVideoName').textContent=names[profile.id]||'Spiller';$('remoteVideoName').textContent=names[other]||'Spiller';$('matchTitle').textContent=`${names[m.player1_id]||'Spiller 1'} vs ${names[m.player2_id]||'Spiller 2'}`;$('matchFormat').textContent=`${m.game} • BEST OF ${m.legs}`;render();setupChannel()})();
+async function bootMatchWithId(liveMatchId){
+ if(matchBootStarted)return;
+ if(!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(liveMatchId||''))throw Error('Invalid live match ID');
+ matchBootStarted=true;
+ matchId=liveMatchId;
+ try{
+ const{data:{session}}=await db.auth.getSession();if(!session||!matchId)return location.replace('./');({data:profile}=await db.from('profiles').select('*').eq('id',session.user.id).single());const{data,error}=await db.from('matches').select('*').eq('id',matchId).single();m=data;if(error||!m||![m.player1_id,m.player2_id].includes(profile.id))return location.replace('./');other=profile.id===m.player1_id?m.player2_id:m.player1_id;const{data:p}=await db.from('profiles').select('id,username').in('id',[m.player1_id,m.player2_id]);names=Object.fromEntries((p||[]).map(x=>[x.id,x.username]));$('matchName1').textContent=names[m.player1_id]||'Spiller 1';$('matchName2').textContent=names[m.player2_id]||'Spiller 2';$('localVideoName').textContent=names[profile.id]||'Spiller';$('remoteVideoName').textContent=names[other]||'Spiller';$('matchTitle').textContent=`${names[m.player1_id]||'Spiller 1'} vs ${names[m.player2_id]||'Spiller 2'}`;$('matchFormat').textContent=`${m.game} • BEST OF ${m.legs}`;render();setupChannel();
+ }catch(error){matchBootStarted=false;throw error;}
+}
+window.DartArenaBootLiveMatch=bootMatchWithId;
+if(matchId)bootMatchWithId(matchId).catch(error=>console.error('Live match boot failed',error));
 function syncZoomCamTurn(previous,next){
   if(!zoomCamSession||!profile||!next)return;
   const mine=next.status==='playing'&&next.turn_player_id===profile.id;
