@@ -1,0 +1,10 @@
+/* Pre-match scene: isolate all rules to avoid changing existing match layout. */
+.da-prematch-scene{margin:0 0 18px;padding:22px;border:1px solid rgba(0,234,244,.36);border-radius:16px;background:rgba(7,20,27,.92);box-shadow:0 16px 44px rgba(0,0,0,.2);transition:opacity .45s ease,transform .45s ease}
+.da-prematch-scene[hidden]{display:none!important}
+.da-prematch-title{font-weight:900;letter-spacing:.14em;color:#32dcd9;text-align:center;margin-bottom:18px}
+.da-prematch-videos #videoGrid{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;transition:all .5s ease}
+.da-prematch-info{color:#c9e5e6;text-align:center;font-size:13px;margin:18px auto 0;max-width:650px}
+body.da-prematch-active .match-grid{display:none}
+body.da-prematch-active .match-head{opacity:.65}
+@media(max-width:700px){.da-prematch-videos #videoGrid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.da-prematch-scene,.da-prematch-videos #videoGrid{transition:none}}
