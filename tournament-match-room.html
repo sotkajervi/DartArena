@@ -12,6 +12,47 @@
   <link rel="stylesheet" href="waiting-room-audio-cue.css?v=20261013-camoverlay1">
   <link rel="stylesheet" href="pre-match-scene.css?v=20261102-dev2">
   <style>
+    /* Compact desktop waiting room: all controls visible on a laptop screen.
+       Never apply these rules once the original match scene is active. */
+    @media (min-width: 901px) and (min-height: 650px) {
+      body:not(.match-page) #matchView.shell {
+        margin: 10px auto 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      body:not(.match-page) #matchView > .match-head {
+        margin-bottom: 0;
+        gap: 12px;
+      }
+      body:not(.match-page) #matchView > .match-head h1 {font-size: 21px; margin: 1px 0}
+      body:not(.match-page) #matchView > .match-head p {margin: 2px 0; line-height: 1.2}
+      body:not(.match-page) #matchView > #videoGrid {
+        margin-bottom: 0;
+        gap: 10px;
+      }
+      body:not(.match-page) #matchView #videoGrid > .video-card {
+        aspect-ratio: auto;
+        height: clamp(170px, 28dvh, 275px);
+      }
+      body:not(.match-page) #matchView > .camera-controls {margin: 0}
+      body:not(.match-page) #matchView > .camera-controls .field {margin: 4px 0}
+      body:not(.match-page) #matchView > .card {
+        margin-top: 0!important;
+        padding: 12px 16px;
+      }
+      body:not(.match-page) #matchView > .card h2 {font-size: 18px; margin: 2px 0}
+      body:not(.match-page) #matchView > .card > p.muted {margin: 4px 0; font-size: 12px}
+      body:not(.match-page) #matchView .starter-choice {margin: 6px 0 2px}
+      body:not(.match-page) #matchView .ready-panel {margin-top: 8px;gap: 8px}
+      body:not(.match-page) #matchView .ready-state {padding: 8px}
+      body:not(.match-page) #matchView .room-actions {margin-top: 8px}
+      body:not(.match-page) #matchView #roomMessage {margin: 5px 0 0}
+      body:not(.match-page) #matchView .da-prematch-scene {padding: 10px 12px; margin: 0}
+      body:not(.match-page) #matchView .da-prematch-title {margin-bottom: 6px}
+      body:not(.match-page) #matchView .da-prematch-scene .camera-controls {margin-top: 6px}
+      body:not(.match-page) #matchView .da-prematch-scene .ready-panel {margin-top: 8px}
+    }
     .ready-panel{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
     .ready-state{border:1px solid var(--border);border-radius:14px;padding:14px;background:rgba(255,255,255,.025)}
     .ready-state strong{display:block;margin-bottom:5px}
