@@ -11,7 +11,9 @@
   const micLevelFill=document.getElementById('micLevelFill');
   const micLevelText=document.getElementById('micLevelText');
   let zoomSession=null,pictureSession=null;
-  const roomStream=()=>window.DartArenaTournamentRoomState?.stream?.()||null;
+  const state=()=>window.DartArenaTournamentRoomState;
+  const roomStream=()=>state()?.stream?.()||null;
+  const roomPublisher=()=>state()?.publisher?.()||null;
   const updateRoomStream=next=>window.DartArenaTournamentRoomState?.setStream?.(next);
   let switching=false;
   let meterContext=null,meterSource=null,meterAnalyser=null,meterFrame=0;
@@ -182,10 +184,10 @@
       try{roomStream().getTracks().forEach(track=>track.stop())}catch{}
       updateRoomStream(null);
     }
-    try{sfu?.close()}catch{}
-    sfu=null;
-    publication=null;
-    subscribedPublicationId=null;
+    try{roomPublisher()?.close()}catch{}
+    state()?.setPublisher?.(null);
+    state()?.setPublication?.(null);
+    state()?.resetSubscription?.();
     const video=$('localVideo');
     if(video){video.pause?.();video.srcObject=null}
   }
@@ -250,16 +252,17 @@
       await refreshDevices();
 
       setStatus('Publiserer valgt kamera via Cloudflare…');
-      try{sfu?.close()}catch{}
+      try{roomPublisher()?.close()}catch{}
       const selected=await window.DartArenaMediaMode?.getMode?.()||'legacy';
       const secure=selected==='sfu';
       const SfuClient=secure?window.DartArenaSecureSFU:window.DartArenaSFU;
       if(!SfuClient)throw Error('Valgt videosystem er ikke tilgjengelig');
-      sfu=new SfuClient(secure?window.DARTARENA_SFU.secureWorkerUrl:window.DARTARENA_SFU.workerUrl,
-        {kind:'tournament_match',id:tournamentMatchId});
-      publication=null;
-      subscribedPublicationId=null;
-      publication=await sfu.publish(roomStream());
+      const nextSfu=new SfuClient(secure?window.DARTARENA_SFU.secureWorkerUrl:window.DARTARENA_SFU.workerUrl,
+        {kind:'tournament_match',id:state()?.tournamentMatchId?.()});
+      state()?.setPublisher?.(nextSfu);
+      state()?.setPublication?.(null);
+      state()?.resetSubscription?.();
+      state()?.setPublication?.(await nextSfu.publish(roomStream()));
 
       setReadyUi();
       setStatus('Valgt kamera klart – dette brukes i kampen');
@@ -267,7 +270,7 @@
       if(remotePublication)await subscribeRemote(remotePublication);
     }catch(error){
       console.error('Tournament preferred camera error',error);
-      publication=null;
+      state()?.setPublication?.(null);
       setReadyUi();
       $('localPlaceholder')?.classList.remove('hidden');
       if($('localPlaceholder'))$('localPlaceholder').textContent='Kamera ikke startet';
