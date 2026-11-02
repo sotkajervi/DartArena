@@ -21,6 +21,19 @@ async function bootMatchWithId(liveMatchId){
  const{data:{session}}=await db.auth.getSession();if(!session||!matchId)return location.replace('./');({data:profile}=await db.from('profiles').select('*').eq('id',session.user.id).single());const{data,error}=await db.from('matches').select('*').eq('id',matchId).single();m=data;if(error||!m||![m.player1_id,m.player2_id].includes(profile.id))return location.replace('./');other=profile.id===m.player1_id?m.player2_id:m.player1_id;const{data:p}=await db.from('profiles').select('id,username').in('id',[m.player1_id,m.player2_id]);names=Object.fromEntries((p||[]).map(x=>[x.id,x.username]));$('matchName1').textContent=names[m.player1_id]||'Spiller 1';$('matchName2').textContent=names[m.player2_id]||'Spiller 2';$('localVideoName').textContent=names[profile.id]||'Spiller';$('remoteVideoName').textContent=names[other]||'Spiller';$('matchTitle').textContent=`${names[m.player1_id]||'Spiller 1'} vs ${names[m.player2_id]||'Spiller 2'}`;$('matchFormat').textContent=`${m.game} • BEST OF ${m.legs}`;render();setupChannel();
  }catch(error){matchBootStarted=false;throw error;}
 }
+// Explicit read-only interface for migrating dependent scripts away from shared globals.
+window.DartArenaMatchEngineState=Object.freeze({
+  match:()=>m,
+  matchId:()=>matchId,
+  profile:()=>profile,
+  opponentId:()=>other,
+  client:()=>db,
+  channel:()=>channel,
+  stream:()=>stream,
+  peer:()=>pc,
+  ready:()=>({local:localReady,remote:remoteReady}),
+  isLeaving:()=>leaving
+});
 window.DartArenaBootLiveMatch=bootMatchWithId;
 if(matchId)bootMatchWithId(matchId).catch(error=>console.error('Live match boot failed',error));
 function syncZoomCamTurn(previous,next){
