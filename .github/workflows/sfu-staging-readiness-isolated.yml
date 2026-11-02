@@ -1,0 +1,26 @@
+name: Cloudflare SFU staging readiness (safe, read-only)
+on:
+  push:
+    branches:
+      - test/cloudflare-sfu-readiness-20261102
+permissions:
+  contents: read
+jobs:
+  staging-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch staging frontend sources for comparison (read-only)
+        run: git fetch --no-tags --depth=1 origin refs/heads/security/sfu-auth-staging-20261028
+      - name: Check safe probe syntax
+        run: node --check tests/sfu-staging-readiness-probe.cjs
+      - name: Probe isolated Worker and preview, no authentication or video traffic
+        run: node tests/sfu-staging-readiness-probe.cjs
+# Never accesses production Worker or DartArena production API.
+# No login, sessions, mutations, load generation, secrets or Cloudflare deploy.
