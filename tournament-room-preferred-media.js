@@ -4,6 +4,7 @@
   if(window.__dartArenaTournamentPreferredMedia)return;
   window.__dartArenaTournamentPreferredMedia=true;
 
+  const $=id=>document.getElementById(id);
   const CAMERA_KEY='dartarena-preferred-camera';
   const MIC_KEY='dartarena-preferred-microphone';
   const cameraSelect=document.getElementById('cameraDeviceSelect');
