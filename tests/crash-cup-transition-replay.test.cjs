@@ -9,6 +9,8 @@ const historical=fs.readFileSync(path.join(__dirname,'fixtures/tournament-crisis
 const current=fs.readFileSync(path.join(root,'tournament.js'),'utf8');
 const historicalRefresh=fs.readFileSync(path.join(__dirname,'fixtures/tournament-live-refresh-crisis-20261031.js'),'utf8');
 const currentRefresh=fs.readFileSync(path.join(root,'tournament-live-refresh.js'),'utf8');
+const historicalCup=fs.readFileSync(path.join(__dirname,'fixtures/tournament-cup-crisis-20261031.js'),'utf8');
+const currentCup=fs.readFileSync(path.join(root,'tournament-cup.js'),'utf8');
 const fetchVisits=fs.readFileSync(path.join(root,'tournament-stats-fetch.js'),'utf8');
 
 // No HTTP requests, database credentials, Supabase access, production writes, or browser network.
@@ -116,13 +118,14 @@ function queryFor(state,table){
   };
   return query;
 }
-function browser(state,source,index,refreshSource){
+function browser(state,source,index,refreshSource,cupSource){
   const nodes=new Map(),timers=new Map(),channels=[];
   let nextId=0;
   const node=id=>{if(!nodes.has(id))nodes.set(id,makeNode());return nodes.get(id)};
   const db={
     auth:{getSession:async()=>({data:{session:{user:{id:users[index]},access_token:'SIMULATION_ONLY'}},error:null})},
     from(table){return queryFor(state,table)},
+    rpc(name){if(name==='advance_tournament_cup')return Promise.resolve({data:[],error:null});throw Error('Unexpected RPC '+name)},
     channel(name){
       const ch={name,listeners:[],on(kind,params,cb){this.listeners.push({kind,params,cb});return this},
         subscribe(cb){cb?.('SUBSCRIBED');channels.push(this);return this}};
@@ -138,7 +141,7 @@ function browser(state,source,index,refreshSource){
       sync(){}
     },
     addEventListener(kind,cb){events.push({kind,cb})},
-    dispatchEvent(){},
+    dispatchEvent(ev){for(const entry of events.filter(x=>x.kind===ev.type))entry.cb(ev)},
     DartArenaFXLive:null
   };
   const document={
@@ -162,6 +165,7 @@ function browser(state,source,index,refreshSource){
   vm.runInNewContext(fetchVisits,context,{filename:'tournament-stats-fetch.js'});
   vm.runInNewContext(injected,context,{filename:'tournament.js'});
   vm.runInNewContext(refreshSource,context,{filename:'tournament-live-refresh.js'});
+  vm.runInNewContext(cupSource,context,{filename:'tournament-cup.js'});
   return {
     get err(){return context.__bootError},
     channels,events,
@@ -187,9 +191,9 @@ function browser(state,source,index,refreshSource){
 const countsObject=state=>Object.fromEntries([...state.counts.entries()].sort((a,b)=>a[0].localeCompare(b[0])));
 const diff=(end,start)=>Object.fromEntries(Object.keys(end).map(key=>[key,end[key]-(start[key]||0)]));
 const sum=o=>Object.values(o).reduce((a,b)=>a+b,0);
-async function scenario(label,source,refreshSource){
+async function scenario(label,source,refreshSource,cupSource){
   const state=makeState();
-  const browsers=Array.from({length:12},(_,i)=>browser(state,source,i,refreshSource));
+  const browsers=Array.from({length:12},(_,i)=>browser(state,source,i,refreshSource,cupSource));
   await wait(35);
   await Promise.all(browsers.map(b=>b.runTimers()));
   await wait(10);
@@ -246,13 +250,13 @@ test('Crash-cup transition: 12 clients replay historical and current actual grou
   assert.equal(current.includes("if(['groups','cup_setup'].includes(tournament?.status))"),true);
   assert.equal(historical.includes('const groupAverageCache=new Map()'),false);
   assert.equal(current.includes('const groupAverageCache=new Map()'),true);
-  const crisis=await scenario('crisis-2026-10-31-21:00-popup-off',historical,historicalRefresh);
-  const repaired=await scenario('main-2026-11-02-popup-off',current,currentRefresh);
+  const crisis=await scenario('crisis-2026-10-31-21:00-popup-off',historical,historicalRefresh,historicalCup);
+  const repaired=await scenario('main-2026-11-02-popup-off',current,currentRefresh,currentCup);
   assert.ok(crisis.cupRealtimeBurstReads>0,'Historical cup updates must reload group data');
   assert.equal(repaired.cupBurstByTable.tournament_groups||0,0,'Current cup updates must not reload groups');
   assert.equal(repaired.cupBurstByTable.match_throws||0,0,'Current cup updates must not re-fetch historical throws');
   assert.ok(crisis.cupRealtimeBurstReads>repaired.cupRealtimeBurstReads,
     'Cup burst must cause fewer reads in current build');
-  console.log('REAL TOURNAMENT + LIVE REFRESH JS / SYNTHETIC DATABASE: LAST GROUP MATCH -> CUP -> 23 REALTIME MATCH EVENTS');
+  console.log('REAL TOURNAMENT + LIVE REFRESH + CUP JS / SYNTHETIC DATABASE: LAST GROUP MATCH -> CUP -> 23 REALTIME MATCH EVENTS');
   console.log(JSON.stringify({crisis,current:repaired,avoidedAtCupBurst:crisis.cupRealtimeBurstReads-repaired.cupRealtimeBurstReads},null,2));
 });
