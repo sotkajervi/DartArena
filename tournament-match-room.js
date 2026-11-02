@@ -84,7 +84,19 @@ function cameraErrorText(e){
   return e?.message||'Kamera kunne ikke startes.';
 }
 function matchUrl(liveId){return `match.html?id=${encodeURIComponent(liveId)}&tournamentMatch=${encodeURIComponent(tournamentMatchId)}`;}
-function goToMatch(liveId){cleanup();location.href=matchUrl(liveId);}
+let transitionStarted=false;
+async function goToMatch(liveId){
+  if(transitionStarted||!liveId)return;
+  transitionStarted=true;
+  const bridge=window.DartArenaTournamentHandoff;
+  if(typeof bridge?.enter==='function'){
+    try{
+      if(await bridge.enter({liveMatchId:liveId,tournamentMatchId,releaseWaitingRoom:cleanup})===true)return;
+    }catch(error){console.error('Embedded match handoff failed',error)}
+  }
+  cleanup();
+  location.href=matchUrl(liveId);
+}
 
 async function loadLiveMatch(liveId){
   const {data,error}=await db.from('matches')
