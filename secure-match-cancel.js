@@ -32,19 +32,23 @@
     });
   }
 
+  const params=new URLSearchParams(location.search);
+  const inTournamentRoom=location.pathname.endsWith('/tournament-match-room')||location.pathname.endsWith('/tournament-match-room.html');
+  const isTournament=()=>params.has('tournamentMatch')||(inTournamentRoom&&params.get('samePageDev')==='1');
+
   function installCloseGuard(){
     const close=document.getElementById('closeMatchBtn');
     const cancel=document.getElementById('cancelMatchBtn');
     if(!close||close.dataset.dartArenaCloseGuard==='1')return !!close;
     close.dataset.dartArenaCloseGuard='1';
-    if(!new URLSearchParams(location.search).has('tournamentMatch'))close.textContent='Åpne lobby i ny fane';
+    if(!isTournament())close.textContent='Åpne lobby i ny fane';
     close.addEventListener('click',async event=>{
-      const isTournament=new URLSearchParams(location.search).has('tournamentMatch');
+      const tournamentRoom=isTournament();
       // Preserve the tournament room's existing close behavior.
-      if(isTournament&&(!cancel||cancel.classList.contains('hidden')))return;
+      if(tournamentRoom&&(!cancel||cancel.classList.contains('hidden')))return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      if(!isTournament){
+      if(!tournamentRoom){
         // This runs directly on the player's click: no async popup blocking.
         // Reuse an existing lobby tab if this button is clicked again.
         const lobbyTab=window.open('./','dartarena-lobby');
@@ -66,9 +70,8 @@
     setTimeout(()=>clearInterval(closeTimer),10000);
   }
 
-  const params=new URLSearchParams(location.search);
   // Tournament matches have their own RPC that resets the bracket match for restart.
-  if(params.get('tournamentMatch'))return;
+  if(isTournament())return;
   const matchId=params.get('id');
   if(!matchId)return;
 
