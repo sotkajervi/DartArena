@@ -121,8 +121,8 @@ async function goToMatch(liveId){
       if(await bridge.enter({
         liveMatchId:liveId,
         tournamentMatchId,
-        releaseWaitingRoom:()=>cleanup(),
-        transferCapture:()=>cleanup({preserveCapture:true})
+        releaseWaitingRoom:()=>cleanup({keepCapture:true}),
+        transferCapture:()=>window.DartArenaCaptureHandoff?.transfer?.(stream)===true
       })===true)return;
     }catch(error){console.error('Same-page match handoff failed',error)}
   }
@@ -635,7 +635,7 @@ async function toggleRemoteAudio(){
   try{await v.play();}catch{v.muted=true;b.textContent='Slå på lyd';}
 }
 
-function cleanup({preserveCapture=false}={}){
+function cleanup({preserveCapture=false,keepCapture=false}={}){
   // Only the same-document match engine may take ownership of the local stream.
   // Normal navigation must always close the camera and microphone.
   const capturePreserved=preserveCapture&&
@@ -656,7 +656,7 @@ function cleanup({preserveCapture=false}={}){
   coinFlipFallback=null;
   try{sfu?.close();}catch{}
   sfu=null;
-  if(!capturePreserved)stream?.getTracks().forEach(t=>t.stop());
+  if(!capturePreserved&&!keepCapture)stream?.getTracks().forEach(t=>t.stop());
   stream=null;
   if(channel){try{db.removeChannel(channel);}catch{}}
   channel=null;
