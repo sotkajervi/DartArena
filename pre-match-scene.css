@@ -8,3 +8,18 @@ body.da-prematch-active .match-grid{display:none}
 body.da-prematch-active .match-head{opacity:.65}
 @media(max-width:700px){.da-prematch-videos #videoGrid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.da-prematch-scene,.da-prematch-videos #videoGrid{transition:none}}
+
+/* Reuse the waiting-room visual language while keeping match-mode untouched. */
+.da-prematch-scene .camera-controls{margin-top:18px}
+.da-prematch-scene .room-device-controls{display:flex;gap:12px;flex-wrap:wrap}
+.da-prematch-scene .room-device-controls .field{flex:1;min-width:180px}
+.da-prematch-scene .da-prematch-ready{margin-top:20px}
+.da-prematch-scene .ready-panel{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.da-prematch-scene .ready-state{border:1px solid var(--border);border-radius:14px;padding:14px;background:rgba(255,255,255,.025)}
+.da-prematch-scene .ready-state strong{display:block;margin-bottom:5px}
+.da-prematch-scene .ready-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6e7f83;margin-right:7px}
+.da-prematch-scene .ready-dot.on{background:var(--cyan);box-shadow:0 0 12px var(--cyan)}
+.da-prematch-scene .room-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.da-prematch-scene .starter-choice{max-width:420px;margin-top:18px}
+.da-prematch-scene .starter-help{margin-top:7px;font-size:13px}
+@media(max-width:700px){.da-prematch-scene .ready-panel{grid-template-columns:1fr}.da-prematch-scene .starter-choice{max-width:none}}
