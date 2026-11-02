@@ -4,7 +4,7 @@
 (()=>{
  'use strict';
  if(window.DartArenaMatchSceneHost)return;
- let stage=null,videoAnchor=null,active=false,lobbyButton=null,lobbyAnchor=null;
+ let stage=null,videoAnchor=null,active=false,lobbyButton=null,lobbyAnchor=null,waitingMain=null,matchHeader=null,oldHeaderMarkup=null;
  const MATCH_STYLES=[
   'match-controls.css?v=20260928-ui2',
   'opponent-focus.css?v=20261026-owncam-pip1',
@@ -27,6 +27,7 @@
  async function prepare(){
   if(stage)return stage;
   const main=document.getElementById('matchView');
+  waitingMain=main;
   const video=document.getElementById('videoGrid');
   if(!main||!video)throw Error('Tournament room layout unavailable');
   // Match controls and media CSS rely on these exact card IDs.
@@ -53,6 +54,7 @@
   if(!response.ok)throw Error('Originalt kamprom kunne ikke lastes ('+response.status+')');
   const doc=new DOMParser().parseFromString(await response.text(),'text/html');
   const original=doc.querySelector('#matchView');
+  matchHeader=doc.querySelector('body > header')?.innerHTML||null;
   if(!original)throw Error('Originalt kampoppsett mangler i match.html');
   const originalGrid=original.querySelector('#videoGrid');
   if(!originalGrid)throw Error('Originalt kampoppsett mangler videorutenettet');
@@ -72,31 +74,47 @@
     lobbyButton.classList.remove('hidden');
   }
   main.appendChild(stage);
+  // Preload the original match CSS before exposing the live match scene.
+  loadMatchStyles();
   return stage;
  }
  async function enter(){
   if(active)return;
   await prepare();
-  loadMatchStyles();
+  // Preserve the live video elements, but use match.html's exact hierarchy:
+  // main.shell > section#matchView > #videoGrid + .match-grid.
   const video=document.getElementById('videoGrid');
-  const old=video.getBoundingClientRect();
-  stage.hidden=false;
-  stage.querySelector('#daMatchVideoSlot').appendChild(video);
+  const waiting=waitingMain;
+  waiting.id='daTournamentWaitingView';
+  stage.id='matchView';
+  stage.querySelector('#daMatchVideoSlot').replaceWith(video);
   video.classList.remove('waiting-video-grid');
-  const current=video.getBoundingClientRect();
-  if(typeof video.animate==='function'&&!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches&&old.width&&current.width){
-   await video.animate([{transform:`translate(${old.left-current.left}px,${old.top-current.top}px) scale(${old.width/current.width})`},{transform:'none'}],{duration:480,easing:'ease-out'}).finished.catch(()=>{});
+  for(const node of [...waiting.children])if(node!==stage)node.hidden=true;
+  const header=document.querySelector('body > header');
+  if(header&&matchHeader){
+    oldHeaderMarkup=header.innerHTML;
+    header.innerHTML=matchHeader;
   }
-  for(const node of [...document.getElementById('matchView').children])if(node!==stage)node.hidden=true;
+  stage.hidden=false;
+  document.body.classList.add('match-page');
+  document.body.classList.remove('da-prematch-active');
   active=true;
  }
  function restore(){
   if(!stage||!active)return;
-  videoAnchor.after(document.getElementById('videoGrid'));
+  const video=document.getElementById('videoGrid');
+  videoAnchor.after(video);
   if(lobbyButton&&lobbyAnchor)lobbyAnchor.after(lobbyButton);
-  document.getElementById('videoGrid').classList.add('waiting-video-grid');
-  for(const node of [...document.getElementById('matchView').children])if(node!==stage)node.hidden=false;
+  video.classList.add('waiting-video-grid');
+  for(const node of [...waitingMain.children])if(node!==stage)node.hidden=false;
+  stage.id='daMatchStage';
+  waitingMain.id='matchView';
   stage.hidden=true;
+  if(oldHeaderMarkup!==null){
+    const header=document.querySelector('body > header');
+    if(header)header.innerHTML=oldHeaderMarkup;
+  }
+  document.body.classList.remove('match-page','match-tv-layout','standard-tv-layout','opponent-focus');
   active=false;
  }
  window.DartArenaMatchSceneHost={prepare,enter,restore,isActive:()=>active};
