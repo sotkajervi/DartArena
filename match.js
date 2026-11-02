@@ -86,7 +86,7 @@ async function startCamera(){
       pictureSession=ownership?.pictureSession||null;
       if(zoomCamSession){
         window.DartArenaX01ZoomSession=zoomCamSession;
-        if(m?.turn_player_id===profile?.id&&m?.status==='playing')zoomCamSession.resumeTracking?.();
+        if(m?.turn_player_id===profile?.id&&m?.status==='playing')zoomCamSession.resetToT20?.();
         else zoomCamSession.pauseTracking?.();
       }
     }
