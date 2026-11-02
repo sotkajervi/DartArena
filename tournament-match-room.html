@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="button-theme.css?v=20261009-brandcyan1">
   <link rel="stylesheet" href="room-device-selector.css?v=20260929-device1">
   <link rel="stylesheet" href="waiting-room-audio-cue.css?v=20261013-camoverlay1">
+  <link rel="stylesheet" href="pre-match-scene.css?v=20261102-dev2">
   <style>
     .ready-panel{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
     .ready-state{border:1px solid var(--border);border-radius:14px;padding:14px;background:rgba(255,255,255,.025)}
@@ -30,7 +31,7 @@
     <div class="live"><i></i> TURNERINGSKAMP</div>
   </header>
 
-  <main class="shell">
+  <main class="shell" id="matchView">
     <div class="match-head">
       <div>
         <small>VENTEROM</small>
@@ -41,7 +42,7 @@
       <div class="top-actions"><button id="openLobbyTabBtn" class="outline" type="button">Åpne lobby i ny fane</button><button id="backBtn" class="outline">Til turnering</button></div>
     </div>
 
-    <div class="video-grid waiting-video-grid">
+    <div id="videoGrid" class="video-grid waiting-video-grid">
       <div class="video-card">
         <video id="localVideo" autoplay playsinline muted></video>
         <div id="localPlaceholder" class="video-placeholder">Starter kamera…</div>
@@ -100,6 +101,7 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+  <script src="pre-match-scene.js?v=20261102-dev2"></script>
   <script src="match-capture-handoff.js?v=20261102-dev1"></script><script src="sfu-config.js?v=20261031-owner1"></script>
   <script src="sfu-client.js?v=20260928-ui2"></script><script src="sfu-client-secure.js?v=20261031-owner1"></script><script src="media-transport.js?v=20261031-owner1"></script>
   <script src="room-coin-flip.js?v=20261002-coin9"></script>
