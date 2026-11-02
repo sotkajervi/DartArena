@@ -122,7 +122,7 @@ async function goToMatch(liveId){
         liveMatchId:liveId,
         tournamentMatchId,
         releaseWaitingRoom:()=>cleanup({keepCapture:true}),
-        transferCapture:()=>window.DartArenaCaptureHandoff?.transfer?.(stream)===true
+        transferCapture:()=>!!stream?.getVideoTracks?.().some(t=>t.readyState==='live')&&!!stream?.getAudioTracks?.().some(t=>t.readyState==='live')&&window.DartArenaCaptureHandoff?.transfer?.(stream)===true
       })===true)return;
     }catch(error){console.error('Same-page match handoff failed',error)}
   }
