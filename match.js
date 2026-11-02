@@ -1,3 +1,5 @@
+(()=>{
+'use strict';
 const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK',db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY),$=id=>document.getElementById(id);
 // Share one authenticated client and one Realtime socket across match-room modules.
 window.DartArenaMatchDb=db;
@@ -130,3 +132,5 @@ if(zoomCamSession){zoomCamSession.stop();zoomCamSession.sourceTrack?.stop();zoom
 $('cancelMatchBtn').onclick=async()=>{if(!m||m.status!=='playing'||!confirm(window.DartArenaI18n?.t?.('Vil du avbryte kampen?')||'Vil du avbryte kampen?'))return;const{error}=await db.from('matches').update({status:'cancelled',finished_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',m.id);if(error)return $('matchMessage').textContent='Kunne ikke avbryte: '+error.message;await setPlayersUnavailable();window.opener?.postMessage({type:'dartarena-match-ended',id:m.id},location.origin);window.close()};
 $('closeMatchBtn').onclick=()=>{if(m?.status==='playing'&&!confirm(window.DartArenaI18n?.t?.('Kampen pågår fortsatt. Lukk kampfanen?')||'Kampen pågår fortsatt. Lukk kampfanen?'))return;window.close()};
 window.addEventListener('beforeunload',cleanup);
+
+})();
