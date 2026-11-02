@@ -36,6 +36,18 @@ let remoteLastProgress=Date.now();
 let remoteRetryAfter=0;
 let queuedRemotePublication=null;
 let embeddedPreMatchControls=null;
+window.DartArenaTournamentRoomState=Object.freeze({
+  tournamentMatchId:()=>tournamentMatchId,
+  tournamentMatch:()=>tm,
+  userId:()=>me,
+  opponentId:()=>other,
+  client:()=>db,
+  channel:()=>channel,
+  stream:()=>stream,
+  publisher:()=>sfu,
+  ready:()=>({local:localReady,remote:remoteReady,connected:roomConnected}),
+  isStarting:()=>starting
+});
 function syncEmbeddedPreMatch(){
   embeddedPreMatchControls?.update({
     starterChoice:starterValueForLocal(),localReady,remoteReady,
