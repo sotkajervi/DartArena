@@ -49,8 +49,9 @@ function fixture(){
     pc.onicecandidate=e=>{if(e.candidate)post('ice',{candidate:e.candidate.toJSON()})};
     pc.onconnectionstatechange=()=>{if(pc?.connectionState==='connected'&&!connectedAt)
       connectedAt=performance.now()-started};
-    pc.ontrack=e=>{remote.srcObject=e.streams[0]||new MediaStream([e.track]);
-      remote.play().catch(err=>errors.push('play: '+err.message))};
+    pc.ontrack=e=>{const incoming=e.streams[0]||new MediaStream([e.track]);
+      if(remote.srcObject!==incoming)remote.srcObject=incoming;
+      if(remote.paused)remote.play().catch(err=>{if(err.name!=='AbortError')errors.push('play: '+err.message)})};
     pc.ondatachannel=e=>wireData(e.channel);
     for(const track of stream.getTracks())pc.addTrack(track,stream);
     if(Number(me.slice(1))%2===0)wireData(pc.createDataChannel('scoring'));
