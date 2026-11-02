@@ -35,6 +35,15 @@ let remoteLastTime=0;
 let remoteLastProgress=Date.now();
 let remoteRetryAfter=0;
 let queuedRemotePublication=null;
+let embeddedPreMatchControls=null;
+function syncEmbeddedPreMatch(){
+  embeddedPreMatchControls?.update({
+    starterChoice:starterValueForLocal(),localReady,remoteReady,
+    localName:names[me]||'Du',remoteName:names[other]||'Motstander',
+    starting,connected:roomConnected&&!remoteTransportMismatch,
+    message:$('roomMessage')?.textContent||''
+  });
+}
 
 function setStatus(text){$('cameraStatus').textContent=text;}
 function starterValueForLocal(){
@@ -48,6 +57,7 @@ function starterText(){
 function setStarterUi(){
   const select=$('starterChoice');
   if(select)select.value=starterValueForLocal();
+  syncEmbeddedPreMatch();
 }
 function setReadyUi(){
   $('localReadyDot').classList.toggle('on',localReady);
@@ -56,6 +66,7 @@ function setReadyUi(){
   $('remoteReadyText').textContent=remoteReady?'Klar':'Ikke klar';
   $('readyBtn').textContent=localReady?'Ikke klar':'Jeg er klar';
   $('readyBtn').disabled=!roomConnected||starting||remoteTransportMismatch;
+  syncEmbeddedPreMatch();
 }
 function resetReadyForStarterChange(message=''){
   localReady=false;
@@ -177,6 +188,19 @@ async function boot(){
   $('retryCameraBtn').onclick=startCamera;
   $('remoteAudioBtn').onclick=toggleRemoteAudio;
   $('starterChoice').onchange=changeStarterChoice;
+  // The existing waiting room remains authoritative until scene migration is enabled.
+  // Adapter is shared so both UIs use the exact same server-backed readiness logic.
+  if(window.DartArenaPreMatchScene){
+    embeddedPreMatchControls=window.DartArenaPreMatchScene.bindRoomControls({
+      setStarter:async choice=>{
+        if(!['me','opponent','random'].includes(choice))return;
+        $('starterChoice').value=choice;
+        await changeStarterChoice();
+      },
+      setReady:()=>toggleReady()
+    });
+    syncEmbeddedPreMatch();
+  }
 
   setupChannel();
 }
@@ -477,6 +501,7 @@ async function toggleReady(){
   localReady=!localReady;
   setReadyUi();
   $('roomMessage').textContent=localReady?`Du er klar. Starter: ${starterText()}. Venter på motstanderen.`:'';
+  syncEmbeddedPreMatch();
   await sendState();
   await maybeStart();
 }
