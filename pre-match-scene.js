@@ -81,7 +81,32 @@
   document.body.classList.remove('da-prematch-active');
   try{await moveVideo(null,true)}finally{scene.hidden=true;phase='match';transitionInProgress=false}
  }
- window.DartArenaPreMatchScene={attach,preMatch,match,phase:()=>phase};
+ function bindRoomControls(adapter){
+  attach();
+  if(!adapter||typeof adapter.setStarter!=='function'||typeof adapter.setReady!=='function')throw Error('Pre-match adapter missing');
+  const starter=document.getElementById('preStarterChoice');
+  const ready=document.getElementById('preReadyBtn');
+  starter.disabled=false;
+  ready.disabled=false;
+  starter.onchange=()=>adapter.setStarter(starter.value);
+  ready.onclick=()=>adapter.setReady();
+  function update(state={}){
+    if(!scene)return;
+    if(state.starterChoice)starter.value=state.starterChoice;
+    document.getElementById('preLocalName').textContent=state.localName||'Du';
+    document.getElementById('preRemoteName').textContent=state.remoteName||'Motstander';
+    for(const [prefix,isReady] of [['Local',!!state.localReady],['Remote',!!state.remoteReady]]){
+      document.getElementById('pre'+prefix+'Dot').classList.toggle('on',isReady);
+      document.getElementById('pre'+prefix+'Ready').textContent=isReady?'Klar':'Ikke klar';
+    }
+    ready.textContent=state.localReady?'Ikke klar':'Jeg er klar';
+    ready.disabled=!!state.starting||state.connected===false;
+    starter.disabled=!!state.starting;
+    if(typeof state.message==='string')document.getElementById('preRoomMessage').textContent=state.message;
+  }
+  return {update,dispose(){starter.onchange=null;ready.onclick=null;starter.disabled=true;ready.disabled=true}};
+ }
+ window.DartArenaPreMatchScene={attach,preMatch,match,bindRoomControls,phase:()=>phase};
  // Deliberately do not auto-enter the scene: match.js currently requires an already-created live match ID.
  // A separate guarded migration of the tournament start RPC is required before enabling multiplayer readiness.
 })();
