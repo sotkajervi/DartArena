@@ -36,6 +36,7 @@ let remoteLastProgress=Date.now();
 let remoteRetryAfter=0;
 let queuedRemotePublication=null;
 let embeddedPreMatchControls=null;
+let preferredCameraStarter=null;
 window.DartArenaTournamentRoomState=Object.freeze({
   tournamentMatchId:()=>tournamentMatchId,
   tournamentMatch:()=>tm,
@@ -51,7 +52,14 @@ window.DartArenaTournamentRoomState=Object.freeze({
   setPublication:next=>{publication=next||null;return publication},
   resetSubscription:()=>{subscribedPublicationId=null},
   ready:()=>({local:localReady,remote:remoteReady,connected:roomConnected}),
-  isStarting:()=>starting
+  isStarting:()=>starting,
+  setReadyUi:()=>setReadyUi(),
+  setStatus:message=>setStatus(message),
+  sendState:()=>sendState(),
+  remotePublication:()=>remotePublication,
+  subscribeRemote:pub=>subscribeRemote(pub),
+  cameraErrorText:error=>cameraErrorText(error),
+  setCameraStarter:fn=>{if(typeof fn!=='function')throw Error('Invalid camera starter');preferredCameraStarter=fn}
 });
 function syncEmbeddedPreMatch(){
   embeddedPreMatchControls?.update({
@@ -375,6 +383,7 @@ function setupChannel(){
 }
 
 async function startCamera(){
+  if(preferredCameraStarter)return preferredCameraStarter();
   $('retryCameraBtn').classList.add('hidden');
   setStatus('Starter kamera…');
   try{
