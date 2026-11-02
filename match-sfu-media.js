@@ -315,7 +315,7 @@
     finally{watchdogRunning=false}
   },1000);
 
-  window.DartArenaMatchMedia={mode:'sfu',readyForHandoff:()=>!stopped&&!!publication?.sessionId&&!!subscribedPublicationId&&!!document.getElementById('remoteVideo')?.srcObject?.getVideoTracks?.().some(track=>track.readyState==='live'),stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
+  window.DartArenaMatchMedia={mode:'sfu',readyForHandoff:()=>!stopped&&!!publication?.sessionId&&!!subscribedPublicationId&&!!remotePublication?.sessionId&&subscribedPublicationId===remotePublication.sessionId&&!!sfu?.subscriber&&sfu.subscriber.connectionState==='connected'&&!!document.getElementById('remoteVideo')?.srcObject?.getVideoTracks?.().some(track=>track.readyState==='live'),stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
     try{sfu?.close()}catch{}
     sfu=null;
     publication=null;
