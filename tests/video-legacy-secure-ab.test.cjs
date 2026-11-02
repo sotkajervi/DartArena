@@ -11,9 +11,12 @@ const secureCode=read('sfu-client-secure.js');
 const matchRouter=read('match-media-router.js');
 const roomRouter=read('room-media-router.js');
 const participants=12, matches=6, spectators=6;
+const roomIdFor=n=>'aaaaaaaa-aaaa-4aaa-8aaa-'+String(n+1).padStart(12,'0');
+const validUUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function transport(which){
   const logs={requests:[],authReads:0,refreshes:0,pcs:[],tracksAttached:0,intentMismatches:[]};
+  const secureSessions=new Map();
   let nextSession=0;
   class Peer {
     constructor(){this.connectionState='connected';this.signalingState='stable';this.iceGatheringState='complete';this.localDescription=null;this.remoteDescription=null;this.transceivers=[];logs.pcs.push(this)}
@@ -35,7 +38,7 @@ function transport(which){
     if(which==='secure'){
       assert.match(request.headers.Authorization,/^Bearer fake-test-token$/);
       assert.ok(['tournament_match','match'].includes(request.headers['X-DartArena-Room-Kind']));
-      assert.match(request.headers['X-DartArena-Room-Id'],/^(match|spec)-/);
+      assert.match(request.headers['X-DartArena-Room-Id'],validUUID);
       assert.ok(['publish','subscribe'].includes(request.headers['X-DartArena-SFU-Intent']));
       if((request.path.endsWith('/subscribe')||request.path.endsWith('/renegotiate')) &&
         request.headers['X-DartArena-SFU-Intent']!=='subscribe')
@@ -46,6 +49,26 @@ function transport(which){
     const payload=request.path.endsWith('/session')
       ?{sessionId:'session-'+(++nextSession)}
       :{sessionDescription:{type:'answer',sdp:'offline-test-answer'}};
+    if(which==='secure'){
+      const scope=request.headers['X-DartArena-Room-Id'];
+      if(request.path.endsWith('/session')){
+        secureSessions.set(payload.sessionId,{room:scope,published:new Set()});
+      }else{
+        const own=secureSessions.get(request.body?.sessionId);
+        assert.ok(own,'Secure Worker requires session ownership');
+        assert.equal(own.room,scope,'Secure Worker must keep session in its room');
+        if(request.path.endsWith('/publish')){
+          for(const track of request.body.tracks||[])own.published.add(track.trackName);
+        }
+        if(request.path.endsWith('/subscribe')){
+          for(const track of request.body.tracks||[]){
+            const remote=secureSessions.get(track.sessionId);
+            if(!remote||remote.room!==scope||!remote.published.has(track.trackName))
+              throw Error('Mock Worker rejected cross-room or unpublished remote media');
+          }
+        }
+      }
+    }
     return{ok:true,status:200,json:async()=>({ok:true,sfu:payload})};
   };
   const win={};
@@ -65,12 +88,12 @@ function transport(which){
 
 async function runRound(which){
   const t=transport(which);
-  const clients=Array.from({length:participants},(_,i)=>t.newClient('match-'+Math.floor(i/2)));
+  const clients=Array.from({length:participants},(_,i)=>t.newClient(roomIdFor(Math.floor(i/2)));
   const publications=await Promise.all(clients.map(c=>c.publish(t.stream)));
   assert.equal(publications.length,12);
   const subscribed=await Promise.all(clients.map((client,i)=>client.subscribe(publications[i%2?i-1:i+1],()=>{})));
   assert.equal(subscribed.length,12);
-  const watching=Array.from({length:spectators},(_,i)=>t.newClient('spec-'+i,'match'));
+  const watching=Array.from({length:spectators},(_,i)=>t.newClient(roomIdFor(i),'match'));
   await Promise.all(watching.map((viewer,i)=>viewer.subscribe(publications[2*i],()=>{})));
   // Reconnect three players without re-publishing; subscriber is replaced.
   await Promise.all([0,3,7].map(i=>clients[i].subscribe(publications[i%2?i-1:i+1],()=>{})));
