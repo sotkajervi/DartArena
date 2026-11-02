@@ -78,6 +78,7 @@ async function startCamera(){
       audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}
     };
     let raw=window.DartArenaCaptureHandoff?.claim()||null;
+    const reusedCapture=!!raw;
     try{if(!raw)raw=await navigator.mediaDevices.getUserMedia(constraints)}
     catch(error){
       if(!useZoom||!['NotFoundError','OverconstrainedError'].includes(error?.name))throw error;
@@ -86,7 +87,9 @@ async function startCamera(){
       });
     }
     stream=raw;
-    if(useZoom){
+    // Tournament video may already be Zoom-cam/picture processed. Never process
+    // the same transferred MediaStream a second time.
+    if(useZoom&&!reusedCapture){
       try{
         zoomCamSession=Z.create(raw,config);
         stream=zoomCamSession.stream;
@@ -102,7 +105,7 @@ async function startCamera(){
     }else if(Z?.loadConfig(localStorage)){
       zoomCamNotice('Zoom-cam er kalibrert, men ikke valgt. Aktiver den i Cam-test eller venterommet.');
     }
-    if(!zoomCamSession){
+    if(!zoomCamSession&&!reusedCapture){
       try{pictureSession=window.DartArenaCameraPicture?.createStream(raw)||null;
         if(pictureSession)stream=pictureSession.stream;
       }catch(error){console.warn('Bildejustering ikke tilgjengelig, sender originalvideo',error)}
