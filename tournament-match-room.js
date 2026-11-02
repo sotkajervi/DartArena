@@ -575,7 +575,11 @@ async function toggleRemoteAudio(){
   try{await v.play();}catch{v.muted=true;b.textContent='Slå på lyd';}
 }
 
-function cleanup(){
+function cleanup({preserveCapture=false}={}){
+  // Only the same-document match engine may take ownership of the local stream.
+  // Normal navigation must always close the camera and microphone.
+  const capturePreserved=preserveCapture&&
+    !!window.DartArenaCaptureHandoff?.transfer?.(stream);
   if(channel&&me&&!starting){
     try{channel.send({type:'broadcast',event:'room-leave',payload:{from:me,instanceId:roomInstanceId}}).catch?.(()=>{})}catch{}
   }
@@ -592,7 +596,7 @@ function cleanup(){
   coinFlipFallback=null;
   try{sfu?.close();}catch{}
   sfu=null;
-  stream?.getTracks().forEach(t=>t.stop());
+  if(!capturePreserved)stream?.getTracks().forEach(t=>t.stop());
   stream=null;
   if(channel){try{db.removeChannel(channel);}catch{}}
   channel=null;
