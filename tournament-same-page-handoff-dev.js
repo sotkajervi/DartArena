@@ -87,11 +87,11 @@
          'tournament-match-sync.js?v=20261102-cancel-fix1',
          'match-media-telemetry.js?v=20261102-samepage-id1',
          'ui-feedback.js?v=20260930-cam2',
-         'shared-results.js?v=20261023-final2',
+         'shared-results.js?v=20261102-finish-liveid5',
          'chicago-flow.js?v=20261006-chicago5',
          'x01-result-leg-details.js?v=20261102-live-id-fix3',
          'mobile-x01-keypad.js?v=20261025-mobile1',
-         'post-match-media-lifecycle.js?v=20261029-postmatch1'
+         'post-match-media-lifecycle.js?v=20261102-finish-liveid5'
        ];
        for(const src of modules){
          const path=src.split('?')[0];
