@@ -96,7 +96,9 @@
     header.innerHTML=matchHeader;
   }
   stage.hidden=false;
-  document.body.classList.add('match-page');
+  // Match TV geometry must be in place on the very first visible frame.
+  // The opponent-focus module will subsequently apply turn-specific classes.
+  document.body.classList.add('match-page','match-tv-layout','standard-tv-layout');
   document.body.classList.remove('da-prematch-active');
   active=true;
  }
