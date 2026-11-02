@@ -117,6 +117,26 @@ async function main(){
     }
     await phase('waiting-room');
     await phase('match-room');
+    // Keep all six rooms exchanging real media for 15 seconds, not just at startup.
+    const steadyBefore=await Promise.all(pages.map(p=>p.evaluate(()=>window.stats())));
+    const steadyStart=performance.now();
+    for(let round=0;round<5;round++){
+      await Promise.all(pages.map((p,i)=>p.evaluate(n=>window.sendScore(n),100+round*12+i)));
+      await new Promise(resolve=>setTimeout(resolve,3000));
+    }
+    const steadyAfter=await Promise.all(pages.map(p=>p.evaluate(()=>window.stats())));
+    const steadyStates=await Promise.all(pages.map(p=>p.evaluate(()=>window.info())));
+    assert.ok(steadyStates.every(s=>s.connectionState==='connected'&&s.videoFrame&&s.inboundAudio&&s.scores>=6&&s.unexpectedPeers===0));
+    assert.ok(steadyAfter.every((x,i)=>x.videoBytes>steadyBefore[i].videoBytes),'Each stream must continue beyond initial connection');
+    report.sustained={
+      elapsedMs:Math.round(performance.now()-steadyStart),
+      connected:steadyStates.filter(s=>s.connectionState==='connected').length,
+      continuedVideoStreams:steadyAfter.filter((x,i)=>x.videoBytes>steadyBefore[i].videoBytes).length,
+      scoreMessages:steadyStates.reduce((n,s)=>n+s.scores,0),
+      videoBytesDelta:steadyAfter.reduce((n,s,i)=>n+s.videoBytes-steadyBefore[i].videoBytes,0),
+      unexpectedPeerMessages:steadyStates.reduce((n,s)=>n+s.unexpectedPeers,0)
+    };
+    console.log('SUSTAINED WEBRTC LOAD',JSON.stringify(report.sustained));
     const stable=await Promise.all(pages.slice(2).map(p=>p.evaluate(()=>window.info())));
     await Promise.all(pages.slice(0,2).map((p,i)=>p.evaluate(data=>window.setup(data),{
       id:'p'+i,opponent:'p'+(i===0?1:0),roomId:uuid(0),stage:'forced-restart'})));
