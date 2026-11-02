@@ -89,7 +89,10 @@
   stage.id='matchView';
   stage.querySelector('#daMatchVideoSlot').replaceWith(video);
   video.classList.remove('waiting-video-grid');
-  for(const node of [...waiting.children])if(node!==stage)node.hidden=true;
+  // The global .match-head/.camera-controls display rules can override the
+  // browser's [hidden] rule. Explicit display:none prevents waiting-room UI
+  // from leaking above the original match screen.
+  for(const node of [...waiting.children])if(node!==stage){node.hidden=true;node.style.setProperty('display','none','important');}
   const header=document.querySelector('body > header');
   if(header&&matchHeader){
     oldHeaderMarkup=header.innerHTML;
@@ -108,7 +111,7 @@
   videoAnchor.after(video);
   if(lobbyButton&&lobbyAnchor)lobbyAnchor.after(lobbyButton);
   video.classList.add('waiting-video-grid');
-  for(const node of [...waitingMain.children])if(node!==stage)node.hidden=false;
+  for(const node of [...waitingMain.children])if(node!==stage){node.hidden=false;node.style.removeProperty('display');}
   stage.id='daMatchStage';
   waitingMain.id='matchView';
   stage.hidden=true;
