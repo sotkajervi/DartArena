@@ -99,6 +99,14 @@
       }
       body.match-page>header .da-live-match-header-center #headerStatus{order:0;white-space:nowrap}
       body.match-page>header .da-live-match-header-center #viewerCount{order:1;white-space:nowrap}
+      body.match-page>header .da-live-match-header-center #headerStatus,
+      body.match-page>header .da-live-match-header-center #viewerCount{
+        display:inline-flex;align-items:center;justify-content:center;
+        align-self:center;line-height:1;vertical-align:middle;margin:0;
+        height:28px;box-sizing:border-box
+      }
+      body.match-page>header .da-live-match-header-center #headerStatus i,
+      body.match-page>header .da-live-match-header-center #viewerCount .viewer-dot{align-self:center}
     }
     @media(max-width:700px){
       body.match-page>header .da-live-match-header-center{
