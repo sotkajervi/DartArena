@@ -199,8 +199,8 @@
     retry?.classList.add('hidden');
     if(cameraSelect)cameraSelect.disabled=true;
     if(micSelect)micSelect.disabled=true;
-    setReadyUi();
-    setStatus('Starter valgt kamera…');
+    state()?.setReadyUi?.();
+    state()?.setStatus?.('Starter valgt kamera…');
 
     try{
       const Z=window.DartArenaZoomCam;
@@ -251,7 +251,7 @@
       await startMeter(audioTrack);
       await refreshDevices();
 
-      setStatus('Publiserer valgt kamera via Cloudflare…');
+      state()?.setStatus?.('Publiserer valgt kamera via Cloudflare…');
       try{roomPublisher()?.close()}catch{}
       const selected=await window.DartArenaMediaMode?.getMode?.()||'legacy';
       const secure=selected==='sfu';
@@ -264,20 +264,20 @@
       state()?.resetSubscription?.();
       state()?.setPublication?.(await nextSfu.publish(roomStream()));
 
-      setReadyUi();
-      setStatus('Valgt kamera klart – dette brukes i kampen');
-      await sendState();
-      if(remotePublication)await subscribeRemote(remotePublication);
+      state()?.setReadyUi?.();
+      state()?.setStatus?.('Valgt kamera klart – dette brukes i kampen');
+      await state()?.sendState?.();
+      if(state()?.remotePublication?.())await state()?.subscribeRemote?.(state().remotePublication());
     }catch(error){
       console.error('Tournament preferred camera error',error);
       state()?.setPublication?.(null);
       try{roomPublisher()?.close()}catch{}
       state()?.setPublisher?.(null);
       state()?.resetSubscription?.();
-      setReadyUi();
+      state()?.setReadyUi?.();
       $('localPlaceholder')?.classList.remove('hidden');
       if($('localPlaceholder'))$('localPlaceholder').textContent='Kamera ikke startet';
-      setStatus(cameraErrorText(error));
+      state()?.setStatus?.(state()?.cameraErrorText?.(error)||'Kamera kunne ikke startes');
       retry?.classList.remove('hidden');
       await refreshDevices();
     }finally{
@@ -305,10 +305,10 @@
 
     if(typeof localReady!=='undefined'&&localReady){
       localReady=false;
-      try{setReadyUi()}catch{}
+      try{state()?.setReadyUi?.()}catch{}
       const msg=$('roomMessage');
       if(msg)msg.textContent='Kamera/mikrofon endret. Marker deg klar igjen.';
-      try{await sendState()}catch{}
+      try{await state()?.sendState?.()}catch{}
     }
 
     await tearDownLocalPublication();
@@ -321,7 +321,7 @@
   document.addEventListener('pointerdown',()=>meterContext?.resume?.().catch(()=>{}),{passive:true});
 
   // Replace the tournament waiting-room camera starter before the realtime channel subscribes.
-  if(typeof startCamera==='function')startCamera=startPreferredCamera;
+  state()?.setCameraStarter?.(startPreferredCamera);
 
   refreshDevices();
 
