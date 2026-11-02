@@ -79,6 +79,17 @@ async function startCamera(){
     };
     let raw=window.DartArenaCaptureHandoff?.claim()||null;
     const reusedCapture=!!raw;
+    if(reusedCapture){
+      const ownership=window.DartArenaTransferredMediaOwnership||null;
+      window.DartArenaTransferredMediaOwnership=null;
+      zoomCamSession=ownership?.zoomSession||null;
+      pictureSession=ownership?.pictureSession||null;
+      if(zoomCamSession){
+        window.DartArenaX01ZoomSession=zoomCamSession;
+        if(m?.turn_player_id===profile?.id&&m?.status==='playing')zoomCamSession.resumeTracking?.();
+        else zoomCamSession.pauseTracking?.();
+      }
+    }
     try{if(!raw)raw=await navigator.mediaDevices.getUserMedia(constraints)}
     catch(error){
       if(!useZoom||!['NotFoundError','OverconstrainedError'].includes(error?.name))throw error;
