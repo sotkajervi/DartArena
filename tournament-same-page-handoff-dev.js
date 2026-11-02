@@ -4,7 +4,13 @@
  */
 (()=>{
  'use strict';
+ // Safety rollback: the experimental layout is not the original match UI
+ // and its media handoff can disconnect both cameras.
+ // Leave the regular tournament-to-match navigation in charge until
+ // the exact UI and media lifecycle have been verified end-to-end.
  if(new URLSearchParams(location.search).get('samePageDev')!=='1')return;
+ console.warn('[DartArena] Same-page experimental handoff suspended; using original match room.');
+ return;
  if(window.DartArenaTournamentHandoff)return;
  let entering=false;
  function script(src){
