@@ -55,6 +55,17 @@
   const doc=new DOMParser().parseFromString(await response.text(),'text/html');
   const original=doc.querySelector('#matchView');
   matchHeader=doc.querySelector('body > header')?.innerHTML||null;
+  if(matchHeader){
+    const template=doc.createElement('template');
+    template.innerHTML=matchHeader;
+    const meta=template.content.querySelector('.header-meta');
+    if(meta){
+      const status=meta.querySelector('#headerStatus');
+      if(status)status.innerHTML='<i></i> LIVE KAMP';
+      meta.classList.add('da-live-match-header-center');
+      matchHeader=template.innerHTML;
+    }
+  }
   if(!original)throw Error('Originalt kampoppsett mangler i match.html');
   const originalGrid=original.querySelector('#videoGrid');
   if(!originalGrid)throw Error('Originalt kampoppsett mangler videorutenettet');
@@ -76,6 +87,28 @@
   main.appendChild(stage);
   // Preload the original match CSS before exposing the live match scene.
   loadMatchStyles();
+  if(!document.getElementById('da-live-match-header-style')){
+    const style=document.createElement('style');
+    style.id='da-live-match-header-style';
+    style.textContent=`@media(min-width:701px){
+      body.match-page>header{position:sticky}
+      body.match-page>header .da-live-match-header-center{
+        position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+        display:flex;flex-direction:row;align-items:center;justify-content:center;gap:12px;
+        width:max-content;max-width:55%;white-space:nowrap
+      }
+      body.match-page>header .da-live-match-header-center #headerStatus{order:0;white-space:nowrap}
+      body.match-page>header .da-live-match-header-center #viewerCount{order:1;white-space:nowrap}
+    }
+    @media(max-width:700px){
+      body.match-page>header .da-live-match-header-center{
+        flex-direction:row;gap:7px;justify-content:center;align-items:center
+      }
+      body.match-page>header .da-live-match-header-center #headerStatus{order:0}
+      body.match-page>header .da-live-match-header-center #viewerCount{order:1}
+    }`;
+    document.head.appendChild(style);
+  }
   return stage;
  }
  async function enter(){
