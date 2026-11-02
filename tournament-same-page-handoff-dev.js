@@ -47,8 +47,43 @@
        await script('match.js?v=20261102-samepage-dev1');
        if(typeof window.DartArenaBootLiveMatch!=='function')throw Error('Kampmotor mangler');
        await window.DartArenaBootLiveMatch(liveMatchId);
-       await script('match-media-router.js?v=20261102-samepage-dev1');
-       await script('match-controls.js?v=20261102-samepage-dev1');
+       // Load the existing match modules only after the room is released and
+       // scoring has an authenticated live-match ID. Reuse scripts already on
+       // the tournament page instead of initializing duplicate media listeners.
+       const modules=[
+         'fx-live.js?v=20261023-sweep2',
+         'fx-match-bridge.js?v=20261023-live1',
+         'autozoom/heatmap-math.js?v=20261023-final2',
+         'online-heatmap-chart.js?v=20261023-shareheat1',
+         'online-heatmap-result.js?v=20261025-i18nfix1',
+         'match-media-router.js?v=20261102-samepage-dev1',
+         'match-controls.js?v=20261102-samepage-dev1',
+         'opponent-focus.js?v=20261026-owncam-pip1',
+         'dartarena-dialog.js?v=20261027-correction2',
+         'throw-log.js?v=20261101-channel-cleanup1',
+         'set-engine.js?v=20261101-channel-cleanup1',
+         'x01-leg-starter-marker.js?v=20261006-starterfirst1',
+         'checkout-engine.js?v=20261101-channel-cleanup1',
+         'secure-match-cancel.js?v=20261013-lobbytab1',
+         'x01-stats.js?v=20260929-first9a',
+         'match-room-polish.js?v=20261002-matchrooms2',
+         'result-screenshot.js?v=20261023-shareheat1',
+         'live-avg.js?v=20261101-realtime-lean1',
+         'stats-engine.js?v=20261101-realtime-lean1',
+         'spectator-presence.js?v=20261006-layer1',
+         'match-spectator-broadcast.js?v=20261031-spectator1',
+         'ui-feedback.js?v=20260930-cam2',
+         'shared-results.js?v=20261023-final2',
+         'chicago-flow.js?v=20261006-chicago5',
+         'x01-result-leg-details.js?v=20261020-legs-scroll1',
+         'mobile-x01-keypad.js?v=20261025-mobile1',
+         'post-match-media-lifecycle.js?v=20261029-postmatch1'
+       ];
+       for(const src of modules){
+         const path=src.split('?')[0];
+         if([...document.scripts].some(el=>el.src&&new URL(el.src).pathname.endsWith('/'+path)))continue;
+         await script(src);
+       }
        return true;
      }catch(err){
        console.error('[same-page match handoff]',err);
