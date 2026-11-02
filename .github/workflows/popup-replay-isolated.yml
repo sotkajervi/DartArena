@@ -1,0 +1,21 @@
+name: Popup A/B replay (isolated, no production)
+on:
+  push:
+    branches:
+      - test/popup-replay-crash-20261031
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Replay original popup on and off with synthetic tournament
+        run: node --test tests/popup-crash-replay.test.cjs
+# No deployment, secrets, HTTP calls or production Supabase writes.
