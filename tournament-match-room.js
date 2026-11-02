@@ -91,8 +91,13 @@ async function goToMatch(liveId){
   const bridge=window.DartArenaTournamentHandoff;
   if(typeof bridge?.enter==='function'){
     try{
-      if(await bridge.enter({liveMatchId:liveId,tournamentMatchId,releaseWaitingRoom:cleanup})===true)return;
-    }catch(error){console.error('Embedded match handoff failed',error)}
+      if(await bridge.enter({
+        liveMatchId:liveId,
+        tournamentMatchId,
+        releaseWaitingRoom:()=>cleanup(),
+        transferCapture:()=>cleanup({preserveCapture:true})
+      })===true)return;
+    }catch(error){console.error('Same-page match handoff failed',error)}
   }
   cleanup();
   location.href=matchUrl(liveId);
