@@ -7,7 +7,7 @@
  // Explicit opt-in on the isolated test deployment only.
  // Production tournament rooms retain the original navigation.
  if(new URLSearchParams(location.search).get('samePageDev')!=='1')return;
- if(location.hostname!=='dartarena-test.pages.dev'){
+ if(!['dartarena-test.pages.dev','sotkajervi.github.io'].includes(location.hostname)){
    console.warn('[DartArena] Same-page handoff is limited to the test deployment.');
    return;
  }
