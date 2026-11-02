@@ -1,0 +1,21 @@
+name: Legacy vs Secure SFU isolated A/B
+on:
+  push:
+    branches:
+      - test/video-legacy-secure-ab-20261102
+permissions:
+  contents: read
+jobs:
+  video-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Compare original video transport and secure SFU using a simulated Cloudflare Worker
+        run: node --test tests/video-legacy-secure-ab.test.cjs
+# No real Worker, video traffic, production Supabase requests or deployment.
