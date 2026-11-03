@@ -68,7 +68,7 @@
          'autozoom/heatmap-math.js?v=20261023-final2',
          'online-heatmap-chart.js?v=20261023-shareheat1',
          'online-heatmap-result.js?v=20261102-live-id-fix3',
-         'match-media-router.js?v=20261102-samepage-dev1',
+         'match-media-router.js?v=20261103-real-new-stream1',
          'match-controls.js?v=20261102-samepage-dev1',
          'opponent-focus.js?v=20261026-owncam-pip1',
          'dartarena-dialog.js?v=20261027-correction2',
