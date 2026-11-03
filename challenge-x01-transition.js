@@ -16,6 +16,7 @@
  async function begin(matchId,variant,{startAt}={}){
    if(started||!valid(matchId))return;
    started=true;
+   window.DartArenaMediaTrace?.mark('CHALLENGE_START',{matchId:String(matchId).slice(0,8),variant});
    try{
      const db=window.DartArenaChallengeRoomState?.client?.();
      const user=window.DartArenaChallengeRoomState?.user?.();
@@ -33,6 +34,7 @@
      if(isX01&&typeof bridge?.enter==='function'&&
        await bridge.enter({liveMatchId:matchId,challengeId:new URLSearchParams(location.search).get('id')})===true)return;
    }catch(error){console.warn('[challenge transition] Using original match page',error)}
+   window.DartArenaMediaTrace?.mark('CHALLENGE_LEGACY_NAVIGATION');
    location.href=target(matchId,variant);
  }
  window.DartArenaChallengeStart=Object.freeze({
