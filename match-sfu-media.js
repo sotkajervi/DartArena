@@ -257,6 +257,12 @@
   }
 
   function disableDirectP2P(){
+    // In same-page challenges, match.js runs as an ES module but room.js owns
+    // the classic-script peer globals. Mutating them or calling destroyPeer()
+    // here tears down the STILL-VISIBLE waiting-room video before match SFU
+    // is ready. Let the handoff release the old room after both players are ready.
+    if(new URLSearchParams(location.search).get('challengeSeamlessDev')==='1'&&
+       /\/room(?:\.html)?$/.test(location.pathname))return;
     // Keep the existing match Realtime channel for scoring/readiness, but prevent it
     // from creating a direct RTCPeerConnection or entering the old reset loop.
     try{ensureOffer=async()=>{}}catch{}
