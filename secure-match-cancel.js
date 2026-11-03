@@ -105,6 +105,7 @@
       try{
         const {data,error}=await db.rpc('cancel_match',{p_match_id:matchId});
         if(error)throw error;
+        try{await window.DartArenaMatchEngineState?.channel?.()?.send({type:'broadcast',event:'match-cancelled',payload:{matchId,from:window.DartArenaMatchEngineState?.profile?.()?.id}})}catch(error){console.debug('Cancel broadcast fallback: postgres changes',error)}
         button.classList.add('hidden');
         const msg=document.getElementById('matchMessage');
         if(msg)msg.textContent='Kampen er avbrutt.';
