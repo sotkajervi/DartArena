@@ -12,63 +12,20 @@
   <link rel="stylesheet" href="waiting-room-audio-cue.css?v=20261013-camoverlay1">
   <link rel="stylesheet" href="pre-match-scene.css?v=20261102-dev2">
   <style>
-    /* Compact desktop waiting room: all controls visible on a laptop screen.
-       Never apply these rules once the original match scene is active. */
-    @media (min-width: 901px) and (min-height: 650px) {
-      body:not(.match-page) #matchView.shell {
-        margin: 10px auto 14px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      body:not(.match-page) #matchView > .match-head {
-        margin-bottom: 0;
-        gap: 12px;
-      }
-      body:not(.match-page) #matchView > .match-head h1 {font-size: 21px; margin: 1px 0}
-      body:not(.match-page) #matchView > .match-head p {margin: 2px 0; line-height: 1.2}
-      body:not(.match-page) #matchView > #videoGrid {
-        margin-bottom: 0;
-        gap: 10px;
-      }
-      body:not(.match-page) #matchView #videoGrid > .video-card {
-        aspect-ratio: auto;
-        height: clamp(170px, 28dvh, 275px);
-      }
-      body:not(.match-page) #matchView > .camera-controls {margin: 0}
-      body:not(.match-page) #matchView > .camera-controls .field {margin: 4px 0}
-      body:not(.match-page) #matchView > .card {
-        margin-top: 0!important;
-        padding: 12px 16px;
-      }
-      body:not(.match-page) #matchView > .card h2 {font-size: 18px; margin: 2px 0}
-      body:not(.match-page) #matchView > .card > p.muted {margin: 4px 0; font-size: 12px}
-      body:not(.match-page) #matchView .starter-choice {margin: 6px 0 2px}
-      body:not(.match-page) #matchView .ready-panel {margin-top: 8px;gap: 8px}
-      body:not(.match-page) #matchView .ready-state {padding: 8px}
-      body:not(.match-page) #matchView .room-actions {margin-top: 8px}
-      body:not(.match-page) #matchView #roomMessage {margin: 5px 0 0}
-      body:not(.match-page) #matchView .da-prematch-scene {padding: 10px 12px; margin: 0}
-      body:not(.match-page) #matchView .da-prematch-title {margin-bottom: 6px}
-      body:not(.match-page) #matchView .da-prematch-scene .camera-controls {margin-top: 6px}
-      body:not(.match-page) #matchView .da-prematch-scene .ready-panel {margin-top: 8px}
-    }
-    /* Laptop-height fit: ensure the Ready action stays above the fold.
-       Scoped to the waiting room only; the live match retains original sizing. */
-    @media (min-width:901px) and (min-height:650px) and (max-height:1000px) {
-      body:not(.match-page) #matchView #videoGrid > .video-card {
-        height: clamp(125px, 21dvh, 195px);
-      }
-      body:not(.match-page) #matchView > .match-head {margin-bottom:0}
-      body:not(.match-page) #matchView > .card {padding:9px 14px}
-      body:not(.match-page) #matchView > .card h2 {font-size:16px}
-      body:not(.match-page) #matchView .starter-help {margin:2px 0;font-size:11px}
-      body:not(.match-page) #matchView .starter-choice {margin:4px 0 0}
-      body:not(.match-page) #matchView .ready-panel {margin-top:5px}
-      body:not(.match-page) #matchView .ready-state {padding:6px 8px}
-      body:not(.match-page) #matchView .room-actions {margin-top:5px}
-      body:not(.match-page) #matchView .da-prematch-scene {padding:6px 10px}
-    }
+    /* Align tournament waiting room with the challenge waiting room.
+       Scope all design changes to the waiting phase, never the live match. */
+    .room-head-copy>small{display:block;font-size:14px;line-height:1;font-weight:950;letter-spacing:.12em;margin-bottom:13px}
+    .room-head-copy>#roomTitle{margin:0 0 9px;line-height:1.05}
+    .room-head-copy>#cameraStatus{margin:0;line-height:1.35}
+    body:not(.match-page) #matchView .tournament-room-options{align-items:start}
+    body:not(.match-page) #matchView .tournament-room-options>.card{min-width:0}
+    body:not(.match-page) #matchView .tournament-room-options>.card>small{display:block;margin-bottom:6px}
+    body:not(.match-page) #matchView .tournament-room-options h2{margin:0 0 10px}
+    body:not(.match-page) #matchView .tournament-room-options #roomMeta{display:block;margin:14px 0 12px;font-size:18px;line-height:1.4}
+    body:not(.match-page) #matchView .tournament-room-options .starter-choice{max-width:none;margin-top:14px}
+    body:not(.match-page) #matchView .tournament-room-options .ready-panel{margin-top:18px}
+    body:not(.match-page) #matchView .tournament-room-options #roomMessage{margin:12px 0 0}
+    @media(max-width:800px){.room-head-copy>small{font-size:13px;margin-bottom:10px}.room-head-copy>#roomTitle{margin-bottom:7px}}
     .ready-panel{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
     .ready-state{border:1px solid var(--border);border-radius:14px;padding:14px;background:rgba(255,255,255,.025)}
     .ready-state strong{display:block;margin-bottom:5px}
@@ -90,10 +47,9 @@
 
   <main class="shell" id="matchView">
     <div class="match-head">
-      <div>
+      <div class="room-head-copy">
         <small>VENTEROM</small>
         <h1 id="roomTitle">Laster kamp…</h1>
-        <p id="roomMeta" class="muted compact"></p>
         <p id="cameraStatus" class="muted compact">Kobler til…</p>
       </div>
       <div class="top-actions"><button id="openLobbyTabBtn" class="outline" type="button">Åpne lobby i ny fane</button><button id="backBtn" class="outline">Til turnering</button></div>
@@ -131,10 +87,11 @@
       </div>
     </div>
 
-    <section class="card" style="margin-top:20px">
+    <div class="lobby-grid room-options tournament-room-options">
+    <section class="card">
       <small>KLARSTATUS</small>
-      <h2>Kampen starter når begge er klare</h2>
-      <p class="muted">Kampformatet er låst av turneringen. Velg hvem som begynner før begge markerer seg klare.</p>
+      <h2>Gjør klar kampen</h2>
+      <p class="muted">Velg hvem som begynner. Begge må være klare før kampen starter.</p>
 
       <label class="field starter-choice">Hvem begynner?
         <select id="starterChoice">
@@ -155,6 +112,14 @@
       </div>
       <p id="roomMessage" class="message"></p>
     </section>
+    <section class="card" aria-label="Turneringsoppsett">
+      <small>KAMPFORMAT</small>
+      <h2>Turneringskamp</h2>
+      <p class="muted">Spilltype og antall legs er bestemt i turneringen og kan ikke endres her.</p>
+      <p id="roomMeta" class="muted compact" aria-live="polite"></p>
+      <p class="muted">Sjekk kamera og mikrofon, og marker deg klar når du er ferdig.</p>
+    </section>
+    </div>
   </main>
 
   <script>
