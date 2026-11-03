@@ -56,7 +56,7 @@
        // match.js is now safe to load: tournament engine is IIFE scoped.
        // The match page owns the new authenticated SFU session.
        await script('match-preferred-media.js?v=20261031-owner1');
-       await script('match.js?v=20261102-tournament-cancel2');
+       await script('match.js?v=20261103-tournament-cancel4');
        if(typeof window.DartArenaBootLiveMatch!=='function')throw Error('Kampmotor mangler');
        await window.DartArenaBootLiveMatch(liveMatchId);
        // Load the existing match modules only after the room is released and
@@ -72,7 +72,7 @@
          'match-controls.js?v=20261102-samepage-dev1',
          'opponent-focus.js?v=20261026-owncam-pip1',
          'dartarena-dialog.js?v=20261027-correction2',
-         'cancelled-match-modal.js?v=20261103-tournament-cancel1',
+         'cancelled-match-modal.js?v=20261103-tournament-return3',
          'throw-log.js?v=20261102-live-id-fix3',
          'set-engine.js?v=20261102-live-id-fix3',
          'x01-leg-starter-marker.js?v=20261102-live-id-fix3',
