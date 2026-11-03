@@ -2,13 +2,40 @@
   if(window.DartArenaCancelledMatchModal)return;
   let shown=false,ownCancel=false,watchTimer=null;
 
-  function goLobby(){
-    const matchId=new URLSearchParams(location.search).get('id');
-    try{window.opener?.postMessage({type:'dartarena-match-ended',id:matchId},location.origin)}catch{}
-    // The match can be the only browser tab. Never close it from a "Til lobby"
-    // action; navigate the existing tab so the player is not left without a page.
-    clearInterval(watchTimer);
-    location.href='./';
+  function tournamentMatchId(){
+    const params=new URLSearchParams(location.search);
+    if(params.has('tournamentMatch'))return params.get('tournamentMatch');
+    const path=location.pathname;
+    if((path.endsWith('/tournament-match-room')||path.endsWith('/tournament-match-room.html'))&&params.get('samePageDev')==='1')return params.get('id');
+    return null;
+  }
+
+  async function goLobby(){
+    const activeMatchId=window.DartArenaMatchEngineState?.matchId?.()||new URLSearchParams(location.search).get('id');
+    const tmId=tournamentMatchId();
+    const button=document.getElementById('cancelledLobbyBtn');
+    if(button)button.disabled=true;
+    try{
+      if(tmId){
+        const known=window.DartArenaTournamentReturnUrl;
+        if(known){location.assign(known);return}
+        const client=window.DartArenaMatchEngineState?.client?.()||
+          window.DartArenaTournamentRoomState?.client?.()||null;
+        if(!client)throw Error('Kunne ikke koble til turneringen.');
+        const {data,error}=await client.from('tournament_matches')
+          .select('tournament_id').eq('id',tmId).single();
+        if(error||!data?.tournament_id)throw error||new Error('Fant ikke turneringen.');
+        location.assign('tournament.html?id='+encodeURIComponent(data.tournament_id));
+        return;
+      }
+      try{window.opener?.postMessage({type:'dartarena-match-ended',id:activeMatchId},location.origin)}catch{}
+      clearInterval(watchTimer);
+      location.assign('./');
+    }catch(error){
+      const message=document.getElementById('cancelledMatchText');
+      if(message)message.textContent='Kunne ikke åpne turneringslobbyen: '+(error?.message||error);
+      if(button)button.disabled=false;
+    }
   }
 
   function ensureStyle(){
@@ -59,6 +86,8 @@
     const modal=ensureModal();
     const text=document.getElementById('cancelledMatchText');
     if(text)text.textContent='Motstanderen har avbrutt kampen.';
+    const lobbyButton=modal.querySelector('#cancelledLobbyBtn');
+    if(lobbyButton)lobbyButton.textContent=tournamentMatchId()?'Til turneringen':'Til lobby';
     modal.classList.remove('hidden');
     try{document.getElementById('cancelledLobbyBtn')?.focus({preventScroll:true})}catch{}
   }
