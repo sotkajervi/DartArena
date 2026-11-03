@@ -111,7 +111,10 @@
         const msg=document.getElementById('matchMessage');
         if(msg)msg.textContent='Kampen er avbrutt.';
         try{window.opener?.postMessage({type:'dartarena-match-ended',id:matchId},location.origin)}catch{}
-        if(data)location.href='./';
+        // A successful cancellation must return the cancelling player to the lobby,
+        // regardless of whether the RPC returns a payload.
+        window.DartArenaMediaTrace?.mark('OWN_SECURE_CANCEL_GO_LOBBY');
+        location.replace('./');
       }catch(error){
         window.__dartArenaOwnCancel=false;
         const msg=document.getElementById('matchMessage');
