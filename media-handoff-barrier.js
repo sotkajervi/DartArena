@@ -21,17 +21,23 @@
       settled=true;cleanup();
       if(error)rejectDone(error);else resolveDone(true);
     }
-    const send=()=>{
-      if(!subscribed||settled)return;
-      channel.send({type:'broadcast',event:'ready',payload:{matchId,from:me}})
-        .catch(error=>console.debug('[HANDOFF BARRIER] broadcast retry',error?.message||error));
+    const send=async()=>{
+      if(!subscribed||settled)return false;
+      try{
+        const result=await channel.send({type:'broadcast',event:'ready',payload:{matchId,from:me}});
+        return result==='ok';
+      }catch(error){
+        console.debug('[HANDOFF BARRIER] broadcast retry',error?.message||error);
+        return false;
+      }
     };
-    channel.on('broadcast',{event:'ready'},({payload})=>{
-      if(payload?.matchId!==matchId||payload?.from!==opponent)return;
+    channel.on('broadcast',{event:'ready'},async({payload})=>{
+      if(payload?.matchId!==matchId||payload?.from!==opponent||settled)return;
+      // Ensure our reciprocal ready has been handed to the channel before
+      // releasing the waiting-room connection.
+      if(!await send())return;
       window.DartArenaMediaTrace?.mark('HANDOFF_BOTH_CLIENTS_READY',{matchId:matchId.slice(0,8)});
-      // Receiving the remote ready event confirms the other client has reached
-      // its SFU readiness gate. Sending our ready again handles late listeners.
-      send();finish();
+      finish();
     }).subscribe(status=>{
       if(settled)return;
       if(status==='SUBSCRIBED'){
