@@ -59,7 +59,7 @@
        // match.js is now safe to load: tournament engine is IIFE scoped.
        // The match page owns the new authenticated SFU session.
        await script('match-preferred-media.js?v=20261031-owner1');
-       await script('match.js?v=20261103-tournament-cancel4');
+       await script('match.js?v=20261103-cancel-tab-fix1');
        if(typeof window.DartArenaBootLiveMatch!=='function')throw Error('Kampmotor mangler');
        await window.DartArenaBootLiveMatch(liveMatchId);
        window.DartArenaMediaTrace?.mark('MATCH_ENGINE_BOOTED');
@@ -89,7 +89,7 @@
          'stats-engine.js?v=20261102-stats-button4',
          'spectator-presence.js?v=20261102-live-id-fix3',
          'match-spectator-broadcast.js?v=20261031-spectator1',
-         'tournament-match-sync.js?v=20261103-cancel-return3',
+         'tournament-match-sync.js?v=20261103-cancel-tab-fix1',
          'match-media-telemetry.js?v=20261102-samepage-id1',
          'ui-feedback.js?v=20260930-cam2',
          'shared-results.js?v=20261102-finish-liveid5',
