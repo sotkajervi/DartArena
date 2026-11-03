@@ -10,6 +10,7 @@
   let publication=null;
   let remotePublication=null;
   let subscribedPublicationId=null;
+  let handoffRemoteStream=null;
   let subscribedAt=0;
   let lastRemoteTrackAt=0;
   let publishedSignature='';
@@ -139,15 +140,20 @@
     // a new video track is received. Do not overwrite it with an empty stream.
     const seamless=(new URLSearchParams(location.search).get('samePageDev')==='1'||new URLSearchParams(location.search).get('challengeSeamlessDev')==='1');
     const incomingStream=seamless?new MediaStream():null;
+    if(seamless)handoffRemoteStream=null;
     const activateIncoming=()=>{
       if(!seamless||!video||video.srcObject===incomingStream)return;
       if(!incomingStream.getVideoTracks().some(t=>t.readyState==='live'&&!t.muted))return;
+      // Keep the old video/audio until the replacement includes its audio track.
+      const expectsAudio=pub.tracks?.some(t=>/audio|microphone/i.test(String(t)));
+      if(expectsAudio&&!incomingStream.getAudioTracks().some(t=>t.readyState==='live'))return;
       video.srcObject=incomingStream;
+      handoffRemoteStream=incomingStream;
       video.play().catch(()=>{});
     };
     if(video){
       if(!seamless){try{video.pause()}catch{};video.srcObject=new MediaStream();}
-      video.muted=true;
+      if(!seamless)video.muted=true;
       video.playsInline=true;
       video.onplaying=()=>placeholder?.classList.add('hidden');
     }
@@ -181,7 +187,7 @@
             };
           }
         }
-        video.muted=true;
+        if(!seamless)video.muted=true;
         video.playsInline=true;
         if(!seamless||video.srcObject===incomingStream)await video.play().catch(()=>{});
         if(rs.getVideoTracks().some(t=>t.readyState==='live')){
@@ -326,7 +332,7 @@
     finally{watchdogRunning=false}
   },1000);
 
-  window.DartArenaMatchMedia={mode:'sfu',readyForHandoff:()=>!stopped&&!!publication?.sessionId&&!!subscribedPublicationId&&!!remotePublication?.sessionId&&subscribedPublicationId===remotePublication.sessionId&&!!sfu?.subscriber&&sfu.subscriber.connectionState==='connected'&&!!document.getElementById('remoteVideo')?.srcObject?.getVideoTracks?.().some(track=>track.readyState==='live'),stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
+  window.DartArenaMatchMedia={mode:'sfu',readyForHandoff:()=>!stopped&&!!publication?.sessionId&&!!subscribedPublicationId&&!!remotePublication?.sessionId&&subscribedPublicationId===remotePublication.sessionId&&!!sfu?.subscriber&&sfu.subscriber.connectionState==='connected'&&!!handoffRemoteStream&&document.getElementById('remoteVideo')?.srcObject===handoffRemoteStream&&handoffRemoteStream.getVideoTracks().some(track=>track.readyState==='live'&&!track.muted)&&(!remotePublication?.tracks?.some(t=>/audio|microphone/i.test(String(t)))||handoffRemoteStream.getAudioTracks().some(track=>track.readyState==='live')),stop:stopMedia,republish:()=>publish(true),reconnect:async()=>{
     try{sfu?.close()}catch{}
     sfu=null;
     publication=null;
