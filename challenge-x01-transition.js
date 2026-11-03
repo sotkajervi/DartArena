@@ -13,7 +13,7 @@
      (variant==='cricket'?'cricket.html':variant==='half_it'?'half-it.html':variant==='sixty_one'?'61-match.html':variant==='jdc'?'jdc-match.html':'match.html');
    return page+'?id='+encodeURIComponent(id);
  };
- async function begin(matchId,variant){
+ async function begin(matchId,variant,{startAt}={}){
    if(started||!valid(matchId))return;
    started=true;
    try{
@@ -25,6 +25,11 @@
      const game=String(match.game||'');
      const isX01=x01.has(game)&&match.game_variant==='x01'&&String(match.game_config?.chicago||'false')!=='true';
      const bridge=window.DartArenaChallengeSamePageHandoff;
+     // Give both authenticated players the same media migration window when
+     // no coin flip is used, instead of racing the opponent's start event.
+     if(isX01&&typeof bridge?.enter==='function'&&Number.isFinite(Number(startAt))&&Number(startAt)>Date.now()){
+       await new Promise(resolve=>setTimeout(resolve,Math.min(4000,Math.max(0,Number(startAt)-Date.now()))));
+     }
      if(isX01&&typeof bridge?.enter==='function'&&
        await bridge.enter({liveMatchId:matchId,challengeId:new URLSearchParams(location.search).get('id')})===true)return;
    }catch(error){console.warn('[challenge transition] Using original match page',error)}
@@ -32,6 +37,6 @@
  }
  window.DartArenaChallengeStart=Object.freeze({
    supportedGames:Object.freeze([...x01]),
-   open(matchId,variant){if(!valid(matchId)||started)return true;begin(matchId,variant);return true}
+   open(matchId,variant,options={}){if(!valid(matchId)||started)return true;begin(matchId,variant,options);return true}
  });
 })();
