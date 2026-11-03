@@ -72,6 +72,7 @@
          'match-controls.js?v=20261102-samepage-dev1',
          'opponent-focus.js?v=20261026-owncam-pip1',
          'dartarena-dialog.js?v=20261027-correction2',
+         'cancelled-match-modal.js?v=20261103-tournament-cancel1',
          'throw-log.js?v=20261102-live-id-fix3',
          'set-engine.js?v=20261102-live-id-fix3',
          'x01-leg-starter-marker.js?v=20261102-live-id-fix3',
