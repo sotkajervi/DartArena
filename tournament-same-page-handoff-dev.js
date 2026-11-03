@@ -113,6 +113,13 @@
          await new Promise(resolve=>setTimeout(resolve,250));
        }
        window.DartArenaMediaTrace?.mark('HANDOFF_NEW_SFU_READY');
+       // Make-before-break must be mutual: a faster player must not close
+       // their waiting-room SFU while the opponent is still preparing match SFU.
+       await window.DartArenaHandoffBarrier?.wait?.({
+         client,matchId:liveMatchId,me:state.userId(),
+         opponent:match.player1_id===state.userId()?match.player2_id:match.player1_id
+       });
+       window.DartArenaMediaTrace?.mark('HANDOFF_RELEASING_OLD_MEDIA');
        releaseWaitingRoom?.();
        released=true;
        window.DartArenaMediaTrace?.mark('HANDOFF_SUCCESS');
