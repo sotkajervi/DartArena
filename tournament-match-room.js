@@ -117,6 +117,7 @@ let transitionStarted=false;
 async function goToMatch(liveId){
   if(transitionStarted||!liveId)return;
   transitionStarted=true;
+  window.DartArenaMediaTrace?.mark('TOURNAMENT_GO_TO_MATCH',{liveMatchId:String(liveId).slice(0,8),starterChoice});
   const bridge=window.DartArenaTournamentHandoff;
   if(typeof bridge?.enter==='function'){
     try{
@@ -128,6 +129,7 @@ async function goToMatch(liveId){
       })===true)return;
     }catch(error){console.error('Same-page match handoff failed',error)}
   }
+  window.DartArenaMediaTrace?.mark('TOURNAMENT_LEGACY_NAVIGATION');
   cleanup();
   location.href=matchUrl(liveId);
 }
@@ -655,6 +657,7 @@ async function maybeStart(){
   }catch(error){
     console.warn('[Tournament] Direct start broadcast unavailable; database fallback remains',error);
   }
+  window.DartArenaMediaTrace?.mark('TOURNAMENT_DIRECT_START',{startAt});
   scheduleDirectStart(liveMatchId,startAt);
 }
 
