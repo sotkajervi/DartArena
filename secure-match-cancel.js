@@ -34,16 +34,18 @@
 
   const params=new URLSearchParams(location.search);
   const inTournamentRoom=location.pathname.endsWith('/tournament-match-room')||location.pathname.endsWith('/tournament-match-room.html');
+  const inChallengeRoom=location.pathname.endsWith('/room')||location.pathname.endsWith('/room.html');
   const isTournament=()=>params.has('tournamentMatch')||(inTournamentRoom&&params.get('samePageDev')==='1');
+  const isChallengeHandoff=()=>!!(inChallengeRoom&&params.get('challengeSeamlessDev')==='1');
 
   function installCloseGuard(){
     const close=document.getElementById('closeMatchBtn');
     const cancel=document.getElementById('cancelMatchBtn');
     if(!close||close.dataset.dartArenaCloseGuard==='1')return !!close;
     close.dataset.dartArenaCloseGuard='1';
-    if(!isTournament())close.textContent='Åpne lobby i ny fane';
+    if(!isTournament()&&!isChallengeHandoff())close.textContent='Åpne lobby i ny fane';
     close.addEventListener('click',async event=>{
-      const tournamentRoom=isTournament();
+      const tournamentRoom=isTournament()||isChallengeHandoff();
       // Preserve the tournament room's existing close behavior.
       if(tournamentRoom&&(!cancel||cancel.classList.contains('hidden')))return;
       event.preventDefault();
@@ -72,7 +74,7 @@
 
   // Tournament matches have their own RPC that resets the bracket match for restart.
   if(isTournament())return;
-  const matchId=params.get('id');
+  const matchId=window.DartArenaMatchEngineState?.matchId?.()||params.get('id');
   if(!matchId)return;
 
   const install=()=>{

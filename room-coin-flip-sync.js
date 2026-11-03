@@ -40,7 +40,7 @@
         duration:3300
       });
     }finally{
-      location.href=`${pageFor(payload.gameVariant)}?id=${encodeURIComponent(payload.matchId)}`;
+      if(!window.DartArenaChallengeStart?.open?.(payload.matchId,payload.gameVariant))location.href=`${pageFor(payload.gameVariant)}?id=${encodeURIComponent(payload.matchId)}`;
     }
   }
 

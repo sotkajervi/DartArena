@@ -240,15 +240,16 @@
     renderDebug();
   },700);
 
-  window.DartArenaRoomMedia={mode:'sfu',republish:()=>ensurePublished(true),reconnect:()=>restartPeer(),debugText};
-
-  buildDebug();
-  window.addEventListener('pagehide',()=>{
+  function stopTransport(){
     clearInterval(heartbeat);
     clearInterval(trackWatch);
     clearInterval(bootTimer);
     try{sfu?.close()}catch{}
     if(sfuChannel){try{db.removeChannel(sfuChannel)}catch{}}
     sfuChannel=null;
-  },{once:true});
+  }
+  window.DartArenaRoomMedia={mode:'sfu',republish:()=>ensurePublished(true),reconnect:()=>restartPeer(),debugText,stop:stopTransport};
+
+  buildDebug();
+  window.addEventListener('pagehide',stopTransport,{once:true});
 })();

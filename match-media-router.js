@@ -106,7 +106,7 @@
   // waiting room. Avoid a second, usually unsuccessful direct Peer negotiation
   // before the SFU fallback. Normal challenges retain Peer-first behavior.
   if(new URLSearchParams(location.search).has('tournamentMatch')||
-     new URLSearchParams(location.search).get('samePageDev')==='1'){
+     (new URLSearchParams(location.search).get('samePageDev')==='1'||new URLSearchParams(location.search).get('challengeSeamlessDev')==='1')){
     loadSfu('sfu');
     return;
   }

@@ -1,9 +1,9 @@
 (()=>{
   if(window.__dartArenaMatchMediaTelemetry)return;
   const params=new URLSearchParams(location.search);
-  const samePage=params.get('samePageDev')==='1';
+  const samePage=params.get('samePageDev')==='1'||params.get('challengeSeamlessDev')==='1';
   const matchId=samePage?window.DartArenaMatchEngineState?.matchId?.():params.get('id');
-  const tournamentMatchId=samePage?params.get('id'):params.get('tournamentMatch')||null;
+  const tournamentMatchId=params.get('samePageDev')==='1'?params.get('id'):params.get('tournamentMatch')||null;
   if(!matchId||!window.supabase)return;
   window.__dartArenaMatchMediaTelemetry=true;
 
