@@ -153,6 +153,25 @@
           });
           return;
         }
+        // Normal X01 matches follow the exact same synchronized start flow
+        // as tested coin flips, but without a coin animation. Other modes
+        // continue through the original match-start broadcast.
+        const directX01=variant==='x01'&&
+          ['170','301','501','1001'].includes(String(match.game))&&
+          String(match.game_config?.chicago??'false').toLowerCase()!=='true';
+        if(directX01&&typeof window.DartArenaCoinFlipSync?.startDirect==='function'){
+          accept.textContent='Starter kampen…';
+          await window.DartArenaCoinFlipSync.startDirect({
+            matchId:match.id,
+            gameVariant:variant,
+            player1Id:match.player1_id,
+            player2Id:match.player2_id,
+            player1Name:names[match.player1_id]||'Spiller 1',
+            player2Name:names[match.player2_id]||'Spiller 2',
+            starterId:match.match_starter_id||match.turn_player_id
+          });
+          return;
+        }
         const startAt=Date.now()+2800;
         await send('match-start',{matchId:match.id,gameVariant:variant,startAt});
         const page=window.DartArenaGames?.pageForVariant?.(variant)||pageForVariant(variant);
