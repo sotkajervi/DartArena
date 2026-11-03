@@ -50,8 +50,14 @@
       window.opener?.postMessage({type:'dartarena-tournament-match-cancelled',id:tournamentMatchId},location.origin);
       window.opener?.focus();
     }catch{}
-    window.close();
-    setTimeout(()=>{if(!window.closed&&tournamentId)location.href=`tournament.html?id=${encodeURIComponent(tournamentId)}`},150);
+    // Do not close this tab: the cancelling player must always land in the tournament lobby.
+    if(!tournamentId){
+      message('Kampen er avbrutt, men turneringsadressen mangler. Bruk Til turneringen.');
+      if(cancelBtn){cancelBtn.disabled=false;cancelBtn.textContent='Til turneringen';cancelBtn.onclick=()=>location.assign(window.DartArenaTournamentReturnUrl||'./')}
+      return;
+    }
+    window.DartArenaMediaTrace?.mark('OWN_CANCEL_GO_TOURNAMENT',{tournament:String(tournamentId).slice(0,8)});
+    location.replace(`tournament.html?id=${encodeURIComponent(tournamentId)}`);
   }
 
   if(cancelBtn){
