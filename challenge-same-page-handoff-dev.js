@@ -113,7 +113,8 @@
        window.DartArenaMediaTrace?.mark('HANDOFF_NEW_SFU_READY');
        // Make-before-break must be mutual: a faster player must not close
        // their waiting-room SFU while the opponent is still preparing match SFU.
-       await window.DartArenaHandoffBarrier?.wait?.({
+       if(!window.DartArenaHandoffBarrier?.wait)throw Error('Both-player media barrier is not loaded');
+       await window.DartArenaHandoffBarrier.wait({
          client,matchId:liveMatchId,me:state.user(),
          opponent:match.player1_id===state.user()?match.player2_id:match.player1_id
        });
