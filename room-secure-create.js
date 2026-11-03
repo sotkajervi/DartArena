@@ -74,9 +74,17 @@
     let box=document.getElementById('proposalOptionFlags');
     if(!box){box=document.createElement('div');box.id='proposalOptionFlags';box.className='room-proposal-flags';text.insertAdjacentElement('afterend',box)}
     box.innerHTML=`<span class="room-proposal-flag ${isLive?'live-on':'live-off'}">LIVE ${isLive?'PÅ':'AV'}</span><span class="room-proposal-flag ${isWarmup?'warm-on':'warm-off'}">OPPVARMING ${isWarmup?'PÅ':'AV'}</span>`;
+    box.classList.remove('is-empty');
+    box.setAttribute('aria-hidden','false');
   }
 
-  function clearProposalFlags(){document.getElementById('proposalOptionFlags')?.remove()}
+  function clearProposalFlags(){
+    const box=document.getElementById('proposalOptionFlags');
+    if(!box)return;
+    box.innerHTML='<span class="room-proposal-flag live-on">LIVE PÅ</span><span class="room-proposal-flag warm-off">OPPVARMING AV</span>';
+    box.classList.add('is-empty');
+    box.setAttribute('aria-hidden','true');
+  }
 
   function hookProposalDisplay(){
     if(window.__dartArenaRoomOptionProposalHook||typeof showProposal!=='function')return;
