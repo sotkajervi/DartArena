@@ -153,9 +153,10 @@
           });
           return;
         }
-        await send('match-start',{matchId:match.id,gameVariant:variant});
+        const startAt=Date.now()+2800;
+        await send('match-start',{matchId:match.id,gameVariant:variant,startAt});
         const page=window.DartArenaGames?.pageForVariant?.(variant)||pageForVariant(variant);
-        if(!window.DartArenaChallengeStart?.open?.(match.id,variant))location.href=`${page}?id=${encodeURIComponent(match.id)}`;
+        if(!window.DartArenaChallengeStart?.open?.(match.id,variant,{startAt}))location.href=`${page}?id=${encodeURIComponent(match.id)}`;
       }catch(error){document.getElementById('roomMessage').textContent=error?.message||'Kampen kunne ikke startes.';accept.disabled=false;accept.textContent='Godta og start kamp'}
     };
 
