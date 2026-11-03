@@ -98,6 +98,7 @@
         ?await dialog.confirm('Vil du avbryte kampen?\n\nKampen avsluttes for begge spillere.',{title:'Avbryt kamp',tone:'danger',confirmText:'Avbryt kamp'})
         :confirm('Vil du avbryte kampen?');
       if(!ok)return;
+      window.__dartArenaOwnCancel=true;
       busy=true;
       const old=button.textContent;
       button.disabled=true;
@@ -112,6 +113,7 @@
         try{window.opener?.postMessage({type:'dartarena-match-ended',id:matchId},location.origin)}catch{}
         if(data)location.href='./';
       }catch(error){
+        window.__dartArenaOwnCancel=false;
         const msg=document.getElementById('matchMessage');
         if(msg)msg.textContent='Kunne ikke avbryte: '+(error?.message||'ukjent feil');
         button.disabled=false;
