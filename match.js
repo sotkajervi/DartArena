@@ -178,7 +178,8 @@ $('cancelMatchBtn').onclick=async()=>{
   try{await channel?.send({type:'broadcast',event:'match-cancelled',payload:{matchId:m.id,from:profile?.id}})}catch(error){console.debug('Cancel broadcast fallback: postgres changes',error)}
   await setPlayersUnavailable();
   window.opener?.postMessage({type:'dartarena-match-ended',id:m.id},location.origin);
-  window.close();
+  window.DartArenaMediaTrace?.mark('OWN_CANCEL_GO_LOBBY');
+  location.replace('./');
  }catch(error){$('matchMessage').textContent='Kunne ikke avbryte: '+(error?.message||error);button.disabled=false}
 };
 $('closeMatchBtn').onclick=()=>{if(m?.status==='playing'&&!confirm(window.DartArenaI18n?.t?.('Kampen pågår fortsatt. Lukk kampfanen?')||'Kampen pågår fortsatt. Lukk kampfanen?'))return;window.close()};
