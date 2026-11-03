@@ -63,26 +63,7 @@ function showAuth(){
  $('headerStatus').innerHTML='<i></i> Ikke innlogget';
  window.dispatchEvent(new CustomEvent('dartarena:lobby-left'));
 }
-// Supplement Postgres change events with an explicit, non-authoritative
-// notification. The receiver always re-reads challenges under RLS.
-window.DartArenaNotifyChallenge=async recipientId=>{
-  if(!recipientId)return;
-  const channel=db.channel('lobby-challenges-'+recipientId);
-  try{
-    await new Promise((resolve,reject)=>{
-      const timeout=setTimeout(()=>reject(new Error('Challenge notification subscription timeout')),3000);
-      channel.subscribe(status=>{
-        if(status==='SUBSCRIBED'){clearTimeout(timeout);resolve()}
-        else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
-          clearTimeout(timeout);reject(new Error('Challenge notification '+status))
-        }
-      });
-    });
-    await channel.send({type:'broadcast',event:'challenge-created',payload:{at:Date.now()}});
-  }catch(error){console.debug('Challenge direct notification unavailable; polling remains active',error)}
-  finally{try{await db.removeChannel(channel)}catch{}}
-};
-function setupChallengeRealtime(){const profileId=profile?.id;if(!profileId)return;if(challengeRealtime)db.removeChannel(challengeRealtime);challengeRealtime=db.channel('lobby-challenges-'+profileId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'challenges',filter:`challenger_id=eq.${profileId}`},payload=>{const row=payload.new;if(row.status==='room')enterAcceptedRoom(row.id);loadChallenges()}).on('broadcast',{event:'challenge-created'},()=>{if(profile?.id===profileId)void loadChallenges()}).on('postgres_changes',{event:'INSERT',schema:'public',table:'challenges',filter:`challenged_id=eq.${profileId}`},()=>loadChallenges()).on('postgres_changes',{event:'UPDATE',schema:'public',table:'challenges',filter:`challenged_id=eq.${profileId}`},()=>loadChallenges()).subscribe()}
+function setupChallengeRealtime(){const profileId=profile?.id;if(!profileId)return;if(challengeRealtime)db.removeChannel(challengeRealtime);challengeRealtime=db.channel('lobby-challenges-'+profileId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'challenges',filter:`challenger_id=eq.${profileId}`},payload=>{const row=payload.new;if(row.status==='room')enterAcceptedRoom(row.id);loadChallenges()}).on('postgres_changes',{event:'INSERT',schema:'public',table:'challenges',filter:`challenged_id=eq.${profileId}`},()=>loadChallenges()).on('postgres_changes',{event:'UPDATE',schema:'public',table:'challenges',filter:`challenged_id=eq.${profileId}`},()=>loadChallenges()).subscribe()}
 function enterAcceptedRoom(id){if(id)window.location.assign(`room.html?id=${encodeURIComponent(id)}`)}
 async function findActiveMatch(profileId=profile?.id){if(!profileId)return null;const{data}=await db.from('matches').select('*').or(`player1_id.eq.${profileId},player2_id.eq.${profileId}`).in('status',['waiting','playing']).order('created_at',{ascending:false}).limit(1);return data?.[0]||null}
 async function findWaitingRoom(profileId){if(!profileId)return null;const {data,error}=await db.from('challenges').select('id,challenger_id,challenged_id').eq('status','room').or(`challenger_id.eq.${profileId},challenged_id.eq.${profileId}`).order('created_at',{ascending:false}).limit(1);if(error){console.warn('Could not find waiting room',error);return null}return data?.[0]||null}
@@ -92,7 +73,7 @@ async function loadPlayers(profileId=profile?.id){
  if(!profileId||!window.DartArenaSocialLobby?.refreshPlayers)return;
  return window.DartArenaSocialLobby.refreshPlayers({db,profileId,activeMatch,sendInvite,esc});
 }
-async function sendInvite(button){if(activeMatch||!button||button.disabled)return;const id=button.dataset.id,old=button.textContent;button.disabled=true;button.textContent='Sender…';const{error}=await db.from('challenges').insert({challenger_id:profile.id,challenged_id:id,game:501,legs:5,allow_draw:false,starter:'me',status:'pending'});if(error){button.disabled=false;button.textContent=old;return alert(error.message)}void window.DartArenaNotifyChallenge?.(id);button.textContent='Sendt';setTimeout(()=>{if(button.isConnected&&!activeMatch){button.disabled=false;button.textContent=old}},1200)}
+async function sendInvite(button){if(activeMatch||!button||button.disabled)return;const id=button.dataset.id,old=button.textContent;button.disabled=true;button.textContent='Sender…';const{error}=await db.from('challenges').insert({challenger_id:profile.id,challenged_id:id,game:501,legs:5,allow_draw:false,starter:'me',status:'pending'});if(error){button.disabled=false;button.textContent=old;return alert(error.message)}button.textContent='Sendt';setTimeout(()=>{if(button.isConnected&&!activeMatch){button.disabled=false;button.textContent=old}},1200)}
 async function loadChallenges(profileId=profile?.id){if(!profileId)return;if(activeMatch)return $('challengeList').innerHTML='<p class="muted">Du er i kamp.</p>';const{data,error}=await db.from('challenges').select('id,challenger_id,status,created_at').eq('challenged_id',profileId).eq('status','pending').order('created_at',{ascending:false});if(profile?.id!==profileId)return;if(error)return $('challengeList').innerHTML=`<p class="muted">${esc(error.message)}</p>`;if(!data?.length)return $('challengeList').innerHTML='<p class="muted">Ingen ventende utfordringer.</p>';const ids=[...new Set(data.map(c=>c.challenger_id))],{data:people}=await db.from('profiles').select('id,username').in('id',ids);if(profile?.id!==profileId)return;const names=Object.fromEntries((people||[]).map(p=>[p.id,p.username]));$('challengeList').innerHTML=data.map(c=>`<div class="challenge-row"><div><div class="player-name">${esc(names[c.challenger_id]||'Spiller')}</div><div class="status">Vil koble til kamera og avtale kamp</div></div><div class="challenge-actions"><button class="small-btn accept" data-action="accepted" data-id="${c.id}">Godta</button><button class="small-btn decline" data-action="declined" data-id="${c.id}">Avslå</button></div></div>`).join('');document.querySelectorAll('.challenge-actions button').forEach(b=>b.onclick=()=>respondChallenge(b))}
 async function respondChallenge(b){const id=b.dataset.id;if(b.dataset.action==='declined'){const old=b.textContent;b.disabled=true;b.textContent='Avslår…';const{error}=await db.from('challenges').update({status:'declined'}).eq('id',id);if(error){b.disabled=false;b.textContent=old;return alert(error.message)}return loadChallenges()}b.disabled=true;b.textContent='Kobler til…';const{data:accepted,error}=await db.from('challenges').update({status:'room'}).eq('id',id).eq('status','pending').select('id').maybeSingle();if(error||!accepted?.id){b.disabled=false;b.textContent='Godta';await loadChallenges();return alert(error?.message||'Utfordringen er ikke lenger tilgjengelig.')}window.location.assign(`room.html?id=${encodeURIComponent(accepted.id)}`)}
 function esc(v=''){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}window.addEventListener('message',e=>{if(e.origin===location.origin&&profile)loadLobby()});
