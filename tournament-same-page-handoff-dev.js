@@ -36,13 +36,16 @@
      if(error||!match||!['playing','live'].includes(match.status)||
         ![match.player1_id,match.player2_id].includes(state.userId()))return false;
      entering=true;
+     window.DartArenaMediaTrace?.mark('HANDOFF_BEGIN',{kind:'tournament',liveMatchId:String(liveMatchId).slice(0,8)});
      let released=false;
      try{
        const host=window.DartArenaMatchSceneHost;
        if(!host)throw Error('Kamp-scene er ikke lastet');
        await host.prepare();
+       window.DartArenaMediaTrace?.mark('MATCH_SCENE_PREPARED');
        // No second document or iframe. The same video nodes are moved into place.
        await host.enter();
+       window.DartArenaMediaTrace?.mark('MATCH_SCENE_VISIBLE');
        document.body.classList.add('match-page');
        document.body.classList.remove('da-prematch-active');
        // Stage the same local tracks while the waiting room remains connected.
@@ -59,6 +62,7 @@
        await script('match.js?v=20261103-tournament-cancel4');
        if(typeof window.DartArenaBootLiveMatch!=='function')throw Error('Kampmotor mangler');
        await window.DartArenaBootLiveMatch(liveMatchId);
+       window.DartArenaMediaTrace?.mark('MATCH_ENGINE_BOOTED');
        // Load the existing match modules only after the room is released and
        // scoring has an authenticated live-match ID. Reuse scripts already on
        // the tournament page instead of initializing duplicate media listeners.
@@ -94,6 +98,7 @@
          'mobile-x01-keypad.js?v=20261025-mobile1',
          'post-match-media-lifecycle.js?v=20261102-finish-liveid5'
        ];
+       window.DartArenaMediaTrace?.mark('MATCH_MODULES_LOADING',{count:modules.length});
        for(const src of modules){
          const path=src.split('?')[0];
          if([...document.scripts].some(el=>el.src&&new URL(el.src).pathname.endsWith('/'+path)))continue;
@@ -101,15 +106,19 @@
        }
        // Do not cut the waiting-room transport until both a new publication
        // and a live subscribed opponent video are visible in the match session.
+       window.DartArenaMediaTrace?.mark('HANDOFF_WAIT_NEW_SFU');
        const deadline=Date.now()+15000;
        while(!window.DartArenaMatchMedia?.readyForHandoff?.()){
          if(Date.now()>deadline)throw Error('Kampvideo ble ikke klar før overgang');
          await new Promise(resolve=>setTimeout(resolve,250));
        }
+       window.DartArenaMediaTrace?.mark('HANDOFF_NEW_SFU_READY');
        releaseWaitingRoom?.();
        released=true;
+       window.DartArenaMediaTrace?.mark('HANDOFF_SUCCESS');
        return true;
      }catch(err){
+       window.DartArenaMediaTrace?.mark('HANDOFF_FAILED',err?.message||String(err));
        console.error('[same-page match handoff]',err);
        // Scoring may already have booted, so a clean navigation is safer
        // than trying to resume the old room with two engines active.
@@ -119,6 +128,7 @@
        const url=new URL('match.html',location.href);
        url.searchParams.set('id',liveMatchId);
        url.searchParams.set('tournamentMatch',tournamentMatchId);
+       window.DartArenaMediaTrace?.mark('HANDOFF_FALLBACK_NAVIGATION');
        location.replace(url.href);
        return true;
      }
