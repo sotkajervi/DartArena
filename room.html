@@ -49,16 +49,26 @@
  body:not(.match-page) #matchView #proposalCard .room-switch-copy small{font-size:10px;line-height:1.2;letter-spacing:0}
  body:not(.match-page) #matchView .challenge-incoming{margin-top:7px;padding-top:7px}
 }
-/* Reserve the space a received proposal needs before it arrives, so both
-   card frames remain stationary while buttons / badges are added. */
+/* Stable frame geometry in challenge waiting room.
+   Incoming proposal text/buttons must not resize either card. Keep scrolling
+   local to a card only when exceptional content would overflow. */
 @media(min-width:901px){
  body:not(.match-page) #matchView .room-options{align-items:stretch}
- body:not(.match-page) #matchView .room-options>.card{align-self:stretch}
- body:not(.match-page) #matchView .room-options>.card:first-child{align-content:start}
- body:not(.match-page) #matchView .challenge-incoming{min-height:145px}
+ body:not(.match-page) #matchView .room-options>.card{
+   height:350px;min-height:0;max-height:350px;align-self:stretch;overflow:hidden
+ }
+ body:not(.match-page) #matchView .room-options>.card:first-child{
+   align-content:start;overflow-y:auto
+ }
+ body:not(.match-page) #matchView #proposalCard{display:flex;flex-direction:column}
+ body:not(.match-page) #matchView .challenge-incoming{
+   min-height:0;flex:1;overflow-y:auto;scrollbar-width:thin
+ }
 }
-@media(min-width:901px) and (min-height:820px){
- body:not(.match-page) #matchView .room-options>.card{min-height:355px}
+@media(min-width:901px) and (min-height:650px) and (max-height:1000px){
+ body:not(.match-page) #matchView .room-options>.card{
+   height:340px;max-height:340px
+ }
 }
 /* Media diagnostics are opt-in, not part of the player waiting room. */
 #roomSfuDebug{display:none!important}
