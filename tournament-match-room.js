@@ -673,7 +673,9 @@ function cleanup({preserveCapture=false,keepCapture=false}={}){
   // Normal navigation must always close the camera and microphone.
   const capturePreserved=preserveCapture&&
     !!window.DartArenaCaptureHandoff?.transfer?.(stream);
-  if(channel&&me&&!starting){
+  // A seamless handoff is not a player leaving. Do not send room-leave
+  // and erase the other player's old video while the new streams take over.
+  if(channel&&me&&!starting&&!keepCapture){
     try{channel.send({type:'broadcast',event:'room-leave',payload:{from:me,instanceId:roomInstanceId}}).catch?.(()=>{})}catch{}
   }
   localReady=false;
