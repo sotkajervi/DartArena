@@ -301,8 +301,17 @@
       video.onplaying=()=>{if(epoch===subscriptionEpoch)placeholder?.classList.add('hidden')};
     }
     if(placeholder){
-      placeholder.textContent='Kobler til motstander via Cloudflare…';
-      placeholder.classList.remove('hidden');
+      // The room SFU stays visible until the replacement is ready.
+      // Do not cover a working picture with connection status.
+      const existingPicture=seamless&&video?.srcObject instanceof MediaStream&&
+        video.readyState>=2&&video.videoWidth>0&&video.videoHeight>0&&
+        video.srcObject.getVideoTracks().some(t=>t.readyState==='live'&&!t.muted);
+      if(existingPicture){
+        placeholder.classList.add('hidden');
+      }else{
+        placeholder.textContent='Kobler til motstander via Cloudflare…';
+        placeholder.classList.remove('hidden');
+      }
     }
 
     try{
@@ -334,7 +343,7 @@
         if(!seamless)video.muted=true;
         video.playsInline=true;
         if(!seamless||video.srcObject===incomingStream)await video.play().catch(()=>{});
-        if(rs.getVideoTracks().some(t=>t.readyState==='live')){
+        if(video.readyState>=2&&video.videoWidth>0&&rs.getVideoTracks().some(t=>t.readyState==='live'&&!t.muted)){
           placeholder?.classList.add('hidden');
         }
         // Opponent audio is auto-unlocked by remote-audio-autounlock.js.
