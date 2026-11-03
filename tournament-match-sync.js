@@ -26,18 +26,26 @@
       :confirm(text);
     if(!ok)return;
     cancelling=true;
+    window.__dartArenaOwnCancel=true;
     if(cancelBtn){cancelBtn.disabled=true;cancelBtn.textContent='Avbryter…'}
     const {data,error}=await client.rpc('cancel_tournament_match',{
       p_tournament_match_id:tournamentMatchId,
       p_live_match_id:liveMatchId
     });
     if(error){
+      window.__dartArenaOwnCancel=false;
       message('Kunne ikke avbryte turneringskampen: '+error.message);
       cancelling=false;
       if(cancelBtn){cancelBtn.disabled=false;cancelBtn.textContent='Avbryt kamp'}
       return;
     }
     tournamentId=data||tournamentId;
+    try{
+      await window.DartArenaMatchEngineState?.channel?.()?.send({
+        type:'broadcast',event:'match-cancelled',
+        payload:{matchId:liveMatchId,from:window.DartArenaMatchEngineState?.profile?.()?.id}
+      });
+    }catch(error){console.debug('Tournament cancel broadcast fallback: postgres changes',error)}
     try{
       window.opener?.postMessage({type:'dartarena-tournament-match-cancelled',id:tournamentMatchId},location.origin);
       window.opener?.focus();
@@ -99,6 +107,7 @@
       client.from('matches').select('id,status').eq('id',liveMatchId).single()
     ]);
     tournamentId=tm?.tournament_id||null;
+    if(tournamentId)window.DartArenaTournamentReturnUrl='tournament.html?id='+encodeURIComponent(tournamentId);
     await syncIfFinished(live);
     syncChannel=client.channel(`tournament-sync-${liveMatchId}`)
       .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${liveMatchId}`},payload=>syncIfFinished(payload.new))
