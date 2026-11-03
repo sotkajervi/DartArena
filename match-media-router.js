@@ -71,8 +71,14 @@
     setMode(mode);
     const placeholder=document.getElementById('remotePlaceholder');
     if(placeholder){
-      placeholder.textContent='Bytter til Cloudflare-video…';
-      placeholder.classList.remove('hidden');
+      // During same-page handoff the waiting-room picture remains usable.
+      // Keep the transport switch invisible while that picture is playing.
+      if(remoteHasUsableVideo()){
+        placeholder.classList.add('hidden');
+      }else{
+        placeholder.textContent='Bytter til Cloudflare-video…';
+        placeholder.classList.remove('hidden');
+      }
     }
     const script=document.createElement('script');
     script.src=secure?'match-sfu-media-secure.js?v=20261103-real-new-stream1':'match-sfu-media.js?v=20261103-real-new-stream1';
