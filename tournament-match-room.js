@@ -24,6 +24,8 @@ let starterChoice='random';
 let coinFlipRunning=false;
 let coinFlipFinished=false;
 let coinFlipFallback=null;
+let directStartTimer=null;
+let directStartFallback=null;
 let roomConnected=false;
 let remoteTransportMismatch=false;
 let roomRetryTimer=null;
@@ -182,6 +184,27 @@ async function recoverCoinFlip(liveId){
   }
 }
 
+function scheduleDirectStart(liveId,startAt){
+  if(transitionStarted||!liveId)return;
+  clearTimeout(directStartFallback);
+  directStartFallback=null;
+  clearTimeout(directStartTimer);
+  const delay=Math.max(0,Math.min(7000,Number(startAt||0)-Date.now()));
+  if(delay){
+    $('roomMessage').textContent='Kamp klar – beholder lyd og bilde fram til felles start…';
+    directStartTimer=setTimeout(()=>{directStartTimer=null;goToMatch(liveId)},delay);
+  }else goToMatch(liveId);
+}
+function armDirectStartFallback(liveId){
+  if(transitionStarted||directStartTimer||directStartFallback)return;
+  // RPC status can reach a client before the shared start broadcast.
+  // Let the broadcast decide when to migrate both SFU sessions.
+  directStartFallback=setTimeout(()=>{
+    directStartFallback=null;
+    console.warn('[Tournament] Direct start broadcast missing; recovering via DB status');
+    goToMatch(liveId);
+  },7500);
+}
 function armCoinFlipFallback(liveId){
   if(coinFlipRunning||coinFlipFinished||coinFlipFallback)return;
   coinFlipFallback=setTimeout(()=>{
@@ -366,13 +389,15 @@ function setupChannel(){
       await playTournamentCoinFlip(payload);
     })
     .on('broadcast',{event:'match-start'},({payload})=>{
-      if(payload.liveMatchId)goToMatch(payload.liveMatchId);
+      if(!payload?.liveMatchId||payload.from!==other)return;
+      if(payload.startAt)scheduleDirectStart(payload.liveMatchId,payload.startAt);
+      else goToMatch(payload.liveMatchId);
     })
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'tournament_matches',filter:`id=eq.${tournamentMatchId}`},payload=>{
       tm=payload.new;
       if(tm.status==='live'&&tm.live_match_id){
         if(starterChoice==='random'&&!coinFlipFinished){armCoinFlipFallback(tm.live_match_id);return;}
-        goToMatch(tm.live_match_id);
+        armDirectStartFallback(tm.live_match_id);
       }
     })
     .subscribe(async status=>{
@@ -624,8 +649,13 @@ async function maybeStart(){
     }
   }
 
-  await channel.send({type:'broadcast',event:'match-start',payload:{from:me,liveMatchId}});
-  goToMatch(liveMatchId);
+  const startAt=Date.now()+4500;
+  try{
+    await channel.send({type:'broadcast',event:'match-start',payload:{from:me,liveMatchId,startAt}});
+  }catch(error){
+    console.warn('[Tournament] Direct start broadcast unavailable; database fallback remains',error);
+  }
+  scheduleDirectStart(liveMatchId,startAt);
 }
 
 async function toggleRemoteAudio(){
@@ -654,6 +684,8 @@ function cleanup({preserveCapture=false,keepCapture=false}={}){
   roomConnected=false;
   clearTimeout(coinFlipFallback);
   coinFlipFallback=null;
+  clearTimeout(directStartTimer);directStartTimer=null;
+  clearTimeout(directStartFallback);directStartFallback=null;
   try{sfu?.close();}catch{}
   sfu=null;
   if(!capturePreserved&&!keepCapture)stream?.getTracks().forEach(t=>t.stop());
