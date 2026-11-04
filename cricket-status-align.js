@@ -1,6 +1,6 @@
-/* Cricket TV: use the free space for the visit log so the status/camera
-   panel ends level with the video (opponent turn) or input dock (own turn).
-   Only Cricket; neither media elements nor scoring logic are changed. */
+/* Cricket TV: fixed video and input dimensions define sidebar height.
+   Kastlogg fills only the remaining space. Never derive sidebar height from
+   input position: that causes runaway layout growth after submitted visits. */
 (()=>{
   'use strict';
   const column=document.querySelector('.match-grid');
@@ -9,8 +9,10 @@
   const history=score?.querySelector('.cricket-history');
   const log=score?.querySelector('.cricket-history-list');
   const entry=document.querySelector('.cricket-entry-card');
+  const dock=document.getElementById('focusInputDock');
+  const view=document.getElementById('matchView');
   const video=document.getElementById('videoGrid');
-  if(!column||!score||!status||!history||!log||!entry||!video)return;
+  if(!column||!score||!status||!history||!log||!entry||!video||!view)return;
 
   const style=document.createElement('style');
   style.id='da-cricket-status-align-style';
@@ -70,12 +72,16 @@
       lastHeight=0;
       return;
     }
+    // Do not measure the input's bottom: the score column can itself move that
+    // grid row down, creating a feedback loop after visits are registered.
+    // Instead use the independent heights of the fixed video and input dock.
     const ownTurn=document.body.classList.contains('own-turn-focus') &&
       getComputedStyle(entry).display!=='none';
-    const bottom=(ownTurn?entry:video).getBoundingClientRect().bottom;
-    const start=column.getBoundingClientRect().top;
-    if(!Number.isFinite(bottom)||!Number.isFinite(start)||bottom<=start)return;
-    const height=Math.ceil(bottom-start);
+    const videoHeight=video.getBoundingClientRect().height;
+    const inputHeight=ownTurn?(dock||entry).getBoundingClientRect().height:0;
+    const gap=parseFloat(getComputedStyle(view).rowGap)||0;
+    const height=Math.ceil(videoHeight+(ownTurn?inputHeight+gap:0));
+    if(!Number.isFinite(height)||height<=0)return;
     if(height!==lastHeight){
       column.style.setProperty('--da-cricket-column-height',height+'px');
       lastHeight=height;
@@ -89,6 +95,7 @@
   const resize=new ResizeObserver(schedule);
   resize.observe(video);
   resize.observe(entry);
+  if(dock)resize.observe(dock);
   const mode=new MutationObserver(schedule);
   mode.observe(document.body,{attributes:true,attributeFilter:['class']});
   schedule();
