@@ -30,7 +30,7 @@ function buildKeypad(){const host=$('cricketKeypad');const shortKey={20:'0',19:'
 function addDart(target,mult){if(!canThrow()||selectedDarts.length>=3)return;selectedDarts.push({target,mult});renderEntry()}
 function canThrow(){return !!m&&m.status==='playing'&&m.turn_player_id===profile?.id&&!submitting}
 function renderEntry(){const host=$('cricketDarts');const items=selectedDarts.map(d=>`<span class="cricket-dart">${esc(labelDart(d))}</span>`);while(items.length<3)items.push('<span class="cricket-dart empty">–</span>');host.innerHTML=items.join('');const enabled=canThrow();document.querySelectorAll('.cricket-hit').forEach(b=>b.disabled=!enabled||selectedDarts.length>=3);$('cricketMissBtn').disabled=!enabled||selectedDarts.length>=3;$('cricketUndoBtn').disabled=!enabled||!selectedDarts.length;$('cricketSubmitBtn').disabled=!enabled||!selectedDarts.length}
-function render(){if(!m)return;const chicago=String(m.game_config?.chicago??'false').toLowerCase()==='true';$('cricketName1').textContent=names[m.player1_id]||'Spiller 1';$('cricketName2').textContent=names[m.player2_id]||'Spiller 2';$('cricketPoints1').textContent=String(m.player1_score||0);$('cricketPoints2').textContent=String(m.player2_score||0);$('cricketLegs1').textContent=chicago?`${m.player1_legs||0} game${Number(m.player1_legs||0)===1?'':'s'}`:`${m.player1_legs||0} legs`;$('cricketLegs2').textContent=chicago?`${m.player2_legs||0} game${Number(m.player2_legs||0)===1?'':'s'}`:`${m.player2_legs||0} legs`;$('cricketP1').classList.toggle('active',m.turn_player_id===m.player1_id&&m.status==='playing');$('cricketP2').classList.toggle('active',m.turn_player_id===m.player2_id&&m.status==='playing');const mine=m.turn_player_id===profile?.id&&m.status==='playing';$('videoGrid')?.classList.toggle('opponent-throwing',m.status==='playing'&&!mine);$('turnText').textContent=m.status==='cancelled'?'Kampen er avbrutt.':m.status==='finished'?`${names[m.winner_id]||'Vinner'} vant kampen.`:mine?'Din tur':`${names[m.turn_player_id]||'Motstanderen'} kaster`;$('matchStatus').textContent=m.status==='playing'?'Pågår':m.status==='finished'?'Ferdig':'Avbrutt';$('cancelMatchBtn').classList.toggle('hidden',m.status!=='playing');renderBoard();renderEntry()}
+function render(){if(!m)return;const chicago=String(m.game_config?.chicago??'false').toLowerCase()==='true';$('cricketName1').textContent=names[m.player1_id]||'Spiller 1';$('cricketName2').textContent=names[m.player2_id]||'Spiller 2';$('cricketPoints1').textContent=String(m.player1_score||0);$('cricketPoints2').textContent=String(m.player2_score||0);$('cricketLegs1').textContent=chicago?`${m.player1_legs||0} game${Number(m.player1_legs||0)===1?'':'s'}`:`${m.player1_legs||0} ${Number(m.player1_legs||0)===1?'leg':'legs'}`;$('cricketLegs2').textContent=chicago?`${m.player2_legs||0} game${Number(m.player2_legs||0)===1?'':'s'}`:`${m.player2_legs||0} ${Number(m.player2_legs||0)===1?'leg':'legs'}`;$('cricketP1').classList.toggle('active',m.turn_player_id===m.player1_id&&m.status==='playing');$('cricketP2').classList.toggle('active',m.turn_player_id===m.player2_id&&m.status==='playing');const mine=m.turn_player_id===profile?.id&&m.status==='playing';$('videoGrid')?.classList.toggle('opponent-throwing',m.status==='playing'&&!mine);$('turnText').textContent=m.status==='cancelled'?'Kampen er avbrutt.':m.status==='finished'?`${names[m.winner_id]||'Vinner'} vant kampen.`:mine?'Din tur':`${names[m.turn_player_id]||'Motstanderen'} kaster`;$('matchStatus').textContent=m.status==='playing'?'Pågår':m.status==='finished'?'Ferdig':'Avbrutt';$('cancelMatchBtn').classList.toggle('hidden',m.status!=='playing');renderBoard();renderEntry()}
 async function refreshGame(){const[{data:mm,error:me}]=await Promise.all([db.from('matches').select('*').eq('id',matchId).single(),loadState()]);if(me)throw me;m=mm;render()}
 async function submitVisit(){if(!canThrow()||!selectedDarts.length)return;submitting=true;renderEntry();$('matchMessage').textContent='Registrerer…';try{const darts=selectedDarts.map(d=>({...d}));const chicago=String(m.game_config?.chicago??'false').toLowerCase()==='true',rpc=chicago?'submit_chicago_cricket_visit':'submit_cricket_visit';const{data,error}=await db.rpc(rpc,{p_match_id:matchId,p_darts:darts});if(error)throw error;selectedDarts=[];await refreshGame();$('matchMessage').textContent=data?.leg_won?(m.status==='finished'?'Kampen er vunnet!':'Leg vunnet!'):(Number(data?.points_scored||0)>0?`+${data.points_scored} poeng`:'');if(m.status==='finished')await setPlayersUnavailable()}catch(error){$('matchMessage').textContent=String(error?.message||'Kunne ikke registrere kastet.').replace('It is not your turn','Det er ikke din tur.')}finally{submitting=false;renderEntry()}}
 $('cricketMissBtn').onclick=()=>addDart('MISS',0);$('cricketUndoBtn').onclick=()=>{selectedDarts.pop();renderEntry()};$('cricketSubmitBtn').onclick=submitVisit;
@@ -175,22 +175,25 @@ window.addEventListener('beforeunload',cleanup);
     // Refresh symbols after the async log query (including corrected visits).
     if(typeof renderBoard==='function')renderBoard();
   }
-  function latestActive(){const rows=visits.filter(v=>Number(v.leg_no)===Number(m?.current_leg));return rows.at(-1)||null}
+  function canCorrect(v){
+    if(isChicago()||m?.status!=='playing'||v?.player_id!==profile?.id||Number(v?.leg_no)!==Number(m.current_leg))return false;
+    const mine=visits.filter(x=>x.player_id===profile.id&&Number(x.leg_no)===Number(m.current_leg));
+    return mine.slice(-3).some(x=>x.id===v.id);
+  }
   function renderLog(){
     renderMpr();
     const host=$('cricketVisitLog');if(!host)return;
     if(!visits.length){host.innerHTML='<div class="cricket-history-empty">Ingen kast registrert ennå.</div>';return}
-    const latest=latestActive();
     host.innerHTML=[...visits].reverse().map(v=>{
-      const editable=!isChicago()&&m?.status==='playing'&&latest?.id===v.id&&v.player_id===profile?.id&&Number(v.leg_no)===Number(m.current_leg);
+      const editable=canCorrect(v);
       const text=summary(expand(v.darts)),points=Number(v.points_scored||0),name=esc(names[v.player_id]||'Spiller');
       return `<div class="cricket-history-row${v.corrected_at?' corrected':''}"><span class="cricket-history-meta">L${v.leg_no} · #${v.visit_no}</span><span class="cricket-history-player">${name}</span><span class="cricket-history-marks">${esc(text)}${v.corrected_at?' · korrigert':''}</span><span class="cricket-history-points">${points?`+${points}`:'—'}</span><span>${editable?`<button class="outline cricket-history-edit" data-edit-visit="${v.id}">Korriger</button>`:''}</span></div>`;
     }).join('');
     host.querySelectorAll('[data-edit-visit]').forEach(b=>b.onclick=()=>startCorrection(Number(b.dataset.editVisit)));
   }
   function startCorrection(id){
-    const v=visits.find(x=>Number(x.id)===Number(id)),latest=latestActive();
-    if(isChicago()||!v||latest?.id!==v.id||v.player_id!==profile?.id||m?.status!=='playing')return;
+    const v=visits.find(x=>Number(x.id)===Number(id));
+    if(!canCorrect(v))return;
     editingVisitId=v.id;selectedDarts=expand(v.darts);
     $('matchMessage').textContent='Korriger siste kast med tastene. Enter lagrer, Esc avbryter.';
     renderEntry();renderLog();
@@ -224,7 +227,7 @@ window.addEventListener('beforeunload',cleanup);
       else $('matchMessage').textContent=data?.leg_won?(m.status==='finished'?'Kampen er vunnet!':'Leg vunnet!'):(Number(data?.points_scored||0)>0?`+${data.points_scored} poeng`:'');
       if(m.status==='finished')await setPlayersUnavailable();
     }catch(error){
-      $('matchMessage').textContent=String(error?.message||'Kunne ikke registrere kastet.').replace('It is not your turn','Det er ikke din tur.').replace('Only the latest visit in the active leg can be corrected','Bare siste registrerte kast i aktivt leg kan korrigeres.');
+      $('matchMessage').textContent=String(error?.message||'Kunne ikke registrere kastet.').replace('It is not your turn','Det er ikke din tur.').replace('Only your three latest visits in the active leg can be corrected','Bare siste registrerte kast i aktivt leg kan korrigeres.');
     }finally{submitting=false;renderEntry();renderLog()}
   };
 

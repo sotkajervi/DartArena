@@ -88,22 +88,25 @@
     // Refresh symbols after the async log query (including corrected visits).
     if(typeof renderBoard==='function')renderBoard();
   }
-  function latestActive(){const rows=visits.filter(v=>Number(v.leg_no)===Number(m?.current_leg));return rows.at(-1)||null}
+  function canCorrect(v){
+    if(isChicago()||m?.status!=='playing'||v?.player_id!==profile?.id||Number(v?.leg_no)!==Number(m.current_leg))return false;
+    const mine=visits.filter(x=>x.player_id===profile.id&&Number(x.leg_no)===Number(m.current_leg));
+    return mine.slice(-3).some(x=>x.id===v.id);
+  }
   function renderLog(){
     renderMpr();
     const host=$('cricketVisitLog');if(!host)return;
     if(!visits.length){host.innerHTML='<div class="cricket-history-empty">Ingen kast registrert ennå.</div>';return}
-    const latest=latestActive();
     host.innerHTML=[...visits].reverse().map(v=>{
-      const editable=!isChicago()&&m?.status==='playing'&&latest?.id===v.id&&v.player_id===profile?.id&&Number(v.leg_no)===Number(m.current_leg);
+      const editable=canCorrect(v);
       const text=summary(expand(v.darts)),points=Number(v.points_scored||0),name=esc(names[v.player_id]||'Spiller');
       return `<div class="cricket-history-row${v.corrected_at?' corrected':''}"><span class="cricket-history-meta">L${v.leg_no} · #${v.visit_no}</span><span class="cricket-history-player">${name}</span><span class="cricket-history-marks">${esc(text)}${v.corrected_at?' · korrigert':''}</span><span class="cricket-history-points">${points?`+${points}`:'—'}</span><span>${editable?`<button class="outline cricket-history-edit" data-edit-visit="${v.id}">Korriger</button>`:''}</span></div>`;
     }).join('');
     host.querySelectorAll('[data-edit-visit]').forEach(b=>b.onclick=()=>startCorrection(Number(b.dataset.editVisit)));
   }
   function startCorrection(id){
-    const v=visits.find(x=>Number(x.id)===Number(id)),latest=latestActive();
-    if(isChicago()||!v||latest?.id!==v.id||v.player_id!==profile?.id||m?.status!=='playing')return;
+    const v=visits.find(x=>Number(x.id)===Number(id));
+    if(!canCorrect(v))return;
     editingVisitId=v.id;selectedDarts=expand(v.darts);
     $('matchMessage').textContent='Korriger siste kast med tastene. Enter lagrer, Esc avbryter.';
     renderEntry();renderLog();
@@ -137,7 +140,7 @@
       else $('matchMessage').textContent=data?.leg_won?(m.status==='finished'?'Kampen er vunnet!':'Leg vunnet!'):(Number(data?.points_scored||0)>0?`+${data.points_scored} poeng`:'');
       if(m.status==='finished')await setPlayersUnavailable();
     }catch(error){
-      $('matchMessage').textContent=String(error?.message||'Kunne ikke registrere kastet.').replace('It is not your turn','Det er ikke din tur.').replace('Only the latest visit in the active leg can be corrected','Bare siste registrerte kast i aktivt leg kan korrigeres.');
+      $('matchMessage').textContent=String(error?.message||'Kunne ikke registrere kastet.').replace('It is not your turn','Det er ikke din tur.').replace('Only your three latest visits in the active leg can be corrected','Bare siste registrerte kast i aktivt leg kan korrigeres.');
     }finally{submitting=false;renderEntry();renderLog()}
   };
 
