@@ -10,7 +10,7 @@
       // Fail CLOSED to existing/legacy transport if unauthenticated or database unavailable.
       try{
         if(!root.supabase)throw new Error('Supabase library missing');
-        const client=root.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+        const client=root.DartArenaSupabaseClient||(root.DartArenaSupabaseClient=root.supabase.createClient(SUPABASE_URL,SUPABASE_KEY));
         const {data:{session},error:authError}=await client.auth.getSession();
         if(authError||!session)throw new Error('Not signed in');
         const {data,error}=await client.from('media_transport_config')
