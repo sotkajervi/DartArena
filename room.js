@@ -1,4 +1,4 @@
-const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK',db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY),$=id=>document.getElementById(id);
+const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK',db=window.DartArenaSupabaseClient||(window.DartArenaSupabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY)),$=id=>document.getElementById(id);
 const challengeId=new URLSearchParams(location.search).get('id');
 let profile,c,other,names={},channel,stream,pc,pendingProposal=null,leaving=false,localReady=false,remoteReady=false,matchMode='legs';
 let pendingCandidates=[],reconnectTimer=null,remoteStream=null,helloTimer=null,offerBusy=false;
