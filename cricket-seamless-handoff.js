@@ -18,8 +18,9 @@
    if(!window.DartArenaCaptureHandoff?.transfer?.(state.stream()))throw Error('Capture transfer failed');
    window.DartArenaTransferredMediaOwnership=state.takeMediaOwnership?.()||null;
    await load('cricket-mark-history.js?v=20261026-overlaid2');
-   await load('cricket-seamless-bundle.js?v=20261104-cancel-notice1');
+   await load('cricket-seamless-bundle.js?v=20261104-starter-badge1');
    await window.DartArenaBootCricketSeamless(liveMatchId);
+   await load('cricket-leg-starter.js?v=20261104-starter-badge1');
    // Bind the existing DartArena confirmation dialog to Cricket cancellation.
    await load('dartarena-dialog.js?v=20261002-dialog1');
    await load('cricket-seamless-cancel.js?v=20261104-confirm-rpc1');

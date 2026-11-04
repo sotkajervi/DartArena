@@ -1,8 +1,36 @@
-/* Cricket leg tally: same readability as X01, scoped to Cricket. */
+/* Stable upper-right leg tally; starter marker beside the player's name. */
+body.match-page:has(#cricketBoard) .cricket-player{position:relative;min-width:0}
+body.match-page:has(#cricketBoard) .cricket-player-name{
+  display:flex;align-items:center;gap:5px;
+  padding-right:87px;min-width:0;
+  font-weight:900;white-space:nowrap;overflow:hidden;
+}
+body.match-page:has(#cricketBoard) .da-cricket-name-text{
+  flex:0 1 auto;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap
+}
 body.match-page:has(#cricketBoard) .cricket-legs{
-  font-size:14px!important;font-weight:900!important;color:#00eaf4!important;
-  letter-spacing:.01em;white-space:nowrap;
+  position:absolute;top:8px;right:10px;
+  width:77px;text-align:right;white-space:nowrap;
+  font-size:13px!important;font-weight:900!important;
+  color:#00eaf4!important;letter-spacing:.01em;line-height:1.4;
 }
 body.match-page:has(#cricketBoard) .cricket-player.active .cricket-legs{
-  text-shadow:0 0 10px rgba(0,234,244,.20);
+  text-shadow:0 0 10px rgba(0,234,244,.20)
+}
+body.match-page:has(#cricketBoard) .da-leg-starter-dart{
+  display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 30px;width:30px;height:27px;color:var(--cyan,#00eaf4);
+  filter:drop-shadow(0 0 5px rgba(0,234,244,.6));vertical-align:middle
+}
+body.match-page:has(#cricketBoard) .da-leg-starter-dart svg{display:block;width:30px;height:27px;overflow:visible}
+body.match-page:has(#cricketBoard) .da-leg-starter-dart .dart-flight{fill:rgba(0,234,244,.18);stroke:currentColor;stroke-width:1.05;stroke-linejoin:round}
+body.match-page:has(#cricketBoard) .da-leg-starter-dart .dart-shaft{stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+body.match-page:has(#cricketBoard) .da-leg-starter-dart .dart-barrel{fill:rgba(0,234,244,.35);stroke:currentColor;stroke-width:1}
+body.match-page:has(#cricketBoard) .da-leg-starter-dart .dart-grip{stroke:currentColor;stroke-width:.75;opacity:.8}
+body.match-page:has(#cricketBoard) .da-leg-starter-dart .dart-point{stroke:currentColor;stroke-width:1.15;stroke-linecap:round}
+@media(max-width:480px){
+  body.match-page:has(#cricketBoard) .cricket-player-name{padding-right:70px}
+  body.match-page:has(#cricketBoard) .cricket-legs{right:7px;width:65px;font-size:11px!important}
+  body.match-page:has(#cricketBoard) .da-leg-starter-dart{flex-basis:23px;width:23px}
 }
