@@ -120,6 +120,73 @@
     }`;
     document.head.appendChild(style);
   }
+  if(!document.getElementById('da-cricket-seamless-layout')){
+    const style=document.createElement('style');
+    style.id='da-cricket-seamless-layout';
+    style.textContent=`
+    /* Cricket differs from X01: its marks and keyboard help need the left panel. */
+    @media(min-width:801px){
+      body.da-cricket-seamless.match-tv-layout #matchView{
+        grid-template-columns:clamp(335px,27vw,390px) minmax(0,1fr);
+      }
+      body.da-cricket-seamless.match-tv-layout .match-grid{
+        overflow-x:hidden!important;
+        overflow-y:auto;
+        min-width:0;
+      }
+      body.da-cricket-seamless.match-tv-layout .score-card{min-width:0!important;}
+      body.da-cricket-seamless.match-tv-layout .cricket-play-grid{
+        display:grid!important;
+        grid-template-columns:minmax(0,1fr)!important;
+        grid-template-areas:"summary" "board" "entry"!important;
+        width:100%;
+        min-width:0!important;
+        gap:6px!important;
+      }
+      body.da-cricket-seamless.match-tv-layout .cricket-entry-card{
+        grid-template-columns:minmax(0,1fr)!important;
+        grid-template-areas:"title" "turn" "darts" "actions" "help"!important;
+        gap:5px!important;
+        padding:7px 8px!important;
+        min-width:0;
+      }
+      body.da-cricket-seamless.match-tv-layout .cricket-entry-actions{
+        display:grid!important;
+        grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:4px!important;
+        width:100%;
+      }
+      body.da-cricket-seamless.match-tv-layout .cricket-entry-actions button{
+        padding:6px 3px!important;
+        white-space:normal!important;
+        overflow-wrap:anywhere;
+        font-size:11px;
+        min-width:0;
+      }
+      body.da-cricket-seamless.match-tv-layout .cricket-help{
+        display:block!important;
+        white-space:normal!important;
+        overflow-wrap:break-word;
+        font-size:10px!important;
+        line-height:1.35!important;
+      }
+      body.da-cricket-seamless.match-tv-layout .cricket-help kbd{
+        min-width:17px;padding:1px 3px;margin:0 1px;
+      }
+      body.da-cricket-seamless.match-tv-layout .cricket-row{min-height:28px!important;}
+      body.da-cricket-seamless.match-tv-layout .cricket-summary{gap:5px!important;}
+      body.da-cricket-seamless.match-tv-layout .cricket-player{padding:5px 7px!important;}
+      body.da-cricket-seamless.match-tv-layout .cricket-history{margin-top:5px!important;}
+      body.da-cricket-seamless.match-tv-layout .cricket-history-head{padding:5px 7px!important;}
+      body.da-cricket-seamless.match-tv-layout .cricket-history-list{max-height:65px!important;}
+      body.da-cricket-seamless.match-tv-layout .match-info{margin-top:5px!important;padding:6px!important;}
+      body.da-cricket-seamless.match-tv-layout .shell,
+      body.da-cricket-seamless.match-tv-layout #matchView,
+      body.da-cricket-seamless.match-tv-layout .score-card{max-width:100%;}
+    }
+    `;
+    document.head.appendChild(style);
+  }
   return stage;
  }
  async function enter(){
@@ -145,7 +212,7 @@
   stage.hidden=false;
   // Match TV geometry must be in place on the very first visible frame.
   // The opponent-focus module will subsequently apply turn-specific classes.
-  document.body.classList.add('match-page','match-tv-layout','standard-tv-layout');
+  document.body.classList.add('match-page','match-tv-layout','standard-tv-layout','da-cricket-seamless');
   document.body.classList.remove('da-prematch-active');
   if(oldDocumentTitle===null)oldDocumentTitle=document.title;
   document.title='DartArena • Cricket livekamp';
@@ -165,7 +232,7 @@
     const header=document.querySelector('body > header');
     if(header)header.innerHTML=oldHeaderMarkup;
   }
-  document.body.classList.remove('match-page','match-tv-layout','standard-tv-layout','opponent-focus');
+  document.body.classList.remove('match-page','match-tv-layout','standard-tv-layout','opponent-focus','da-cricket-seamless');
   if(oldDocumentTitle!==null){document.title=oldDocumentTitle;oldDocumentTitle=null;}
   active=false;
  }
