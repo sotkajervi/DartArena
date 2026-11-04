@@ -19,13 +19,13 @@
     if(event.repeat||event.ctrlKey||event.metaKey||event.altKey||isTypingTarget(event.target))return;
 
     let button=null;
-    if(event.code==='Space')button=hit;
+    if(event.code==='Enter'||event.code==='NumpadEnter')button=hit;
     else if(event.code==='Backspace')button=miss;
     else if(event.code==='KeyP')button=pause;
     else if(event.code==='KeyZ')button=undo;
     else return;
 
-    // Prevent Space from scrolling and Backspace from navigating away from the game.
+    // Prevent Enter from triggering a focused control twice and Backspace from navigating away.
     event.preventDefault();
     if(canUse(button))button.click();
   });
