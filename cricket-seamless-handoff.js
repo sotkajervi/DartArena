@@ -20,6 +20,9 @@
    await load('cricket-mark-history.js?v=20261026-overlaid2');
    await load('cricket-seamless-bundle.js?v=20261104-dev1');
    await window.DartArenaBootCricketSeamless(liveMatchId);
+   // Bind the existing DartArena confirmation dialog to Cricket cancellation.
+   await load('dartarena-dialog.js?v=20261002-dialog1');
+   await load('cricket-seamless-cancel.js?v=20261104-confirm-rpc1');
    // Apply the same Cricket TV docking layout used by ordinary cricket.html.
    // Load after the Cricket board exists, before SFU attaches its live tracks.
    await load('opponent-focus.js?v=20261104-cricket-seamless-tv1');
