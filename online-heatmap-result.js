@@ -10,10 +10,10 @@ const Z=window.DartArenaZoomCam;
 const matchId=(window.DartArenaMatchEngineState?.matchId?.()||new URLSearchParams(location.search).get('id'));
 if(!G||!H||!Chart||!Z||!matchId||!window.supabase||
    new URLSearchParams(location.search).has('tournamentMatch'))return;
-const db=window.supabase.createClient(
+const db=(window.DartArenaSupabaseClient||window.supabase.createClient(
  'https://jqpxlbhwvskhjbqrbidk.supabase.co',
  'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
-);
+));
 const $=id=>document.getElementById(id);
 const cacheKey='dartarena-x01-heatmap-result-v1:'+matchId;
 const MAX=600;
