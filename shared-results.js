@@ -358,6 +358,7 @@
     if(!tournamentResult&&location.pathname.endsWith('/cricket.html')){
       overlay.querySelector('#daResultLobby').textContent='Til hovedlobby';
       overlay.querySelector('#daResultClose')?.remove();
+      overlay.querySelector('.da-result-actions').style.gridTemplateColumns='1fr';
     }
     overlay.querySelector('#daResultLobby').onclick=returnFromResult;
     const closeResult=overlay.querySelector('#daResultClose');
