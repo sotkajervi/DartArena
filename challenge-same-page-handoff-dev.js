@@ -74,6 +74,7 @@
          'match-media-router.js?v=20261104-preserve-challenge1',
          'match-controls.js?v=20261102-samepage-dev1',
          'opponent-focus.js?v=20261026-owncam-pip1',
+          'x01-stable-sidebar.js?v=20261104-measure1',
          'dartarena-dialog.js?v=20261027-correction2',
          'cancelled-match-modal.js?v=20261103-tournament-return3',
          'throw-log.js?v=20261104-shared-auth1',
