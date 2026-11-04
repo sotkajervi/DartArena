@@ -4,7 +4,7 @@
   const params=new URLSearchParams(location.search),matchId=window.DartArenaMatchEngineState?.matchId?.()||params.get('id');
   if(!matchId||!window.supabase)return;
   const URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
-  const presenceDb=window.supabase.createClient(URL,KEY),number=document.getElementById('viewerCountNumber'),pill=document.getElementById('viewerCount');
+  const presenceDb=(window.DartArenaSupabaseClient||window.supabase.createClient(URL,KEY)),number=document.getElementById('viewerCountNumber'),pill=document.getElementById('viewerCount');
   let ch=null,myId=null,isPlayer=false,myName='Gjest',popover=null;
 
   function ensurePopover(){
