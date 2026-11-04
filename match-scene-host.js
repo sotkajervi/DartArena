@@ -4,7 +4,7 @@
 (()=>{
  'use strict';
  if(window.DartArenaMatchSceneHost)return;
- let stage=null,videoAnchor=null,active=false,lobbyButton=null,lobbyAnchor=null,waitingMain=null,matchHeader=null,oldHeaderMarkup=null;
+ let stage=null,videoAnchor=null,active=false,lobbyButton=null,lobbyAnchor=null,waitingMain=null,matchHeader=null,oldHeaderMarkup=null,oldDocumentTitle=null;
  const MATCH_STYLES=[
   'match-controls.css?v=20260928-ui2',
   'opponent-focus.css?v=20261026-owncam-pip1',
@@ -144,6 +144,8 @@
   // The opponent-focus module will subsequently apply turn-specific classes.
   document.body.classList.add('match-page','match-tv-layout','standard-tv-layout');
   document.body.classList.remove('da-prematch-active');
+  if(oldDocumentTitle===null)oldDocumentTitle=document.title;
+  document.title='DartArena • Livekamp';
   active=true;
  }
  function restore(){
@@ -161,6 +163,7 @@
     if(header)header.innerHTML=oldHeaderMarkup;
   }
   document.body.classList.remove('match-page','match-tv-layout','standard-tv-layout','opponent-focus');
+  if(oldDocumentTitle!==null){document.title=oldDocumentTitle;oldDocumentTitle=null;}
   active=false;
  }
  window.DartArenaMatchSceneHost={prepare,enter,restore,isActive:()=>active};
