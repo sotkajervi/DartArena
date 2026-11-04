@@ -11,10 +11,10 @@
   if(!matchId)return;
   root.__DartArenaPostMatchLifecycle=true;
   const GRACE_MS=15000;
-  const db=root.supabase.createClient(
+  const db=(root.DartArenaSupabaseClient||root.supabase.createClient(
     'https://jqpxlbhwvskhjbqrbidk.supabase.co',
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
-  );
+  ));
   let channel=null,me=null,other=null,status='playing';
   let synced=false,otherPresent=false,closed=false,navigating=false,checking=false;
   let absenceTimer=null,refreshTimer=null;
