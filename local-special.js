@@ -496,6 +496,7 @@ function newGame(){if(state?.status==='playing'&&!w.confirm('Avslutte lokal kamp
 $('specialNew').addEventListener('click',newGame);$('specialAgain').addEventListener('click',newGame);
 document.addEventListener('keydown',event=>{
  if(event.ctrlKey||event.altKey||event.metaKey||event.isComposing||!state||state.status!=='playing')return;
+ if(event.repeat&&(mode()==='sixty_one'||(mode()==='half'&&E.halfRule(state)===41))){event.preventDefault();return}
  if(!dom.checkout.hidden){
    if(event.key==='Escape'){event.preventDefault();dom.checkout.hidden=true}
    else if(['1','2','3'].includes(event.key)){
