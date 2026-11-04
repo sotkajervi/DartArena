@@ -35,6 +35,10 @@
         flex:0 0 auto!important;
       }
       body.match-page.cricket-tv-layout .score-card>.cricket-history{
+        width:100%!important;
+        max-width:100%!important;
+        align-self:stretch!important;
+        box-sizing:border-box!important;
         display:flex!important;
         flex-direction:column!important;
         flex:1 1 auto!important;
