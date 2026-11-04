@@ -3,7 +3,7 @@ const $=id=>document.getElementById(id),matchId=new URLSearchParams(location.sea
 const wait=setInterval(()=>{if(!window.supabase||!$('p1Card')||!$('p2Card')||typeof canAct!=='function'||typeof tickClock!=='function'||typeof tryFinalize!=='function')return;clearInterval(wait);boot()},100);
 async function boot(){
  const db2=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
- const mk=(card,id)=>{if($(id))return;const e=document.createElement('div');e.id=id;e.className='sixty-one-highout';e.innerHTML='<span>HØYESTE UT</span><b>—</b>';card.appendChild(e)};mk($('p1Card'),'highOut1');mk($('p2Card'),'highOut2');
+ const mk=(card,id)=>{if($(id))return;const e=document.createElement('div');e.id=id;e.className='sixty-one-highout';e.innerHTML='<span>HØYESTE I LEGET</span><b>—</b>';card.appendChild(e)};mk($('p1Card'),'highOut1');mk($('p2Card'),'highOut2');
  const timerCard=document.querySelector('.sixty-one-timer-card');let b=$('startTimeBtn');if(!b){b=document.createElement('button');b.id='startTimeBtn';b.className='primary wide sixty-one-start-btn';b.textContent='▶ START TID';timerCard.insertBefore(b,$('pauseBtn'))}
  let note=$('sharedStartNote');if(!note){note=document.createElement('div');note.id='sharedStartNote';note.className='sixty-one-start-note';note.textContent='Venter på felles start';timerCard.insertBefore(note,b)}
  let sharedState=null;
@@ -33,7 +33,6 @@ async function boot(){
  };
  async function load(){
    const{data,error}=await db2.from('sixty_one_match_state').select('game_started_at,player1_high_checkout,player2_high_checkout,leg_duration_seconds,sudden_death,sudden_death_target,sudden_death_first_result,is_paused').eq('match_id',matchId).single();if(error)return;sharedState=data;
-   $('highOut1').querySelector('b').textContent=data.player1_high_checkout||'—';$('highOut2').querySelector('b').textContent=data.player2_high_checkout||'—';
    const started=!!data.game_started_at;b.classList.toggle('hidden',started);document.body.classList.toggle('sixty-one-not-started',!started);
    if(data.sudden_death)note.textContent=`SUDDEN DEATH • ${data.sudden_death_target} • begge får ett forsøk`;
    else note.textContent=started?'Felles servertid aktiv':'Begge klare? Start tiden';
