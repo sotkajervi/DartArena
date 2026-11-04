@@ -1,4 +1,4 @@
-const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK',db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY),$=id=>document.getElementById(id);
+const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK',db=window.DartArenaSupabaseClient||(window.DartArenaSupabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY)),$=id=>document.getElementById(id);
 const matchId=new URLSearchParams(location.search).get('id');
 let profile,m,state,other,names={},channel,stream=null,pc=null,remoteStream=null;
 let localReady=false,remoteReady=false,leaving=false,generation=1,lastSignal='START';
