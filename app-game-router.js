@@ -40,7 +40,7 @@
     }
     if(!document.querySelector('script[data-dartarena-live-matches]')){
       const script=document.createElement('script');
-      script.src='active-matches.js?v=20261006-chicago2';
+      script.src='active-matches.js?v=20261104-singleclient2';
       script.dataset.dartarenaLiveMatches='1';document.body.appendChild(script);
     }
   }

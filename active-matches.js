@@ -1,6 +1,6 @@
 (()=>{
   if(!window.supabase)return;
-  const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
+  const db=(window.DartArenaSupabaseClient||(window.DartArenaSupabaseClient=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK')));
   const $=id=>document.getElementById(id);
   let timer=null,loading=false,currentUserId=null,activeFilter='all',lastRows=[],lastNames={};
   const viewerChannels=new Map(),viewerCounts=new Map();
