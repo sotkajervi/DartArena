@@ -21,6 +21,16 @@
   const syncKey=()=>{const k=key();if(k!==exactKey){exactKey=k;selectedExactTarget=null;}};
   const isExact=()=>currentRound()?.type==='exact'&&m?.status==='playing';
 
+  function submitExactMiss(){
+    const choices=options();
+    if(!canThrow()||submitting||!choices.length||selectedDarts.length!==3||selectedDarts.some(d=>d.n!==0))return;
+    // A valid target is required by the server, but three misses are a
+    // failure no matter which target is selected.
+    selectedExactTarget=choices[0];
+    renderEntry();
+    $('halfSubmitBtn').onclick();
+  }
+
   buildPad=function(){
     syncKey();
     if(!isExact())return baseBuildPad();
@@ -32,8 +42,11 @@
       return;
     }
     if(!selectedExactTarget){
-      host.innerHTML=`<div class="half-exact-choice"><small>VELG ETT MÅLTALL</small><div class="half-exact-options">${opts.map(n=>`<button type="button" class="outline half-exact-option" data-target="${n}">${targetLabel(n)}</button>`).join('')}</div><p>De to første må treffes eksakt. 121+ teller alle summer på 121 eller mer.</p></div>`;
-      host.querySelectorAll('.half-exact-option').forEach(b=>b.onclick=()=>{selectedExactTarget=Number(b.dataset.target);selectedDarts=[];renderEntry();render()});
+      host.innerHTML=`<div class="half-exact-choice"><small>VELG ETT MÅLTALL</small><div class="half-exact-options">${opts.map(n=>`<button type="button" class="outline half-exact-option" data-target="${n}">${targetLabel(n)}</button>`).join('')}</div><p>Velg måltall ved treff. MISS (0) krever ikke valg av mål.</p><button id="halfExactRoundMiss" type="button" class="outline half-exact-round-miss">✕ BOM • HELE RUNDEN</button></div>`;
+      host.querySelectorAll('.half-exact-option').forEach(b=>b.onclick=()=>{selectedExactTarget=Number(b.dataset.target);selectedDarts=selectedDarts.filter(d=>d.n===0);renderEntry();render()});
+      const missRound=host.querySelector('#halfExactRoundMiss');
+      missRound.disabled=!canThrow()||selectedDarts.some(d=>d.n!==0);
+      missRound.onclick=()=>{if(!canThrow()||submitting)return;selectedDarts=Array.from({length:3},()=>({n:0,mult:0}));submitExactMiss()};
       return;
     }
     baseBuildPad();
@@ -49,8 +62,8 @@
     syncKey();
     baseRenderEntry();
     if(isExact()&&m.turn_player_id===profile?.id&&!selectedExactTarget){
-      $('halfMissBtn').disabled=true;
-      $('halfSubmitBtn').disabled=true;
+      $('halfMissBtn').disabled=!canThrow()||selectedDarts.length>=3;
+      $('halfSubmitBtn').disabled=!canThrow()||selectedDarts.length!==3||selectedDarts.some(d=>d.n!==0);
     }
   };
 
@@ -80,7 +93,7 @@
     $('halfHelp').textContent=mine
       ?(selectedExactTarget
         ?(is121Plus(selectedExactTarget)?'Tre piler skal gi 121 eller mer. Hele summen teller.':`Tre piler skal gi nøyaktig ${selectedExactTarget}.`)
-        :'Velg ett av de tre måltallene. De to første er eksakte; 121+ teller alle summer på 121 eller mer.')
+        :'Velg et måltall ved treff. MISS (0) krever ikke måltall.')
       :`${names[m.turn_player_id]||'Motstanderen'} velger ett av de tre målene. 121+ betyr 121 eller mer.`;
     if($('exactTarget'))$('exactTarget').textContent=selectedExactTarget?`Valgt ${targetLabel(selectedExactTarget)} • ${optionList(opts)}`:optionList(opts);
     renderEntry();
@@ -89,7 +102,8 @@
   $('halfSubmitBtn').onclick=async()=>{
     syncKey();
     if(!isExact())return baseSubmit?.();
-    if(!canThrow()||selectedDarts.length!==3||!selectedExactTarget)return;
+    if(!canThrow()||selectedDarts.length!==3)return;
+    if(!selectedExactTarget){if(selectedDarts.every(d=>d.n===0)&&options().length)selectedExactTarget=options()[0];else return;}
     submitting=true;renderEntry();$('matchMessage').textContent='Registrerer…';
     try{
       const darts=selectedDarts.map((d,i)=>i===0?{...d,exact_target:selectedExactTarget}:{...d});

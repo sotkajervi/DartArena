@@ -26,7 +26,7 @@
     await loadScript('one-to-one-media.js?v=20261023-picture2');
     await loadScript('match-media-telemetry.js?v=20261002-peer3');
     await loadScript('half-it-multileg.js?v=20260930-halfitlegs2');
-    await loadScript('half-it-exact-choice.js?v=20261002-exact4');
+    await loadScript('half-it-exact-choice.js?v=20261104-exact-quick-miss1');
     await loadScript('half-it-ui.js?v=20260929-halfit3');
     await loadScript('role-visuals.js?v=20261002-matchrooms1');
     await loadScript('match-room-polish.js?v=20261002-matchrooms2');
