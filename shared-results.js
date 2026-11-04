@@ -355,7 +355,7 @@
     const tournamentResult=!!resultTournamentMatchId;
     if(tournamentResult)overlay.querySelector('#daResultLobby').textContent='Til turneringen';
     // Cricket challenge results use the same single lobby action as X01 challenges.
-    if(!tournamentResult&&location.pathname.endsWith('/cricket.html')){
+    if(!tournamentResult&&(location.pathname.endsWith('/cricket.html')||(new URLSearchParams(location.search).get('cricketSeamlessDev')==='1'&&window.DartArenaMatchEngineState?.match?.()?.game_variant==='cricket'))){
       overlay.querySelector('#daResultLobby').textContent='Til hovedlobby';
       overlay.querySelector('#daResultClose')?.remove();
       overlay.querySelector('.da-result-actions').style.gridTemplateColumns='1fr';

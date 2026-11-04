@@ -25,6 +25,8 @@
      if(error||!match||![match.player1_id,match.player2_id].includes(user))throw error||new Error('Match access denied');
      const game=String(match.game||'');
      const isX01=x01.has(game)&&match.game_variant==='x01'&&String(match.game_config?.chicago||'false')!=='true';
+     if(variant==='cricket'&&new URLSearchParams(location.search).get('cricketSeamlessDev')==='1'&&window.DartArenaCricketSamePage?.enter&&
+        await window.DartArenaCricketSamePage.enter({liveMatchId:matchId})===true)return;
      const bridge=window.DartArenaChallengeSamePageHandoff;
      // Give both authenticated players the same media migration window when
      // no coin flip is used, instead of racing the opponent's start event.
