@@ -86,10 +86,12 @@ body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cric
   body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .match-grid{
     display:flex!important;
     flex-direction:column!important;
-    align-self:stretch!important;
-    height:auto!important;
+    /* Identical sidebar frame on both turns; only camera + scoring dock change. */
+    align-self:start!important;
+    height:calc(100dvh - 154px)!important;
+    max-height:calc(100dvh - 154px)!important;
     min-height:0!important;
-    overflow:visible!important;
+    overflow:hidden!important;
   }
   body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .match-grid>.score-card{
     flex:0 0 auto!important;
@@ -121,6 +123,14 @@ body.match-page.match-tv-layout.standard-tv-layout .score-card{
 @keyframes scoreDockIn{
   from{opacity:0;transform:translateY(-8px)}
   to{opacity:1;transform:translateY(0)}
+}
+
+@media(max-height:820px){
+  /* Same 144px viewport offset already used on the opponent's turn. */
+  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .match-grid{
+    height:calc(100dvh - 144px)!important;
+    max-height:calc(100dvh - 144px)!important;
+  }
 }
 
 @media(max-height:850px){
