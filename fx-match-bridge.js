@@ -6,7 +6,7 @@
 const FX=window.DartArenaFXLive;
 const mid=new URLSearchParams(location.search).get('id');
 if(!FX||!mid||!window.supabase)return;
-const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
+const db=(window.DartArenaSupabaseClient||window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'));
 const effects={...FX.DEFAULT_EFFECTS,neon_relay:false};
 let fx=null,stage=null,cached=null,me=null,channel=null,disposed=false,lastAppliedUpdate=null;
 const transitions=[],pending=new Map(),seen=new Set();
