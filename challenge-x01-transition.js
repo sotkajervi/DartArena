@@ -21,7 +21,7 @@
      const db=window.DartArenaChallengeRoomState?.client?.();
      const user=window.DartArenaChallengeRoomState?.user?.();
      if(!db||!user)throw Error('Challenge credentials unavailable');
-     const {data:match,error}=await db.from('matches').select('id,game,game_variant,game_config,player1_id,player2_id,status').eq('id',matchId).single();
+     const {data:match,error}=await db.from('matches').select('id,game,game_variant,game_config,player1_id,player2_id,status').eq('id',matchId).maybeSingle();
      if(error||!match||![match.player1_id,match.player2_id].includes(user))throw error||new Error('Match access denied');
      const game=String(match.game||'');
      const isX01=x01.has(game)&&match.game_variant==='x01'&&String(match.game_config?.chicago||'false')!=='true';

@@ -32,7 +32,7 @@
      // Validate match membership before taking ownership of media.
      const {data:match,error}=await client.from('matches')
        .select('id,player1_id,player2_id,status')
-       .eq('id',liveMatchId).single();
+       .eq('id',liveMatchId).maybeSingle();
      if(error||!match||!['playing','live'].includes(match.status)||
         ![match.player1_id,match.player2_id].includes(state.user()))return false;
      entering=true;
