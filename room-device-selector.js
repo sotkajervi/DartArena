@@ -198,6 +198,7 @@
         stream.addTrack(next.track);
         pictureSession()?.stop();window.DartArenaRoomPictureSession=null;
         zoomSession=next;
+        window.DartArenaRoomZoomSession=next;
         Z.setSelected(localStorage,true);
         const v=document.getElementById('localVideo');
         if(v){v.srcObject=stream;await v.play().catch(()=>{})}
@@ -248,6 +249,7 @@
         if(zoomSession&&kind==='video'){
           const raw=zoomSession.sourceTrack;
           zoomSession.stop();zoomSession=null;
+          window.DartArenaRoomZoomSession=null;
           if(raw!==newTrack)raw.stop();
           Z.setSelected(localStorage,false);
         }else if(kind==='video'&&pictureSession()){

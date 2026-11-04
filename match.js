@@ -113,7 +113,9 @@ async function startCamera(){
         // Preserve the user's choice: a transient camera error must not silently
         // turn Zoom-cam off for the next match.
       }
-    }else if(Z?.loadConfig(localStorage)){
+    }else if(reusedCapture&&zoomCamSession){
+      zoomCamNotice('Zoom-cam overført fra venterommet.');
+    }else if(!reusedCapture&&config&&!useZoom){
       zoomCamNotice('Zoom-cam er kalibrert, men ikke valgt. Aktiver den i Cam-test eller venterommet.');
     }
     if(!zoomCamSession&&!reusedCapture){

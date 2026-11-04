@@ -13,9 +13,11 @@ window.DartArenaChallengeRoomState=Object.freeze({
   remoteStream:()=>remoteStream,
   isConnected:()=>!!(pc?.connectionState==='connected'),
   takeMediaOwnership:()=>{
-    const ownership={pictureSession:roomPictureSession||null,zoomSession:null};
+    const zoomSession=window.DartArenaRoomZoomSession||null;
+    const ownership={pictureSession:zoomSession?null:(window.DartArenaRoomPictureSession||roomPictureSession||null),zoomSession};
     roomPictureSession=null;
     window.DartArenaRoomPictureSession=null;
+    window.DartArenaRoomZoomSession=null;
     return ownership;
   },
   releaseForHandoff:()=>{
