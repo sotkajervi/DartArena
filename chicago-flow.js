@@ -9,10 +9,10 @@
 
   const client=typeof db!=='undefined'
     ?db
-    :window.supabase.createClient(
+    :(window.DartArenaSupabaseClient||window.supabase.createClient(
       'https://jqpxlbhwvskhjbqrbidk.supabase.co',
       'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
-    );
+    ));
 
   const page=()=>location.pathname.split('/').pop()||'';
   const isChicago=m=>String(m?.game_config?.chicago??'false').toLowerCase()==='true';
