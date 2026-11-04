@@ -23,6 +23,10 @@
      if(!db||!user)throw Error('Challenge credentials unavailable');
      const {data:match,error}=await db.from('matches').select('id,game,game_variant,game_config,player1_id,player2_id,status').eq('id',matchId).maybeSingle();
      if(error||!match||![match.player1_id,match.player2_id].includes(user))throw error||new Error('Match access denied');
+     // Remember the exact match for this tab so Ctrl+R can rejoin directly.
+     if(['playing','live'].includes(match.status)){
+       try{sessionStorage.setItem('dartarena-challenge-match:'+window.DartArenaChallengeRoomState.challengeId(),match.id)}catch{}
+     }
      const game=String(match.game||'');
      const isX01=x01.has(game)&&match.game_variant==='x01'&&String(match.game_config?.chicago||'false')!=='true';
      if(variant==='cricket'&&window.DartArenaCricketSamePage?.enter&&
