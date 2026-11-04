@@ -58,7 +58,7 @@
        // The match page owns the new authenticated SFU session.
        await script('match-preferred-media.js?v=20261031-owner1');
        // Module scope isolates match.js declarations from classic room.js globals.
-       await script('match.js?v=20261104-unused-reset-handler-fix1',{module:true});
+       await script('match.js?v=20261104-shared-auth1',{module:true});
        if(typeof window.DartArenaBootLiveMatch!=='function')throw Error('Kampmotor mangler');
        await window.DartArenaBootLiveMatch(liveMatchId);
        window.DartArenaMediaTrace?.mark('MATCH_ENGINE_BOOTED');
@@ -67,34 +67,34 @@
        // the tournament page instead of initializing duplicate media listeners.
        const modules=[
          'fx-live.js?v=20261023-sweep2',
-         'fx-match-bridge.js?v=20261023-live1',
+         'fx-match-bridge.js?v=20261104-shared-auth1',
          'autozoom/heatmap-math.js?v=20261023-final2',
          'online-heatmap-chart.js?v=20261023-shareheat1',
-         'online-heatmap-result.js?v=20261102-live-id-fix3',
+         'online-heatmap-result.js?v=20261104-shared-auth1',
          'match-media-router.js?v=20261104-preserve-challenge1',
          'match-controls.js?v=20261102-samepage-dev1',
          'opponent-focus.js?v=20261026-owncam-pip1',
          'dartarena-dialog.js?v=20261027-correction2',
          'cancelled-match-modal.js?v=20261103-tournament-return3',
-         'throw-log.js?v=20261102-live-id-fix3',
+         'throw-log.js?v=20261104-shared-auth1',
          'set-engine.js?v=20261102-live-id-fix3',
-         'x01-leg-starter-marker.js?v=20261102-live-id-fix3',
+         'x01-leg-starter-marker.js?v=20261104-shared-auth1',
          'checkout-engine.js?v=20261102-live-id-fix3',
-         'secure-match-cancel.js?v=20261103-cancel-tab-fix1',
+         'secure-match-cancel.js?v=20261104-shared-auth1',
          'x01-stats.js?v=20260929-first9a',
          'match-room-polish.js?v=20261002-matchrooms2',
          'result-screenshot.js?v=20261023-shareheat1',
          'live-avg.js?v=20261102-live-id-fix3',
          'stats-engine.js?v=20261102-stats-button4',
-         'spectator-presence.js?v=20261102-live-id-fix3',
-         'match-spectator-broadcast.js?v=20261031-spectator1',
-         'match-media-telemetry.js?v=20261102-samepage-id1',
+         'spectator-presence.js?v=20261104-shared-auth1',
+         'match-spectator-broadcast.js?v=20261104-shared-auth1',
+         'match-media-telemetry.js?v=20261104-shared-auth1',
          'ui-feedback.js?v=20260930-cam2',
-         'shared-results.js?v=20261102-finish-liveid5',
-         'chicago-flow.js?v=20261006-chicago5',
-         'x01-result-leg-details.js?v=20261102-live-id-fix3',
+         'shared-results.js?v=20261104-shared-auth1',
+         'chicago-flow.js?v=20261104-shared-auth1',
+         'x01-result-leg-details.js?v=20261104-shared-auth1',
          'mobile-x01-keypad.js?v=20261025-mobile1',
-         'post-match-media-lifecycle.js?v=20261102-finish-liveid5'
+         'post-match-media-lifecycle.js?v=20261104-shared-auth1'
        ];
        window.DartArenaMediaTrace?.mark('MATCH_MODULES_LOADING',{count:modules.length});
        for(const src of modules){
