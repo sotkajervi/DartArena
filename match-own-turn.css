@@ -1,12 +1,12 @@
 /* 501/301 own-turn layout: same TV frame, but camera shrinks and score control appears below it. */
 
-/* Keep the same overall frame as opponent focus. */
-body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus #matchView{
-  grid-template-rows:auto minmax(0,1fr) auto!important;
+/* X01 always has exactly one match-content row. The old third "input"
+   row changed the score sidebar height depending on whose turn it was. */
+body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #matchView{
+  grid-template-rows:auto minmax(0,1fr)!important;
   grid-template-areas:
     "head head"
-    "score video"
-    "score input"!important;
+    "score video"!important;
 }
 
 /* Own turn: clearly shrink the opponent video so scoring gets its own control strip. */
@@ -17,11 +17,21 @@ body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus #videoGrid{
   transition:height .28s cubic-bezier(.2,.8,.2,1),max-height .28s cubic-bezier(.2,.8,.2,1)!important;
 }
 
-/* Input dock lives below the big video. */
+/* The score dock shares the right grid cell with the video, without
+   becoming a new row or resizing the left side. */
 body.match-page.match-tv-layout.standard-tv-layout .focus-input-dock{
   grid-area:input;
   min-width:0;
   margin-top:0;
+}
+body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock{
+  grid-area:video!important;
+  align-self:end!important;
+  z-index:5;
+  min-width:0;
+}
+body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #videoGrid{
+  align-self:start!important;
 }
 
 /* Opponent turn: no score controls, maximum viewing area. */
@@ -79,35 +89,34 @@ body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cric
   white-space:nowrap!important;
 }
 
-/* X01 own turn: the score sidebar occupies both the video and input rows.
-   Keep scoreboard and throw log content unchanged; stretch only the empty
-   lower portion of Kampstatus. The opponent-turn camera layout is untouched. */
+/* One stable left column, independent of scoring input and player turn.
+   The player cards / throw log keep their natural height; only the status
+   area stretches into unused space. */
 @media(min-width:801px){
-  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .match-grid{
+  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)):is(.own-turn-focus,.opponent-focus) .match-grid{
     display:flex!important;
     flex-direction:column!important;
-    /* Identical sidebar frame on both turns; only camera + scoring dock change. */
     align-self:start!important;
     height:calc(100dvh - 154px)!important;
     max-height:calc(100dvh - 154px)!important;
     min-height:0!important;
     overflow:hidden!important;
   }
-  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .match-grid>.score-card{
+  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)):is(.own-turn-focus,.opponent-focus) .match-grid>.score-card{
     flex:0 0 auto!important;
   }
-  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .match-grid>.match-info{
+  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)):is(.own-turn-focus,.opponent-focus) .match-grid>.match-info{
     display:flex!important;
     flex-direction:column!important;
     flex:1 1 auto!important;
     min-height:0!important;
+    justify-content:flex-start!important;
   }
 }
 
-/* X01 uses normal page flow. Never create a second scrollbar inside the score column. */
+/* Ordinary X01 fallback remains scrollable at narrow widths; the desktop
+   TV layout above overrides height/overflow with more specific selectors. */
 body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)) .match-grid{
-  max-height:none!important;
-  overflow-y:visible!important;
   scrollbar-width:none!important;
   padding-right:0!important;
 }
@@ -125,9 +134,9 @@ body.match-page.match-tv-layout.standard-tv-layout .score-card{
   to{opacity:1;transform:translateY(0)}
 }
 
-@media(max-height:820px){
-  /* Same 144px viewport offset already used on the opponent's turn. */
-  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .match-grid{
+@media(min-width:801px) and (max-height:820px){
+  /* Match the compact-height video size for BOTH turn states. */
+  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)):is(.own-turn-focus,.opponent-focus) .match-grid{
     height:calc(100dvh - 144px)!important;
     max-height:calc(100dvh - 144px)!important;
   }
