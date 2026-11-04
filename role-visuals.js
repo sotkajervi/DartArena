@@ -2,10 +2,10 @@
   if(!window.supabase||window.__dartArenaRoleVisuals)return;
   window.__dartArenaRoleVisuals=true;
 
-  const db=window.supabase.createClient(
+  const db=(window.DartArenaSupabaseClient||(window.DartArenaSupabaseClient=window.supabase.createClient(
     'https://jqpxlbhwvskhjbqrbidk.supabase.co',
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
-  );
+  )));
   const OWNER='#00eaf4',ADMIN='#ff9f43',LEADER='#4da3ff';
   const roleByName=new Map(),roleById=new Map();
   const NAME_SELECTOR='.player-name,.video-name,.match-name,.cricket-player-name,.half-player-name,.sixty-one-player-name,.spectate-name,.spectator-name,.history-player,.results-player,.highlight-name,.results-person-name,.da-role-player,.jdc-online-player span,#matchPlayer1Name,#matchPlayer2Name,.da-result-stat-name,.da-result-winner-name,.da-result-legwinner';

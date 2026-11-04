@@ -10,10 +10,10 @@
   document.head.appendChild(style);
   html.classList.add('da-session-probing');
 
-  const db=window.supabase.createClient(
+  const db=(window.DartArenaSupabaseClient||(window.DartArenaSupabaseClient=window.supabase.createClient(
     'https://jqpxlbhwvskhjbqrbidk.supabase.co',
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
-  );
+  )));
   const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   let resolved=false;
 

@@ -45,7 +45,7 @@
   async function boot(){
     if(!window.supabase||!$('tournamentList'))return;
     ensureFormStatsUi();
-    if(!db)db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
+    if(!db)db=(window.DartArenaSupabaseClient||(window.DartArenaSupabaseClient=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK')));
     if(!authBound){
       authBound=true;
       db.auth.onAuthStateChange((event,s)=>{

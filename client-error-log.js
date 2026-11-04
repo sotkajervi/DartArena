@@ -1,7 +1,7 @@
 (()=>{
   if(window.__dartArenaClientErrorLog||!window.supabase)return;
   window.__dartArenaClientErrorLog=true;
-  const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
+  const db=(window.DartArenaSupabaseClient||(window.DartArenaSupabaseClient=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK')));
   const seen=new Map();
   let userId=null;
   db.auth.getSession().then(({data})=>{userId=data.session?.user?.id||null}).catch(()=>{});

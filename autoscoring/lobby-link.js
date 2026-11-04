@@ -4,7 +4,7 @@
   'use strict';
   const links=['autoscoringLabLink','d1LiveZoneLink'].map(id=>document.getElementById(id)).filter(Boolean);
   if(!links.length||!window.supabase)return;
-  const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
+  const db=(window.DartArenaSupabaseClient||(window.DartArenaSupabaseClient=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK')));
   let serial=0;
   const hide=()=>links.forEach(link=>{link.hidden=true;link.style.display='none'});
   const refresh=async()=>{

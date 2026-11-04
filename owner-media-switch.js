@@ -5,7 +5,7 @@
   root.__daOwnerMediaSwitch=true;
   const URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
   const KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
-  const client=root.supabase.createClient(URL,KEY);
+  const client=(root.DartArenaSupabaseClient||(root.DartArenaSupabaseClient=root.supabase.createClient(URL,KEY)));
   let panel=null,initializing=false;
   function status(message,warning=false){
     const p=panel?.querySelector('[data-sfu-status]');

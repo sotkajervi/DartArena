@@ -1,4 +1,4 @@
-const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK',db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY),$=id=>document.getElementById(id);let mode='login',session=null,profile=null,activeMatch=null,lobbyStarted=false,lobbyLoading=false,lobbyInitToken=0,challengeRealtime=null,initialAuthResolved=false,queuedAuthState=null,lobbyEnteringUserId=null;
+const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co',SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK',db=(window.DartArenaSupabaseClient||(window.DartArenaSupabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY))),$=id=>document.getElementById(id);let mode='login',session=null,profile=null,activeMatch=null,lobbyStarted=false,lobbyLoading=false,lobbyInitToken=0,challengeRealtime=null,initialAuthResolved=false,queuedAuthState=null,lobbyEnteringUserId=null;
 function setSessionView(view){
  const loading=$('sessionLoadingView'),auth=$('authView'),lobby=$('lobbyView'),retry=$('sessionRetryBtn'),text=$('sessionLoadingText');
  loading?.classList.toggle('hidden',view!=='loading');
