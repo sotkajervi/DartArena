@@ -292,7 +292,9 @@ setupChannel=function(){
   channel=db.channel('match-'+m.id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:'id=eq.'+m.id},async ({new:row})=>{
     const oldLeg=m?.current_leg;m=row;if(oldLeg!==m.current_leg)selectedDarts=[];
     try{await loadState()}catch(error){console.warn('[CRICKET] state',error)}
-    render();if(m.status!=='playing')await setPlayersUnavailable();
+    render();
+    if(m.status==='cancelled')window.DartArenaCancelledMatchModal?.show?.();
+    if(m.status!=='playing')await setPlayersUnavailable();
   }).subscribe();
 };
 window.DartArenaBootCricketSeamless=async id=>{

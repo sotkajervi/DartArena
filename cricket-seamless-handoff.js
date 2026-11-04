@@ -18,11 +18,13 @@
    if(!window.DartArenaCaptureHandoff?.transfer?.(state.stream()))throw Error('Capture transfer failed');
    window.DartArenaTransferredMediaOwnership=state.takeMediaOwnership?.()||null;
    await load('cricket-mark-history.js?v=20261026-overlaid2');
-   await load('cricket-seamless-bundle.js?v=20261104-recent3-correction1');
+   await load('cricket-seamless-bundle.js?v=20261104-cancel-notice1');
    await window.DartArenaBootCricketSeamless(liveMatchId);
    // Bind the existing DartArena confirmation dialog to Cricket cancellation.
    await load('dartarena-dialog.js?v=20261002-dialog1');
    await load('cricket-seamless-cancel.js?v=20261104-confirm-rpc1');
+   // Same cancellation notification as ordinary Cricket, missing from seamless room.
+   await load('cancelled-match-modal.js?v=20261104-cricket-notice1');
    // Apply the same Cricket TV docking layout used by ordinary cricket.html.
    // Load after the Cricket board exists, before SFU attaches its live tracks.
    await load('opponent-focus.js?v=20261104-cricket-seamless-tv1');
