@@ -1,0 +1,8 @@
+/* Cricket leg tally: same readability as X01, scoped to Cricket. */
+body.match-page:has(#cricketBoard) .cricket-legs{
+  font-size:14px!important;font-weight:900!important;color:#00eaf4!important;
+  letter-spacing:.01em;white-space:nowrap;
+}
+body.match-page:has(#cricketBoard) .cricket-player.active .cricket-legs{
+  text-shadow:0 0 10px rgba(0,234,244,.20);
+}
