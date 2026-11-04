@@ -9,7 +9,7 @@
 
   const telemetryDb=(()=>{
     try{if(typeof db!=='undefined'&&db)return db}catch{}
-    return window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
+    return (window.DartArenaSupabaseClient||window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'));
   })();
 
   let playerId=null;
