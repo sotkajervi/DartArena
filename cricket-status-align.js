@@ -1,68 +1,91 @@
-/* Cricket TV layout: align the status/local camera panel with the right column.
-   As visits accumulate, scroll only the visit log, never the entire left column.
-   X01 and the video/camera elements are not modified. */
+/* Cricket TV: use the free space for the visit log so the status/camera
+   panel ends level with the video (opponent turn) or input dock (own turn).
+   Only Cricket; neither media elements nor scoring logic are changed. */
 (()=>{
-  const score=document.querySelector('.match-grid');
-  const status=score?.querySelector('.match-info');
-  const history=score?.querySelector('.cricket-history-list');
+  'use strict';
+  const column=document.querySelector('.match-grid');
+  const score=column?.querySelector('.score-card');
+  const status=column?.querySelector('.match-info');
+  const history=score?.querySelector('.cricket-history');
+  const log=score?.querySelector('.cricket-history-list');
   const entry=document.querySelector('.cricket-entry-card');
   const video=document.getElementById('videoGrid');
-  if(!score||!status||!history||!entry||!video)return;
+  if(!column||!score||!status||!history||!log||!entry||!video)return;
 
   const style=document.createElement('style');
   style.id='da-cricket-status-align-style';
   style.textContent=`
     @media(min-width:801px){
       body.match-page.cricket-tv-layout .match-grid{
+        display:flex!important;
+        flex-direction:column!important;
+        height:var(--da-cricket-column-height)!important;
+        min-height:0!important;
         max-height:none!important;
-        overflow:visible!important;
+        overflow:hidden!important;
         scrollbar-width:none!important;
+      }
+      body.match-page.cricket-tv-layout .match-grid>.score-card{
+        display:flex!important;
+        flex-direction:column!important;
+        flex:1 1 auto!important;
+        min-height:0!important;
+      }
+      body.match-page.cricket-tv-layout .score-card>.cricket-play-grid{
+        flex:0 0 auto!important;
+      }
+      body.match-page.cricket-tv-layout .score-card>.cricket-history{
+        display:flex!important;
+        flex-direction:column!important;
+        flex:1 1 auto!important;
+        min-height:40px!important;
+        overflow:hidden!important;
+      }
+      body.match-page.cricket-tv-layout .cricket-history-list{
+        flex:1 1 auto!important;
+        min-height:0!important;
+        max-height:none!important;
+        overflow-y:auto!important;
+        overflow-x:hidden!important;
+      }
+      body.match-page.cricket-tv-layout .match-grid>.match-info{
+        flex:0 0 auto!important;
+        min-height:0!important;
       }
     }
   `;
   document.head.appendChild(style);
 
-  let frame=0,observed=false;
-  const schedule=()=>{if(!frame)frame=requestAnimationFrame(align)};
+  let frame=0,lastHeight=0;
   function align(){
     frame=0;
     const active=window.innerWidth>=801 &&
       document.body.classList.contains('cricket-tv-layout');
-    status.style.removeProperty('min-height');
-    history.style.removeProperty('max-height');
-    if(!active)return;
-
-    const inputVisible=document.body.classList.contains('own-turn-focus') &&
+    if(!active){
+      column.style.removeProperty('--da-cricket-column-height');
+      lastHeight=0;
+      return;
+    }
+    const ownTurn=document.body.classList.contains('own-turn-focus') &&
       getComputedStyle(entry).display!=='none';
-    const target=inputVisible?entry:video;
-    const bottom=target.getBoundingClientRect().bottom;
-    const scoreBottom=score.getBoundingClientRect().bottom;
-    if(!Number.isFinite(bottom)||!Number.isFinite(scoreBottom))return;
-
-    // Reclaim only the excess height from the log, preserving one visible row.
-    const excess=Math.max(0,Math.ceil(scoreBottom-bottom));
-    if(excess>0){
-      const logHeight=history.getBoundingClientRect().height;
-      const remaining=Math.max(32,Math.floor(logHeight-excess-2));
-      if(logHeight>remaining+1)history.style.setProperty('max-height',remaining+'px','important');
+    const bottom=(ownTurn?entry:video).getBoundingClientRect().bottom;
+    const start=column.getBoundingClientRect().top;
+    if(!Number.isFinite(bottom)||!Number.isFinite(start)||bottom<=start)return;
+    const height=Math.ceil(bottom-start);
+    if(height!==lastHeight){
+      column.style.setProperty('--da-cricket-column-height',height+'px');
+      lastHeight=height;
     }
-
-    // Grow the status card only when the left column ends above the right.
-    const after=score.getBoundingClientRect().bottom;
-    const gap=Math.floor(bottom-after);
-    if(gap>1){
-      const current=status.getBoundingClientRect().height;
-      status.style.minHeight=Math.ceil(current+gap)+'px';
-    }
+  }
+  function schedule(){
+    if(!frame)frame=requestAnimationFrame(align);
   }
 
   window.addEventListener('resize',schedule,{passive:true});
-  const observer=new ResizeObserver(schedule);
-  observer.observe(video);
-  observer.observe(entry);
-  observer.observe(score);
-  observer.observe(history);
-  const bodyObserver=new MutationObserver(schedule);
-  bodyObserver.observe(document.body,{attributes:true,attributeFilter:['class']});
+  const resize=new ResizeObserver(schedule);
+  resize.observe(video);
+  resize.observe(entry);
+  const mode=new MutationObserver(schedule);
+  mode.observe(document.body,{attributes:true,attributeFilter:['class']});
   schedule();
 })();
