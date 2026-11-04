@@ -3,7 +3,9 @@
   window.__dartArenaChicagoFlow=true;
 
   const params=new URLSearchParams(location.search);
-  const matchId=params.get('id');
+  const samePage=params.get('challengeSeamlessDev')==='1'||params.get('samePageDev')==='1';
+  // A seamless room URL contains the challenge id, not the live match id.
+  const matchId=window.DartArenaMatchEngineState?.matchId?.()||(samePage?null:params.get('id'));
   const tournamentMatchId=params.get('tournamentMatch');
   if(!matchId||!window.supabase)return;
 

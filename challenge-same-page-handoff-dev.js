@@ -91,7 +91,7 @@
          'match-media-telemetry.js?v=20261104-shared-auth1',
          'ui-feedback.js?v=20260930-cam2',
          'shared-results.js?v=20261104-cleanup2',
-         'chicago-flow.js?v=20261104-shared-auth1',
+         'chicago-flow.js?v=20261104-live-match-id1',
          'x01-result-leg-details.js?v=20261104-shared-auth1',
          'mobile-x01-keypad.js?v=20261025-mobile1',
          'post-match-media-lifecycle.js?v=20261104-shared-auth1'
