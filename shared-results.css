@@ -33,3 +33,6 @@
 .da-result-history-dialog .da-result-legs{margin-top:9px}
 .da-result-history-dialog .da-result-legs-scroll{max-height:min(70dvh,620px)}
 @media(max-width:640px){.da-result-card--match{padding:9px}.da-result-card--match .da-result-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.da-result-card--match .da-result-statcard{padding:5px}.da-result-card--match .da-result-stat-name{font-size:11px}.da-result-card--match .da-result-statrow span{font-size:9px}.da-result-card--match .da-result-statrow b{font-size:11px}.da-result-card--match .da-result-actions{grid-template-columns:1fr 1fr}.da-result-card--match .da-result-note{font-size:8px}}
+
+/* Hide labels belonging to live Cricket video after the result overlay is opened. */
+body.da-result-open:has(#cricketBoard) .video-name{visibility:hidden!important}
