@@ -1,26 +1,47 @@
 /* 501/301 own-turn layout: same TV frame, but camera shrinks and score control appears below it. */
 
-/* X01: use the SAME fixed content row in both turn states.
-   A flexible minmax(0,1fr) track still changes size when the score input
-   appears; a fixed track keeps the entire sidebar frame stationary. */
+/* X01 TV geometry is defined HERE for both turn states. The left
+   sidebar is a single fixed-height grid track; camera + score dock divide
+   the right track. Screen size changes the available height, never the turn. */
 @media(min-width:801px){
-  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)):is(.own-turn-focus,.opponent-focus) #matchView{
-    grid-template-rows:auto calc(100dvh - 154px)!important;
-    grid-template-areas:
-      "head head"
-      "score video"!important;
+  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)){
+    --da-x01-frame-height:calc(100dvh - 154px);
+    --da-x01-input-reserve:98px;
   }
-  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)):is(.own-turn-focus,.opponent-focus) .match-grid{
+  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)) #matchView{
+    grid-template-rows:auto var(--da-x01-frame-height)!important;
+    grid-template-areas:"head head" "score video"!important;
+  }
+  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)) .match-grid{
+    grid-area:score!important;
+    display:flex!important;
+    flex-direction:column!important;
     align-self:stretch!important;
-    height:100%!important;
+    box-sizing:border-box!important;
+    height:var(--da-x01-frame-height)!important;
     min-height:0!important;
-    max-height:none!important;
+    max-height:var(--da-x01-frame-height)!important;
     overflow:hidden!important;
   }
-  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #videoGrid{
-    height:calc(100dvh - 154px - 98px)!important;
+  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)) .match-grid>.score-card{
+    flex:0 0 auto!important;
+  }
+  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)) .match-grid>.match-info{
+    display:flex!important;
+    flex-direction:column!important;
+    flex:1 1 auto!important;
     min-height:0!important;
-    max-height:calc(100dvh - 154px - 98px)!important;
+    justify-content:flex-start!important;
+  }
+  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)) #videoGrid{
+    height:var(--da-x01-frame-height)!important;
+    min-height:0!important;
+    max-height:var(--da-x01-frame-height)!important;
+  }
+  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #videoGrid{
+    height:calc(var(--da-x01-frame-height) - var(--da-x01-input-reserve))!important;
+    max-height:calc(var(--da-x01-frame-height) - var(--da-x01-input-reserve))!important;
+    align-self:start!important;
   }
   body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock{
     align-self:end!important;
@@ -28,12 +49,9 @@
   }
 }
 @media(min-width:801px) and (max-height:820px){
-  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)):is(.own-turn-focus,.opponent-focus) #matchView{
-    grid-template-rows:auto calc(100dvh - 144px)!important;
-  }
-  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #videoGrid{
-    height:calc(100dvh - 144px - 91px)!important;
-    max-height:calc(100dvh - 144px - 91px)!important;
+  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)){
+    --da-x01-frame-height:calc(100dvh - 144px);
+    --da-x01-input-reserve:91px;
   }
 }
 
@@ -42,21 +60,20 @@ body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus #videoGrid{
   transition:height .28s cubic-bezier(.2,.8,.2,1),max-height .28s cubic-bezier(.2,.8,.2,1)!important;
 }
 
-/* The score dock shares the right grid cell with the video, without
-   becoming a new row or resizing the left side. */
+/* Right-hand scoring dock occupies the bottom of the VIDEO grid cell.
+   Cricket keeps its independent input row and layout. */
 body.match-page.match-tv-layout.standard-tv-layout .focus-input-dock{
   grid-area:input;
   min-width:0;
   margin-top:0;
 }
-body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock{
-  grid-area:video!important;
-  align-self:end!important;
-  z-index:5;
-  min-width:0;
-}
-body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #videoGrid{
-  align-self:start!important;
+@media(min-width:801px){
+  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .focus-input-dock{
+    grid-area:video!important;
+    align-self:end!important;
+    z-index:5;
+    min-width:0;
+  }
 }
 
 /* Opponent turn: no score controls, maximum viewing area. */
@@ -112,31 +129,6 @@ body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cric
   padding:11px 22px!important;
   font-size:14px!important;
   white-space:nowrap!important;
-}
-
-/* One stable left column, independent of scoring input and player turn.
-   The player cards / throw log keep their natural height; only the status
-   area stretches into unused space. */
-@media(min-width:801px){
-  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)):is(.own-turn-focus,.opponent-focus) .match-grid{
-    display:flex!important;
-    flex-direction:column!important;
-    align-self:stretch!important;
-    height:100%!important;
-    max-height:none!important;
-    min-height:0!important;
-    overflow:hidden!important;
-  }
-  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)):is(.own-turn-focus,.opponent-focus) .match-grid>.score-card{
-    flex:0 0 auto!important;
-  }
-  body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)):is(.own-turn-focus,.opponent-focus) .match-grid>.match-info{
-    display:flex!important;
-    flex-direction:column!important;
-    flex:1 1 auto!important;
-    min-height:0!important;
-    justify-content:flex-start!important;
-  }
 }
 
 /* Ordinary X01 fallback remains scrollable at narrow widths; the desktop

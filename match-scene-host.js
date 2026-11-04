@@ -7,9 +7,9 @@
  let stage=null,videoAnchor=null,active=false,lobbyButton=null,lobbyAnchor=null,waitingMain=null,matchHeader=null,oldHeaderMarkup=null,oldDocumentTitle=null;
  const MATCH_STYLES=[
   'match-controls.css?v=20260928-ui2',
-  'opponent-focus.css?v=20261026-owncam-pip1',
+  'opponent-focus.css?v=20261104-x01-unified-frame1',
   'match-mobile-scroll.css?v=20261002-mobile1',
-  'match-own-turn.css?v=20261104-x01-fixed-track2',
+  'match-own-turn.css?v=20261104-x01-unified-frame1',
   'score-meta.css?v=20261004-legdarts1',
   'fx-live.css?v=20261023-sweep2',
   'online-heatmap-result.css?v=20261023-heatmap4',
