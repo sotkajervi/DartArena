@@ -182,5 +182,5 @@ $('cancelMatchBtn').onclick=async()=>{
   location.replace('./');
  }catch(error){$('matchMessage').textContent='Kunne ikke avbryte: '+(error?.message||error);button.disabled=false}
 };
-$('closeMatchBtn').onclick=()=>{if(m?.status==='playing'&&!confirm(window.DartArenaI18n?.t?.('Kampen pågår fortsatt. Lukk kampfanen?')||'Kampen pågår fortsatt. Lukk kampfanen?'))return;window.close()};
+$('closeMatchBtn').onclick=()=>{if(m?.status==='playing'&&!confirm(window.DartArenaI18n?.t?.('Kampen pågår fortsatt. Gå til hovedlobbyen?')||'Kampen pågår fortsatt. Gå til hovedlobbyen?'))return;window.DartArenaMediaTrace?.mark('MATCH_RETURN_TO_LOBBY');location.replace('./')};
 window.addEventListener('beforeunload',cleanup);

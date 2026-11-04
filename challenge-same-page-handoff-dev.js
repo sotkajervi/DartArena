@@ -58,7 +58,7 @@
        // The match page owns the new authenticated SFU session.
        await script('match-preferred-media.js?v=20261031-owner1');
        // Module scope isolates match.js declarations from classic room.js globals.
-       await script('match.js?v=20261104-shared-auth1',{module:true});
+       await script('match.js?v=20261104-return-lobby1',{module:true});
        if(typeof window.DartArenaBootLiveMatch!=='function')throw Error('Kampmotor mangler');
        await window.DartArenaBootLiveMatch(liveMatchId);
        window.DartArenaMediaTrace?.mark('MATCH_ENGINE_BOOTED');
