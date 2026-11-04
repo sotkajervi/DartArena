@@ -72,11 +72,15 @@
   function update(){
     const valid=active();
     const t=clock.textContent.trim();
-    const parts=/^(\\d+):(\\d{2})$/.exec(t);
+    const parts=/^(\d+):(\d{2})$/.exec(t);
     const seconds=parts?Number(parts[1])*60+Number(parts[2]):null;
     clock.classList.toggle('sixty-one-countdown',valid&&seconds!==null&&seconds<=10);
     clock.classList.toggle('sixty-one-countdown-urgent',valid&&seconds!==null&&seconds<=5);
     if(!valid||seconds===null||seconds>10){
+      // Solo completes at 0 before the observer callback runs. Preserve
+      // the final signal only for a natural 1 -> 0 transition.
+      if(seconds===0&&!document.hidden&&!clock.classList.contains('paused')&&
+         lastSecond===1&&Date.now()-lastChange<2200)beep(0);
       lastSecond=null;
       lastChange=0;
       return;
