@@ -3,10 +3,10 @@
   window.__dartArenaSharedResults=true;
 
   const matchId=(window.DartArenaMatchEngineState?.matchId?.()||new URLSearchParams(location.search).get('id'));
-  const resultDb=window.supabase?window.supabase.createClient(
+  const resultDb=window.supabase?(window.DartArenaSupabaseClient||window.supabase.createClient(
     'https://jqpxlbhwvskhjbqrbidk.supabase.co',
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
-  ):null;
+  )):null;
   const providers=window.DartArenaResultProviders=window.DartArenaResultProviders||{};
   let shownFor=null,ch=null;
 
