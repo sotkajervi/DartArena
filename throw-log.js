@@ -3,7 +3,7 @@ const tr=value=>window.DartArenaI18n?.t?.(String(value))??String(value);
 const $=id=>document.getElementById(id),wait=setInterval(()=>{if(!window.supabase||!$('matchView'))return;clearInterval(wait);boot()},100);
 async function boot(){
  const matchId=(window.DartArenaMatchEngineState?.matchId?.()||new URLSearchParams(location.search).get('id'));if(!matchId)return;
- const db=window.DartArenaMatchDb||window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
+ const db=window.DartArenaMatchDb||(window.DartArenaSupabaseClient||window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'));
  const {data:{session}}=await db.auth.getSession();if(!session)return;const me=session.user.id;
  let {data:match}=await db.from('matches').select('*').eq('id',matchId).single();if(!match)return;const chicago=String(match.game_config?.chicago??'false').toLowerCase()==='true';let throws=[];
  const host=document.querySelector('.score-card');if(!host)return;
