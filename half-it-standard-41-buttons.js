@@ -43,7 +43,7 @@
 
     const enabled=canThrow();
     host.innerHTML=`<div class="half-standard-41-actions">
-      <button id="halfExact41Hit" class="half-standard-41-hit" type="button" ${enabled?'':'disabled'}>✓ TREFF <span class="da-key">SPACE</span></button>
+      <button id="halfExact41Hit" class="half-standard-41-hit" type="button" ${enabled?'':'disabled'}>✓ TREFF <span class="da-key">ENTER</span></button>
       <button id="halfExact41Miss" class="half-standard-41-miss" type="button" ${enabled?'':'disabled'}>✕ BOM <span class="da-key">BACKSPACE</span></button>
     </div>`;
 
@@ -71,7 +71,7 @@
     const tag=event.target?.tagName;
     if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||event.target?.isContentEditable)return;
 
-    if(event.code==='Space'){
+    if(event.code==='Enter'||event.code==='NumpadEnter'){
       event.preventDefault();
       event.stopImmediatePropagation();
       $('halfExact41Hit')?.click();

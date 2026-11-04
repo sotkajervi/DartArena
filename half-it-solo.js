@@ -50,7 +50,7 @@ function submitStandard41(hit){
 }
 function buildPad(){const host=$('soloPad'),r=currentRound(),enabled=!finished&&selectedDarts.length<3;if(!host||!r)return;
  if(r.type==='exact41'){
-   host.innerHTML='<div class="half-standard-41-actions"><button type="button" id="soloExact41Hit" class="half-standard-41-hit">✓ TREFF <span class="da-key">SPACE</span></button><button type="button" id="soloExact41Miss" class="half-standard-41-miss">✕ BOM <span class="da-key">BACKSPACE</span></button></div>';
+   host.innerHTML='<div class="half-standard-41-actions"><button type="button" id="soloExact41Hit" class="half-standard-41-hit">✓ TREFF <span class="da-key">ENTER</span></button><button type="button" id="soloExact41Miss" class="half-standard-41-miss">✕ BOM <span class="da-key">BACKSPACE</span></button></div>';
    host.querySelector('#soloExact41Hit').onclick=()=>submitStandard41(true);
    host.querySelector('#soloExact41Miss').onclick=()=>submitStandard41(false);
    return;
@@ -93,10 +93,10 @@ $('soloMissBtn').onclick=()=>addDart(0,0);$('soloUndoBtn').onclick=()=>{selected
 document.addEventListener('keydown',event=>{
  if(event.repeat||event.ctrlKey||event.metaKey||event.altKey||finished||currentRound()?.type!=='exact41')return;
  if(['INPUT','TEXTAREA','SELECT'].includes(event.target?.tagName)||event.target?.isContentEditable)return;
- if(event.code==='Space'||event.code==='Backspace'){
+ if(event.code==='Enter'||event.code==='NumpadEnter'||event.code==='Backspace'){
    event.preventDefault();
    event.stopImmediatePropagation();
-   submitStandard41(event.code==='Space');
+   submitStandard41(event.code==='Enter'||event.code==='NumpadEnter');
  }
 },true);
 exactOptions=generateExactOptions();render();

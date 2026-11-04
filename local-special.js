@@ -193,8 +193,8 @@ function halfPad(){
   '<div class="special-choice-row">'+state.exactOptions.map(x=>'<button class="'+(state.exactChoice===x?'primary':'outline')+'" type="button" data-exact="'+x+'">'+x+'</button>').join('')+'</div>':'';
  const guide=halfDartCounterMobileGuide(rule);
  if(rule===41)return '<div class="special-half-controls">'+guide+'<div class="special-choice-row">'+
-  '<button type="button" class="primary" data-half41="hit">TREFF (+41) <span class="da-key">T</span></button>'+
-  '<button type="button" class="outline" data-half41="bust">BUST (halver score) <span class="da-key">B</span></button>'+
+  '<button type="button" class="primary" data-half41="hit">TREFF (+41) <span class="da-key">Enter</span></button>'+
+  '<button type="button" class="outline" data-half41="bust">BOM (halver score) <span class="da-key">Backspace</span></button>'+
   '</div></div>';
  let keys='';
  if(typeof rule==='number'&&rule!==41){keys=[1,2,3].map(mult=>({n:rule,mult}))}
@@ -231,7 +231,7 @@ function sixtyPad(){
  const clock=Math.floor(remaining/60000)+':'+String(Math.ceil(remaining/1000)%60).padStart(2,'0');
  return '<div class="special-target"><small>'+(state.sudden?'SUDDEN DEATH':'61 • TID IGJEN')+'</small><strong>'+ (state.sudden?'SUDDEN DEATH':clock)+'</strong>'+
   '<span>Mål: '+state.target[state.turn]+' • Forsøk: '+state.attempts[state.turn]+'</span></div>'+
-  '<div class="special-choice-row"><button type="button" class="primary" data-hit="yes">TREFF <span class="da-key">Space</span></button>'+
+  '<div class="special-choice-row"><button type="button" class="primary" data-hit="yes">TREFF <span class="da-key">Enter</span></button>'+
   '<button type="button" class="outline" data-hit="no">BOM <span class="da-key">Backspace</span></button>'+
   '<button type="button" class="outline" data-pause="1">'+(state.paused?'FORTSETT':'PAUSE')+' <span class="da-key">P</span></button></div>';
 }
@@ -413,7 +413,7 @@ function submit(){
  }else commit(()=>E.submit(state,mode()==='jdc'?{codes:darts}:{darts,exactChoice:state.exactChoice}),'Kast registrert.');
 }
 function clonePending(){return pending.map(x=>typeof x==='string'?x:{...x})}
-function submit41(hit){if(mode()!=='half'||E.halfRule(state)!==41||state.status!=='playing'||state.paused)return;pending=[];commit(()=>E.submit(state,{darts:[{n:0,mult:0},{n:0,mult:0},{n:0,mult:0}],hit41:hit}),hit?'41 TREFF registrert.':'41 BUST registrert.')} 
+function submit41(hit){if(mode()!=='half'||E.halfRule(state)!==41||state.status!=='playing'||state.paused)return;pending=[];commit(()=>E.submit(state,{darts:[{n:0,mult:0},{n:0,mult:0},{n:0,mult:0}],hit41:hit}),hit?'41 TREFF registrert.':'41 BOM registrert.')} 
  function submit61(hit){if(state?.game!=='sixty_one'||state.status!=='playing'||state.paused)return;
  commit(()=>E.submit(state,{hit}),hit?'TREFF registrert.':'BOM registrert.')}
 function x01score(){
@@ -513,13 +513,13 @@ document.addEventListener('keydown',event=>{
  if(event.target?.tagName==='INPUT'||event.target?.tagName==='TEXTAREA'||event.target?.tagName==='SELECT')return;
  const modeNow=mode(),key=event.key.toLowerCase();
  if(modeNow==='sixty_one'){
-   if(event.code==='Space'){event.preventDefault();submit61(true)}
+   if(event.code==='Enter'||event.code==='NumpadEnter'){event.preventDefault();submit61(true)}
    else if(event.key==='Backspace'){event.preventDefault();submit61(false)}
    else if(key==='p'){event.preventDefault();commit(()=>E.pause(state),'Pause endret.')}
    else if(key==='z'){event.preventDefault();if(state.undo?.length)commit(()=>E.undo(state),'Angret.')}
    return;
  }
- if(modeNow==='half'&&E.halfRule(state)===41){if(event.key==='Enter'){event.preventDefault();return}if(key==='t'){event.preventDefault();submit41(true)}else if(key==='b'){event.preventDefault();submit41(false)}return}
+ if(modeNow==='half'&&E.halfRule(state)===41){if(event.code==='Enter'||event.code==='NumpadEnter'){event.preventDefault();submit41(true)}else if(event.key==='Backspace'){event.preventDefault();submit41(false)}return}
   if(event.key==='Enter'){event.preventDefault();submit();return}
  if(event.key==='Backspace'){event.preventDefault();pending.pop();renderPad();return}
  if(modeNow==='cricket'){
