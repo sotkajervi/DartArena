@@ -67,7 +67,7 @@
        // the tournament page instead of initializing duplicate media listeners.
        const modules=[
          'fx-live.js?v=20261023-sweep2',
-         'fx-match-bridge.js?v=20261104-shared-auth1',
+         'fx-match-bridge.js?v=20261104-correct-match-id1',
          'autozoom/heatmap-math.js?v=20261023-final2',
          'online-heatmap-chart.js?v=20261023-shareheat1',
          'online-heatmap-result.js?v=20261104-shared-auth1',

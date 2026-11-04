@@ -4,7 +4,11 @@
 (()=>{
 'use strict';
 const FX=window.DartArenaFXLive;
-const mid=new URLSearchParams(location.search).get('id');
+const params=new URLSearchParams(location.search);
+const samePage=(params.get('challengeSeamlessDev')==='1'||params.get('samePageDev')==='1');
+// In a seamless handoff the URL id still belongs to the waiting room (challenge).
+// Read the authenticated live match id exposed by the match engine instead.
+const mid=window.DartArenaMatchEngineState?.matchId?.()||(samePage?null:params.get('id'));
 if(!FX||!mid||!window.supabase)return;
 const db=(window.DartArenaSupabaseClient||window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'));
 const effects={...FX.DEFAULT_EFFECTS,neon_relay:false};
