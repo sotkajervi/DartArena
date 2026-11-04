@@ -354,8 +354,14 @@
     document.fonts?.ready?.then(()=>fitMatchResult(overlay));
     const tournamentResult=!!resultTournamentMatchId;
     if(tournamentResult)overlay.querySelector('#daResultLobby').textContent='Til turneringen';
+    // Cricket challenge results use the same single lobby action as X01 challenges.
+    if(!tournamentResult&&location.pathname.endsWith('/cricket.html')){
+      overlay.querySelector('#daResultLobby').textContent='Til hovedlobby';
+      overlay.querySelector('#daResultClose')?.remove();
+    }
     overlay.querySelector('#daResultLobby').onclick=returnFromResult;
-    overlay.querySelector('#daResultClose').onclick=returnFromResult;
+    const closeResult=overlay.querySelector('#daResultClose');
+    if(closeResult)closeResult.onclick=returnFromResult;
   }
 
   if(resultTournamentMatchId){
