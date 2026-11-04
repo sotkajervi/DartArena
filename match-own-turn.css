@@ -79,6 +79,29 @@ body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cric
   white-space:nowrap!important;
 }
 
+/* X01 own turn: the score sidebar occupies both the video and input rows.
+   Keep scoreboard and throw log content unchanged; stretch only the empty
+   lower portion of Kampstatus. The opponent-turn camera layout is untouched. */
+@media(min-width:801px){
+  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .match-grid{
+    display:flex!important;
+    flex-direction:column!important;
+    align-self:stretch!important;
+    height:auto!important;
+    min-height:0!important;
+    overflow:visible!important;
+  }
+  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .match-grid>.score-card{
+    flex:0 0 auto!important;
+  }
+  body.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) .match-grid>.match-info{
+    display:flex!important;
+    flex-direction:column!important;
+    flex:1 1 auto!important;
+    min-height:0!important;
+  }
+}
+
 /* X01 uses normal page flow. Never create a second scrollbar inside the score column. */
 body.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)) .match-grid{
   max-height:none!important;
