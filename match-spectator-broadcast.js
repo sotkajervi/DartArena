@@ -2,7 +2,7 @@
 (()=>{
   const params=new URLSearchParams(location.search),liveMatchId=window.DartArenaMatchEngineState?.matchId?.()||params.get('id');
   if(!liveMatchId||!window.supabase)return;
-  const client=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
+  const client=(window.DartArenaSupabaseClient||window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'));
   let sfu=null,publication=null,publishedTrackId=null,ch=null,heartbeat=null,viewerWatch=null,publishing=false,stopped=false,spectatorRequested=false;
 
   async function announce(){
