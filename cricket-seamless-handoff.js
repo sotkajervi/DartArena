@@ -1,6 +1,10 @@
-/* Opt-in Cricket make-before-break transition; legacy Cricket is the fallback. */
+/* Cricket make-before-break: enabled by default in production.
+ * Explicit cricketSeamlessDev=0 disables it for rollback testing; dev hosts
+ * still require cricketSeamlessDev=1. Legacy Cricket remains the fallback. */
 (()=>{
- if(new URLSearchParams(location.search).get('cricketSeamlessDev')!=='1')return;
+ const flag=new URLSearchParams(location.search).get('cricketSeamlessDev');
+ const enabled=flag==='1'||(location.hostname==='sotkajervi.github.io'&&flag!=='0');
+ if(!enabled)return;
  let entering=false;
  const load=src=>new Promise((ok,fail)=>{const el=document.createElement('script');el.src=src;el.async=false;el.onload=ok;el.onerror=()=>fail(Error('Could not load '+src));document.body.appendChild(el)});
  window.DartArenaCricketSamePage={async enter({liveMatchId}={}){

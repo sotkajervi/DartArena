@@ -1,6 +1,6 @@
-/* Single challenge-start entrypoint for X01 170, 301, 501 and 1001.
- * Other game modes and unprepared handoffs retain existing navigation.
- * The test switch is opt-in; no live media is torn down here.
+/* Challenge start entrypoint for X01 and Cricket seamless match transitions.
+ * Unsupported modes and unprepared handoffs retain original navigation.
+ * No live media is torn down here.
  */
 (()=>{
  'use strict';
@@ -25,7 +25,7 @@
      if(error||!match||![match.player1_id,match.player2_id].includes(user))throw error||new Error('Match access denied');
      const game=String(match.game||'');
      const isX01=x01.has(game)&&match.game_variant==='x01'&&String(match.game_config?.chicago||'false')!=='true';
-     if(variant==='cricket'&&new URLSearchParams(location.search).get('cricketSeamlessDev')==='1'&&window.DartArenaCricketSamePage?.enter&&
+     if(variant==='cricket'&&window.DartArenaCricketSamePage?.enter&&
         await window.DartArenaCricketSamePage.enter({liveMatchId:matchId})===true)return;
      const bridge=window.DartArenaChallengeSamePageHandoff;
      // Give both authenticated players the same media migration window when
