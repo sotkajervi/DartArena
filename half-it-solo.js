@@ -90,4 +90,13 @@ function submitRound(){if(finished||selectedDarts.length!==3)return;const r=curr
 function showFinished(){renderHistory();$('soloScore').textContent=String(score);const ok=history.filter(h=>h.success).length,fail=history.length-ok;$('soloFinishedTitle').textContent=mode==='dartcounter'?'Half-It (DartCounter)':'Half-It (Standard)';$('soloFinishedScore').textContent=String(score);$('soloFinishedStats').textContent=`${ok} treffrunder • ${fail} halveringer • ${Math.round(ok/history.length*100)} % suksess`;$('soloFinished').classList.remove('hidden')}
 function restart(){roundIndex=0;score=0;selectedDarts=[];selectedMult=1;history=[];exactTarget=null;exactOptions=generateExactOptions();finished=false;$('soloFinished').classList.add('hidden');$('soloMessage').textContent='';render()}
 $('soloMissBtn').onclick=()=>addDart(0,0);$('soloUndoBtn').onclick=()=>{selectedDarts.pop();renderEntry();renderExactChoices()};$('soloSubmitBtn').onclick=submitRound;$('soloRestartBtn').onclick=restart;$('soloOtherVariantBtn').onclick=()=>location.href=`half-it-solo.html?mode=${mode==='standard'?'dartcounter':'standard'}`;$('soloLobbyBtn').onclick=()=>location.href='./';$('backBtn').onclick=()=>location.href='./';
+document.addEventListener('keydown',event=>{
+ if(event.repeat||event.ctrlKey||event.metaKey||event.altKey||finished||currentRound()?.type!=='exact41')return;
+ if(['INPUT','TEXTAREA','SELECT'].includes(event.target?.tagName)||event.target?.isContentEditable)return;
+ if(event.code==='Space'||event.code==='Backspace'){
+   event.preventDefault();
+   event.stopImmediatePropagation();
+   submitStandard41(event.code==='Space');
+ }
+},true);
 exactOptions=generateExactOptions();render();
