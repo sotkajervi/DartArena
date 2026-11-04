@@ -8,7 +8,7 @@
  const MATCH_STYLES=[
   'match-controls.css?v=20260928-ui2',
   'cricket-desktop.css?v=20260928-ui2',
-  'cricket-leg-emphasis.css?v=20261104-starter-badge1',
+  'cricket-leg-emphasis.css?v=20261104-large-leg2',
   'button-theme.css?v=20261009-brandcyan1',
   'opponent-focus.css?v=20261026-owncam-pip1',
   'match-mobile-scroll.css?v=20261002-mobile1',
