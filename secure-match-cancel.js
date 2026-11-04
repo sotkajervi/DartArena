@@ -83,10 +83,10 @@
     if(button.dataset.secureCancel==='1')return true;
     button.dataset.secureCancel='1';
 
-    const db=window.supabase.createClient(
+    const db=(window.DartArenaSupabaseClient||window.supabase.createClient(
       'https://jqpxlbhwvskhjbqrbidk.supabase.co',
       'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
-    );
+    ));
     let busy=false;
 
     button.addEventListener('click',async event=>{
