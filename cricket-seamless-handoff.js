@@ -32,7 +32,7 @@
    await load('cancelled-match-modal.js?v=20261104-cricket-notice1');
    // Apply the same Cricket TV docking layout used by ordinary cricket.html.
    // Load after the Cricket board exists, before SFU attaches its live tracks.
-   await load('opponent-focus.js?v=20261104-cricket-seamless-tv1');
+   await load('opponent-focus.js?v=20261105-cricket-pip1');
    await load('cricket-status-align.js?v=20261104-stable-video-height1');
    await load('cricket-sfu-media.js?v=20261104-dev1');
    await load('shared-results.js?v=20261104-cricket-seamless1');

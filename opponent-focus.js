@@ -28,15 +28,12 @@
 
   function dockLocal(){
     if(!localCard)return;
-    // X01: keep own camera visible as a small inset over the opponent video.
-    // The former location beneath Match Status could fall below the sidebar
-    // viewport on laptops, making a working camera appear missing.
-    // Cricket keeps its existing sidebar layout.
-    const target=isCricket?matchInfo:grid;
-    if(!target)return;
-    if(localCard.parentElement!==target)target.appendChild(localCard);
-    localCard.classList.toggle('focus-local-docked',isCricket);
-    localCard.classList.toggle('focus-local-pip',!isCricket);
+    // X01 and Cricket: keep own camera visible as a small lower-right
+    // inset of the opponent video, never beneath the scoring sidebar.
+    if(!grid)return;
+    if(localCard.parentElement!==grid)grid.appendChild(localCard);
+    localCard.classList.remove('focus-local-docked');
+    localCard.classList.add('focus-local-pip');
   }
 
   function restoreLocal(){

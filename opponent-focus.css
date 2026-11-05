@@ -20,7 +20,7 @@ body.match-page.match-tv-layout .match-info .focus-local-docked #micBtn{right:5p
 
 /* Always-visible X01 self-camera: bottom-right of opponent video, below
    ZoomCam's top-right inset. Nothing covers the opponent's dartboard. */
-body.match-page.match-tv-layout.standard-tv-layout #videoGrid .focus-local-pip{
+body.match-page.match-tv-layout #videoGrid .focus-local-pip{
   position:absolute!important;
   top:auto!important;left:auto!important;
   right:12px!important;bottom:12px!important;
@@ -38,17 +38,17 @@ body.match-page.match-tv-layout.standard-tv-layout #videoGrid .focus-local-pip{
   box-shadow:0 5px 22px rgba(0,0,0,.65)!important;
   background:#020607!important;
 }
-body.match-page.match-tv-layout.standard-tv-layout #videoGrid .focus-local-pip video{
+body.match-page.match-tv-layout #videoGrid .focus-local-pip video{
   display:block;width:100%;height:100%;object-fit:contain;
 }
-body.match-page.match-tv-layout.standard-tv-layout #videoGrid .focus-local-pip .video-name{
+body.match-page.match-tv-layout #videoGrid .focus-local-pip .video-name{
   left:5px;bottom:5px;padding:2px 5px;font-size:9px;max-width:75%;
 }
-body.match-page.match-tv-layout.standard-tv-layout #videoGrid .focus-local-pip #micBtn{
+body.match-page.match-tv-layout #videoGrid .focus-local-pip #micBtn{
   right:5px;bottom:5px;padding:3px 5px;font-size:9px;
 }
 @media(max-width:640px){
-  body.match-page.match-tv-layout.standard-tv-layout #videoGrid .focus-local-pip{
+  body.match-page.match-tv-layout #videoGrid .focus-local-pip{
     width:clamp(116px,28%,180px)!important;
     right:6px!important;bottom:6px!important;inset:auto 6px 6px auto!important;
   }

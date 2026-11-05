@@ -10,7 +10,7 @@
   'cricket-desktop.css?v=20260928-ui2',
   'cricket-leg-emphasis.css?v=20261104-large-leg2',
   'button-theme.css?v=20261009-brandcyan1',
-  'opponent-focus.css?v=20261026-owncam-pip1',
+  'opponent-focus.css?v=20261105-cricket-pip1',
   'match-mobile-scroll.css?v=20261002-mobile1',
   'match-own-turn.css?v=20261027-i18naudit1',
   'score-meta.css?v=20261004-legdarts1',
