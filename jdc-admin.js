@@ -123,6 +123,81 @@
     });
   }
 
+
+  // Owner/Admin: complete audit list for JDC, 61 and Half-It training results.
+  let resultOffset=0;
+  const pageSize=40;
+  function makeAdminRecordsPanel(){
+    const host=document.getElementById('leaderboardRows');
+    if(!host)return null;
+    let panel=document.getElementById('daAdminTrainingRecords');
+    if(panel)return panel;
+    panel=document.createElement('section');
+    panel.id='daAdminTrainingRecords';
+    panel.className='card';
+    panel.style.cssText='margin-top:16px;padding:16px';
+    const heading=document.createElement('h2');
+    heading.textContent='Administrer treningsresultater';
+    const help=document.createElement('p');
+    help.className='muted';
+    help.textContent='Kun Owner og Admin. JDC Challenge, 61 og Half-It. Sletting er permanent.';
+    const status=document.createElement('p');status.id='daAdminRecordStatus';status.className='muted';
+    const rows=document.createElement('div');rows.id='daAdminRecordRows';rows.style.cssText='display:grid;gap:6px';
+    const nav=document.createElement('div');nav.style.cssText='display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px';
+    const prev=document.createElement('button');prev.className='outline';prev.type='button';prev.textContent='Forrige';
+    prev.onclick=()=>{resultOffset=Math.max(0,resultOffset-pageSize);loadAdminRecords()};
+    const next=document.createElement('button');next.className='outline';next.type='button';next.textContent='Neste';
+    next.onclick=()=>{resultOffset+=pageSize;loadAdminRecords()};
+    const page=document.createElement('span');page.id='daAdminRecordPage';page.className='muted';
+    nav.append(prev,page,next);
+    panel.append(heading,help,status,rows,nav);
+    host.closest('section.card')?.insertAdjacentElement('afterend',panel);
+    return panel;
+  }
+  async function loadAdminRecords(){
+    const panel=makeAdminRecordsPanel();
+    if(!panel)return;
+    const list=panel.querySelector('#daAdminRecordRows');
+    const status=panel.querySelector('#daAdminRecordStatus');
+    const [prev,next]=panel.querySelectorAll('button.outline');
+    status.textContent='Laster resultatene…';
+    list.replaceChildren();
+    const {data,error}=await db.rpc('admin_training_records_page',{p_offset:resultOffset,p_limit:pageSize});
+    if(error){status.textContent='Kunne ikke laste resultatene: '+error.message;return}
+    const rows=data||[];
+    status.textContent=rows.length?String(rows.length)+' oppføringer på denne siden':'Ingen resultater på denne siden.';
+    prev.disabled=resultOffset===0;
+    next.disabled=rows.length<pageSize;
+    panel.querySelector('#daAdminRecordPage').textContent='Side '+(Math.floor(resultOffset/pageSize)+1);
+    const names={jdc:'JDC Challenge','61':'61',half_it:'Half-It'};
+    for(const entry of rows){
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px;border:1px solid #16434b;border-radius:8px';
+      const info=document.createElement('span');
+      const stamp=entry.created_at?new Date(entry.created_at).toLocaleDateString('nb-NO'):'';
+      info.textContent=(entry.username||'Spiller')+' • '+(names[entry.game]||entry.game)+' '+(entry.variant==='challenge'?'':entry.variant)+' • '+entry.score+' poeng • '+stamp;
+      const del=document.createElement('button');
+      del.type='button';del.className='danger small-btn';del.textContent='Slett';
+      del.onclick=async()=>{
+        const msg='Slette dette resultatet permanent?\\n'+info.textContent;
+        const dialog=await ensureDialog().catch(()=>null);
+        const accepted=dialog?await dialog.confirm(msg,{title:'Slett treningsresultat',tone:'danger',confirmText:'Slett resultat'}):confirm(msg);
+        if(!accepted)return;
+        del.disabled=true;
+        const {error:deleteError}=await db.rpc('admin_delete_training_record',{p_game:entry.game,p_result_id:Number(entry.result_id)});
+        if(deleteError){
+          del.disabled=false;
+          if(dialog)await dialog.alert(deleteError.message,{title:'Kunne ikke slette',tone:'danger'});else alert(deleteError.message);
+          return;
+        }
+        // JDC top lists and role badges derive their next best value from the remaining rows.
+        if(entry.game==='jdc'){location.reload();return}
+        await loadAdminRecords();
+      };
+      row.append(info,del);list.append(row);
+    }
+  }
+
   async function boot(){
     const {data:{session}}=await db.auth.getSession();
     if(!session?.user)return;
@@ -132,6 +207,7 @@
     ensureDialog().catch(()=>{});
     showNotice();
     await decorate();
+    await loadAdminRecords();
     const host=document.getElementById('leaderboardRows');
     if(host)new MutationObserver(scheduleDecorate).observe(host,{childList:true,subtree:true});
   }
