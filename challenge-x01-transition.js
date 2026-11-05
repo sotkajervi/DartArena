@@ -1,4 +1,4 @@
-/* Challenge start entrypoint for X01 and Cricket seamless match transitions.
+/* Challenge start entrypoint for X01 (including Chicago 301) and Cricket seamless match transitions.
  * Unsupported modes and unprepared handoffs retain original navigation.
  * No live media is torn down here.
  */
@@ -21,14 +21,21 @@
      const db=window.DartArenaChallengeRoomState?.client?.();
      const user=window.DartArenaChallengeRoomState?.user?.();
      if(!db||!user)throw Error('Challenge credentials unavailable');
-     const {data:match,error}=await db.from('matches').select('id,game,game_variant,game_config,player1_id,player2_id,status').eq('id',matchId).maybeSingle();
+     const {data:match,error}=await db.from('matches').select('id,game,current_leg,game_variant,game_config,player1_id,player2_id,status').eq('id',matchId).maybeSingle();
      if(error||!match||![match.player1_id,match.player2_id].includes(user))throw error||new Error('Match access denied');
      // Remember the exact match for this tab so Ctrl+R can rejoin directly.
      if(['playing','live'].includes(match.status)){
        try{sessionStorage.setItem('dartarena-challenge-match:'+window.DartArenaChallengeRoomState.challengeId(),match.id)}catch{}
      }
      const game=String(match.game||'');
-     const isX01=x01.has(game)&&match.game_variant==='x01'&&String(match.game_config?.chicago||'false')!=='true';
+     // Chicago Game 1 is the existing X01 301 engine. Reuse its proven
+     // challenge waiting-room -> X01 same-document video handoff.
+     // Never attempt an X01 handoff after Chicago switches to Cricket.
+     const chicago=String(match.game_config?.chicago??'false').toLowerCase()==='true';
+     const chicagoStage=Number(match.game_config?.chicago_stage||match.current_leg||1);
+     const chicagoX01Start=chicago&&match.game_variant==='x01'&&chicagoStage===1;
+     const isX01=match.game_variant==='x01'&&
+       (chicagoX01Start||(!chicago&&x01.has(game)));
      if(variant==='cricket'&&window.DartArenaCricketSamePage?.enter&&
         await window.DartArenaCricketSamePage.enter({liveMatchId:matchId})===true)return;
      const bridge=window.DartArenaChallengeSamePageHandoff;
