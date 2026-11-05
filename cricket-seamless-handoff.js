@@ -35,7 +35,7 @@
    await load('opponent-focus.js?v=20261105-cricket-pip1');
    await load('cricket-status-align.js?v=20261104-stable-video-height1');
    await load('cricket-sfu-media.js?v=20261104-dev1');
-   await load('shared-results.js?v=20261104-cricket-seamless1');
+   await load('shared-results.js?v=20261105-single-return1');
    await load('post-match-media-lifecycle.js?v=20261104-shared-auth1');
    const deadline=Date.now()+15000;
    while(!window.DartArenaMatchMedia?.readyForHandoff?.()){

@@ -345,7 +345,7 @@
     const stats=payload?.stats||{},summary=payload?.summary||[],winnerName=m.winner_id?names[m.winner_id]||'Vinner':'Kampen';
     const score=scoreInfo(m),ordered=orderedScore(m,score),label=payload?.label||gameLabel(m),format=payload?.format||formatLabel(m);
     const[leftId,rightId]=displayOrder(m),leftName=names[leftId]||'Spiller 1',rightName=names[rightId]||'Spiller 2';
-    const overlay=mountOverlay(`<section class="da-result-card da-result-card--match" role="dialog" aria-modal="true" aria-label="Kampresultat"><div class="da-result-kicker">KAMP FERDIG</div><h1 class="da-result-title"><span class="da-result-winner-name">${esc(winnerName)}</span>${m.winner_id?' vant!':' er ferdig'}</h1><div class="da-result-sub">${esc(label)} • ${esc(format)}</div><div class="da-result-scorebox">${ordered.left}<span>–</span>${ordered.right}</div><div class="da-result-stats">${playerCardHtml(leftId,leftName,m,stats[leftId])}${playerCardHtml(rightId,rightName,m,stats[rightId])}</div>${compactSummaryHtml(summary,names)}<div class="da-result-actions"><button id="daResultLobby" class="primary" type="button">Til lobby</button><button id="daResultClose" class="outline" type="button">Til hovedlobby</button></div><p class="da-result-note">DartArena • resultatet er lagret i kamphistorikken</p></section>`);
+    const overlay=mountOverlay(`<section class="da-result-card da-result-card--match" role="dialog" aria-modal="true" aria-label="Kampresultat"><div class="da-result-kicker">KAMP FERDIG</div><h1 class="da-result-title"><span class="da-result-winner-name">${esc(winnerName)}</span>${m.winner_id?' vant!':' er ferdig'}</h1><div class="da-result-sub">${esc(label)} • ${esc(format)}</div><div class="da-result-scorebox">${ordered.left}<span>–</span>${ordered.right}</div><div class="da-result-stats">${playerCardHtml(leftId,leftName,m,stats[leftId])}${playerCardHtml(rightId,rightName,m,stats[rightId])}</div>${compactSummaryHtml(summary,names)}<div class="da-result-actions" style="grid-template-columns:1fr"><button id="daResultLobby" class="primary" type="button">Til hovedlobby</button></div><p class="da-result-note">DartArena • resultatet er lagret i kamphistorikken</p></section>`);
     // Append optional per-player heatmaps without changing scoring statistics.
     try{window.DartArenaOnlineHeatmap?.attachResult(overlay,m)}catch(error){console.warn('Heatmap result unavailable',error)}
     const legButton=overlay.querySelector('#daResultLegs');
@@ -353,16 +353,10 @@
     requestAnimationFrame(()=>fitMatchResult(overlay));
     document.fonts?.ready?.then(()=>fitMatchResult(overlay));
     const tournamentResult=!!resultTournamentMatchId;
+    // One return action for Chicago, X01 and Cricket. Tournament results
+    // retain their destination-specific label.
     if(tournamentResult)overlay.querySelector('#daResultLobby').textContent='Til turneringen';
-    // Cricket challenge results use the same single lobby action as X01 challenges.
-    if(!tournamentResult&&(location.pathname.endsWith('/cricket.html')||(new URLSearchParams(location.search).get('cricketSeamlessDev')==='1'&&window.DartArenaMatchEngineState?.match?.()?.game_variant==='cricket'))){
-      overlay.querySelector('#daResultLobby').textContent='Til hovedlobby';
-      overlay.querySelector('#daResultClose')?.remove();
-      overlay.querySelector('.da-result-actions').style.gridTemplateColumns='1fr';
-    }
     overlay.querySelector('#daResultLobby').onclick=returnFromResult;
-    const closeResult=overlay.querySelector('#daResultClose');
-    if(closeResult)closeResult.onclick=returnFromResult;
   }
 
   if(resultTournamentMatchId){
