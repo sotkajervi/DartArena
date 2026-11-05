@@ -64,3 +64,7 @@ body.half-it-page .half-entry{padding:8px}
 }
 @media(max-width:900px){body.half-it-page .half-grid{grid-template-columns:1fr}body.half-it-page .half-number-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media(max-width:600px){body.half-it-page .half-score{font-size:32px}body.half-it-page .half-target-card h2{font-size:36px}body.half-it-page .half-quick{grid-template-columns:repeat(2,1fr)}body.half-it-page .half-number-grid{grid-template-columns:repeat(4,minmax(0,1fr))}body.half-it-page .half-actions{grid-template-columns:1fr 1fr}body.half-it-page #halfSubmitBtn{grid-column:1/-1}}
+
+/* Next round preview shared by Standard and DartCounter online. */
+body.half-it-page .half-next-target{display:flex;align-items:center;justify-content:center;min-height:32px;padding:2px 8px 8px;color:#95b8ba;font-size:14px;font-weight:700;text-align:center}
+@media(max-width:600px){body.half-it-page .half-next-target{font-size:12px;min-height:28px}}

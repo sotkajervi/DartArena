@@ -5,3 +5,9 @@ body.half-it-solo-page .half-standard-41-hit{background:#123e31!important;border
 body.half-it-solo-page .half-standard-41-miss{background:#3a181c!important;border:1px solid #873841!important;color:#ff9fa7!important}
 body.half-it-solo-page .solo-exact-choices .half-exact-round-miss{grid-column:1/-1;font-size:16px;background:#3a181c;border:1px solid #873841;color:#ff9fa7}
 @media(max-width:600px){body.half-it-solo-page .half-standard-41-actions button{min-height:76px;font-size:20px}}
+
+/* All Half-It solo variants share the Standard target, next-goal and three-dart layout. */
+body.half-it-solo-page .half-next-target{display:flex;align-items:center;justify-content:center;min-height:32px;padding:2px 8px 8px;color:#95b8ba;font-size:14px;font-weight:700;letter-spacing:.01em;text-align:center}
+body.half-it-solo-page #soloDarts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:4px;margin-bottom:10px}
+body.half-it-solo-page #soloDarts .half-dart{text-align:center;min-width:0}
+@media(max-width:600px){body.half-it-solo-page .half-next-target{font-size:12px;min-height:28px}body.half-it-solo-page #soloDarts{gap:5px}}

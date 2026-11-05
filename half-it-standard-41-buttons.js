@@ -59,7 +59,9 @@
       return originalRenderEntry();
     }
 
-    $('halfDarts')?.classList.add('hidden');
+    $('halfDarts')?.classList.remove('hidden');
+    const dartSlots=$('halfDarts');
+    if(dartSlots)dartSlots.innerHTML='<div class="half-dart empty">–</div><div class="half-dart empty">–</div><div class="half-dart empty">–</div>';
     document.querySelector('.half-actions')?.classList.add('hidden');
     const help=$('halfHelp');
     if(help)help.textContent='Fikk du nøyaktig 41 med tre tellende piler? Velg TREFF. Ellers velger du BOM.';
