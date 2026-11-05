@@ -4,9 +4,10 @@
  */
 (()=>{
  'use strict';
- // Explicit opt-in on the isolated test deployment only.
- // Production tournament rooms retain the original navigation.
- if(new URLSearchParams(location.search).get('challengeSeamlessDev')!=='1')return;
+ // Register the existing X01 bridge without using it automatically.
+ // The challenge transition controls opt-in: normal X01 still requires the
+ // existing flag; Chicago 301 alone can use the same proven bridge.
+ // Tournament rooms are unaffected.
  if(!['dartarena-test.pages.dev','sotkajervi.github.io'].includes(location.hostname)){
    console.warn('[DartArena] Same-page handoff is limited to the test deployment.');
    return;

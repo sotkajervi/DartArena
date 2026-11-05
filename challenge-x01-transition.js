@@ -39,12 +39,21 @@
      if(variant==='cricket'&&window.DartArenaCricketSamePage?.enter&&
         await window.DartArenaCricketSamePage.enter({liveMatchId:matchId})===true)return;
      const bridge=window.DartArenaChallengeSamePageHandoff;
+     const explicitlyEnabled=new URLSearchParams(location.search).get('challengeSeamlessDev')==='1';
+     const allowHandoff=chicagoX01Start||explicitlyEnabled;
+     // Other match modules use this same-document flag to avoid starting
+     // legacy parallel media negotiations. Set it before booting Chicago 301.
+     if(chicagoX01Start&&!explicitlyEnabled&&typeof bridge?.enter==='function'){
+       const url=new URL(location.href);
+       url.searchParams.set('challengeSeamlessDev','1');
+       history.replaceState(history.state,'',url.href);
+     }
      // Give both authenticated players the same media migration window when
      // no coin flip is used, instead of racing the opponent's start event.
-     if(isX01&&typeof bridge?.enter==='function'&&Number.isFinite(Number(startAt))&&Number(startAt)>Date.now()){
+     if(isX01&&allowHandoff&&typeof bridge?.enter==='function'&&Number.isFinite(Number(startAt))&&Number(startAt)>Date.now()){
        await new Promise(resolve=>setTimeout(resolve,Math.min(4000,Math.max(0,Number(startAt)-Date.now()))));
      }
-     if(isX01&&typeof bridge?.enter==='function'&&
+     if(isX01&&allowHandoff&&typeof bridge?.enter==='function'&&
        await bridge.enter({liveMatchId:matchId,challengeId:new URLSearchParams(location.search).get('id')})===true)return;
    }catch(error){console.warn('[challenge transition] Using original match page',error)}
    window.DartArenaMediaTrace?.mark('CHALLENGE_LEGACY_NAVIGATION');
