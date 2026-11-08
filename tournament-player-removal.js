@@ -5,10 +5,7 @@
   const participantList=document.getElementById('participantList');
   if(!tournamentId||!participantList)return;
 
-  const db=window.supabase.createClient(
-    'https://jqpxlbhwvskhjbqrbidk.supabase.co',
-    'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
-  );
+  const db=window.DartArenaTournamentDb;
 
   let me=null;
   let tournament=null;
