@@ -5,10 +5,7 @@
   const tournamentId=new URLSearchParams(location.search).get('id');
   if(!tournamentId)return;
 
-  const gateDb=window.supabase.createClient(
-    'https://jqpxlbhwvskhjbqrbidk.supabase.co',
-    'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
-  );
+  const gateDb=window.DartArenaTournamentDb;
 
   const BEST_OF_OPTIONS=Array.from({length:10},(_,i)=>i*2+3);
   const NDF_SLOTS={
