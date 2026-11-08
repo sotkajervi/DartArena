@@ -97,7 +97,7 @@ body.match-page.da-result-open .video-slot-label{opacity:0!important;visibility:
    if(!overlay||!actions){if(attempt<50)setTimeout(()=>enhanceFinalResult(attempt+1),100);return}
    enhanceResultStats(overlay);
    applyWinnerFirstResult(overlay);
-   overlay.querySelector('#daResultLobby')?.remove();
+   // Keep the destination-aware return button created by shared-results.js.
    if(actions.dataset.x01Enhanced==='1'){applyResultRoles();return}
    actions.dataset.x01Enhanced='1';actions.classList.add('x01-result-actions');
    const screenshot=document.createElement('button');screenshot.type='button';screenshot.className='outline';screenshot.textContent='Skjermbilde';
