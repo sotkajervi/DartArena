@@ -2,10 +2,7 @@
   const tournamentId=new URLSearchParams(location.search).get('id');
   if(!tournamentId||!window.supabase)return;
 
-  const client=window.supabase.createClient(
-    'https://jqpxlbhwvskhjbqrbidk.supabase.co',
-    'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
-  );
+  const client=window.DartArenaTournamentDb;
 
   let isOwner=false,isAdmin=false,decorating=false;let groupVariant='x01',cupVariant='x01';
   const nameCache={};
