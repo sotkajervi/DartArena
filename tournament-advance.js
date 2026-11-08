@@ -1,7 +1,7 @@
 // Show an owner-only button when every group match is finished.
 (()=>{
   const tournamentId=new URLSearchParams(location.search).get('id');if(!tournamentId||!window.supabase)return;
-  const client=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
+  const client=window.DartArenaTournamentDb;
   let me=null,busy=false,ch=null,refreshTimer=null,pollTimer=null;
   function queueRefresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>refresh().catch(error=>console.warn('Cup advance refresh failed',error)),250)}
   function ensureButton(){
