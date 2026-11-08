@@ -270,7 +270,7 @@
       const SfuClient=secure?window.DartArenaSecureSFU:window.DartArenaSFU;
       if(!SfuClient)throw Error('Valgt videosystem er ikke tilgjengelig');
       const nextSfu=new SfuClient(secure?window.DARTARENA_SFU.secureWorkerUrl:window.DARTARENA_SFU.workerUrl,
-        {kind:'tournament_match',id:state()?.tournamentMatchId?.()});
+        {kind:'tournament_match',id:state()?.tournamentMatchId?.()},state()?.client?.());
       state()?.setPublisher?.(nextSfu);
       state()?.setPublication?.(null);
       state()?.resetSubscription?.();
