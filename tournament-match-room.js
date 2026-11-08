@@ -461,7 +461,7 @@ async function startCamera(){
     const SfuClient=secure?window.DartArenaSecureSFU:window.DartArenaSFU;
     if(!SfuClient)throw Error('Valgt videosystem er ikke tilgjengelig');
     sfu=new SfuClient(secure?window.DARTARENA_SFU.secureWorkerUrl:window.DARTARENA_SFU.workerUrl,
-      {kind:'tournament_match',id:tournamentMatchId});
+      {kind:'tournament_match',id:tournamentMatchId},db);
     publication=await sfu.publish(stream);
     setReadyUi();
     setStatus('Kamera klart – venter på motstander');
