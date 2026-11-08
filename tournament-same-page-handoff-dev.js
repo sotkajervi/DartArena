@@ -86,7 +86,7 @@
          'match-room-polish.js?v=20261002-matchrooms2',
          'result-screenshot.js?v=20261023-shareheat1',
          'live-avg.js?v=20261102-live-id-fix3',
-         'stats-engine.js?v=20261102-stats-button4',
+         'stats-engine.js?v=20261109-tournament-return1',
          'spectator-presence.js?v=20261102-live-id-fix3',
          'match-spectator-broadcast.js?v=20261031-spectator1',
          'tournament-match-sync.js?v=20261103-cancel-tab-fix1',
