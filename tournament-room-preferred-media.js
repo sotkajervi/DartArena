@@ -271,8 +271,9 @@
 
       if(state()?.isHandoffStarted?.())return; // Do not replace the old session during handoff.
       state()?.setStatus?.('Publiserer valgt kamera via Cloudflare…');
-      try{roomPublisher()?.close()}catch{}
       const selected=await window.DartArenaMediaMode?.getMode?.()||'legacy';
+      if(state()?.isHandoffStarted?.())return;
+      try{roomPublisher()?.close()}catch{}
       const secure=selected==='sfu';
       const SfuClient=secure?window.DartArenaSecureSFU:window.DartArenaSFU;
       if(!SfuClient)throw Error('Valgt videosystem er ikke tilgjengelig');
