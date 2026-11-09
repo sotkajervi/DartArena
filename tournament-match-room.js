@@ -497,6 +497,7 @@ async function startCamera(){
     await sendState();
     if(remotePublication)await subscribeRemote(remotePublication);
   }catch(e){
+    if(roomHandoffStarted)return; // An older startup failure must not alter match UI.
     console.error('Tournament room camera error',e);
     publication=null;
     setReadyUi();
