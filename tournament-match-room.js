@@ -2,7 +2,7 @@
 'use strict';
 const SUPABASE_URL='https://jqpxlbhwvskhjbqrbidk.supabase.co';
 const SUPABASE_KEY='sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK';
-const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const db=window.DartArenaSupabaseClient||(window.DartArenaSupabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY));
 const $=id=>document.getElementById(id);
 const tournamentMatchId=new URLSearchParams(location.search).get('id');
 
