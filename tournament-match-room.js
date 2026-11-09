@@ -33,6 +33,7 @@ const roomInstanceId=crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`;
 let remoteInstanceId=null;
 let remoteSubscribeBusy=false;
 let remoteSubscribeGeneration=0;
+let roomHandoffStarted=false;
 let remoteVideoWatchdog=null;
 let remoteLastFrames=0;
 let remoteLastTime=0;
@@ -57,6 +58,7 @@ window.DartArenaTournamentRoomState=Object.freeze({
   resetSubscription:()=>{subscribedPublicationId=null},
   ready:()=>({local:localReady,remote:remoteReady,connected:roomConnected}),
   isStarting:()=>starting,
+  isHandoffStarted:()=>roomHandoffStarted,
   setReadyUi:()=>setReadyUi(),
   setStatus:message=>setStatus(message),
   sendState:()=>sendState(),
@@ -114,9 +116,27 @@ function cameraErrorText(e){
 }
 function matchUrl(liveId){return `match.html?id=${encodeURIComponent(liveId)}&tournamentMatch=${encodeURIComponent(tournamentMatchId)}`;}
 let transitionStarted=false;
+// Once this tournament match becomes live, the secure gateway no longer permits
+// NEW tournament waiting-room SFU sessions. Keep the current playback alive
+// until the match session is ready and the both-player handoff releases it.
+function freezeWaitingRoomSfu(reason){
+  if(roomHandoffStarted)return;
+  roomHandoffStarted=true;
+  remoteSubscribeGeneration++; // Ignore callbacks from old in-flight subscriptions.
+  queuedRemotePublication=null;
+  clearInterval(remoteVideoWatchdog);
+  remoteVideoWatchdog=null;
+  clearInterval(heartbeat);
+  heartbeat=null;
+  clearTimeout(roomRetryTimer);
+  roomRetryTimer=null;
+  window.DartArenaMediaTrace?.mark('TOURNAMENT_ROOM_SFU_FROZEN',{reason});
+  console.debug('[TOURNAMENT SFU HANDOFF] waiting room frozen; existing playback preserved',reason);
+}
 async function goToMatch(liveId){
   if(transitionStarted||!liveId)return;
   transitionStarted=true;
+  freezeWaitingRoomSfu('go-to-match');
   window.DartArenaMediaTrace?.mark('TOURNAMENT_GO_TO_MATCH',{liveMatchId:String(liveId).slice(0,8),starterChoice});
   const bridge=window.DartArenaTournamentHandoff;
   if(typeof bridge?.enter==='function'){
@@ -148,6 +168,7 @@ async function playTournamentCoinFlip(payload){
   clearTimeout(coinFlipFallback);
   coinFlipFallback=null;
   coinFlipRunning=true;
+  freezeWaitingRoomSfu('coin-flip');
   starting=true;
   $('readyBtn').disabled=true;
   $('starterChoice').disabled=true;
@@ -302,6 +323,7 @@ async function boot(){
 }
 
 function resetRemoteVideo(message='Venter på motstanderens kamera…'){
+  if(roomHandoffStarted)return; // Never blank the video during make-before-break.
   remoteSubscribeGeneration++;
   remoteSubscribeBusy=false;
   subscribedPublicationId=null;
@@ -312,6 +334,7 @@ function resetRemoteVideo(message='Venter på motstanderens kamera…'){
   if(placeholder){placeholder.textContent=message;placeholder.classList.remove('hidden');}
 }
 function monitorRemoteVideo(){
+  if(roomHandoffStarted)return;
   const video=$('remoteVideo');
   if(!video||!remotePublication||!sfu||!roomConnected||remoteSubscribeBusy)return;
   const frames=video.getVideoPlaybackQuality?.().totalVideoFrames||0;
@@ -332,7 +355,7 @@ function monitorRemoteVideo(){
 function setupChannel(){
   channel=db.channel(`tournament-room-${tournamentMatchId}`)
     .on('broadcast',{event:'state'},async({payload})=>{
-      if(payload.from!==other)return;
+      if(roomHandoffStarted||payload.from!==other)return;
       const selected=await window.DartArenaMediaMode?.getMode?.()||'legacy';
       if(payload.mediaMode!==selected){
         const wasReady=localReady;
@@ -366,7 +389,7 @@ function setupChannel(){
       await maybeStart();
     })
     .on('broadcast',{event:'room-leave'},({payload})=>{
-      if(payload?.from!==other)return;
+      if(roomHandoffStarted||payload?.from!==other)return;
       if(payload.instanceId&&remoteInstanceId&&payload.instanceId!==remoteInstanceId)return;
       remoteReady=false;
       remotePublication=null;
@@ -392,17 +415,20 @@ function setupChannel(){
     })
     .on('broadcast',{event:'match-start'},({payload})=>{
       if(!payload?.liveMatchId||payload.from!==other)return;
+      freezeWaitingRoomSfu('match-start-broadcast');
       if(payload.startAt)scheduleDirectStart(payload.liveMatchId,payload.startAt);
       else goToMatch(payload.liveMatchId);
     })
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'tournament_matches',filter:`id=eq.${tournamentMatchId}`},payload=>{
       tm=payload.new;
       if(tm.status==='live'&&tm.live_match_id){
+        freezeWaitingRoomSfu('match-live-update');
         if(starterChoice==='random'&&!coinFlipFinished){armCoinFlipFallback(tm.live_match_id);return;}
         armDirectStartFallback(tm.live_match_id);
       }
     })
     .subscribe(async status=>{
+      if(roomHandoffStarted)return;
       if(status==='SUBSCRIBED'){
         roomConnected=true;
         clearTimeout(roomRetryTimer);
@@ -438,6 +464,7 @@ function setupChannel(){
 }
 
 async function startCamera(){
+  if(roomHandoffStarted)return;
   if(preferredCameraStarter)return preferredCameraStarter();
   $('retryCameraBtn').classList.add('hidden');
   setStatus('Starter kamera…');
@@ -454,9 +481,11 @@ async function startCamera(){
     await v.play().catch(()=>{});
     $('localPlaceholder').classList.add('hidden');
 
+    if(roomHandoffStarted)return; // A late camera startup must not replace match media.
     setStatus('Publiserer kamera via Cloudflare…');
-    sfu?.close();
     const selected=await window.DartArenaMediaMode?.getMode?.()||'legacy';
+    if(roomHandoffStarted)return; // Match status may change during async mode lookup.
+    sfu?.close();
     const secure=selected==='sfu';
     const SfuClient=secure?window.DartArenaSecureSFU:window.DartArenaSFU;
     if(!SfuClient)throw Error('Valgt videosystem er ikke tilgjengelig');
@@ -468,6 +497,7 @@ async function startCamera(){
     await sendState();
     if(remotePublication)await subscribeRemote(remotePublication);
   }catch(e){
+    if(roomHandoffStarted)return; // An older startup failure must not alter match UI.
     console.error('Tournament room camera error',e);
     publication=null;
     setReadyUi();
@@ -479,6 +509,7 @@ async function startCamera(){
 }
 
 async function subscribeRemote(pub){
+  if(roomHandoffStarted)return;
   if(!pub?.sessionId||!Array.isArray(pub.tracks)||!sfu)return;
   if(remoteSubscribeBusy){
     if(pub.sessionId!==subscribedPublicationId)queuedRemotePublication=pub;
@@ -527,7 +558,7 @@ async function subscribeRemote(pub){
       }
     });
   }catch(error){
-    if(generation===remoteSubscribeGeneration){
+    if(!roomHandoffStarted&&generation===remoteSubscribeGeneration){
       console.error('Tournament room subscribe error',error);
       resetRemoteVideo('Video ikke tilgjengelig. Prøver å koble til igjen…');
       setStatus('Kunne ikke koble til motstanderens video. Prøver igjen…');
@@ -537,14 +568,14 @@ async function subscribeRemote(pub){
     else remoteSubscribeBusy=false;
     const next=queuedRemotePublication;
     queuedRemotePublication=null;
-    if(next&&roomConnected&&next.sessionId===remotePublication?.sessionId){
+    if(!roomHandoffStarted&&next&&roomConnected&&next.sessionId===remotePublication?.sessionId){
       subscribeRemote(next).catch(error=>console.warn('Queued remote video failed',error));
     }
   }
 }
 
 async function sendState(){
-  if(!channel)return;
+  if(roomHandoffStarted||!channel)return;
   await channel.send({
     type:'broadcast',
     event:'state',
@@ -626,6 +657,7 @@ async function maybeStart(){
     return;
   }
   const liveMatchId=data;
+  freezeWaitingRoomSfu('match-start-rpc');
 
   if(useCoinFlip){
     try{

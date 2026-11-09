@@ -189,7 +189,9 @@
   }
 
   async function tearDownLocalPublication(){
+    if(state()?.isHandoffStarted?.())return;
     await stopMeter();
+    if(state()?.isHandoffStarted?.())return;
     if(zoomSession){zoomSession.stop();zoomSession.sourceTrack?.stop();zoomSession=null;}
     if(pictureSession){pictureSession.stop();pictureSession.sourceTrack?.stop();pictureSession=null;}
     if(roomStream()){
@@ -205,7 +207,7 @@
   }
 
   async function startPreferredCamera(){
-    if(switching)return;
+    if(switching||state()?.isHandoffStarted?.())return;
     switching=true;
     const retry=$('retryCameraBtn');
     retry?.classList.add('hidden');
@@ -230,6 +232,10 @@
       if(roomStream()&&(wrongCamera||wrongMic))await tearDownLocalPublication();
       if(!roomStream()){
         const raw=await getPreferredStream(wantedCamera,wantedMic);
+        if(state()?.isHandoffStarted?.()){
+          raw.getTracks().forEach(track=>track.stop());
+          return;
+        }
         updateRoomStream(raw);
         const Z=window.DartArenaZoomCam;
         if(Z?.selected(localStorage)){
@@ -263,9 +269,11 @@
       await startMeter(audioTrack);
       await refreshDevices();
 
+      if(state()?.isHandoffStarted?.())return; // Do not replace the old session during handoff.
       state()?.setStatus?.('Publiserer valgt kamera via Cloudflare…');
-      try{roomPublisher()?.close()}catch{}
       const selected=await window.DartArenaMediaMode?.getMode?.()||'legacy';
+      if(state()?.isHandoffStarted?.())return;
+      try{roomPublisher()?.close()}catch{}
       const secure=selected==='sfu';
       const SfuClient=secure?window.DartArenaSecureSFU:window.DartArenaSFU;
       if(!SfuClient)throw Error('Valgt videosystem er ikke tilgjengelig');
@@ -281,6 +289,7 @@
       await state()?.sendState?.();
       if(state()?.remotePublication?.())await state()?.subscribeRemote?.(state().remotePublication());
     }catch(error){
+      if(state()?.isHandoffStarted?.())return;
       console.error('Tournament preferred camera error',error);
       state()?.setPublication?.(null);
       try{roomPublisher()?.close()}catch{}
@@ -300,7 +309,7 @@
   }
 
   async function changeDevice(kind){
-    if(switching)return;
+    if(switching||state()?.isHandoffStarted?.())return;
     const select=kind==='video'?cameraSelect:micSelect;
     const value=select?.value||'';
     if(!value)return;
@@ -340,6 +349,7 @@
   // Safety: if an older/default stream won the startup race, enforce the saved choice.
   let checks=0;
   const timer=setInterval(()=>{
+    if(state()?.isHandoffStarted?.()){clearInterval(timer);return}
     checks++;
     if(checks>40){clearInterval(timer);return}
     if(!window.DartArenaTournamentRoomState?.userId?.()||!window.DartArenaTournamentRoomState?.stream?.())return;
