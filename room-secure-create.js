@@ -147,6 +147,8 @@
       try{
         const {data:match,error}=await db.rpc('accept_challenge_match_proposal',{p_proposal_id:pendingProposal.proposalId});
         if(error||!match)throw error||new Error('Kampen kunne ikke opprettes.');
+        // The challenge is now accepted; retain old playback but stop new room SFU requests.
+        window.DartArenaRoomMedia?.beginHandoff?.();
         const variant=match.game_variant||pendingProposal.gameVariant||'x01';
         if(pendingProposal.starter==='random'&&window.DartArenaCoinFlipSync){
           accept.textContent='Kaster mynt…';
