@@ -483,8 +483,9 @@ async function startCamera(){
 
     if(roomHandoffStarted)return; // A late camera startup must not replace match media.
     setStatus('Publiserer kamera via Cloudflare…');
-    sfu?.close();
     const selected=await window.DartArenaMediaMode?.getMode?.()||'legacy';
+    if(roomHandoffStarted)return; // Match status may change during async mode lookup.
+    sfu?.close();
     const secure=selected==='sfu';
     const SfuClient=secure?window.DartArenaSecureSFU:window.DartArenaSFU;
     if(!SfuClient)throw Error('Valgt videosystem er ikke tilgjengelig');
