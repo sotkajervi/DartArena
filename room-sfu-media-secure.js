@@ -21,6 +21,7 @@
   let trackWatch=null;
   let publishing=false;
   let subscribing=false;
+  let handoffStarted=false;
   let publishedTrackSignature='';
   let lastError='';
   const debugLog=[];
@@ -32,6 +33,21 @@
     console.debug('[ROOM SFU]',message,data??'');
     renderDebug();
   };
+
+  // After a challenge is accepted, the room may play existing media but cannot
+  // authorize any NEW SFU request. Preserve the old session until match handoff.
+  function beginHandoff(){
+    if(handoffStarted)return;
+    handoffStarted=true;
+    subscriptionEpoch++; // In-flight callbacks must not overwrite new match video.
+    subscribing=false;
+    clearInterval(heartbeat);
+    clearInterval(trackWatch);
+    clearInterval(bootTimer);
+    try{clearInterval(helloTimer);helloTimer=null}catch{}
+    log('HANDOFF: old-room SFU frozen; existing playback preserved');
+    window.DartArenaMediaTrace?.mark('CHALLENGE_ROOM_SFU_FROZEN');
+  }
 
   // Track.enabled represents local mute/unmute. Do not replace the SFU
   // publisher (and interrupt video) just because microphone was muted.
@@ -58,12 +74,12 @@
   }
 
   async function broadcastPublication(){
-    if(!sfuChannel||!profile?.id)return;
+    if(handoffStarted||!sfuChannel||!profile?.id)return;
     await sfuChannel.send({type:'broadcast',event:'media-state',payload:{from:profile.id,publication}});
   }
 
   async function ensurePublished(force=false){
-    if(publishing||leaving||!localReady||!stream?.getTracks?.().length)return;
+    if(handoffStarted||publishing||leaving||!localReady||!stream?.getTracks?.().length)return;
     const signature=currentTrackSignature();
     if(!force&&publication&&signature&&signature===publishedTrackSignature)return;
     const client=ensureSfu();
@@ -94,7 +110,7 @@
   }
 
   async function subscribeRemote(pub){
-    if(!pub?.sessionId||!Array.isArray(pub.tracks))return;
+    if(handoffStarted||!pub?.sessionId||!Array.isArray(pub.tracks))return;
     const changed=subscribedPublicationId!==pub.sessionId;
     // A NEW publication must preempt a still-pending old subscription.
     // The old WebRTC signaling may take many seconds and must not delay video.
@@ -132,7 +148,7 @@
 
     try{
       await client.subscribe(pub,async event=>{
-        if(epoch!==subscriptionEpoch||remotePublication?.sessionId!==pub.sessionId||!video)return;
+        if(handoffStarted||epoch!==subscriptionEpoch||remotePublication?.sessionId!==pub.sessionId||!video)return;
         let remote=video.srcObject;
         if(!(remote instanceof MediaStream)){remote=new MediaStream();video.srcObject=remote}
         const tracks=event.streams?.[0]?.getTracks?.()||[event.track];
@@ -165,7 +181,7 @@
     if(sfuChannel||typeof db==='undefined'||typeof challengeId==='undefined'||!challengeId||!profile?.id||!other)return false;
     sfuChannel=db.channel(`room-sfu-${challengeId}`)
       .on('broadcast',{event:'media-state'},async({payload})=>{
-        if(!payload||payload.from!==other)return;
+        if(handoffStarted||!payload||payload.from!==other)return;
         // A transient null announcement during initial camera setup is not an
         // instruction to discard an already-seen, valid publication.
         const incoming=payload.publication;
@@ -185,12 +201,12 @@
       })
       .subscribe(async status=>{
         log('CHANNEL',status);
-        if(status!=='SUBSCRIBED')return;
+        if(handoffStarted||status!=='SUBSCRIBED')return;
         await ensurePublished();
         await broadcastPublication();
         clearInterval(heartbeat);
         heartbeat=setInterval(async()=>{
-          if(leaving)return;
+          if(handoffStarted||leaving)return;
           await ensurePublished();
           await broadcastPublication().catch(()=>{});
           if(remotePublication&&(!subscribedPublicationId||!remoteHasLiveVideo()))await subscribeRemote(remotePublication);
@@ -206,12 +222,14 @@
   // Disable direct browser-to-browser negotiation. Challenge signaling remains in room.js,
   // but audio/video is intentionally routed through Cloudflare instead.
   connectIfReady=async function(){
+    if(handoffStarted)return;
     setupSfuChannel();
     await ensurePublished();
     if(remotePublication)await subscribeRemote(remotePublication);
   };
   handleSignal=async function(){};
   restartPeer=async function(){
+    if(handoffStarted)return;
     try{sfu?.close()}catch{}
     sfu=null;
     publication=null;
@@ -229,9 +247,10 @@
     if(remotePublication)await subscribeRemote(remotePublication);
   };
   startHandshake=function(){
+    if(handoffStarted)return;
     clearInterval(helloTimer);
     helloTimer=setInterval(async()=>{
-      if(!localReady||leaving)return;
+      if(handoffStarted||!localReady||leaving)return;
       await send('ready').catch(()=>{});
       setupSfuChannel();
       await ensurePublished();
@@ -293,20 +312,22 @@
   }
 
   const bootTimer=setInterval(()=>{
-    if(!profile?.id||!other)return;
+    if(handoffStarted||!profile?.id||!other)return;
     setupSfuChannel();
     if(localReady&&stream?.getTracks?.().length)ensurePublished();
   },150);
   setTimeout(()=>clearInterval(bootTimer),15000);
 
   trackWatch=setInterval(()=>{
-    if(!localReady||!stream?.getTracks?.().length||publishing)return;
+    if(handoffStarted||!localReady||!stream?.getTracks?.().length||publishing)return;
     const signature=currentTrackSignature();
     if(publication&&publishedTrackSignature&&signature!==publishedTrackSignature){log('LOCAL tracks changed – republish');ensurePublished(true)}
     renderDebug();
   },700);
 
   function stopTransport(){
+    handoffStarted=true;
+    subscriptionEpoch++;
     clearInterval(heartbeat);
     clearInterval(trackWatch);
     clearInterval(bootTimer);
@@ -314,7 +335,7 @@
     if(sfuChannel){try{db.removeChannel(sfuChannel)}catch{}}
     sfuChannel=null;
   }
-  window.DartArenaRoomMedia={mode:'sfu',republish:()=>ensurePublished(true),reconnect:()=>restartPeer(),debugText,stop:stopTransport};
+  window.DartArenaRoomMedia={mode:'sfu',beginHandoff,republish:()=>ensurePublished(true),reconnect:()=>restartPeer(),debugText,stop:stopTransport};
 
   buildDebug();
   log('SFU module loaded');

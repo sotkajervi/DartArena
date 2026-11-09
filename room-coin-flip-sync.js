@@ -29,6 +29,8 @@
   async function run(payload){
     if(running||!payload?.matchId||!payload?.starterId)return;
     running=true;
+    // Both participants freeze old-room SFU retries before the coin animation.
+    window.DartArenaRoomMedia?.beginHandoff?.();
     try{
       const{player1Name,player2Name}=await resolveNames(payload);
       if(payload.skipFlip===true){
