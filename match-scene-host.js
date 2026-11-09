@@ -90,7 +90,20 @@
   if(!document.getElementById('da-live-match-header-style')){
     const style=document.createElement('style');
     style.id='da-live-match-header-style';
-    style.textContent=`@media(min-width:701px){
+    // match.html defines the viewer pill in an inline <style>; the same-page
+    // scene only imports its body markup and external CSS, so recreate that
+    // exact pill here without touching the underlying spectator count.
+    style.textContent=`body.match-page>header #viewerCount{
+      display:inline-flex;align-items:center;gap:7px;padding:7px 11px;
+      border:1px solid rgba(255,255,255,.1);border-radius:999px;
+      color:var(--muted);font-size:13px;font-weight:700;background:rgba(7,16,18,.65)
+    }
+    body.match-page>header #viewerCount b{color:var(--text)}
+    body.match-page>header #viewerCount .viewer-dot{
+      width:7px;height:7px;flex:0 0 7px;border-radius:50%;
+      background:var(--cyan);box-shadow:0 0 10px var(--cyan)
+    }
+    @media(min-width:701px){
       body.match-page>header{position:sticky}
       body.match-page>header .da-live-match-header-center{
         position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
@@ -109,6 +122,7 @@
       body.match-page>header .da-live-match-header-center #viewerCount .viewer-dot{align-self:center}
     }
     @media(max-width:700px){
+      body.match-page>header #viewerCount{padding:5px 8px;font-size:11px;gap:5px}
       body.match-page>header .da-live-match-header-center{
         flex-direction:row;gap:7px;justify-content:center;align-items:center
       }
