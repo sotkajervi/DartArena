@@ -289,6 +289,7 @@
       await state()?.sendState?.();
       if(state()?.remotePublication?.())await state()?.subscribeRemote?.(state().remotePublication());
     }catch(error){
+      if(state()?.isHandoffStarted?.())return;
       console.error('Tournament preferred camera error',error);
       state()?.setPublication?.(null);
       try{roomPublisher()?.close()}catch{}
