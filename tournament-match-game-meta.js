@@ -3,10 +3,7 @@
   const tournamentMatchId=new URLSearchParams(location.search).get('id');
   if(!tournamentMatchId)return;
 
-  const client=window.supabase.createClient(
-    'https://jqpxlbhwvskhjbqrbidk.supabase.co',
-    'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
-  );
+  const client=window.DartArenaTournamentRoomState?.client?.()||window.DartArenaSupabaseClient;
   let observer=null;
 
   async function boot(){
