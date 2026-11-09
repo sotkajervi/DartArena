@@ -16,6 +16,8 @@
  async function begin(matchId,variant,{startAt}={}){
    if(started||!valid(matchId))return;
    started=true;
+   // Covers non-coin starts and direct navigation recovery.
+   window.DartArenaRoomMedia?.beginHandoff?.();
    window.DartArenaMediaTrace?.mark('CHALLENGE_START',{matchId:String(matchId).slice(0,8),variant});
    try{
      const db=window.DartArenaChallengeRoomState?.client?.();
