@@ -7,6 +7,7 @@ let me=null;
 let isAdmin=false;
 let allMatches=[];
 let deletedMatches=[];
+let tournamentStatuses=new Map();
 let activeFilter='all';
 let trashMode=false;
 let dialogPromise=null;
@@ -216,7 +217,9 @@ function render(){
     const draw=!m.winner_id&&a===b;
     const extra=extraLabel(m);
     const stats=!trashMode&&canOpenStats(m)?`<button class="small-btn" data-stats-id="${m.id}">Se statistikk</button>`:'';
-    const del=!trashMode&&isAdmin?`<button class="small-btn danger" data-delete-id="${m.id}">Slett</button>`:'';
+    // Tournament matches may be removed only after their tournament was cancelled.
+    const canDelete=isAdmin&&(!m.tournament_id||tournamentStatuses.get(m.tournament_id)==='cancelled');
+    const del=!trashMode&&canDelete?`<button class="small-btn danger" data-delete-id="${m.id}">Slett</button>`:'';
     const restore=trashMode&&isAdmin?`<button class="small-btn primary" data-restore-id="${m.id}">Gjenopprett</button>`:'';
     const deleted=trashMode?`<span class="history-tag">Slettet ${fmtDate(m.deleted_at)}</span>`:'';
     return `<article class="history-row">
@@ -277,6 +280,15 @@ async function boot(){
   const {data,error}=await db.rpc('get_global_match_history',{p_limit:300});
   if(error)throw error;
   allMatches=data||[];
+  if(isAdmin){
+    const tournamentIds=[...new Set(allMatches.map(m=>m.tournament_id).filter(Boolean))];
+    if(tournamentIds.length){
+      const {data:tournaments,error:statusError}=await db.from('tournaments')
+        .select('id,status').in('id',tournamentIds);
+      if(statusError)console.warn('Could not load tournament deletion permissions',statusError);
+      else tournamentStatuses=new Map((tournaments||[]).map(t=>[t.id,t.status]));
+    }
+  }
   render();
 }
 
