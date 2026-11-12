@@ -7,7 +7,7 @@ let requestNo=0,searchTimer=null,allRows=[],currentQuery='';
 
 const SORTS={
   name:{label:'navn A–Å',field:'username',dir:'asc',format:v=>String(v||'')},
-  x01_avg:{label:'X01 AVG',field:'x01_avg',dir:'desc',format:v=>metric(v,2)},
+  x01_avg:{label:'501 AVG',field:'x01_avg',dir:'desc',format:v=>metric(v,2)},
   first9_avg:{label:'First 9',field:'first9_avg',dir:'desc',format:v=>metric(v,2)},
   cricket_mpr:{label:'Cricket MPR',field:'cricket_mpr',dir:'desc',format:v=>metric(v,2)},
   win_pct:{label:'seiersprosent',field:'win_pct',dir:'desc',format:v=>`${Number(v||0).toFixed(1)}%`},
@@ -55,7 +55,7 @@ function sortedRows(){
 function selectedMetric(){
   const key=$('playerSort').value;
   const sort=SORTS[key]||SORTS.name;
-  if(key==='name')return{label:'X01 AVG',value:p=>metric(p.x01_avg,2)};
+  if(key==='name')return{label:'501 AVG',value:p=>metric(p.x01_avg,2)};
   return{label:sort.label.toUpperCase(),value:p=>sort.format(p[sort.field])};
 }
 
@@ -69,9 +69,9 @@ function render(){
   }
   $('playerDirectory').innerHTML=rows.map((p,index)=>`<article class="directory-row" role="link" tabindex="0" data-player-id="${p.user_id}">
     <div class="directory-player"><div class="directory-avatar">${esc((p.username||'?')[0].toUpperCase())}</div><div style="min-width:0"><div class="directory-name player-name">${esc(p.username||'Spiller')}</div><div class="directory-sub"><span class="directory-rank">#${index+1}</span>Registrert ${fmtDate(p.registered_at)}</div></div></div>
-    <div class="directory-stat"><small>Kamper</small><strong>${Number(p.matches||0)}</strong></div>
+    <div class="directory-stat"><small>501-kamper</small><strong>${Number(p.matches||0)}</strong></div>
     <div class="directory-stat directory-secondary"><small>Seier</small><strong>${pct(p.win_pct)}</strong></div>
-    <div class="directory-stat avg directory-secondary"><small>X01 AVG</small><strong>${metric(p.x01_avg)}</strong></div>
+    <div class="directory-stat avg directory-secondary"><small>501 AVG</small><strong>${metric(p.x01_avg)}</strong></div>
     <div class="directory-stat directory-secondary"><small>180</small><strong>${Number(p.c180||0)}</strong></div>
     <div class="directory-stat avg"><small>${esc(selected.label)}</small><strong>${esc(selected.value(p))}</strong></div>
     <div class="directory-open">›</div>
