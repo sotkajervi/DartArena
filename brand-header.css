@@ -31,6 +31,42 @@ header .header-meta{
   min-width:0;
 }
 
+/* Match spectator counter: a single shared style for direct and seamless
+   1v1, tournament and Cricket rooms. The seamless hosts adopt header markup
+   without importing the match page's inline <style> block. */
+body.match-page header .header-meta .viewer-count{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 11px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:999px;
+  background:rgba(7,16,18,.65);
+  color:var(--muted);
+  font-size:13px;
+  font-weight:700;
+  white-space:nowrap;
+}
+body.match-page header .header-meta .viewer-count b{color:var(--text)}
+body.match-page header .header-meta .viewer-count .viewer-dot{
+  display:inline-block;
+  flex:0 0 7px;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--cyan);
+  box-shadow:0 0 10px var(--cyan);
+}
+@media(max-width:700px){
+  body.match-page header .header-meta .viewer-count{
+    max-width:100%;
+    padding:5px 8px;
+    font-size:11px;
+    line-height:1.2;
+    gap:5px;
+  }
+}
+
 @media(max-width:700px){
   header,.match-page header{
     height:auto;
