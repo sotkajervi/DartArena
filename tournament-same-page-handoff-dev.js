@@ -96,7 +96,7 @@
          'chicago-flow.js?v=20261006-chicago5',
          'x01-result-leg-details.js?v=20261102-live-id-fix3',
          'mobile-x01-keypad.js?v=20261025-mobile1',
-         'post-match-media-lifecycle.js?v=20261102-finish-liveid5'
+         'post-match-media-lifecycle.js?v=20261112-postmatch60m1'
        ];
        window.DartArenaMediaTrace?.mark('MATCH_MODULES_LOADING',{count:modules.length});
        for(const src of modules){
