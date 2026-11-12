@@ -4,7 +4,12 @@
   function shouldClose(status,synced,otherPresent){
     return status==='finished'&&!!synced&&!otherPresent;
   }
-  if(typeof module==='object'&&module.exports)module.exports={shouldClose};
+  const POSTMATCH_MAX_MS=60*60*1000;
+  function timeRemaining(status,finishedAtMs,now=Date.now()){
+    if(status!=='finished'||!Number.isFinite(finishedAtMs))return null;
+    return Math.max(0,finishedAtMs+POSTMATCH_MAX_MS-now);
+  }
+  if(typeof module==='object'&&module.exports)module.exports={shouldClose,timeRemaining,POSTMATCH_MAX_MS};
   if(!root||!root.document||!root.supabase||root.__DartArenaPostMatchLifecycle)return;
   const doc=root.document;
   const matchId=(root.DartArenaMatchEngineState?.matchId?.()||new URLSearchParams(root.location.search).get('id'));
@@ -17,7 +22,7 @@
   ));
   let channel=null,me=null,other=null,status='playing';
   let synced=false,otherPresent=false,closed=false,navigating=false,checking=false;
-  let absenceTimer=null,refreshTimer=null;
+  let absenceTimer=null,refreshTimer=null,deadlineTimer=null,finishedAtMs=null;
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
   function stopVideo(id){
@@ -27,14 +32,16 @@
     try{video.pause()}catch{}
     try{video.srcObject=null}catch{}
   }
-  function showClosed(){
+  function showClosed(timedOut=false){
     const grid=doc.getElementById('videoGrid');
     if(!grid||doc.getElementById('postMatchMediaNotice'))return;
     const note=doc.createElement('div');
     note.id='postMatchMediaNotice';
     note.setAttribute('role','status');
     note.style.cssText='padding:10px 14px;margin:10px 0;border:1px solid rgba(0,234,244,.32);border-radius:10px;color:#bfe9ea;background:rgba(0,234,244,.04);font-size:13px';
-    note.textContent='Motstanderen har forlatt kamprommet. Video og mikrofon er avsluttet. Resultat og statistikk er beholdt.';
+    note.textContent=timedOut
+      ?'Etterpraten er avsluttet etter 60 minutter. Video og mikrofon er koblet fra. Resultat og statistikk er beholdt.'
+      :'Motstanderen har forlatt kamprommet. Video og mikrofon er avsluttet. Resultat og statistikk er beholdt.';
     grid.insertAdjacentElement('afterend',note);
   }
   async function stopMedia(reason){
@@ -42,6 +49,7 @@
     closed=true;
     root.DARTARENA_POSTMATCH_MEDIA_STOPPED=true;
     clearTimeout(absenceTimer);
+    clearTimeout(deadlineTimer);
     clearInterval(refreshTimer);
     // All ordinary match modes expose a global cleanup() function. JDC uses
     // the dedicated one-to-one media controller instead.
@@ -56,12 +64,28 @@
     const mic=doc.getElementById('micBtn');
     if(mic)mic.disabled=true;
     const placeholder=doc.getElementById('remotePlaceholder');
-    if(placeholder){placeholder.textContent='Motstanderen har forlatt kamprommet';placeholder.classList.remove('hidden')}
-    showClosed();
+    if(placeholder){placeholder.textContent=reason==='postmatch-timeout'?'Etterprat avsluttet etter 60 minutter':'Motstanderen har forlatt kamprommet';placeholder.classList.remove('hidden')}
+    showClosed(reason==='postmatch-timeout');
     try{if(channel)await db.removeChannel(channel)}catch{}
     channel=null;
     console.debug('[POSTMATCH] Released finished room media:',reason);
     return true;
+  }
+  function checkDeadline(){
+    clearTimeout(deadlineTimer);
+    deadlineTimer=null;
+    if(closed)return;
+    const remaining=timeRemaining(status,finishedAtMs);
+    if(remaining===null)return;
+    if(remaining===0){
+      stopMedia('postmatch-timeout').catch(()=>{});
+      return;
+    }
+    deadlineTimer=setTimeout(()=>{
+      deadlineTimer=null;
+      if(timeRemaining(status,finishedAtMs)===0)stopMedia('postmatch-timeout').catch(()=>{});
+      else checkDeadline();
+    },remaining);
   }
   function checkPresence(){
     clearTimeout(absenceTimer);
@@ -78,20 +102,30 @@
     otherPresent=!!presence[other]?.length;
     checkPresence();
   }
-  function setStatus(next){
+  function setStatus(next,finishedAt){
     if(!next||closed)return;
+    const previous=status;
     status=next;
-    if(status==='finished')checkPresence();
-    else{clearTimeout(absenceTimer);absenceTimer=null}
+    if(status==='finished'){
+      const serverFinishedAt=Date.parse(finishedAt);
+      if(Number.isFinite(serverFinishedAt))finishedAtMs=serverFinishedAt;
+      else if(previous!=='finished'||!Number.isFinite(finishedAtMs))finishedAtMs=Date.now();
+      checkDeadline();
+      checkPresence();
+    }else{
+      finishedAtMs=null;
+      clearTimeout(deadlineTimer);deadlineTimer=null;
+      clearTimeout(absenceTimer);absenceTimer=null;
+    }
   }
   async function refreshStatus(){
     if(checking||closed)return;
     checking=true;
     try{
-      const{data,error}=await db.from('matches').select('id,player1_id,player2_id,status').eq('id',matchId).maybeSingle();
+      const{data,error}=await db.from('matches').select('id,player1_id,player2_id,status,finished_at').eq('id',matchId).maybeSingle();
       if(error||!data||![data.player1_id,data.player2_id].includes(me))return;
       other=me===data.player1_id?data.player2_id:data.player1_id;
-      setStatus(data.status);
+      setStatus(data.status,data.finished_at);
     }catch(e){console.warn('[POSTMATCH] match status',e)}
     finally{checking=false}
   }
@@ -119,7 +153,7 @@
     if(error||!session?.user?.id)return;
     me=session.user.id;
     await refreshStatus();
-    if(!other)return; // Not a player or match no longer readable.
+    if(closed||!other)return; // Expired, not a player, or match no longer readable.
     channel=db.channel('postmatch-media-'+matchId,{
       config:{presence:{key:me},broadcast:{ack:true}}
     })
@@ -131,7 +165,7 @@
         if(status==='finished')await stopMedia('opponent chose to leave');
       })
       .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:'id=eq.'+matchId},
-        ({new:row})=>setStatus(row?.status))
+        ({new:row})=>setStatus(row?.status,row?.finished_at))
       .subscribe(async state=>{
         if(state==='SUBSCRIBED'){
           try{
@@ -154,6 +188,7 @@
     root.addEventListener('pagehide',()=>{
       if(status==='finished')announceDeparture().catch(()=>{});
       clearTimeout(absenceTimer);
+      clearTimeout(deadlineTimer);
       clearInterval(refreshTimer);
       try{channel?.untrack()}catch{}
     },{once:true});
