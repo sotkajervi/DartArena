@@ -4,7 +4,7 @@ const db=window.DartArenaSupabaseClient||(window.DartArenaSupabaseClient=window.
 const $=id=>document.getElementById(id);
 const userId=new URLSearchParams(location.search).get('id');
 const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let me=null,allMatches=[],activeFilter='all';
+let me=null,allMatches=[],activeFilter='all',activeSort='newest';
 
 $('backBtn').onclick=()=>location.href='players.html';
 
@@ -50,6 +50,14 @@ function formatLabel(m){
 }
 function contextLabel(m){return m.tournament_id?`${m.tournament_name||'Turnering'} • ${m.tournament_stage==='group'?'Pulje':'Cup'}`:'Onlinekamp'}
 function canOpenStats(m){return !isChicago(m)&&variantOf(m)==='x01'&&(!!m.tournament_id||m.player1_id===me||m.player2_id===me)}
+// Career AVG comparisons use standard 501 games only; other formats stay in history.
+function is501Match(m){return !isChicago(m)&&variantOf(m)==='x01'&&Number(m.game)===501}
+function match501Avg(m){
+  if(!is501Match(m)||m.player_avg===null||m.player_avg===undefined)return null;
+  const value=Number(m.player_avg);
+  return Number.isFinite(value)?value:null;
+}
+function matchTime(m){return new Date(m.finished_at||m.created_at||0).getTime()||0}
 
 function renderStats(s){
   $('playerName').textContent=s.username||'Spiller';
@@ -89,7 +97,7 @@ function renderCricketStats(s){
 }
 
 function visibleMatches(){
-  return allMatches.filter(m=>{
+  const visible=allMatches.filter(m=>{
     if(activeFilter==='x01')return !isChicago(m)&&variantOf(m)==='x01';
     if(activeFilter==='cricket')return !isChicago(m)&&variantOf(m)==='cricket';
     if(activeFilter==='chicago')return isChicago(m);
@@ -97,17 +105,30 @@ function visibleMatches(){
     if(activeFilter==='online')return !m.tournament_id;
     return true;
   });
+  if(activeSort==='oldest')return visible.sort((a,b)=>matchTime(a)-matchTime(b));
+  if(activeSort==='avg_desc'||activeSort==='avg_asc'){
+    return visible.sort((a,b)=>{
+      const aAvg=match501Avg(a),bAvg=match501Avg(b);
+      // Missing AVG and all non-501 formats go last, without mixing game formats.
+      if(aAvg===null)return bAvg===null?matchTime(b)-matchTime(a):1;
+      if(bAvg===null)return -1;
+      const byAverage=activeSort==='avg_desc'?bAvg-aAvg:aAvg-bAvg;
+      return byAverage||matchTime(b)-matchTime(a);
+    });
+  }
+  return visible; // The database returns history newest-first.
 }
 
 function renderMatches(){
   const visible=visibleMatches();
-  $('matchCount').textContent=`${visible.length} ${visible.length===1?'kamp':'kamper'} • nyeste først`;
+  const sortLabel={newest:'nyeste først',oldest:'eldste først',avg_desc:'høyeste 501-AVG først',avg_asc:'laveste 501-AVG først'}[activeSort]||'nyeste først';
+  $('matchCount').textContent=`${visible.length} ${visible.length===1?'kamp':'kamper'} • ${sortLabel}`;
   if(!visible.length){$('matchList').innerHTML='<p class="muted history-empty">Ingen kamper i dette utvalget.</p>';return}
   $('matchList').innerHTML=visible.map(m=>{
     const [a,b]=scorePair(m),isP1=m.player1_id===userId,own=isP1?a:b,opp=isP1?b:a;
     const opponent=isP1?(m.player2_name||'Spiller'):(m.player1_name||'Spiller');
     const won=m.winner_id===userId,lost=!!m.winner_id&&!won,draw=!m.winner_id&&a===b;
-    const stats=!isChicago(m)&&variantOf(m)==='x01'&&Number(m.game)===501&&m.player_avg!==null?`<div class="profile-match-stats"><span class="mini-stat">AVG <b>${num(m.player_avg).toFixed(2)}</b></span><span class="mini-stat">First 9 <b>${m.player_first9!==null?num(m.player_first9).toFixed(2):'–'}</b></span><span class="mini-stat">CO <b>${num(m.player_high_checkout)||'–'}</b></span><span class="mini-stat">Raskeste <b>${m.player_fastest_leg?`${num(m.player_fastest_leg)}p`:'–'}</b></span><span class="mini-stat">100+ <b>${num(m.player_c100)}</b></span><span class="mini-stat">140+ <b>${num(m.player_c140)}</b></span><span class="mini-stat">180 <b>${num(m.player_c180)}</b></span></div>`:'';
+    const stats=is501Match(m)&&m.player_avg!==null?`<div class="profile-match-stats"><span class="mini-stat">AVG <b>${num(m.player_avg).toFixed(2)}</b></span><span class="mini-stat">First 9 <b>${m.player_first9!==null?num(m.player_first9).toFixed(2):'–'}</b></span><span class="mini-stat">CO <b>${num(m.player_high_checkout)||'–'}</b></span><span class="mini-stat">Raskeste <b>${m.player_fastest_leg?`${num(m.player_fastest_leg)}p`:'–'}</b></span><span class="mini-stat">100+ <b>${num(m.player_c100)}</b></span><span class="mini-stat">140+ <b>${num(m.player_c140)}</b></span><span class="mini-stat">180 <b>${num(m.player_c180)}</b></span></div>`:'';
     const action=canOpenStats(m)?`<button class="small-btn" data-stats-id="${m.id}">Se statistikk</button>`:'';
     return `<article class="profile-match"><div><div class="profile-match-title"><span class="match-tag">${esc(gameLabel(m))}</span><span>vs</span><span class="history-player player-name">${esc(opponent)}</span><span class="profile-match-result ${won?'winner':''}">${own}–${opp}</span>${won?'<span class="match-tag">SEIER</span>':lost?'<span class="match-tag" style="color:var(--muted);border-color:rgba(255,255,255,.12)">TAP</span>':draw?'<span class="match-tag">UAVGJORT</span>':''}</div><div class="profile-match-meta"><span>${fmtDate(m.finished_at||m.created_at,true)}</span><span>${esc(formatLabel(m))}</span><span>${esc(contextLabel(m))}</span></div>${stats}</div><div class="profile-actions">${action}</div></article>`;
   }).join('');
@@ -119,6 +140,8 @@ async function boot(){
   const {data:{session}}=await db.auth.getSession();
   if(!session||!userId)return location.replace('./');
   me=session.user.id;
+  const sortSelect=$('historySort');
+  if(sortSelect)sortSelect.onchange=()=>{activeSort=sortSelect.value;renderMatches()};
   document.querySelectorAll('.history-filter').forEach(button=>button.onclick=()=>{
     activeFilter=button.dataset.filter;
     document.querySelectorAll('.history-filter').forEach(x=>x.classList.toggle('active',x===button));
