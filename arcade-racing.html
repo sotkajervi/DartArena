@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071012">
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/favicon-32.png">
+  <title>Dart Racing • ArcadeArena</title>
+  <link rel="stylesheet" href="./style.css?v=20261025-originalcrisp1">
+  <link rel="stylesheet" href="./brand-header.css?v=20261009-mobile1">
+  <link rel="stylesheet" href="./arcade-racing.css?v=1">
+</head>
+<body class="arcade-racing-page">
+<header class="racing-header">
+  <div class="brand"><a href="./scoringarena.html" aria-label="Til ScoringArena"><img class="brand-logo" src="./assets/dartarena-logo.jpg" alt="DartArena" width="420" height="116"></a></div>
+  <div class="racing-header-right"><span class="racing-live-dot"></span><span>ARCADE<span class="racing-accent">ARENA</span></span><span class="racing-beta">BETA · LOKAL</span></div>
+</header>
+<main class="racing-shell">
+  <div class="racing-hero">
+    <div><div class="racing-eyebrow">ARCADEARENA / SPILL 01</div><h1>DART <span>RACING</span></h1><p>Hvert dartkast flytter bilen din. Treff høyest mulig på rettstrekningene, og velg riktige tall i svingene for ekstra fart.</p></div>
+    <a href="./scoringarena.html" class="racing-back">← Til ScoringArena</a>
+  </div>
+
+  <section class="racing-panel racing-setup" id="setupPanel">
+    <div class="racing-section-top"><span class="racing-step">01 / OPPSETT</span><span class="racing-kicker">INGEN KAMERA ELLER PÅLOGGING NØDVENDIG</span></div>
+    <div class="racing-setup-grid">
+      <div><h2>Start motorene</h2><p>Spill mot venner på samme enhet eller utfordre en bot. Registrer hver pil i kontrollpanelet når løpet begynner.</p>
+        <div class="racing-options">
+          <label>Antall førere<select id="driverCount"><option value="2" selected>2 førere</option><option value="3">3 førere</option><option value="4">4 førere</option></select></label>
+          <label>Runder<select id="lapCount"><option value="1">1 runde · Sprint</option><option value="2" selected>2 runder · Standard</option><option value="3">3 runder · Grand Prix</option></select></label>
+        </div>
+      </div>
+      <div><h3>Førere</h3><div class="racing-driver-fields" id="driverFields"></div></div>
+    </div>
+    <div class="racing-rules"><div><span class="racing-rule-icon">↗</span><strong>RETTSTREKKE</strong><small>Poeng = meter. T20 gir 60 m.</small></div><div><span class="racing-rule-icon">◎</span><strong>SVING</strong><small>Treff måltallet: +24 m. Andre treff gir 48 %.</small></div><div><span class="racing-rule-icon">⚑</span><strong>FINISH</strong><small>Alle får like mange piler i siste runde.</small></div></div>
+    <div class="racing-setup-footer"><span id="setupError" class="racing-error" role="alert"></span><button id="startRace" class="racing-btn racing-btn-primary" type="button">START LØPET <span>→</span></button></div>
+  </section>
+
+  <section id="gamePanel" class="racing-game" hidden>
+    <div class="racing-toolbar"><div class="racing-toolbar-left"><span class="racing-status" id="raceStatus"><span class="racing-live-dot"></span> LØP PÅGÅR</span><span id="raceStage">RUNDE 1</span><span id="raceLaps">2 RUNDER</span></div><div class="racing-toolbar-right"><button id="undoThrow" class="racing-btn racing-btn-ghost" type="button">↶ Angre</button><button id="resetRace" class="racing-btn racing-btn-ghost" type="button">Nytt løp</button></div></div>
+    <div class="racing-main-grid">
+      <div class="racing-left">
+        <div class="racing-track-panel">
+          <div class="racing-track-hud"><span>🏁 SPEEDWAY OVAL</span><span id="trackInfo">0 / 2 RUNDER</span></div>
+          <svg id="racingTrack" viewBox="0 0 1200 680" role="img" aria-label="Racerbane med førerne som flyttes av dartkast" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <pattern id="turf" width="42" height="42" patternUnits="userSpaceOnUse"><rect width="42" height="42" fill="#286a43"/><path d="M0 0 L42 42 M-21 0 L21 42 M21 0 L63 42" stroke="#328052" stroke-opacity=".27" stroke-width="12"/></pattern>
+              <pattern id="finishChecks" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#f2f4f0"/><path d="M0 0 H8 V8 H0 Z M8 8 H16 V16 H8 Z" fill="#171d23"/></pattern>
+              <linearGradient id="road" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#404d59"/><stop offset=".55" stop-color="#333e49"/><stop offset="1" stop-color="#29343e"/></linearGradient>
+              <filter id="carShadow" x="-60%" y="-80%" width="240%" height="260%"><feGaussianBlur in="SourceAlpha" stdDeviation="3"/><feOffset dy="5"/><feComponentTransfer><feFuncA type="linear" slope=".6"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <rect x="0" y="0" width="1200" height="680" fill="url(#turf)"/>
+            <g fill="#1c523b" stroke="#3d9a62" stroke-width="4" opacity=".93">
+              <circle cx="115" cy="70" r="32"/><circle cx="167" cy="98" r="19"/><circle cx="230" cy="78" r="24"/>
+              <circle cx="1000" cy="69" r="28"/><circle cx="1074" cy="75" r="23"/><circle cx="1144" cy="116" r="28"/>
+              <circle cx="102" cy="600" r="33"/><circle cx="182" cy="609" r="23"/><circle cx="1085" cy="598" r="28"/><circle cx="1150" cy="563" r="21"/>
+              <circle cx="420" cy="340" r="25"/><circle cx="759" cy="312" r="27"/><circle cx="841" cy="375" r="17"/>
+            </g>
+            <g fill="#2c7750"><path d="M360 285 l-24 45 h48Z"/><path d="M495 414 l-28 55 h56Z"/><path d="M681 408 l-23 48 h46Z"/><path d="M876 273 l-23 42 h46Z"/><path d="M1124 522 l-25 47 h50Z"/></g>
+            <path id="trackCenterline" d="M255 165 H888 C1015 165 1070 220 1070 333 C1070 455 1015 510 888 510 H255 C130 510 80 450 80 333 C80 225 135 165 255 165 Z" fill="none"/>
+            <use href="#trackCenterline" stroke="#142c31" stroke-width="158"/>
+            <use href="#trackCenterline" stroke="#dcebd9" stroke-width="150"/>
+            <use href="#trackCenterline" stroke="#ff755a" stroke-width="141" stroke-dasharray="7 17"/>
+            <use href="#trackCenterline" stroke="url(#road)" stroke-width="133"/>
+            <use href="#trackCenterline" stroke="#8b9ba3" stroke-width="2" stroke-dasharray="16 16" opacity=".8"/>
+            <rect x="237" y="97" width="36" height="137" fill="url(#finishChecks)" transform="rotate(0 255 165)"/>
+            <path d="M280 100 L280 230" stroke="#141e21" stroke-width="3"/>
+            <g opacity=".8"><rect x="416" y="76" width="355" height="24" rx="5" fill="#172b34"/><rect x="428" y="83" width="331" height="9" fill="#00eaf4" opacity=".4"/></g>
+            <g text-anchor="middle" font-family="system-ui,sans-serif">
+              <text x="600" y="321" fill="#b5ffd7" font-size="22" font-weight="900" letter-spacing="7">ARCADEARENA</text>
+              <text x="600" y="374" fill="#f3fff8" font-size="56" font-weight="1000" letter-spacing="1">DART RACING</text>
+              <text x="600" y="410" fill="#b6ebc9" font-size="18" letter-spacing="5">SPEEDWAY · OVAL</text>
+            </g>
+            <g id="carsLayer" filter="url(#carShadow)"></g>
+          </svg>
+          <div class="racing-track-bottom"><div id="liveCallout">KLAR FOR START</div><span>420 M / RUNDE</span></div>
+        </div>
+        <div class="racing-panel racing-standing-panel"><div class="racing-section-top"><span class="racing-step">LIVE STILLING</span><span class="racing-kicker">HØYEST DISTANSE LEDER</span></div><div id="leaderboard" class="racing-leaderboard"></div></div>
+      </div>
+      <aside class="racing-control">
+        <div class="racing-control-head"><span class="racing-step">KONTROLLPANEL</span><span id="dartCountBadge">PIL 1 AV 3</span></div>
+        <div class="racing-driver-active"><span id="activeCar" class="racing-car-icon">🏎</span><div><span class="racing-kicker">KASTER NÅ</span><h2 id="activeName">Fører 1</h2></div><span id="activePosition" class="racing-position">P1</span></div>
+        <div id="zoneCard" class="racing-zone"><span id="zoneHeading">RETTSTREKKE</span><strong id="zoneTitle">Kast høyest mulig</strong><p id="zoneDescription">Poengene flytter bilen din.</p></div>
+        <div id="throwSlots" class="racing-throws"><div>–</div><div>–</div><div>–</div></div>
+        <div id="manualControls">
+          <div class="racing-keyboard-label">REGISTRER PIL <span>VELG FELT</span></div>
+          <div id="multiplierButtons" class="racing-multipliers"><button class="selected" type="button" data-mult="1">SINGLE</button><button type="button" data-mult="2">DOUBLE</button><button type="button" data-mult="3">TRIPLE</button></div>
+          <div id="numberGrid" class="racing-number-grid" aria-label="Velg treff på dartskiven"></div>
+          <div class="racing-extra-grid"><button id="bull25" type="button">BULL 25</button><button id="bull50" type="button">BULL 50</button><button id="missDart" type="button">BOM</button></div>
+        </div>
+        <div id="botControls" class="racing-bot-controls" hidden><div class="racing-bot-avatar">🤖</div><strong>BOTEN ER KLAR</strong><p>Botens kast simuleres på samme skive. Du ser hvert kast og bilens framdrift.</p><button id="botTurn" class="racing-btn racing-btn-primary" type="button">KAST BOTENS 3 PILER →</button></div>
+        <div id="throwFeedback" class="racing-feedback" role="status" aria-live="polite">Velg et felt for å starte.</div>
+        <button id="nextDriver" class="racing-btn racing-btn-next" type="button" disabled>NESTE FØRER →</button>
+        <p class="racing-privacy">Lokalt testspill. Ingen kamera, nettvideo, kontooppdateringer eller lagring av kampresultat.</p>
+      </aside>
+    </div>
+    <div class="racing-panel racing-log-panel"><span class="racing-step">SISTE KAST</span><div id="lastThrows" class="racing-log"></div></div>
+  </section>
+</main>
+<div id="finishOverlay" class="racing-finish-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="winnerHeading"><div class="racing-finish-box"><span class="racing-finish-flag">🏁</span><span class="racing-step">LØPET ER FULLFØRT</span><h2 id="winnerHeading">MÅLGANG!</h2><p id="winnerDescription"></p><div id="winnerRanking" class="racing-finish-rank"></div><div class="racing-finish-actions"><button id="closeFinish" class="racing-btn racing-btn-ghost" type="button">Se banen</button><button id="newAfterFinish" class="racing-btn racing-btn-primary" type="button">NYTT LØP →</button></div></div></div>
+<script src="./arcade-racing-engine.js?v=1"></script>
+<script src="./arcade-racing.js?v=1"></script>
+</body>
+</html>
