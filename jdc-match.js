@@ -9,6 +9,93 @@
   let session=null,match=null,turns=[],names={},pendingCodes=[],pendingTurnNo=null,busy=false,pollTimer=null;
 
   const badgeFor=score=>score>=1250?'gold':score>=850?'black':score>=700?'red':score>=600?'blue':score>=450?'green':score>=300?'yellow':score>=150?'purple':'white';
+  const TIERS=[
+    {key:'white',min:0,label:'White'},
+    {key:'purple',min:150,label:'Purple'},
+    {key:'yellow',min:300,label:'Yellow'},
+    {key:'green',min:450,label:'Green'},
+    {key:'blue',min:600,label:'Blue'},
+    {key:'red',min:700,label:'Red'},
+    {key:'black',min:850,label:'Black'},
+    {key:'gold',min:1250,label:'Gold'}
+  ];
+  const elt=(tag,cls,value)=>{
+    const e=document.createElement(tag);
+    if(cls)e.className=cls;
+    if(value!==undefined)e.textContent=String(value);
+    return e;
+  };
+  const scoreFor=id=>Number(id===match?.player1_id?match?.player1_score||0:match?.player2_score||0);
+  function renderTiers(){
+    if(!match)return;
+    const a=match.player1_id,b=match.player2_id;
+    const current=$('jdcCurrentTiers'),table=$('jdcTierList'),final=$('jdcFinalTiers');
+    current.replaceChildren();table.replaceChildren();final.replaceChildren();
+    for(const id of [a,b]){
+      const value=scoreFor(id),key=badgeFor(value),name=names[id]||'Spiller';
+      const row=elt('div','jdc-online-tier-current');
+      const left=elt('span','',name);
+      const level=elt('strong','',TIER_LABELS[key]+' · '+value+' p');
+      level.prepend(elt('i','jdc-tier-dot'));
+      // Build the colored tier dot with the same tier attribute as JDC Challenge.
+      const dot=level.querySelector('.jdc-tier-dot');
+      dot.dataset.jdcTier=key;
+      row.append(left,level);current.appendChild(row);
+      const result=elt('div','jdc-online-tier-current');
+      const nameText=elt('span','',name);
+      const resultTier=elt('strong','',TIER_LABELS[key]+' tier · '+value+' poeng');
+      const finalDot=elt('i','jdc-tier-dot');
+      finalDot.dataset.jdcTier=key;resultTier.prepend(finalDot);
+      result.append(nameText,resultTier);final.appendChild(result);
+    }
+    for(let i=TIERS.length-1;i>=0;i--){
+      const tier=TIERS[i],next=TIERS[i+1];
+      const range=tier.min===0?'0–149':next?tier.min+'–'+(next.min-1):tier.min+'+';
+      const row=elt('div','jdc-online-tier-line');
+      const label=elt('span','',tier.label);
+      const dot=elt('i','jdc-tier-dot');dot.dataset.jdcTier=tier.key;label.prepend(dot);
+      const limit=elt('span','',range+' p');
+      const markers=elt('span','jdc-tier-markers');
+      for(const [index,id] of [a,b].entries()){
+        if(badgeFor(scoreFor(id))!==tier.key)continue;
+        const mark=elt('b','',index===0?'S1':'S2');
+        mark.title=names[id]||'Spiller';markers.appendChild(mark);
+      }
+      row.append(label,limit,markers);table.appendChild(row);
+    }
+  }
+  function logLabels(turn){
+    const p=positionFor(Number(turn.turn_no));
+    const hits=(Array.isArray(turn.hits)?turn.hits:[]);
+    if(p.kind==='shanghai')return hits.map(hit=>hit==='M'?'Bom':(HIT_LABELS[hit]||hit)+' '+p.target);
+    return hits.map((hit,i)=>hit==='H'?'Treff '+(p.targets?.[i]||'?'):'Bom '+(p.targets?.[i]||'?'));
+  }
+  function renderThrowLog(){
+    const host=$('jdcThrowLog'),pending=$('jdcPendingHits');
+    host.replaceChildren();pending.replaceChildren();
+    if(!match)return;
+    if(isMyTurn()&&pendingCodes.length){
+      const pos=positionFor(currentTurnNo());
+      const names=pendingCodes.map((hit,i)=>pos.kind==='shanghai'
+        ?hit==='M'?'Bom':(HIT_LABELS[hit]||hit)+' '+pos.target
+        :hit==='H'?'Treff '+(pos.targets?.[i]||'?'):'Bom '+(pos.targets?.[i]||'?'));
+      const item=elt('div','jdc-online-pending-row');
+      item.append(elt('strong','','Valgt, ikke bekreftet:'),elt('span','',names.join(' · ')));
+      pending.appendChild(item);
+    }
+    if(!turns.length){host.appendChild(elt('p','muted compact','Ingen registrerte kast ennå.'));return}
+    const list=[...turns].sort((x,y)=>new Date(y.created_at)-new Date(x.created_at));
+    for(const turn of list.slice(0,20)){
+      const p=positionFor(Number(turn.turn_no));
+      const row=elt('div','jdc-online-throw-row');
+      const who=elt('strong','',names[turn.player_id]||'Spiller');
+      const title=elt('span','',p.kind==='shanghai'?'Shanghai '+p.target:'Doubles · '+(p.targets||[]).join(', '));
+      const hits=elt('span','jdc-online-throw-hits',logLabels(turn).join(' · '));
+      const earned=elt('b','',Number(turn.points||0)+' p'+(Number(turn.shanghai_bonus||0)>0?' · Shanghai-bonus':''));
+      row.append(who,title,hits,earned);host.appendChild(row);
+    }
+    if(list.length>20)host.appendChild(elt('p','muted compact','Viser de 20 siste registreringene.'));
+  }
   const countFor=id=>turns.filter(t=>t.player_id===id).length;
   const myId=()=>session?.user?.id;
   const otherId=()=>match?(myId()===match.player1_id?match.player2_id:match.player1_id):null;
@@ -75,6 +162,8 @@
     setStableText('player2Name',names[match.player2_id]||'Spiller 2');
     $('player1Score').textContent=String(match.player1_score||0);
     $('player2Score').textContent=String(match.player2_score||0);
+    renderTiers();
+    renderThrowLog();
     $('player1Progress').textContent=`${p1}/33 mål`;
     $('player2Progress').textContent=`${p2}/33 mål`;
     $('player1Card').classList.toggle('active',match.status==='playing'&&match.turn_player_id===match.player1_id);
