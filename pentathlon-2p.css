@@ -184,3 +184,42 @@
 .da-penta .penta-stats-modal-head h2{margin:0;font-size:22px}
 .da-penta #pentaStatsClose{font-size:12px}
 @media(max-width:700px){.da-penta #pentaX01StatsPanel{padding:14px;width:calc(100vw - 18px);max-height:calc(100dvh - 18px)}.da-penta .penta-top-actions{flex-wrap:wrap}}
+
+/* Compact, play-first Pentathlon. Preserve the shared Head-to-Head player cards. */
+.da-penta.penta-playing .penta-intro{display:none}
+.da-penta.penta-playing .penta-shell{width:min(1330px,96vw);margin:10px auto 22px}
+.da-penta.penta-playing #pentaGame{position:relative}
+.da-penta.penta-playing .penta-layout{display:block}
+.da-penta.penta-playing .penta-primary{display:grid;gap:8px}
+.da-penta.penta-playing .penta-top-bar{margin:0 0 7px}
+.da-penta.penta-playing .penta-progress{margin-bottom:8px;gap:5px}
+.da-penta.penta-playing .penta-progress>div{padding:7px 5px}
+.da-penta.penta-playing .penta-active{padding:12px 14px}
+.da-penta.penta-playing .penta-stage-header{margin-bottom:5px;align-items:center}
+.da-penta.penta-playing .penta-stage-header h2{font-size:23px;margin:2px 0 1px}
+.da-penta.penta-playing .penta-stage-header p{font-size:11px}
+.da-penta.penta-playing .penta-x01-board{margin:8px 0}
+.da-penta.penta-playing .penta-top-actions{flex-wrap:wrap;justify-content:flex-end}
+.da-penta.penta-playing .penta-top-actions .outline{padding:7px 10px}
+.da-penta.penta-playing #pentaX01Controls{padding:10px 13px}
+.da-penta.penta-playing #pentaX01Corrections{margin-top:7px}
+.da-penta.penta-playing .penta-feedback{padding:7px 10px;min-height:0;margin:7px 0 0}
+.da-penta.penta-playing.penta-game-x01 .penta-recent,
+.da-penta.penta-playing .penta-game-x01 .penta-recent{display:none}
+.da-penta.penta-playing .penta-side{display:none}
+.da-penta.penta-playing .penta-side.is-open{display:block;position:absolute;z-index:30;right:0;top:54px;width:min(390px,calc(100vw - 24px));max-height:calc(100dvh - 130px);overflow:auto;padding:0;box-shadow:0 16px 45px #000b;border-radius:13px}
+.da-penta.penta-playing .penta-side-detail[hidden]{display:none!important}
+.da-penta.penta-playing .penta-side-detail .penta-card{border-color:#32717a}
+.da-penta.penta-playing #pentaResultsOpen[aria-expanded="true"],
+.da-penta.penta-playing #pentaRulesOpen[aria-expanded="true"]{border-color:#00eaf4;color:#00eaf4}
+@media(min-width:880px) and (min-height:650px){
+ .da-penta.penta-playing .penta-shell{margin-top:7px}
+ .da-penta.penta-playing .penta-active{padding:10px 14px}
+ .da-penta.penta-playing .penta-x01-board .local-player{padding:9px 12px}
+ .da-penta.penta-playing .penta-x01-board .local-score{font-size:clamp(48px,7.8vh,76px)}
+ .da-penta.penta-playing .penta-x01-board .local-board{gap:9px}
+}
+@media(max-width:879px){
+ .da-penta.penta-playing .penta-shell{width:95vw;margin:8px auto 30px}
+ .da-penta.penta-playing .penta-side.is-open{top:94px}
+}
