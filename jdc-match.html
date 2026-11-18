@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="button-theme.css?v=20261009-brandcyan1">
   <link rel="stylesheet" href="shared-results.css?v=20261023-bulldown2">
   <link rel="stylesheet" href="jdc-tier.css?v=20260930-jdc1">
-  <link rel="stylesheet" href="jdc-match.css?v=20261001-sharedresult1">
+  <link rel="stylesheet" href="jdc-match.css?v=20261118-jdcinfo1">
 <link rel="stylesheet" href="brand-header.css?v=20261009-mobile1"><link rel="stylesheet" href="mobile-games-2026.css?v=20261025-mobile1" media="screen and (max-width: 700px)"></head>
 <body class="match-page jdc-match-page">
 <header><div class="brand"><img class="brand-logo" src="./assets/dartarena-logo.jpg?v=20261009-global1" alt="DartArena" width="420" height="116" decoding="async"></div><div class="live"><i></i> OFFISIELL JDC ONLINE</div></header>
@@ -58,11 +58,31 @@
 
     <aside class="card jdc-online-info">
       <small>OFFISIELL SCORE</small><h2 id="turnText">Venter…</h2>
+      <section class="jdc-online-tier-section" aria-label="Tieroversikt">
+        <div class="jdc-online-section-heading"><strong>Tierliste</strong><small>Poenggrenser · begge spillere</small></div>
+        <div class="jdc-online-current-tiers" id="jdcCurrentTiers"></div>
+        <div id="jdcTierList" class="jdc-online-tier-list"></div>
+      </section>
+      <section class="jdc-online-points-section" aria-label="Poengregler">
+        <div class="jdc-online-section-heading"><strong>Poeng og bonus</strong></div>
+        <div class="jdc-online-rule-row"><span>Shanghai Single</span><strong>Måltall × 1</strong></div>
+        <div class="jdc-online-rule-row"><span>Shanghai Double</span><strong>Måltall × 2</strong></div>
+        <div class="jdc-online-rule-row"><span>Shanghai Triple</span><strong>Måltall × 3</strong></div>
+        <div class="jdc-online-rule-row"><span>Single + Double + Triple på samme mål</span><strong>+100 bonus</strong></div>
+        <div class="jdc-online-rule-row"><span>Doubles: treff D1–D20</span><strong>50 per treff</strong></div>
+        <div class="jdc-online-rule-row"><span>Doubles: Bull</span><strong>100 per treff</strong></div>
+        <p class="muted compact">Bom gir 0 poeng. Shanghai-spill spilles på 10–15 og 15–20, tre piler per måltall. Doubles går fra D1 til D20 og Bull.</p>
+      </section>
+      <section class="jdc-online-throws-section" aria-label="Kastlogg">
+        <div class="jdc-online-section-heading"><strong>Registrerte kast</strong><small>Begge spillere</small></div>
+        <div id="jdcPendingHits" class="jdc-online-pending" aria-live="polite"></div>
+        <div id="jdcThrowLog" class="jdc-online-throw-log"></div>
+      </section>
       <div class="jdc-info-row"><span>Format</span><strong>JDC Challenge</strong></div>
       <div class="jdc-info-row"><span>Resultat</span><strong>Online-verifisert</strong></div>
       <div class="jdc-info-row"><span>Toppliste</span><strong>Top 10 + tier</strong></div>
       <p class="muted compact">Begge spiller samme mål før kampen går videre. Shanghai registreres med 0–3 og Enter. I doubles-fasen registrerer du tre mål per tur, for eksempel D1–D3, før Enter og spillerbytte.</p>
-      <div id="finishedBox" class="jdc-finished hidden"><small>KAMP FERDIG</small><h2 id="winnerText">Ferdig</h2><p id="tierText" class="muted"></p></div>
+      <div id="finishedBox" class="jdc-finished hidden"><small>KAMP FERDIG</small><h2 id="winnerText">Ferdig</h2><p id="tierText" class="muted"></p><div id="jdcFinalTiers" class="jdc-online-final-tiers"></div></div>
     </aside>
   </div>
 </main>
@@ -81,7 +101,7 @@
 <script src="cancelled-match-modal.js?v=20261023-sametab1"></script>
 <script src="sfu-config.js?v=20261006-device2"></script>
 <script src="sfu-client.js?v=20261002-telemetry1"></script>
-<script src="jdc-match.js?v=20261001-closematch1"></script>
+<script src="jdc-match.js?v=20261118-jdcinfo1"></script>
 <script src="one-to-one-media.js?v=20261023-picture2"></script>
 <script src="match-media-telemetry.js?v=20261002-peer3"></script>
 <script src="secure-match-cancel.js?v=20261002-dialog1"></script>
