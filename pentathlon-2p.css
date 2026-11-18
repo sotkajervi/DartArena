@@ -186,7 +186,20 @@
 @media(max-width:700px){.da-penta #pentaX01StatsPanel{padding:14px;width:calc(100vw - 18px);max-height:calc(100dvh - 18px)}.da-penta .penta-top-actions{flex-wrap:wrap}}
 
 /* Compact, play-first Pentathlon. Preserve the shared Head-to-Head player cards. */
-.da-penta.penta-playing .penta-intro{display:none}
+.da-penta.penta-playing .penta-intro{
+ display:flex;align-items:center;justify-content:space-between;gap:14px;
+ margin:0 0 10px;padding:3px 1px 7px;
+}
+.da-penta.penta-playing .penta-intro h1{
+ font-size:clamp(24px,2.7vw,36px);line-height:1.08;margin:2px 0 3px;
+}
+.da-penta.penta-playing .penta-intro small{font-size:9px;letter-spacing:.1em}
+.da-penta.penta-playing .penta-intro p{
+ font-size:11px;max-width:810px;line-height:1.35;margin:0;
+}
+.da-penta.penta-playing .penta-intro .outline{
+ padding:8px 11px;font-size:11px;flex-shrink:0;
+}
 .da-penta.penta-playing .penta-shell{width:min(1330px,96vw);margin:10px auto 22px}
 .da-penta.penta-playing #pentaGame{position:relative}
 .da-penta.penta-playing .penta-layout{display:block}
@@ -222,4 +235,14 @@
 @media(max-width:879px){
  .da-penta.penta-playing .penta-shell{width:95vw;margin:8px auto 30px}
  .da-penta.penta-playing .penta-side.is-open{top:94px}
+}
+
+/* Moderate spacing: make the header recognizable without expanding the scoreboard. */
+.da-penta.penta-playing .penta-progress{margin-bottom:10px}
+.da-penta.penta-playing .penta-primary{gap:10px}
+@media(max-width:700px){
+ .da-penta.penta-playing .penta-intro{align-items:flex-start}
+ .da-penta.penta-playing .penta-intro h1{font-size:25px}
+ .da-penta.penta-playing .penta-intro p{display:none}
+ .da-penta.penta-playing .penta-intro .outline{font-size:10px;padding:7px}
 }
