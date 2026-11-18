@@ -124,71 +124,118 @@
       put('Stat180',visits.filter(e=>e.score===180).length);
     }
   }
-  let correctionIndex=-1;
+  let correctionIndex=-1,pendingCheckout=null;
+  const checkoutOptions=score=>[1,2,3].filter(d=>E.isCheckout(score,d));
+  function closeCheckout(){
+    pendingCheckout=null;$('pentaCheckout').hidden=true;
+    if(state?.status==='playing')$('pentaVisit').focus({preventScroll:true});
+  }
+  function commitX01(payload){
+    try{
+      state=E.submitX01(state,payload);
+      pendingCheckout=null;$('pentaCheckout').hidden=true;
+      feedback=state.status==='review'?'Øvelsen er avsluttet!':
+        'Registrert '+(payload.bust?'BUST':payload.score)+'. '+state.players[state.current.turn]+' kaster nå.';
+      $('pentaFeedback').style.borderColor='';
+      $('pentaVisit').value='';$('pentaBust').checked=false;
+      persist();render();
+      if(state.status==='review')$('pentaReviewPanel').scrollIntoView({block:'nearest',behavior:'smooth'});
+      else $('pentaVisit').focus({preventScroll:true});
+    }catch(error){report(error)}
+  }
+  function openCheckout(score){
+    const available=checkoutOptions(score);
+    if(!available.length){report(Error('Dette er ikke en mulig utsjekk. Bruk BUST hvis turen ble ugyldig.'));return}
+    pendingCheckout={score,player:state.current.turn};
+    $('pentaCheckoutTitle').textContent='Utsjekk: '+score+' poeng';
+    $('pentaCheckoutText').textContent=state.players[pendingCheckout.player]+': bekreft at siste pil traff en dobbel.';
+    const options=$('pentaCheckoutDarts'),buttons=$('pentaCheckoutChoices');
+    options.replaceChildren();buttons.replaceChildren();
+    for(const darts of available){
+      const opt=create('option','',darts+' pil'+(darts===1?'':'er'));opt.value=String(darts);options.appendChild(opt);
+      const btn=create('button','primary',darts);btn.type='button';
+      btn.title=darts+' '+(darts===1?'pil':'piler');
+      btn.addEventListener('click',()=>finishCheckoutDarts(darts));buttons.appendChild(btn);
+    }
+    options.value=String(available[available.length-1]);
+    $('pentaCheckout').hidden=false;
+    buttons.querySelector('button')?.focus();
+  }
+  function finishCheckoutDarts(darts){
+    if(!pendingCheckout||!checkoutOptions(pendingCheckout.score).includes(darts))return;
+    $('pentaCheckoutDarts').value=String(darts);
+    $('pentaCheckoutForm').requestSubmit();
+  }
   function closeCorrection(){
-    correctionIndex=-1;
-    $('pentaCorrectionModal').hidden=true;
-    $('pentaCorrectionError').textContent='';
+    correctionIndex=-1;$('pentaCorrectionModal').hidden=true;
+    $('pentaCorrectionCheckout').hidden=true;$('pentaCorrectionError').hidden=true;
+    if(state?.status==='playing')$('pentaVisit').focus({preventScroll:true});
+  }
+  function correctionOptions(){
+    const entry=state?.current?.entries?.[correctionIndex];
+    const target=$('pentaCorrectionCheckout');
+    target.hidden=true;
+    if(!entry||entry.type!=='visit')return;
+    const score=Number($('pentaCorrectionScore').value);
+    const original=state.current.entries;
+    const before=state.current.start-original.slice(0,correctionIndex)
+      .filter(e=>e.player===entry.player).reduce((sum,e)=>sum+Number(e.score||0),0);
+    if($('pentaCorrectionScore').value.trim()===''||score!==before||correctionIndex!==original.length-1)return;
+    const choices=checkoutOptions(score);if(!choices.length)return;
+    const select=$('pentaCorrectionDarts');select.replaceChildren();
+    for(const n of choices){const option=create('option','',n+' pil'+(n===1?'':'er'));option.value=String(n);select.appendChild(option)}
+    select.value=String(choices[choices.length-1]);
+    target.hidden=false;
   }
   function openCorrection(index){
     if(state?.status!=='playing'||state.current.kind!=='x01')return;
     const entry=state.current.entries[index];
     if(!entry||entry.type!=='visit')return;
-    // A correction can only be replayed while its preceding snapshot is retained.
-    const snapshot=state.undo?.some(s=>s.stageIndex===state.stageIndex&&s.status==='playing'&&s.current?.entries?.length===index);
-    if(!snapshot){
-      feedback='Dette kastet ligger utenfor angrehistorikken og kan ikke korrigeres automatisk.';
-      $('pentaFeedback').textContent=feedback;
-      return;
+    if(!state.undo?.some(s=>s.stageIndex===state.stageIndex&&s.status==='playing'&&s.current?.entries?.length===index)){
+      feedback='Kastet ligger utenfor angrehistorikken og kan ikke korrigeres.';
+      $('pentaFeedback').textContent=feedback;return;
     }
     correctionIndex=index;
-    $('pentaCorrectionContext').textContent=state.players[entry.player]+
-      ' · kast '+(state.current.entries.filter((e,i)=>i<=index&&e.player===entry.player).length)+
-      ' · tidligere '+(entry.bust?'BUST':entry.score);
-    $('pentaCorrectionScore').value=entry.attempt;
+    $('pentaCorrectionTitle').textContent='Korriger kast';
+    $('pentaCorrectionContext').textContent=state.players[entry.player]+' · leg '+(state.stageIndex+1)+' · tidligere '+(entry.bust?'BUST':entry.score+' poeng');
+    $('pentaCorrectionScore').value=String(entry.score);
+    $('pentaCorrectionError').hidden=true;
+    correctionOptions();
     $('pentaCorrectionModal').hidden=false;
     $('pentaCorrectionScore').focus();
   }
   function saveCorrection(event){
     event.preventDefault();
     if(correctionIndex<0||!state||state.status!=='playing')return;
-    const replacement=Number($('pentaCorrectionScore').value);
-    if(!E.isScore(replacement)){
-      $('pentaCorrectionError').textContent='Ugyldig X01-score.';
-      return;
-    }
-    const original=state.current.entries.slice();
-    const idx=correctionIndex;
+    const raw=$('pentaCorrectionScore').value.trim(),replacement=Number(raw);
+    const error=$('pentaCorrectionError');
+    if(!raw||!E.isScore(replacement)){error.textContent='Ugyldig X01-score.';error.hidden=false;return}
+    const original=state.current.entries.slice(),idx=correctionIndex;
     let position=-1;
     for(let i=state.undo.length-1;i>=0;i--){
       const record=state.undo[i];
-      if(record.stageIndex===state.stageIndex&&record.status==='playing'&&record.current?.entries?.length===idx){
-        position=i;break;
-      }
+      if(record.stageIndex===state.stageIndex&&record.status==='playing'&&record.current?.entries?.length===idx){position=i;break}
     }
-    if(position<0){
-      $('pentaCorrectionError').textContent='Kastet er ikke lenger i angrehistorikken.';
-      return;
-    }
+    if(position<0){error.textContent='Kastet ligger ikke lenger i angrehistorikken.';error.hidden=false;return}
     const baseline=JSON.parse(JSON.stringify(state.undo[position]));
     baseline.undo=state.undo.slice(0,position);
     let corrected=baseline;
     try{
       for(let i=idx;i<original.length;i++){
-        const entry=original[i];
+        const entry=original[i],first=i===idx;
+        const score=first?replacement:entry.attempt;
+        const checkout=first?!$('pentaCorrectionCheckout').hidden:entry.checkout;
         corrected=E.submitX01(corrected,{
-          score:i===idx?replacement:entry.attempt,
-          bust:entry.bust,
-          doubleConfirmed:entry.checkout,
-          darts:entry.darts
+          score,bust:first?false:entry.bust,doubleConfirmed:checkout,
+          darts:first&&checkout?Number($('pentaCorrectionDarts').value):entry.darts
         });
       }
       state=corrected;
-      feedback='Kastet er korrigert. X01-score og Pentathlon-poeng er beregnet på nytt.';
+      feedback='Kast korrigert til '+replacement+' poeng.';
       persist();closeCorrection();render();
-    }catch(error){
-      $('pentaCorrectionError').textContent='Kan ikke bruke denne korrigeringen: '+(error.message||error)+
-        '. Senere kast må fortsatt være gyldige. Ingen endringer er lagret.';
+    }catch(ex){
+      error.textContent=ex.message+' Senere kast må fremdeles være gyldige. Ingen endringer er lagret.';
+      error.hidden=false;
     }
   }
   function renderX01Board(){
@@ -280,7 +327,7 @@
       });
       renderMultiplier();
     }
-    if(c.kind==='x01')updateCheckoutRow();
+    
   }
   function recent(){
     const wrap=$('pentaRecent');wrap.replaceChildren();
@@ -386,39 +433,16 @@
     $('pentaFeedback').textContent=feedback;
     $('pentaFeedback').style.borderColor='#a65b66';
   }
-  function updateCheckoutRow(){
-    if(!state||state.status!=='playing'||state.current.kind!=='x01')return;
-    const amount=Number($('pentaVisit').value),raw=$('pentaVisit').value.trim();
-    const show=raw!==''&&!$('pentaBust').checked&&amount===state.current.remaining[state.current.turn];
-    $('pentaCheckoutRow').hidden=!show;
-    if(!show)$('pentaCheckout').checked=false;
-  }
   function submitX01(event){
     event.preventDefault();
-    if(state?.status!=='playing'||state.current.kind!=='x01')return;
-    try{
-      const score=$('pentaVisit').value.trim();
-      const oldStage=state.stageIndex;
-      const remaining=state.current.remaining[state.current.turn];
-      const shouldCheckout=score!==''&&!$('pentaBust').checked&&Number(score)===remaining;
-      if(shouldCheckout&&!$('pentaCheckout').checked){
-        feedback='Bekreft dobbel-ut og velg antall piler for utsjekken.';
-        $('pentaCheckoutRow').hidden=false;
-        $('pentaCheckout').focus();
-        $('pentaFeedback').textContent=feedback;
-        return;
-      }
-      state=E.submitX01(state,{
-        score,bust:$('pentaBust').checked,doubleConfirmed:$('pentaCheckout').checked,
-        darts:Number($('pentaCheckoutDarts').value)
-      });
-      feedback=state.status==='review'?'Øvelsen er avsluttet!':
-        'Registrert '+score+'. '+state.players[state.current.turn]+' kaster nå.';
-      $('pentaFeedback').style.borderColor='';
-      $('pentaVisit').value='';$('pentaBust').checked=false;$('pentaCheckout').checked=false;
-      persist();render();
-      if(state.status==='review')$('pentaReviewPanel').scrollIntoView({block:'nearest',behavior:'smooth'});
-    }catch(error){report(error)}
+    if(state?.status!=='playing'||state.current.kind!=='x01'||pendingCheckout)return;
+    const raw=$('pentaVisit').value.trim();
+    if(!raw){report(Error('Skriv en score fra 0 til 180.'));return}
+    const score=Number(raw);
+    if(!E.isScore(score)){report(Error('Ugyldig X01-score.'));return}
+    const remaining=state.current.remaining[state.current.turn];
+    if(score===remaining){openCheckout(score);return}
+    commitX01({score,bust:false,doubleConfirmed:false,darts:3});
   }
   function addDart(n,m){
     if(state?.status!=='playing'||state.current.kind==='x01')return;
@@ -523,24 +547,39 @@
   $('pentaNextStage').addEventListener('click',nextStage);
   $('pentaExport').addEventListener('click',exportCsv);
   $('pentaX01Form').addEventListener('submit',submitX01);
-  $('pentaVisit').addEventListener('input',updateCheckoutRow);
-  $('pentaBust').addEventListener('change',updateCheckoutRow);
+  $('pentaCorrectionScore').addEventListener('input',()=>{$('pentaCorrectionError').hidden=true;correctionOptions()});
   $('pentaCorrectionForm').addEventListener('submit',saveCorrection);
   $('pentaCorrectionCancel').addEventListener('click',closeCorrection);
   $('pentaCorrectionModal').querySelector('.penta-correction-backdrop').addEventListener('click',closeCorrection);
-  $('pentaBustButton').addEventListener('click',()=>{
-    if(state?.status!=='playing'||state.current.kind!=='x01')return;
-    $('pentaBust').checked=true;
-    $('pentaVisit').value='0';
-    $('pentaX01Form').requestSubmit();
+  $('pentaCheckoutForm').addEventListener('submit',event=>{
+    event.preventDefault();
+    if(!pendingCheckout||state?.current?.turn!==pendingCheckout.player)return closeCheckout();
+    commitX01({score:pendingCheckout.score,bust:false,doubleConfirmed:true,darts:Number($('pentaCheckoutDarts').value)});
   });
+  $('pentaCheckoutCancel').addEventListener('click',closeCheckout);
+  $('pentaCheckoutBust').addEventListener('click',()=>{
+    if(!pendingCheckout)return closeCheckout();
+    commitX01({score:pendingCheckout.score,bust:true,doubleConfirmed:false,darts:3});
+  });
+  $('pentaBustButton').addEventListener('click',()=>{
+    if(state?.status!=='playing'||state.current.kind!=='x01'||pendingCheckout)return;
+    commitX01({score:0,bust:true,doubleConfirmed:false,darts:3});
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){
+      if(!$('pentaCheckout').hidden){event.preventDefault();closeCheckout()}
+      else if(!$('pentaCorrectionModal').hidden){event.preventDefault();closeCorrection()}
+    }else if(!$('pentaCheckout').hidden&&['1','2','3'].includes(event.key)){
+      event.preventDefault();event.stopImmediatePropagation();finishCheckoutDarts(Number(event.key));
+    }
+  },true);
   $('pentaMobileKeypad').addEventListener('click',event=>{
     const key=event.target.closest('button');
     if(!key)return;
     const input=$('pentaVisit');
     if(key.dataset.pentaKey!==undefined){
       input.value=(input.value+key.dataset.pentaKey).slice(0,3);
-      updateCheckoutRow();
+      
     }else if(key.dataset.pentaAction==='delete'){
       input.value=input.value.slice(0,-1);updateCheckoutRow();
     }else if(key.dataset.pentaAction==='enter'){
