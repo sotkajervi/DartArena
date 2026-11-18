@@ -6,6 +6,7 @@
   const $=id=>document.getElementById(id);
   const STORE='dartarena-pentathlon-local-2p-v1';
   let state=null,mult=1,feedback='Klar for første kast.';
+  let starting=false;
   const create=(tag,cls,text)=>{
     const node=document.createElement(tag);
     if(cls)node.className=cls;
@@ -250,14 +251,42 @@
       if(state.status==='review')$('pentaReviewPanel').scrollIntoView({block:'nearest',behavior:'smooth'});
     }catch(error){report(error)}
   }
-  function start(){
+  async function start(){
+    if(starting)return;
+    starting=true;
+    const button=$('pentaStart'),resumeButton=$('pentaResume');
+    button.disabled=true;
+    resumeButton.disabled=true;
     try{
-      const starter=$('pentaStarter').value==='random'?Math.floor(Math.random()*2):Number($('pentaStarter').value);
-      state=E.create({name1:$('pentaName0').value,name2:$('pentaName1').value,starter});
+      const random=$('pentaStarter').value==='random';
+      const starter=random?Math.floor(Math.random()*2):Number($('pentaStarter').value);
+      // Validate names and starter before animation; store only after the coin lands.
+      const next=E.create({name1:$('pentaName0').value,name2:$('pentaName1').value,starter});
+      $('pentaSetupError').textContent='';
+      if(random){
+        if(typeof window.DartArenaCoinFlip?.play!=='function'){
+          throw Error('Myntkastet er ikke tilgjengelig. Last inn siden på nytt.');
+        }
+        await window.DartArenaCoinFlip.play({
+          player1Id:'pentathlon-player-0',
+          player2Id:'pentathlon-player-1',
+          player1Name:next.players[0],
+          player2Name:next.players[1],
+          winnerId:starter===0?'pentathlon-player-0':'pentathlon-player-1',
+          duration:3300
+        });
+      }
+      state=next;
       feedback=state.players[starter]+' starter første 501-leg.';
-      $('pentaSetupError').textContent='';persist();render();
+      persist();render();
       $('pentaGame').scrollIntoView({block:'start',behavior:'smooth'});
-    }catch(error){$('pentaSetupError').textContent=error.message}
+    }catch(error){
+      $('pentaSetupError').textContent=error.message||String(error);
+    }finally{
+      starting=false;
+      button.disabled=false;
+      resumeButton.disabled=false;
+    }
   }
   function resume(){const saved=stored();if(!saved)return;state=saved;feedback='Femkampen er gjenopptatt.';render()}
   function undo(){
