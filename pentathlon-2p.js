@@ -295,7 +295,8 @@
     $('pentaStatsBackdrop').hidden=!x01||!statsOpen;
     $('pentaStatsOpen').setAttribute('aria-expanded',String(statsOpen));
     wrap.hidden=x01;
-    $('pentaTarget').parentElement.parentElement.hidden=x01;
+    // JDC Shanghai already shows its large current target; avoid a duplicate target panel.
+    $('pentaTarget').parentElement.parentElement.hidden=x01||c.kind==='shanghai';
     if(x01)renderX01Board();
     wrap.replaceChildren();
     wrap.classList.remove('penta-shanghai-board','local-board');
