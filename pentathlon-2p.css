@@ -184,3 +184,19 @@
 .da-penta .penta-stats-modal-head h2{margin:0;font-size:22px}
 .da-penta #pentaStatsClose{font-size:12px}
 @media(max-width:700px){.da-penta #pentaX01StatsPanel{padding:14px;width:calc(100vw - 18px);max-height:calc(100dvh - 18px)}.da-penta .penta-top-actions{flex-wrap:wrap}}
+
+/* Shanghai Pentathlon: one-click hits on the current target; full board stays available for misses on other numbers. */
+.da-penta .penta-shanghai-quick{margin:12px 0 5px;padding:13px;border-radius:12px;border:1px solid #2d6973;background:#0b2730}
+.da-penta .penta-shanghai-label{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-weight:900;font-size:12px;letter-spacing:.06em;color:#8ccbd0}
+.da-penta .penta-shanghai-label strong{font-size:25px;line-height:1;color:#03e6e9}
+.da-penta .penta-shanghai-label span{margin-left:auto;font-size:11px;letter-spacing:0;color:#c5e2e5}
+.da-penta .penta-shanghai-buttons{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.da-penta .penta-shanghai-buttons button{min-width:0;min-height:75px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:#102a33;border:1px solid #38707a;border-radius:10px;color:#efffff;font-size:25px;font-weight:950;cursor:pointer;touch-action:manipulation}
+.da-penta .penta-shanghai-buttons button small{font-size:11px;color:#9ac6cd;font-weight:750}
+.da-penta .penta-shanghai-buttons button:hover,.da-penta .penta-shanghai-buttons button:focus-visible{border-color:#00eaf4;background:#11444a}
+.da-penta #pentaShanghaiTriple{border-color:#00c4cc}
+.da-penta #pentaShanghaiMiss{color:#ffbdc4;border-color:#83545e;font-size:18px}
+.da-penta .penta-shanghai-other{margin-top:12px;color:#a6ced4}
+.da-penta .penta-shanghai-other summary{cursor:pointer;font-size:12px;font-weight:750}
+.da-penta #pentaDartAdvanced[hidden]{display:none!important}
+@media(max-width:520px){.da-penta .penta-shanghai-buttons{gap:5px}.da-penta .penta-shanghai-buttons button{font-size:20px;min-height:66px}.da-penta .penta-shanghai-buttons button small{font-size:9px}.da-penta .penta-shanghai-quick{padding:9px}}
