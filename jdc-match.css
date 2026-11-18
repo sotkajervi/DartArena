@@ -9,3 +9,36 @@
 @media(min-width:821px){.jdc-match-page .jdc-video-grid{height:clamp(250px,31vh,330px);min-height:250px}.jdc-match-page .jdc-online-grid{grid-template-columns:minmax(0,1.7fr) minmax(300px,.7fr)!important}}
 @media(max-width:820px){.jdc-match-page .jdc-video-grid{height:auto;grid-template-columns:1fr}.jdc-match-page .video-card{aspect-ratio:16/9;height:auto}.jdc-online-grid{grid-template-columns:1fr!important}.jdc-online-number{font-size:52px}}
 @media(max-width:620px){.jdc-match-page .match-head>div:first-child small{font-size:13px;margin-bottom:7px}.jdc-match-page .match-head h1{margin-bottom:7px}.jdc-online-scoreboard{grid-template-columns:1fr!important}.jdc-online-actions{grid-template-columns:repeat(2,1fr)}.jdc-online-actions.two{grid-template-columns:1fr 1fr}.jdc-online-utility{grid-template-columns:1fr 1fr}.jdc-play-card{padding:10px!important}}
+
+/* JDC online: live tier thresholds, scoring explanations and verified throw history.
+   Scoped to this match so existing shared-result/media styling is untouched. */
+.jdc-match-page .jdc-online-info{align-self:start}
+.jdc-match-page .jdc-online-tier-section,
+.jdc-match-page .jdc-online-points-section,
+.jdc-match-page .jdc-online-throws-section{margin:13px 0;padding:12px;background:#091d23;border:1px solid #294b55;border-radius:12px}
+.jdc-match-page .jdc-online-section-heading{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px;color:#e9fcfd}
+.jdc-match-page .jdc-online-section-heading>strong{font-size:14px}
+.jdc-match-page .jdc-online-section-heading>small{font-size:10px;color:#87aeb8}
+.jdc-match-page .jdc-online-tier-current{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:6px 0;border-bottom:1px solid #24434c;font-size:11px;overflow-wrap:anywhere}
+.jdc-match-page .jdc-online-tier-current strong{color:#e5ffff;text-align:right;font-size:11px}
+.jdc-match-page .jdc-online-tier-list{margin-top:10px}
+.jdc-match-page .jdc-online-tier-line{display:grid;grid-template-columns:minmax(60px,1fr) minmax(75px,.8fr) minmax(35px,.5fr);align-items:center;gap:4px;padding:5px 0;font-size:11px;border-bottom:1px solid #213c45}
+.jdc-match-page .jdc-online-tier-line>span:nth-child(2){text-align:right;color:#b8d1d7}
+.jdc-match-page .jdc-tier-markers{display:flex;justify-content:flex-end;gap:3px}
+.jdc-match-page .jdc-tier-markers b{padding:2px 4px;border-radius:4px;font-size:9px;background:#0b5057;color:#dfffff}
+.jdc-match-page .jdc-online-rule-row{display:flex;justify-content:space-between;align-items:baseline;gap:9px;padding:7px 0;border-bottom:1px solid #24414a;font-size:11px}
+.jdc-match-page .jdc-online-rule-row>span{color:#a9c7cf}
+.jdc-match-page .jdc-online-rule-row>strong{text-align:right;white-space:nowrap;color:#00eaf4;font-size:11px}
+.jdc-match-page .jdc-online-points-section p{margin:10px 0 0;line-height:1.45;font-size:11px}
+.jdc-match-page .jdc-online-throw-log{max-height:330px;overflow:auto;scrollbar-width:thin}
+.jdc-match-page .jdc-online-throw-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;padding:9px 3px;border-bottom:1px solid #23424a;font-size:11px}
+.jdc-match-page .jdc-online-throw-row>strong{color:#dffbff}
+.jdc-match-page .jdc-online-throw-row>span:nth-child(2){text-align:right;color:#80cbd0}
+.jdc-match-page .jdc-online-throw-hits{grid-column:1;color:#b6d2d8;overflow-wrap:anywhere}
+.jdc-match-page .jdc-online-throw-row>b{grid-column:2;text-align:right;color:#00dfe4;font-size:11px}
+.jdc-match-page .jdc-online-pending-row{display:flex;flex-direction:column;gap:3px;margin-bottom:8px;padding:9px;background:#10363b;border:1px solid #00d1d5;border-radius:8px;font-size:11px}
+.jdc-match-page .jdc-online-final-tiers{margin:9px 0}
+@media(max-width:700px){
+ .jdc-match-page .jdc-online-tier-section,.jdc-match-page .jdc-online-points-section,.jdc-match-page .jdc-online-throws-section{padding:10px;margin:10px 0}
+ .jdc-match-page .jdc-online-throw-log{max-height:220px}
+}
