@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="./local-h2h.css?v=20261011-personas2">
 <link rel="stylesheet" href="./shared-results.css?v=20261023-bulldown2">
 <link rel="stylesheet" href="./premium-match-stats.css?v=20261003-premium1">
-<link rel="stylesheet" href="./pentathlon-2p.css?v=20261118-standings-toggle1">
+<link rel="stylesheet" href="./pentathlon-2p.css?v=20261118-stats-modal1">
 </head>
 <body class="da-penta local-h2h-page">
 <header><div class="brand"><a href="./scoringarena.html" aria-label="Til ScoringArena"><img class="brand-logo" src="./assets/dartarena-logo.jpg" alt="DartArena" width="420" height="116"></a></div><div class="live"><i></i> PENTATHLON · 2P</div></header>
@@ -24,7 +24,8 @@
     <div class="penta-setup-actions"><button class="penta-main-btn" type="button" id="pentaStart">START PENTATHLON →</button><button class="outline" id="pentaResume" type="button" hidden>Gjenoppta forrige</button></div>
   </section>
   <section id="pentaGame" hidden>
-    <div class="penta-top-bar"><div id="pentaStatus">ØVELSE 1 AV 7</div><div class="penta-top-actions"><button id="pentaUndo" class="outline" type="button">↶ Angre</button><button id="pentaReset" class="outline" type="button">Ny femkamp</button></div></div>
+    <div id="pentaStatsBackdrop" class="penta-stats-backdrop" hidden></div>
+    <div class="penta-top-bar"><div id="pentaStatus">ØVELSE 1 AV 7</div><div class="penta-top-actions"><button id="pentaStatsOpen" class="outline" type="button" aria-expanded="false" aria-controls="pentaX01StatsPanel">Statistikk</button><button id="pentaUndo" class="outline" type="button">↶ Angre</button><button id="pentaReset" class="outline" type="button">Ny femkamp</button></div></div>
     <div id="pentaProgress" class="penta-progress" aria-label="Fullførte øvelser"></div>
     <div class="penta-layout">
       <div class="penta-primary">
@@ -63,8 +64,7 @@
             <div class="local-corrections-header"><strong>Siste kast i dette leget</strong><small>Trykk på poengsummen for å korrigere</small></div>
             <div id="pentaX01Throws"></div>
           </section>
-          <section id="pentaX01StatsPanel" class="penta-x01-live-panel card local-stats-card" aria-label="X01-statistikk">
-            <div class="heading"><div><small>HELE LEGET</small><h2>Live-statistikk</h2></div></div>
+          <section id="pentaX01StatsPanel" class="penta-x01-live-panel card local-stats-card" aria-label="X01-statistikk" role="dialog" aria-modal="true" aria-labelledby="pentaLiveStatsTitle" hidden><div class="penta-stats-modal-head"><h2 id="pentaLiveStatsTitle">Live-statistikk</h2><button type="button" id="pentaStatsClose" class="outline" aria-label="Lukk statistikk">Lukk ✕</button></div>
             <div id="pentaX01Stats"><div class="local-stats-groups">
         <div class="stats-grid local-stat-table" aria-label="Kampstatistikk, del 1">
           <div class="label"></div><div class="val head" id="pentaH2HStatsName0">Spiller 1</div><div class="val head" id="pentaH2HStatsName1">Spiller 2</div>
@@ -133,5 +133,5 @@
 </div>
 <script src="./room-coin-flip.js?v=20261002-coin9"></script>
 <script src="./pentathlon-2p-engine.js?v=1"></script>
-<script src="./pentathlon-2p.js?v=20261118-standings-toggle1"></script>
+<script src="./pentathlon-2p.js?v=20261118-stats-modal1"></script>
 </body></html>
