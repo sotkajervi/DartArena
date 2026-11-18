@@ -284,33 +284,6 @@
       line.appendChild(chips);throws.appendChild(line);
     }
   }
-  // Reuse the local Head-to-Head scorecard hierarchy for Shanghai.
-  // Score is Pentathlon points, not an X01 remaining score.
-  function renderShanghaiCards(host,c){
-    host.classList.add('penta-shanghai-board','local-board');
-    for(let p=0;p<2;p++){
-      const card=create('article','local-player'+(c.turn===p?' active':''));
-      const top=create('div','local-player-top');
-      top.append(create('small','','SPILLER '+(p+1)),create('span','local-current-marker','Kaster nå'));
-      const name=create('h2','local-match-name');
-      name.appendChild(create('span','',state.players[p]));
-      if(c.starter===p){
-        const starter=$('pentaH2HStarterMarker'+p).cloneNode(true);
-        starter.removeAttribute('id');starter.hidden=false;
-        name.appendChild(starter);
-      }
-      const band=create('div','local-score-band');
-      const darts=create('div','local-live-darts');
-      darts.append(create('b','',c.used[p]),create('span','','PILER'));
-      const target=create('div','local-avg');
-      target.append(create('b','',Math.min(9,Math.floor(c.used[p]/3)+1)),create('span','','MÅL'));
-      band.append(darts,create('div','local-score',c.pent[p]),target);
-      const extra=create('div','local-leg-label');
-      extra.append(create('span','','PENTATHLON-POENG'));
-      card.append(top,name,band,extra);
-      host.appendChild(card);
-    }
-  }
   function stageStats(){
     const c=state.current,wrap=$('pentaStagePlayers'),idx=state.stageIndex;
     const x01=c.kind==='x01';
@@ -326,8 +299,7 @@
     if(x01)renderX01Board();
     wrap.replaceChildren();
     wrap.classList.remove('penta-shanghai-board','local-board');
-    if(c.kind==='shanghai')renderShanghaiCards(wrap,c);
-    else for(let p=0;p<2;p++){
+    for(let p=0;p<2;p++){
       const box=create('div','penta-stage-player'+(state.status==='playing'&&c.turn===p?' active':''));
       box.appendChild(create('small','',state.players[p]));
       box.appendChild(create('div','penta-number',c.kind==='x01'?c.remaining[p]+' REST':c.pent[p]+' P'));
@@ -365,7 +337,7 @@
     if(shanghai){
       const number=E.currentTarget(state)?.number||1;
       $('pentaShanghaiTarget').textContent=String(number);
-      $('pentaShanghaiTurn').textContent='Pil '+(c.pending.length+1)+' av 3';
+      $('pentaShanghaiTurn').textContent='Pil '+(c.pending.length+1)+' av 3 · '+c.used[c.turn]+' / 27 totalt';
       for(const [id,prefix] of [['pentaShanghaiSingle','S'],['pentaShanghaiDouble','D'],['pentaShanghaiTriple','T']]){
         $(id).firstChild.textContent=prefix+number+' ';
       }
@@ -681,5 +653,17 @@
       $('pentaX01Form').requestSubmit();
     }
   });
-  course();makeNumberGrid();renderMultiplier();showResume();
+  course();makeNumberGrid();renderMultiplier();
+  // Opening or refreshing an unfinished game must resume without revisiting setup.
+  const saved=stored();
+  if(saved){
+    state=saved;
+    feedback=saved.status==='review'?'Øvelsen er fullført. Fortsett når du er klar.':
+      saved.status==='finished'?'Tidligere Pentathlon-resultat gjenopprettet.':
+      'Pentathlon gjenopprettet på samme øvelse.';
+    render();
+    focusX01Score();
+  }else{
+    showResume();
+  }
 })();
