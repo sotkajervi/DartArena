@@ -104,3 +104,47 @@ test('no invalid scores or impossible darts can be submitted',()=>{
   assert.throws(()=>E.submitX01(newGame(),{score:1800}));
   assert.equal(E.isDart(dart(25,3)),false);
 });
+
+
+test('entire 7-stage local pentathlon completes and totals are never counted twice',()=>{
+  let s=newGame();
+  for(let stage=0;stage<7;stage++){
+    assert.equal(s.stageIndex,stage);
+    if(s.current.kind==='x01'){
+      // Fast-forward the long 1001/2001 starting remainders solely in the test.
+      s.current.remaining[s.current.turn]=40;
+      s=E.submitX01(s,{score:40,darts:1,doubleConfirmed:true});
+    }else if(s.current.kind==='shanghai'){
+      while(s.status==='playing'){
+        const target=E.currentTarget(s);
+        s=E.submitDart(s,dart(target.number,1));
+      }
+      assert.equal(s.current.used[0],27);
+      assert.equal(s.current.used[1],27);
+    }else if(s.current.kind==='clock'){
+      while(s.status==='playing'){
+        const target=E.currentTarget(s);
+        s=E.submitDart(s,dart(target.number,2));
+      }
+      assert.equal(s.current.pent[0],62);
+      assert.equal(s.current.pent[1],62);
+    }else if(s.current.kind==='half'){
+      while(s.status==='playing'){
+        const target=E.currentTarget(s);
+        s=E.submitDart(s,dart(target.number,target.mult||1));
+      }
+      assert.equal(s.current.used[0],21);
+      assert.equal(s.current.used[1],21);
+    }
+    assert.equal(s.status,'review');
+    assert.equal(s.summaries.length,stage+1);
+    assert.deepEqual(s.total,s.summaries.reduce((acc,row)=>[acc[0]+row.pent[0],acc[1]+row.pent[1]],[0,0]));
+    s=E.nextStage(s);
+  }
+  assert.equal(s.status,'finished');
+  assert.equal(s.summaries.length,7);
+  assert.deepEqual(s.total,s.summaries.reduce((acc,row)=>[acc[0]+row.pent[0],acc[1]+row.pent[1]],[0,0]));
+  s=E.undo(s);
+  assert.equal(s.status,'review');
+  assert.equal(s.summaries.length,7);
+});
