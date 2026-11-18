@@ -117,3 +117,46 @@
 .penta-x01-review-stats{padding:8px 0;margin:6px 0;border-top:1px solid #2e746b}
 .penta-x01-review-stats small{display:block}
 @media(max-width:420px){.penta-x01-stat strong{font-size:17px}.penta-x01-starter{font-size:9px}}
+
+/* Pentathlon X01 uses the same scorecard hierarchy as local Head-to-Head. */
+.da-penta .penta-x01-board{display:grid;gap:12px;margin:16px 0 12px}
+.da-penta .penta-x01-board[hidden],.da-penta .penta-stage-players[hidden],.da-penta .penta-target[hidden]{display:none!important}
+.da-penta .penta-x01-board .local-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.da-penta .penta-x01-board .local-player{min-width:0;padding:14px;background:linear-gradient(155deg,#102125,#0a171a);border:1px solid #2b5059;border-radius:12px}
+.da-penta .penta-x01-board .local-player.active{border-color:#00e5e9;box-shadow:inset 0 0 0 1px #00e5e944}
+.da-penta .penta-x01-board .local-player h2{margin:7px 0 12px;font-size:clamp(16px,2vw,23px)}
+.da-penta .penta-x01-board .local-score-band{display:grid;grid-template-columns:minmax(42px,60px) minmax(0,1fr) minmax(48px,66px);gap:7px;align-items:center}
+.da-penta .penta-x01-board .local-score{font-size:clamp(42px,5.1vw,78px);text-align:center;line-height:1.08;font-weight:950}
+.da-penta .penta-x01-board .local-live-darts,.da-penta .penta-x01-board .local-avg{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:53px;margin:0;padding:6px 3px;background:#06171c;border:1px solid #28505a;border-radius:9px}
+.da-penta .penta-x01-board .local-live-darts b,.da-penta .penta-x01-board .local-avg b{font-size:17px;color:#e8feff;font-variant-numeric:tabular-nums}
+.da-penta .penta-x01-board .local-live-darts span,.da-penta .penta-x01-board .local-avg span{font-size:9px;color:#98b9c2;font-weight:850}
+.da-penta .penta-x01-board .local-leg-label{margin-top:11px;font-size:11px;color:#8ebec4}
+.da-penta .penta-x01-board .local-starter-mark{margin-left:9px;font-size:18px}
+.da-penta .penta-x01-live-panel{padding:13px 15px;background:#0b222b;border:1px solid #2c505a;border-radius:12px}
+.da-penta .penta-x01-table{margin-top:9px}
+.da-penta .penta-x01-row{display:grid;grid-template-columns:minmax(0,1.35fr) repeat(2,minmax(0,1fr));align-items:center;gap:7px;padding:8px 0;border-bottom:1px solid #29444c;font-size:12px}
+.da-penta .penta-x01-row:last-child{border:0}
+.da-penta .penta-x01-row strong{text-align:right;color:#e9fcfc;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.da-penta .penta-x01-head{font-size:10px;color:#96b9be;font-weight:800}
+.da-penta .penta-x01-head strong{color:#17e2e4}
+.da-penta #pentaX01Controls{padding:15px;background:#0b232a;border:1px solid #2d5059;border-radius:13px}
+.da-penta #pentaX01Controls .local-entry-controls{display:flex;flex-wrap:wrap;align-items:center;gap:9px}
+.da-penta #pentaX01Controls .local-entry-controls input{flex:1;min-width:110px;max-width:250px;background:#06151c;color:#fff;font-size:25px;font-weight:900;text-align:center;border:1px solid #315864;border-radius:9px;padding:9px}
+.da-penta #pentaX01Controls .local-entry-controls button{min-height:44px}
+.da-penta #pentaX01Controls .local-score-form>label{display:block;color:#9cb7c0;font-size:12px;margin:5px 0 9px;font-weight:800}
+.da-penta .penta-x01-corrections{margin-top:15px;padding-top:12px;border-top:1px solid #30505a}
+.da-penta .penta-x01-throw-line{display:grid;grid-template-columns:minmax(75px,110px) minmax(0,1fr);gap:10px;align-items:center;margin-top:8px}
+.da-penta .penta-x01-throw-line>strong{font-size:11px;color:#00e5e9;overflow-wrap:anywhere}
+.da-penta .penta-x01-throw-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.da-penta .penta-x01-throw-chip,.da-penta .penta-x01-empty{padding:7px 8px;background:#102e36;border:1px solid #31525c;border-radius:7px;text-align:center;font-size:12px;font-weight:800}
+.da-penta .penta-x01-empty{grid-column:1/-1;color:#759ba4;font-weight:500}
+.da-penta #pentaMobileKeypad{margin-top:12px}
+@media(min-width:701px){.da-penta #pentaMobileKeypad{display:none}}
+@media(max-width:700px){
+ .da-penta .penta-x01-board .local-board{grid-template-columns:1fr}
+ .da-penta .penta-x01-board .local-score{font-size:clamp(50px,12vw,76px)}
+ .da-penta #pentaX01Controls .local-entry-controls input{width:100%;max-width:none;flex-basis:100%}
+ .da-penta #pentaMobileKeypad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+ .da-penta #pentaMobileKeypad button{min-height:45px;background:#102f36;border:1px solid #365865;border-radius:9px;color:#efffff;font-size:17px;font-weight:800}
+ .da-penta #pentaMobileKeypad .local-keypad-enter{background:#00d6dc;color:#031d20}
+}
