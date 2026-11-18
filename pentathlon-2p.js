@@ -73,6 +73,27 @@
       wrap.appendChild(box);
     }
   }
+  // Ordinary X01 3-dart average: scored points / actual darts used * 3.
+  // Busts count as darts but score zero; only the active X01 exercise is included.
+  function x01Average(entries,player,used){
+    if(!used)return '–';
+    const scored=entries.filter(entry=>entry.type==='visit'&&entry.player===player)
+      .reduce((sum,entry)=>sum+Number(entry.score||0),0);
+    return (scored*3/used).toFixed(2).replace('.',',');
+  }
+  function x01Starter(stageIndex){
+    return (state.firstStarter+stageIndex)%2;
+  }
+  function x01SummaryStats(summary,player){
+    const starters=x01Starter(state.summaries.indexOf(summary));
+    const block=create('div','penta-x01-review-stats');
+    block.append(
+      create('small','','3-PILSSNITT: '+x01Average(summary.entries,player,summary.used[player])),
+      create('small','','PILER: '+summary.used[player]),
+      create('small','','STARTET LEGET: '+(starters===player?'JA':'NEI'))
+    );
+    return block;
+  }
   function stageStats(){
     const c=state.current,wrap=$('pentaStagePlayers'),idx=state.stageIndex;
     wrap.replaceChildren();
@@ -86,7 +107,17 @@
         :c.kind==='clock'?'SISTE DOBBEL '+(c.clockTarget[p]-1)+' · '+c.used[p]+'/42 PILER'
         :'MÅL '+Math.min(9,Math.floor(c.used[p]/3)+1)+' · '+c.used[p]+'/27 PILER';
       box.appendChild(create('div','penta-minor',sub));
-      if(c.kind==='x01')box.appendChild(create('div','penta-minor','PENTATHLON +'+c.pent[p]));
+      if(c.kind==='x01'){
+        const stats=create('div','penta-x01-live-stats');
+        const avg=create('div','penta-x01-stat');
+        avg.append(create('strong','',x01Average(c.entries,p,c.used[p])),create('small','','3-PILSSNITT'));
+        const darts=create('div','penta-x01-stat');
+        darts.append(create('strong','',c.used[p]),create('small','','PILER'));
+        stats.append(avg,darts);
+        box.appendChild(stats);
+        if(c.starter===p)box.appendChild(create('div','penta-x01-starter','🎯 STARTET LEGET'));
+        box.appendChild(create('div','penta-minor','PENTATHLON +'+c.pent[p]));
+      }
       wrap.appendChild(box);
     }
     $('pentaStageCounter').textContent='ØVELSE '+(idx+1)+' AV '+E.STAGES.length;
@@ -164,7 +195,8 @@
       if(summary.kind==='x01'){
         const counts=summary.counts[p];
         card.appendChild(create('small','','95–130: '+counts.n95+' · 131–159: '+counts.n131+' · 160–180: '+counts.n160));
-        card.appendChild(create('small','','Tons 100+: '+counts.tons+' · Piler: '+summary.used[p]));
+        card.appendChild(create('small','','Tons 100+: '+counts.tons));
+        card.appendChild(x01SummaryStats(summary,p));
         if(summary.winner===p){
           const finishing=summary.entries.filter(e=>e.player===p&&e.checkout).at(-1);
           if(finishing)card.appendChild(create('small','','Leg vunnet +2 · rask utsjekk +'+finishing.speedBonus));
