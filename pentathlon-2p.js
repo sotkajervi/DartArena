@@ -122,6 +122,73 @@
       host.appendChild(row);
     });
   }
+  let correctionIndex=-1;
+  function closeCorrection(){
+    correctionIndex=-1;
+    $('pentaCorrectionModal').hidden=true;
+    $('pentaCorrectionError').textContent='';
+  }
+  function openCorrection(index){
+    if(state?.status!=='playing'||state.current.kind!=='x01')return;
+    const entry=state.current.entries[index];
+    if(!entry||entry.type!=='visit')return;
+    // A correction can only be replayed while its preceding snapshot is retained.
+    const snapshot=state.undo?.some(s=>s.stageIndex===state.stageIndex&&s.status==='playing'&&s.current?.entries?.length===index);
+    if(!snapshot){
+      feedback='Dette kastet ligger utenfor angrehistorikken og kan ikke korrigeres automatisk.';
+      $('pentaFeedback').textContent=feedback;
+      return;
+    }
+    correctionIndex=index;
+    $('pentaCorrectionContext').textContent=state.players[entry.player]+
+      ' · kast '+(state.current.entries.filter((e,i)=>i<=index&&e.player===entry.player).length)+
+      ' · tidligere '+(entry.bust?'BUST':entry.score);
+    $('pentaCorrectionScore').value=entry.attempt;
+    $('pentaCorrectionModal').hidden=false;
+    $('pentaCorrectionScore').focus();
+  }
+  function saveCorrection(event){
+    event.preventDefault();
+    if(correctionIndex<0||!state||state.status!=='playing')return;
+    const replacement=Number($('pentaCorrectionScore').value);
+    if(!E.isScore(replacement)){
+      $('pentaCorrectionError').textContent='Ugyldig X01-score.';
+      return;
+    }
+    const original=state.current.entries.slice();
+    const idx=correctionIndex;
+    let position=-1;
+    for(let i=state.undo.length-1;i>=0;i--){
+      const record=state.undo[i];
+      if(record.stageIndex===state.stageIndex&&record.status==='playing'&&record.current?.entries?.length===idx){
+        position=i;break;
+      }
+    }
+    if(position<0){
+      $('pentaCorrectionError').textContent='Kastet er ikke lenger i angrehistorikken.';
+      return;
+    }
+    const baseline=JSON.parse(JSON.stringify(state.undo[position]));
+    baseline.undo=state.undo.slice(0,position);
+    let corrected=baseline;
+    try{
+      for(let i=idx;i<original.length;i++){
+        const entry=original[i];
+        corrected=E.submitX01(corrected,{
+          score:i===idx?replacement:entry.attempt,
+          bust:entry.bust,
+          doubleConfirmed:entry.checkout,
+          darts:entry.darts
+        });
+      }
+      state=corrected;
+      feedback='Kastet er korrigert. X01-score og Pentathlon-poeng er beregnet på nytt.';
+      persist();closeCorrection();render();
+    }catch(error){
+      $('pentaCorrectionError').textContent='Kan ikke bruke denne korrigeringen: '+(error.message||error)+
+        '. Senere kast må fortsatt være gyldige. Ingen endringer er lagret.';
+    }
+  }
   function renderX01Board(){
     const c=state.current,board=$('pentaLocalBoard');
     board.replaceChildren();
@@ -156,10 +223,14 @@
       const line=create('div','penta-x01-throw-line');
       line.appendChild(create('strong','',state.players[p]));
       const chips=create('div','penta-x01-throw-chips');
-      const visits=c.entries.filter(e=>e.type==='visit'&&e.player===p).slice(-3);
-      for(const entry of visits){
-        const chip=create('span','penta-x01-throw-chip',entry.bust?'BUST':entry.score);
-        chip.title=entry.checkout?'Utsjekk med '+entry.darts+' piler':'Registrert kast';
+      const visits=c.entries.map((entry,index)=>({entry,index}))
+        .filter(item=>item.entry.type==='visit'&&item.entry.player===p).slice(-3);
+      for(const item of visits){
+        const entry=item.entry;
+        const chip=create('button','penta-x01-throw-chip',entry.bust?'BUST':entry.score);
+        chip.type='button';
+        chip.title='Korriger dette kastet';
+        chip.addEventListener('click',()=>openCorrection(item.index));
         chips.appendChild(chip);
       }
       if(!visits.length)chips.appendChild(create('span','penta-x01-empty','Ingen kast'));
@@ -454,6 +525,9 @@
   $('pentaX01Form').addEventListener('submit',submitX01);
   $('pentaVisit').addEventListener('input',updateCheckoutRow);
   $('pentaBust').addEventListener('change',updateCheckoutRow);
+  $('pentaCorrectionForm').addEventListener('submit',saveCorrection);
+  $('pentaCorrectionCancel').addEventListener('click',closeCorrection);
+  $('pentaCorrectionModal').querySelector('.penta-correction-backdrop').addEventListener('click',closeCorrection);
   $('pentaBustButton').addEventListener('click',()=>{
     if(state?.status!=='playing'||state.current.kind!=='x01')return;
     $('pentaBust').checked=true;
