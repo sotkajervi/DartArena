@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="./local-h2h.css?v=20261011-personas2">
 <link rel="stylesheet" href="./shared-results.css?v=20261023-bulldown2">
 <link rel="stylesheet" href="./premium-match-stats.css?v=20261003-premium1">
-<link rel="stylesheet" href="./pentathlon-2p.css?v=20261118-stats-modal1">
+<link rel="stylesheet" href="./pentathlon-2p.css?v=20261118-h2h-modals1">
 </head>
 <body class="da-penta local-h2h-page">
 <header><div class="brand"><a href="./scoringarena.html" aria-label="Til ScoringArena"><img class="brand-logo" src="./assets/dartarena-logo.jpg" alt="DartArena" width="420" height="116"></a></div><div class="live"><i></i> PENTATHLON · 2P</div></header>
@@ -48,10 +48,7 @@
                 <button id="pentaBustButton" class="outline" type="button">BUST</button>
               </div>
               <label class="penta-check penta-manual-bust" hidden><input id="pentaBust" type="checkbox"> Bust / ugyldig avslutning</label>
-              <div id="pentaCheckoutRow" class="penta-checkout" hidden>
-                <label class="penta-check"><input id="pentaCheckout" type="checkbox"> Bekreft dobbel-ut / bull</label>
-                <label>Antall piler<select id="pentaCheckoutDarts"><option value="1">1 pil</option><option value="2">2 piler</option><option value="3" selected>3 piler</option></select></label>
-              </div>
+
             </form>
             <div id="pentaMobileKeypad" class="local-mobile-keypad" role="group" aria-label="Talltastatur">
               <button type="button" data-penta-key="1">1</button><button type="button" data-penta-key="2">2</button><button type="button" data-penta-key="3">3</button>
@@ -117,21 +114,39 @@
     </div>
   </section>
 </main>
-<div id="pentaCorrectionModal" class="penta-correction-modal" hidden role="dialog" aria-modal="true" aria-labelledby="pentaCorrectionTitle">
-  <div class="penta-correction-backdrop"></div>
-  <form id="pentaCorrectionForm" class="penta-correction-card penta-card">
-    <span class="penta-eyebrow">KORRIGER KAST</span>
-    <h2 id="pentaCorrectionTitle">Korriger X01-score</h2>
-    <p id="pentaCorrectionContext" class="penta-hint"></p>
-    <label>Ny score (0–180)<input id="pentaCorrectionScore" type="number" min="0" max="180" required inputmode="numeric"></label>
-    <p id="pentaCorrectionError" class="penta-error" role="alert"></p>
-    <div class="penta-correction-actions">
-      <button type="button" id="pentaCorrectionCancel" class="outline">Avbryt</button>
-      <button type="submit" class="penta-main-btn">Lagre korrigering</button>
+<div id="pentaCorrectionModal" class="local-modal" hidden role="dialog" aria-modal="true" aria-labelledby="pentaCorrectionTitle">
+  <div class="local-modal-backdrop"></div>
+  <form id="pentaCorrectionForm" class="card local-modal-card">
+    <small>KORRIGER KAST</small>
+    <h2 id="pentaCorrectionTitle">Korriger score</h2>
+    <p id="pentaCorrectionContext" class="muted"></p>
+    <label class="field">Ny score
+      <input id="pentaCorrectionScore" type="number" min="0" max="180" inputmode="numeric" autocomplete="off" required>
+    </label>
+    <div id="pentaCorrectionCheckout" hidden>
+      <label class="field">Utsjekk med antall piler
+        <select id="pentaCorrectionDarts"></select>
+      </label>
+      <p class="muted compact">Bekreft at siste pil traff dobbel. Korrigert utsjekk avslutter leget.</p>
     </div>
+    <p id="pentaCorrectionError" class="local-message is-error" role="alert" hidden></p>
+    <div class="local-checkout-actions">
+      <button type="button" id="pentaCorrectionCancel" class="outline">Avbryt</button>
+      <button type="submit" id="pentaCorrectionSubmit" class="primary">Lagre korrigering</button>
+    </div>
+  </form>
+</div>
+<div id="pentaCheckout" class="local-modal" hidden role="dialog" aria-modal="true" aria-labelledby="pentaCheckoutTitle">
+  <div class="local-modal-backdrop"></div>
+  <form id="pentaCheckoutForm" class="card local-modal-card">
+    <small>DOBBEL-UT</small><h2 id="pentaCheckoutTitle">Bekreft utsjekk</h2>
+    <p id="pentaCheckoutText"></p>
+    <p class="muted compact">Hvor mange piler brukte du på å sjekke ut? Trykk 1, 2 eller 3.</p><div id="pentaCheckoutChoices" class="checkout-darts-buttons" role="group" aria-label="Piler brukt i checkout"></div><select id="pentaCheckoutDarts" hidden aria-label="Antall piler brukt i checkout"></select>
+    <p class="muted compact">Bekreft bare hvis siste pil traff en dobbel (bull 50 teller som dobbel).</p>
+    <div class="local-checkout-actions"><button id="pentaCheckoutCancel" class="outline" type="button">Avbryt</button><button id="pentaCheckoutBust" class="outline" type="button">Ikke dobbel / BUST</button><button id="pentaCheckoutConfirm" class="primary" type="submit">Bekreft utsjekk</button></div>
   </form>
 </div>
 <script src="./room-coin-flip.js?v=20261002-coin9"></script>
 <script src="./pentathlon-2p-engine.js?v=1"></script>
-<script src="./pentathlon-2p.js?v=20261118-stats-modal1"></script>
+<script src="./pentathlon-2p.js?v=20261118-h2h-modals1"></script>
 </body></html>
