@@ -111,10 +111,20 @@
     return true;
   }
 
-  let tries=0;
-  const timer=setInterval(()=>{
-    const sideDone=polishSideCard();
-    const overlayDone=polishSharedOverlay();
-    if((sideDone&&overlayDone)||++tries>=80)clearInterval(timer);
-  },250);
+  // Start the finishing window when the match ends, not only on page load.
+  // A JDC online match can be longer than the earlier 20-second window.
+  let timer=null;
+  function polishWhenFinished(){
+    if(timer!==null)return;
+    let tries=0;
+    timer=setInterval(()=>{
+      const sideDone=polishSideCard();
+      const overlayDone=polishSharedOverlay();
+      if((sideDone&&overlayDone)||++tries>=80){
+        clearInterval(timer);timer=null;
+      }
+    },250);
+  }
+  document.addEventListener('dartarena-jdc-online-finished',polishWhenFinished);
+  if(!document.getElementById('finishedBox')?.classList.contains('hidden'))polishWhenFinished();
 })();
