@@ -156,3 +156,12 @@
 .da-penta .penta-correction-card label{display:block;margin:14px 0;color:#c0dfe1;font-size:13px}
 .da-penta .penta-correction-card input{display:block;width:100%;background:#06171c;color:#fff;border:1px solid #35616b;border-radius:9px;padding:12px;font-size:23px;margin-top:7px}
 .da-penta .penta-correction-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px}
+
+/* Match the source X01 input/buttons rather than using alternate Pentathlon styling. */
+.da-penta .local-entry-card #pentaVisit{background:#061012!important;border:1px solid #31505a!important;color:#f2f7f7!important;font-weight:850;letter-spacing:.03em;color-scheme:dark;caret-color:var(--cyan)}
+.da-penta .local-entry-card #pentaVisit:focus{border-color:#00eaf4!important;box-shadow:0 0 0 1px rgba(0,234,244,.32)}
+@media(max-width:700px){
+ .da-penta .local-entry-controls #pentaVisit{grid-column:1;min-height:46px;height:46px;min-width:0;width:100%;max-width:none;padding:6px 10px;font-size:24px}
+ .da-penta .local-entry-controls #pentaSubmitVisit{display:none}
+ .da-penta .local-entry-controls #pentaBustButton{grid-column:2;min-height:46px;height:46px;padding:6px 8px;font-size:14px}
+}
