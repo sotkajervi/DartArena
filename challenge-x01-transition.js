@@ -5,7 +5,7 @@
 (()=>{
  'use strict';
  if(window.DartArenaChallengeStart)return;
- const x01=new Set(['170','301','501','1001']);
+ const x01=new Set(['170','301','501','1001','2001']);
  let started=false;
  const valid=id=>/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(id||'');
  const target=(id,variant)=>{
