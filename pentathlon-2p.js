@@ -130,6 +130,19 @@
     pendingCheckout=null;$('pentaCheckout').hidden=true;
     if(state?.status==='playing')$('pentaVisit').focus({preventScroll:true});
   }
+  // Focus only for keyboard scoring, never steal focus from an open dialog.
+  function focusX01Score(){
+    if(window.matchMedia('(max-width:700px)').matches)return;
+    setTimeout(()=>{
+      if(state?.status!=='playing'||state.current.kind!=='x01'||pendingCheckout||
+        !$('pentaCheckout').hidden||!$('pentaCorrectionModal').hidden||
+        !$('pentaX01StatsPanel').hidden)return;
+      const input=$('pentaVisit');
+      if(input.disabled||input.closest('[hidden]'))return;
+      input.focus({preventScroll:true});
+      input.select();
+    },0);
+  }
   function commitX01(payload){
     try{
       state=E.submitX01(state,payload);
@@ -140,7 +153,7 @@
       $('pentaVisit').value='';$('pentaBust').checked=false;
       persist();render();
       if(state.status==='review')$('pentaReviewPanel').scrollIntoView({block:'nearest',behavior:'smooth'});
-      else $('pentaVisit').focus({preventScroll:true});
+      else focusX01Score();
     }catch(error){report(error)}
   }
   function openCheckout(score){
@@ -271,6 +284,33 @@
       line.appendChild(chips);throws.appendChild(line);
     }
   }
+  // Reuse the local Head-to-Head scorecard hierarchy for Shanghai.
+  // Score is Pentathlon points, not an X01 remaining score.
+  function renderShanghaiCards(host,c){
+    host.classList.add('penta-shanghai-board','local-board');
+    for(let p=0;p<2;p++){
+      const card=create('article','local-player'+(c.turn===p?' active':''));
+      const top=create('div','local-player-top');
+      top.append(create('small','','SPILLER '+(p+1)),create('span','local-current-marker','Kaster nå'));
+      const name=create('h2','local-match-name');
+      name.appendChild(create('span','',state.players[p]));
+      if(c.starter===p){
+        const starter=$('pentaH2HStarterMarker'+p).cloneNode(true);
+        starter.removeAttribute('id');starter.hidden=false;
+        name.appendChild(starter);
+      }
+      const band=create('div','local-score-band');
+      const darts=create('div','local-live-darts');
+      darts.append(create('b','',c.used[p]),create('span','','PILER'));
+      const target=create('div','local-avg');
+      target.append(create('b','',Math.min(9,Math.floor(c.used[p]/3)+1)),create('span','','MÅL'));
+      band.append(darts,create('div','local-score',c.pent[p]),target);
+      const extra=create('div','local-leg-label');
+      extra.append(create('span','','PENTATHLON-POENG'));
+      card.append(top,name,band,extra);
+      host.appendChild(card);
+    }
+  }
   function stageStats(){
     const c=state.current,wrap=$('pentaStagePlayers'),idx=state.stageIndex;
     const x01=c.kind==='x01';
@@ -285,7 +325,9 @@
     $('pentaTarget').parentElement.parentElement.hidden=x01;
     if(x01)renderX01Board();
     wrap.replaceChildren();
-    for(let p=0;p<2;p++){
+    wrap.classList.remove('penta-shanghai-board','local-board');
+    if(c.kind==='shanghai')renderShanghaiCards(wrap,c);
+    else for(let p=0;p<2;p++){
       const box=create('div','penta-stage-player'+(state.status==='playing'&&c.turn===p?' active':''));
       box.appendChild(create('small','',state.players[p]));
       box.appendChild(create('div','penta-number',c.kind==='x01'?c.remaining[p]+' REST':c.pent[p]+' P'));
@@ -498,6 +540,7 @@
       feedback=state.players[starter]+' starter første 501-leg.';
       persist();render();
       $('pentaGame').scrollIntoView({block:'start',behavior:'smooth'});
+      focusX01Score();
     }catch(error){
       $('pentaSetupError').textContent=error.message||String(error);
     }finally{
@@ -506,10 +549,10 @@
       resumeButton.disabled=false;
     }
   }
-  function resume(){const saved=stored();if(!saved)return;state=saved;feedback='Femkampen er gjenopptatt.';render()}
+  function resume(){const saved=stored();if(!saved)return;state=saved;feedback='Femkampen er gjenopptatt.';render();focusX01Score()}
   function undo(){
     if(!state)return;
-    try{state=E.undo(state);feedback='Forrige registrering angret.';persist();render()}
+    try{state=E.undo(state);feedback='Forrige registrering angret.';persist();render();focusX01Score()}
     catch(error){report(error)}
   }
   function reset(){
@@ -526,6 +569,7 @@
       feedback='Neste øvelse er klar. '+state.players[state.current.turn]+' starter.';
       persist();render();
       $('pentaGame').scrollIntoView({block:'start',behavior:'smooth'});
+      focusX01Score();
     }catch(error){report(error)}
   }
   function exportCsv(){
@@ -565,6 +609,30 @@
   });
   $('pentaShanghaiMiss').addEventListener('click',()=>{
     if(state?.status==='playing'&&state.current.kind==='shanghai')addDart(0,0);
+  });
+  // Shanghai scoring: 1=S, 2=D, 3=T, 0=BOM on the current target.
+  document.addEventListener('keydown',event=>{
+    if(event.defaultPrevented||event.repeat||event.ctrlKey||event.altKey||
+       event.metaKey||event.isComposing||state?.status!=='playing')return;
+    const target=event.target;
+    if(target?.isContentEditable||['INPUT','TEXTAREA','SELECT'].includes(target?.tagName)||
+       target?.closest?.('[role="dialog"]'))return;
+    if(state.current.kind==='shanghai'&&['1','2','3','0'].includes(event.key)){
+      const n=E.currentTarget(state)?.number;
+      if(!n)return;
+      event.preventDefault();
+      addDart(event.key==='0'?0:n,event.key==='0'?0:Number(event.key));
+      return;
+    }
+    if(state.current.kind==='x01'&&event.key.length===1&&/^[0-9]$/.test(event.key)&&
+      !pendingCheckout&&$('pentaCheckout').hidden&&$('pentaCorrectionModal').hidden&&
+      $('pentaX01StatsPanel').hidden){
+      event.preventDefault();
+      const input=$('pentaVisit');
+      input.value=event.key;
+      input.focus({preventScroll:true});
+      input.setSelectionRange(input.value.length,input.value.length);
+    }
   });
   $('pentaStart').addEventListener('click',start);
   $('pentaResume').addEventListener('click',resume);
