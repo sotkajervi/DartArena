@@ -550,12 +550,13 @@
   $('pentaCorrectionScore').addEventListener('input',()=>{$('pentaCorrectionError').hidden=true;correctionOptions()});
   $('pentaCorrectionForm').addEventListener('submit',saveCorrection);
   $('pentaCorrectionCancel').addEventListener('click',closeCorrection);
-  $('pentaCorrectionModal').querySelector('.penta-correction-backdrop').addEventListener('click',closeCorrection);
+  $('pentaCorrectionModal').querySelector('.local-modal-backdrop').addEventListener('click',closeCorrection);
   $('pentaCheckoutForm').addEventListener('submit',event=>{
     event.preventDefault();
     if(!pendingCheckout||state?.current?.turn!==pendingCheckout.player)return closeCheckout();
     commitX01({score:pendingCheckout.score,bust:false,doubleConfirmed:true,darts:Number($('pentaCheckoutDarts').value)});
   });
+  $('pentaCheckout').querySelector('.local-modal-backdrop').addEventListener('click',closeCheckout);
   $('pentaCheckoutCancel').addEventListener('click',closeCheckout);
   $('pentaCheckoutBust').addEventListener('click',()=>{
     if(!pendingCheckout)return closeCheckout();
@@ -581,7 +582,7 @@
       input.value=(input.value+key.dataset.pentaKey).slice(0,3);
       
     }else if(key.dataset.pentaAction==='delete'){
-      input.value=input.value.slice(0,-1);updateCheckoutRow();
+      input.value=input.value.slice(0,-1);
     }else if(key.dataset.pentaAction==='enter'){
       $('pentaX01Form').requestSubmit();
     }
