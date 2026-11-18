@@ -167,7 +167,7 @@
         // as tested coin flips, but without a coin animation. Other modes
         // continue through the original match-start broadcast.
         const directX01=variant==='x01'&&
-          ['170','301','501','1001'].includes(String(match.game))&&
+          ['170','301','501','1001','2001'].includes(String(match.game))&&
           String(match.game_config?.chicago??'false').toLowerCase()!=='true';
         if(directX01&&typeof window.DartArenaCoinFlipSync?.startDirect==='function'){
           accept.textContent='Starter kampen…';
