@@ -95,32 +95,24 @@
     return block;
   }
   function x01LiveStats(){
-    const c=state.current,host=$('pentaX01Stats');
-    if(!host)return;
-    host.replaceChildren();
-    const rows=[
-      ['3-dart AVG',p=>x01Average(c.entries,p,c.used[p])],
-      ['First 9 AVG',p=>{
-        const visits=c.entries.filter(e=>e.type==='visit'&&e.player===p).slice(0,3);
-        const darts=Math.min(9,c.used[p]);
-        return darts?(visits.reduce((n,e)=>n+e.score,0)*3/darts).toFixed(2).replace('.',','):'–';
-      }],
-      ['Piler',p=>c.used[p]],
-      ['100+',p=>c.entries.filter(e=>e.type==='visit'&&e.player===p&&e.score>=100).length],
-      ['140+',p=>c.entries.filter(e=>e.type==='visit'&&e.player===p&&e.score>=140).length],
-      ['170+',p=>c.entries.filter(e=>e.type==='visit'&&e.player===p&&e.score>=170).length],
-      ['180',p=>c.entries.filter(e=>e.type==='visit'&&e.player===p&&e.score===180).length],
-      ['Høyeste checkout',p=>Math.max(0,...c.entries.filter(e=>e.type==='visit'&&e.player===p&&e.checkout).map(e=>e.score))||'–'],
-      ['Pentathlon-poeng',p=>c.pent[p]]
-    ];
-    const head=create('div','penta-x01-row penta-x01-head');
-    head.append(create('span','','STATISTIKK'),...state.players.map(name=>create('strong','',name)));
-    host.appendChild(head);
-    rows.forEach(([title,value])=>{
-      const row=create('div','penta-x01-row');
-      row.append(create('span','',title),create('strong','',value(0)),create('strong','',value(1)));
-      host.appendChild(row);
-    });
+    const c=state.current;
+    for(let p=0;p<2;p++){
+      const visits=c.entries.filter(e=>e.type==='visit'&&e.player===p);
+      const first=visits.slice(0,3);
+      const firstDarts=Math.min(c.used[p],9);
+      const firstAvg=firstDarts?(first.reduce((n,e)=>n+e.score,0)*3/firstDarts).toFixed(2):'0.00';
+      const put=(field,value)=>{const node=$('pentaH2H'+field+p);if(node)node.textContent=String(value)};
+      put('StatsName',state.players[p]);put('StatsName'+p+'b','');
+      const bName=$('pentaH2HStatsName'+p+'b');if(bName)bName.textContent=state.players[p];
+      put('StatAvg',c.used[p]?x01Average(c.entries,p,c.used[p]).replace(',','.'):'0.00');
+      put('StatFirst9',firstAvg);
+      put('StatCheckout',Math.max(0,...visits.filter(e=>e.checkout).map(e=>e.score))||'–');
+      put('StatFastest',c.win===p?c.used[p]+' piler':'–');
+      put('Stat100',visits.filter(e=>e.score>=100).length);
+      put('Stat140',visits.filter(e=>e.score>=140).length);
+      put('Stat170',visits.filter(e=>e.score>=170).length);
+      put('Stat180',visits.filter(e=>e.score===180).length);
+    }
   }
   let correctionIndex=-1;
   function closeCorrection(){
@@ -190,50 +182,35 @@
     }
   }
   function renderX01Board(){
-    const c=state.current,board=$('pentaLocalBoard');
-    board.replaceChildren();
+    const c=state.current;
     for(let p=0;p<2;p++){
-      const card=create('article','local-player'+(c.turn===p?' active':''));
-      const top=create('div','local-player-top');
-      top.append(create('small','','SPILLER '+(p+1)),create('span','local-current-marker','Kaster nå'));
-      const name=create('h2','local-match-name');
-      name.appendChild(create('span','',state.players[p]));
-      if(c.starter===p){
-        const marker=create('span','local-starter-mark','🎯');
-        marker.title='Starter leget';
-        marker.setAttribute('aria-label','Starter leget');
-        name.appendChild(marker);
-      }
-      const band=create('div','local-score-band');
-      const darts=create('div','local-live-darts');
-      darts.append(create('b','',c.used[p]),create('span','','PILER'));
-      const avg=create('div','local-avg');
-      avg.append(create('b','',x01Average(c.entries,p,c.used[p])),create('span','','AVG'));
-      band.append(darts,create('div','local-score',c.remaining[p]),avg);
-      const extra=create('div','local-leg-label');
-      extra.append(create('span','','PENTATHLON +'+c.pent[p]+' · '+(c.starter===p?'STARTER':'')));
-      card.append(top,name,band,extra);
-      board.appendChild(card);
+      const card=$('pentaH2HPlayer'+p);
+      card.classList.toggle('active',c.turn===p);
+      $('pentaH2HPlayerName'+p).textContent=state.players[p];
+      $('pentaH2HDarts'+p).textContent=c.used[p];
+      $('pentaH2HScore'+p).textContent=c.remaining[p];
+      $('pentaH2HAverage'+p).textContent=c.used[p]?x01Average(c.entries,p,c.used[p]).replace(',','.'):'–';
+      $('pentaH2HLegs'+p).textContent=c.win===p?'1':'0';
+      $('pentaH2HStarterMarker'+p).hidden=c.starter!==p;
     }
-    $('pentaX01Turn').textContent=state.players[c.turn]+' kaster';
+    $('pentaX01Turn').textContent=state.players[c.turn]+' kaster · '+c.remaining[c.turn]+' igjen';
     x01LiveStats();
     const throws=$('pentaX01Throws');
     throws.replaceChildren();
     for(let p=0;p<2;p++){
-      const line=create('div','penta-x01-throw-line');
-      line.appendChild(create('strong','',state.players[p]));
-      const chips=create('div','penta-x01-throw-chips');
+      const line=create('div','local-correction-line');
+      line.appendChild(create('span','local-correction-name',state.players[p]));
+      const chips=create('div','local-correction-chips');
       const visits=c.entries.map((entry,index)=>({entry,index}))
         .filter(item=>item.entry.type==='visit'&&item.entry.player===p).slice(-3);
       for(const item of visits){
         const entry=item.entry;
-        const chip=create('button','penta-x01-throw-chip',entry.bust?'BUST':entry.score);
-        chip.type='button';
-        chip.title='Korriger dette kastet';
+        const chip=create('button','local-throw-chip editable',entry.bust?'BUST':entry.score);
+        chip.type='button';chip.title='Korriger dette kastet';
         chip.addEventListener('click',()=>openCorrection(item.index));
         chips.appendChild(chip);
       }
-      if(!visits.length)chips.appendChild(create('span','penta-x01-empty','Ingen kast'));
+      if(!visits.length)chips.appendChild(create('span','local-throw-chip','Ingen kast ennå'));
       line.appendChild(chips);throws.appendChild(line);
     }
   }
@@ -241,6 +218,8 @@
     const c=state.current,wrap=$('pentaStagePlayers'),idx=state.stageIndex;
     const x01=c.kind==='x01';
     $('pentaX01Board').hidden=!x01;
+    $('pentaX01Corrections').hidden=!x01;
+    $('pentaX01StatsPanel').hidden=!x01;
     wrap.hidden=x01;
     $('pentaTarget').parentElement.parentElement.hidden=x01;
     if(x01)renderX01Board();
