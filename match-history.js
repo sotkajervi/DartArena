@@ -97,9 +97,10 @@ function contextLabel(m){
   return `${m.tournament_name||'Turnering'} • ${stage}`;
 }
 function canOpenStats(m){
-  const supported=variantOf(m)==='x01'||isChicago(m);
-  if(!supported)return false;
-  return isAdmin||!!m.tournament_id||m.player1_id===me||m.player2_id===me;
+  // All signed-in DartArena users can view completed X01 match statistics.
+  // Supabase read policies independently limit public match data to finished,
+  // non-deleted matches; other game types still need their own stats view.
+  return variantOf(m)==='x01'||isChicago(m);
 }
 
 async function deleteMatch(id){
