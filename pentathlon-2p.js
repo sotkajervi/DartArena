@@ -317,6 +317,17 @@
     $('pentaDartsRemaining').textContent=c.kind==='x01'?'REGISTRER KASTESUM':(c.kind==='clock'?(42-c.used[c.turn])+' PILER IGJEN':'PIL '+(c.pending.length+1)+' AV 3');
     $('pentaX01Controls').hidden=c.kind!=='x01';
     $('pentaDartControls').hidden=c.kind==='x01';
+    const shanghai=c.kind==='shanghai';
+    $('pentaShanghaiQuick').hidden=!shanghai;
+    $('pentaDartAdvanced').hidden=shanghai&&!$('pentaShanghaiOther').open;
+    if(shanghai){
+      const number=E.currentTarget(state)?.number||1;
+      $('pentaShanghaiTarget').textContent=String(number);
+      $('pentaShanghaiTurn').textContent='Pil '+(c.pending.length+1)+' av 3';
+      for(const [id,prefix] of [['pentaShanghaiSingle','S'],['pentaShanghaiDouble','D'],['pentaShanghaiTriple','T']]){
+        $(id).firstChild.textContent=prefix+number+' ';
+      }
+    }
     if(c.kind!=='x01'){
       const slots=$('pentaDartSlots').children;
       for(let i=0;i<3;i++){
@@ -539,6 +550,21 @@
   $('pentaStatsBackdrop').addEventListener('click',()=>setStatsOpen(false));
   document.addEventListener('keydown',event=>{
     if(event.key==='Escape'&&statsOpen)setStatsOpen(false);
+  });
+  $('pentaShanghaiOther').addEventListener('toggle',()=>{
+    if(state?.status==='playing'&&state.current.kind==='shanghai'){
+      $('pentaDartAdvanced').hidden=!$('pentaShanghaiOther').open;
+    }
+  });
+  $('pentaShanghaiQuick').querySelectorAll('[data-shanghai-mult]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      if(state?.status!=='playing'||state.current.kind!=='shanghai')return;
+      const target=E.currentTarget(state);
+      if(target?.number)addDart(target.number,Number(button.dataset.shanghaiMult));
+    });
+  });
+  $('pentaShanghaiMiss').addEventListener('click',()=>{
+    if(state?.status==='playing'&&state.current.kind==='shanghai')addDart(0,0);
   });
   $('pentaStart').addEventListener('click',start);
   $('pentaResume').addEventListener('click',resume);
