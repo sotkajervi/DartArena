@@ -107,3 +107,13 @@
 .penta-privacy{color:#88a5b4;font-size:11px}
 @media(max-width:1100px){.penta-layout{grid-template-columns:1fr}.penta-side{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){.penta-shell{width:95vw;margin:16px auto 40px}.penta-intro{align-items:flex-start;flex-direction:column}.penta-card{padding:15px}.penta-fields,.penta-side{grid-template-columns:1fr}.penta-progress{gap:3px}.penta-progress>div{font-size:9px;padding:8px 2px}.penta-player-card{padding:10px;align-items:flex-start;flex-direction:column}.penta-player-card h3{font-size:16px}.penta-total{font-size:26px}.penta-stage-players{gap:7px}.penta-stage-player{padding:10px}.penta-stage-player .penta-number{font-size:21px}.penta-review-details{grid-template-columns:1fr}.penta-top-bar{align-items:flex-start}.penta-top-actions{flex-shrink:0}}
+
+/* Local Pentathlon X01: match-card metrics, kept separate from Pentathlon points. */
+.penta-x01-live-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px;padding-top:11px;border-top:1px solid #31545d}
+.penta-x01-stat{display:flex;flex-direction:column;gap:3px;min-width:0}
+.penta-x01-stat strong{font-size:20px;color:#e9ffff;font-weight:900;font-variant-numeric:tabular-nums}
+.penta-x01-stat small{font-size:9px;color:#9cbec7;font-weight:800;letter-spacing:.06em}
+.penta-x01-starter{display:inline-block;margin-top:10px;color:#2be9e5;font-size:10px;font-weight:850;letter-spacing:.04em}
+.penta-x01-review-stats{padding:8px 0;margin:6px 0;border-top:1px solid #2e746b}
+.penta-x01-review-stats small{display:block}
+@media(max-width:420px){.penta-x01-stat strong{font-size:17px}.penta-x01-starter{font-size:9px}}
