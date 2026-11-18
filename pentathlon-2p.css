@@ -160,3 +160,15 @@
  .da-penta #pentaMobileKeypad button{min-height:45px;background:#102f36;border:1px solid #365865;border-radius:9px;color:#efffff;font-size:17px;font-weight:800}
  .da-penta #pentaMobileKeypad .local-keypad-enter{background:#00d6dc;color:#031d20}
 }
+
+/* Editable last throws, same interaction model as local Head-to-Head. */
+.da-penta button.penta-x01-throw-chip{cursor:pointer;color:#eefeff}
+.da-penta button.penta-x01-throw-chip:hover,.da-penta button.penta-x01-throw-chip:focus-visible{border-color:#00e9e9;color:#00e9e9}
+.da-penta .penta-correction-modal{position:fixed;inset:0;z-index:1100;display:grid;place-items:center;padding:16px}
+.da-penta .penta-correction-modal[hidden]{display:none!important}
+.da-penta .penta-correction-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.8)}
+.da-penta .penta-correction-card{position:relative;z-index:1;width:min(100%,460px);padding:24px;border:1px solid #33717a;border-radius:15px;background:#0a2028}
+.da-penta .penta-correction-card h2{margin:8px 0 12px;font-size:23px}
+.da-penta .penta-correction-card label{display:block;margin:14px 0;color:#c0dfe1;font-size:13px}
+.da-penta .penta-correction-card input{display:block;width:100%;background:#06171c;color:#fff;border:1px solid #35616b;border-radius:9px;padding:12px;font-size:23px;margin-top:7px}
+.da-penta .penta-correction-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px}
