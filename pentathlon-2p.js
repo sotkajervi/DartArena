@@ -7,6 +7,16 @@
   const STORE='dartarena-pentathlon-local-2p-v1';
   let state=null,mult=1,feedback='Klar for første kast.';
   let starting=false;
+  let statsOpen=false;
+  function setStatsOpen(open){
+    statsOpen=Boolean(open&&state?.status==='playing'&&state.current?.kind==='x01');
+    $('pentaStatsOpen').setAttribute('aria-expanded',String(statsOpen));
+    $('pentaX01StatsPanel').hidden=!statsOpen;
+    $('pentaStatsBackdrop').hidden=!statsOpen;
+    if(statsOpen)$('pentaStatsClose').focus();
+    else if(document.activeElement===$('pentaStatsClose'))$('pentaStatsOpen').focus();
+  }
+
   const create=(tag,cls,text)=>{
     const node=document.createElement(tag);
     if(cls)node.className=cls;
@@ -219,7 +229,11 @@
     const x01=c.kind==='x01';
     $('pentaX01Board').hidden=!x01;
     $('pentaX01Corrections').hidden=!x01;
-    $('pentaX01StatsPanel').hidden=!x01;
+    $('pentaStatsOpen').hidden=!x01;
+    if(!x01)statsOpen=false;
+    $('pentaX01StatsPanel').hidden=!x01||!statsOpen;
+    $('pentaStatsBackdrop').hidden=!x01||!statsOpen;
+    $('pentaStatsOpen').setAttribute('aria-expanded',String(statsOpen));
     wrap.hidden=x01;
     $('pentaTarget').parentElement.parentElement.hidden=x01;
     if(x01)renderX01Board();
@@ -348,6 +362,7 @@
     $('pentaStatus').textContent=state.status==='finished'?'PENTATHLON FULLFØRT':
       'ØVELSE '+(state.stageIndex+1)+' AV '+E.STAGES.length;
     $('pentaUndo').disabled=!state.undo?.length;
+    if(state.status!=='playing'||state.current.kind!=='x01')setStatsOpen(false);
     const progress=$('pentaProgress');progress.replaceChildren();
     E.STAGES.forEach((stage,i)=>{
       const item=create('div',i<state.summaries.length?'done':(i===state.stageIndex?'active':''),stage.label);
@@ -495,6 +510,12 @@
     document.body.appendChild(link);link.click();link.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
+  $('pentaStatsOpen').addEventListener('click',()=>setStatsOpen(!statsOpen));
+  $('pentaStatsClose').addEventListener('click',()=>setStatsOpen(false));
+  $('pentaStatsBackdrop').addEventListener('click',()=>setStatsOpen(false));
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&statsOpen)setStatsOpen(false);
+  });
   $('pentaStart').addEventListener('click',start);
   $('pentaResume').addEventListener('click',resume);
   $('pentaReset').addEventListener('click',reset);
