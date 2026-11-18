@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#071012">
+<link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/favicon-32.png">
+<title>Pentathlon 2 spillere · DartArena</title>
+<link rel="stylesheet" href="./style.css?v=20261025-originalcrisp1">
+<link rel="stylesheet" href="./brand-header.css?v=20261009-mobile1">
+<link rel="stylesheet" href="./pentathlon-2p.css?v=1">
+</head>
+<body class="da-penta">
+<header><div class="brand"><a href="./scoringarena.html" aria-label="Til ScoringArena"><img class="brand-logo" src="./assets/dartarena-logo.jpg" alt="DartArena" width="420" height="116"></a></div><div class="live"><i></i> PENTATHLON · 2P</div></header>
+<main class="penta-shell">
+  <div class="penta-intro"><div><small>SCORINGARENA / LOKAL FEMKAMP</small><h1>PENTA<span>THLON</span></h1><p>To spillere · NDF-inspirert poengregning · 2 × 501, 1001, 2001, Shanghai, Klokka og Half-It. Alle Pentathlon-poeng summeres automatisk.</p></div><a class="outline" href="./scoringarena.html">← ScoringArena</a></div>
+  <section class="penta-card penta-setup" id="pentaSetup">
+    <div class="penta-eyebrow">NY PENTATHLON</div><h2>Gjør klart oppgjøret</h2>
+    <div class="penta-fields"><label>Spiller 1<input id="pentaName0" maxlength="32" placeholder="Navn spiller 1" value="Spiller 1" autocomplete="off"></label><label>Spiller 2<input id="pentaName1" maxlength="32" placeholder="Navn spiller 2" value="Spiller 2" autocomplete="off"></label><label>Første kaster<select id="pentaStarter"><option value="random">Trekk tilfeldig</option><option value="0">Spiller 1</option><option value="1">Spiller 2</option></select></label></div>
+    <div class="penta-course"><div class="penta-eyebrow">ØVELSER / FAST REKKEFØLGE</div><div id="pentaCourse"></div></div>
+    <p class="penta-hint">Reglene er tilpasset et lokalt oppgjør med to spillere. Resultatet lagres bare i denne nettleseren og påvirker ikke online ranking.</p>
+    <p id="pentaSetupError" class="penta-error" role="alert"></p>
+    <div class="penta-setup-actions"><button class="penta-main-btn" type="button" id="pentaStart">START PENTATHLON →</button><button class="outline" id="pentaResume" type="button" hidden>Gjenoppta forrige</button></div>
+  </section>
+  <section id="pentaGame" hidden>
+    <div class="penta-top-bar"><div id="pentaStatus">ØVELSE 1 AV 7</div><div class="penta-top-actions"><button id="pentaUndo" class="outline" type="button">↶ Angre</button><button id="pentaReset" class="outline" type="button">Ny femkamp</button></div></div>
+    <div id="pentaProgress" class="penta-progress" aria-label="Fullførte øvelser"></div>
+    <div class="penta-layout">
+      <div class="penta-primary">
+        <section class="penta-card penta-scoreboard">
+          <div class="penta-eyebrow">SAMLET PENTATHLON-STILLING</div>
+          <div id="pentaPlayers" class="penta-players"></div>
+        </section>
+        <section id="pentaActivePanel" class="penta-card penta-active">
+          <div class="penta-stage-header"><div><span id="pentaStageCounter" class="penta-eyebrow">ØVELSE 1</span><h2 id="pentaStageName">501</h2><p id="pentaStageDescription">Dobbel ut</p></div><div class="penta-stage-tag" id="pentaTurnBadge">KASTER NÅ</div></div>
+          <div class="penta-stage-players" id="pentaStagePlayers"></div>
+          <div class="penta-target"><div><span>NESTE MÅL</span><strong id="pentaTarget">REST 501</strong></div><span id="pentaDartsRemaining">3 piler</span></div>
+          <div id="pentaX01Controls" class="penta-throw-entry">
+            <p class="penta-hint">Skriv samlet poeng for kastomgangen. Ved checkout: bekreft dobbel-ut og antall piler brukt.</p>
+            <form id="pentaX01Form" class="penta-x01-form">
+              <label>KASTESUM (0–180)<input id="pentaVisit" type="number" min="0" max="180" step="1" required inputmode="numeric" autocomplete="off" placeholder="F.eks. 140"></label>
+              <label class="penta-check"><input id="pentaBust" type="checkbox"> Bust / ugyldig avslutning</label>
+              <div id="pentaCheckoutRow" class="penta-checkout" hidden>
+                <label class="penta-check"><input id="pentaCheckout" type="checkbox"> Bekreft dobbel-ut / bull</label>
+                <label>Antall piler<select id="pentaCheckoutDarts"><option value="1">1 pil</option><option value="2">2 piler</option><option value="3" selected>3 piler</option></select></label>
+              </div>
+              <button class="penta-main-btn" id="pentaSubmitVisit" type="submit">REGISTRER KAST →</button>
+            </form>
+          </div>
+          <div id="pentaDartControls" class="penta-dart-entry" hidden>
+            <p class="penta-hint">Registrer hver pil. Måltallet oppdateres automatisk. Treffer du feil tall, velg det faktiske treffet.</p>
+            <div id="pentaDartSlots" class="penta-dart-slots"><div>–</div><div>–</div><div>–</div></div>
+            <div class="penta-mults" id="pentaMults"><button type="button" data-mult="1" class="active">SINGLE</button><button type="button" data-mult="2">DOUBLE</button><button type="button" data-mult="3">TRIPLE</button></div>
+            <div class="penta-nums" id="pentaNumbers"></div>
+            <div class="penta-extra"><button type="button" id="penta25">BULL 25</button><button type="button" id="penta50">BULL 50</button><button type="button" id="pentaMiss">BOM</button></div>
+          </div>
+          <p id="pentaFeedback" class="penta-feedback" aria-live="polite">Klar.</p>
+          <div class="penta-recent"><span class="penta-eyebrow">SISTE REGISTRERINGER</span><div id="pentaRecent"></div></div>
+        </section>
+        <section id="pentaReviewPanel" class="penta-card penta-review" hidden>
+          <span class="penta-eyebrow">ØVELSEN ER FULLFØRT</span><h2 id="pentaReviewTitle">Resultat</h2>
+          <p id="pentaReviewCaption"></p><div id="pentaReviewDetails"></div>
+          <button id="pentaNextStage" class="penta-main-btn" type="button">NESTE ØVELSE →</button>
+        </section>
+        <section id="pentaFinishedPanel" class="penta-card penta-finish" hidden>
+          <div class="penta-trophy">🏆</div><span class="penta-eyebrow">ALLE ØVELSER FULLFØRT</span>
+          <h2 id="pentaWinner">Pentathlon ferdig!</h2><p id="pentaFinishDescription"></p>
+          <button id="pentaExport" type="button" class="outline">Last ned resultat (CSV)</button>
+        </section>
+      </div>
+      <aside class="penta-side">
+        <section class="penta-card penta-results"><div class="penta-eyebrow">KONTROLLKORT</div><h2>Resultatliste</h2><p class="penta-hint">Poeng i hver øvelse og akkumulert total.</p><div id="pentaResultsTable"></div></section>
+        <section class="penta-card penta-rules"><div class="penta-eyebrow">PENTATHLON-POENG</div><h2>Hvordan telles det?</h2><div class="penta-rule-line"><span>95–130 poeng på 3 piler</span><strong>+1</strong></div><div class="penta-rule-line"><span>131–159</span><strong>+2</strong></div><div class="penta-rule-line"><span>160–180</span><strong>+3</strong></div><div class="penta-rule-line"><span>Vunnet X01-leg</span><strong>+2</strong></div><div class="penta-rule-line"><span>9 piler / 10–12 / 13–15 / 16–18 / 19–21</span><strong>+10 / +4 / +3 / +2 / +1</strong></div><p>Shanghai: S=1, D=2, T=3; S+D+T på samme tall = +6. Klokka: riktig dobbel = +2, pluss ubrukte piler ved fullføring. Half-It: riktige treff gir 1/2/3 Pentathlon-poeng. Halvering gjelder bare Half-It-score.</p><a href="https://norgesdartsforbund.no/NDF_Lover/NDF-Lover2025.pdf" target="_blank" rel="noopener noreferrer">Regelreferanse: NDF 2025 ↗</a></section>
+      </aside>
+    </div>
+  </section>
+</main>
+<script src="./pentathlon-2p-engine.js?v=1"></script>
+<script src="./pentathlon-2p.js?v=1"></script>
+</body></html>
