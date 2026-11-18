@@ -20,6 +20,12 @@
     #winnerText .jdc-finish-winner-line{display:block;line-height:1.2}
     #winnerText .jdc-finish-score-line{display:block;margin-top:7px;font-size:1.35em;color:#00eaf4;font-weight:950}
     #tierText .jdc-tier-text{font-weight:950}
+    #dartArenaResultOverlay .jdc-finish-tier-grid{margin:12px 0 6px;padding:9px 11px;background:#091c22;border:1px solid #31505a;border-radius:10px}
+    #dartArenaResultOverlay .jdc-finish-tier-grid>strong{display:block;margin-bottom:7px;color:#00eaf4;font-size:12px}
+    #dartArenaResultOverlay .jdc-finish-tier-columns{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px 9px}
+    #dartArenaResultOverlay .jdc-finish-tier-item{display:flex;align-items:center;gap:5px;font-size:10px;white-space:nowrap}
+    #dartArenaResultOverlay .jdc-finish-tier-item i{width:8px;height:8px;flex-shrink:0;margin:0}
+    @media(max-width:600px){#dartArenaResultOverlay .jdc-finish-tier-columns{grid-template-columns:repeat(2,minmax(0,1fr))}}
   `;
   document.head.appendChild(style);
 
@@ -74,6 +80,29 @@
       const tier=String(value.textContent||'').trim().split(/\s+/)[0].toLowerCase();
       if(COLORS[tier])value.style.color=COLORS[tier];
     });
+
+    // Make the exact official tier thresholds visible on the finished-match overlay.
+    if(!overlay.querySelector('.jdc-finish-tier-grid')){
+      const tiers=[
+        ['white','White','0–149'],['purple','Purple','150–299'],
+        ['yellow','Yellow','300–449'],['green','Green','450–599'],
+        ['blue','Blue','600–699'],['red','Red','700–849'],
+        ['black','Black','850–1249'],['gold','Gold','1250+']
+      ];
+      const grid=document.createElement('section');grid.className='jdc-finish-tier-grid';
+      const label=document.createElement('strong');label.textContent='JDC Tierliste · poenggrenser';
+      const columns=document.createElement('div');columns.className='jdc-finish-tier-columns';
+      tiers.forEach(([key,name,range])=>{
+        const item=document.createElement('div');item.className='jdc-finish-tier-item';
+        const dot=document.createElement('i');dot.className='jdc-tier-dot';dot.dataset.jdcTier=key;
+        const txt=document.createElement('span');txt.textContent=name+' '+range;
+        item.append(dot,txt);columns.appendChild(item);
+      });
+      grid.append(label,columns);
+      const stats=overlay.querySelector('.da-result-stats');
+      if(stats)stats.insertAdjacentElement('afterend',grid);
+      else overlay.querySelector('.da-result-card')?.appendChild(grid);
+    }
 
     const lobbyBtn=overlay.querySelector('#daResultLobby');
     if(lobbyBtn)lobbyBtn.remove();
