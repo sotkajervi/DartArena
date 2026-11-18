@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="./local-h2h.css?v=20261011-personas2">
 <link rel="stylesheet" href="./shared-results.css?v=20261023-bulldown2">
 <link rel="stylesheet" href="./premium-match-stats.css?v=20261003-premium1">
-<link rel="stylesheet" href="./pentathlon-2p.css?v=20261118-h2h-modals1">
+<link rel="stylesheet" href="./pentathlon-2p.css?v=20261118-compact-game1">
 </head>
 <body class="da-penta local-h2h-page">
 <header><div class="brand"><a href="./scoringarena.html" aria-label="Til ScoringArena"><img class="brand-logo" src="./assets/dartarena-logo.jpg" alt="DartArena" width="420" height="116"></a></div><div class="live"><i></i> PENTATHLON · 2P</div></header>
@@ -25,7 +25,7 @@
   </section>
   <section id="pentaGame" hidden>
     <div id="pentaStatsBackdrop" class="penta-stats-backdrop" hidden></div>
-    <div class="penta-top-bar"><div id="pentaStatus">ØVELSE 1 AV 7</div><div class="penta-top-actions"><button id="pentaStatsOpen" class="outline" type="button" aria-expanded="false" aria-controls="pentaX01StatsPanel">Statistikk</button><button id="pentaUndo" class="outline" type="button">↶ Angre</button><button id="pentaReset" class="outline" type="button">Ny femkamp</button></div></div>
+    <div class="penta-top-bar"><div id="pentaStatus">ØVELSE 1 AV 7</div><div class="penta-top-actions"><button id="pentaResultsOpen" class="outline" type="button" aria-expanded="false" aria-controls="pentaResultsDetails">Resultater</button><button id="pentaRulesOpen" class="outline" type="button" aria-expanded="false" aria-controls="pentaRulesDetails">Regler</button><button id="pentaStatsOpen" class="outline" type="button" aria-expanded="false" aria-controls="pentaX01StatsPanel">Statistikk</button><button id="pentaUndo" class="outline" type="button">↶ Angre</button><button id="pentaReset" class="outline" type="button">Ny femkamp</button></div></div>
     <div id="pentaProgress" class="penta-progress" aria-label="Fullførte øvelser"></div>
     <div class="penta-layout">
       <div class="penta-primary">
@@ -107,9 +107,13 @@
           <button id="pentaExport" type="button" class="outline">Last ned resultat (CSV)</button>
         </section>
       </div>
-      <aside class="penta-side">
+      <aside class="penta-side" id="pentaSide">
+        <div id="pentaResultsDetails" class="penta-side-detail" hidden>
         <section class="penta-card penta-results"><div class="penta-eyebrow">KONTROLLKORT</div><h2>Resultatliste</h2><p class="penta-hint">Poeng i hver øvelse og akkumulert total.</p><div id="pentaResultsTable"></div></section>
+        </div>
+        <div id="pentaRulesDetails" class="penta-side-detail" hidden>
         <section class="penta-card penta-rules"><div class="penta-eyebrow">PENTATHLON-POENG</div><h2>Hvordan telles det?</h2><div class="penta-rule-line"><span>95–130 poeng på 3 piler</span><strong>+1</strong></div><div class="penta-rule-line"><span>131–159</span><strong>+2</strong></div><div class="penta-rule-line"><span>160–180</span><strong>+3</strong></div><div class="penta-rule-line"><span>Vunnet X01-leg</span><strong>+2</strong></div><div class="penta-rule-line"><span>9 piler / 10–12 / 13–15 / 16–18 / 19–21</span><strong>+10 / +4 / +3 / +2 / +1</strong></div><p>Shanghai: S=1, D=2, T=3; S+D+T på samme tall = +6. Klokka: riktig dobbel = +2, pluss ubrukte piler ved fullføring. Half-It: riktige treff gir 1/2/3 Pentathlon-poeng. Halvering gjelder bare Half-It-score.</p><a href="https://norgesdartsforbund.no/NDF_Lover/NDF-Lover2025.pdf" target="_blank" rel="noopener noreferrer">Regelreferanse: NDF 2025 ↗</a></section>
+        </div>
       </aside>
     </div>
   </section>
@@ -148,5 +152,5 @@
 </div>
 <script src="./room-coin-flip.js?v=20261002-coin9"></script>
 <script src="./pentathlon-2p-engine.js?v=1"></script>
-<script src="./pentathlon-2p.js?v=20261118-h2h-modals2"></script>
+<script src="./pentathlon-2p.js?v=20261118-compact-game1"></script>
 </body></html>
