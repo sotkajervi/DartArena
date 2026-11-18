@@ -7,16 +7,6 @@
   const STORE='dartarena-pentathlon-local-2p-v1';
   let state=null,mult=1,feedback='Klar for første kast.';
   let starting=false;
-  let detailOpen=null;
-  function setDetailOpen(kind){
-    detailOpen=detailOpen===kind?null:kind;
-    for(const type of ['Results','Rules']){
-      const active=detailOpen===type;
-      $('penta'+type+'Details').hidden=!active;
-      $('penta'+type+'Open').setAttribute('aria-expanded',String(active));
-    }
-    $('pentaSide').classList.toggle('is-open',Boolean(detailOpen));
-  }
   let statsOpen=false;
   function setStatsOpen(open){
     statsOpen=Boolean(open&&state?.status==='playing'&&state.current?.kind==='x01');
@@ -416,8 +406,6 @@
   function render(){
     if(!state)return;
     $('pentaSetup').hidden=true;$('pentaGame').hidden=false;
-    document.body.classList.add('penta-playing');
-    $('pentaGame').classList.toggle('penta-game-x01',state.status==='playing'&&state.current.kind==='x01');
     $('pentaStatus').textContent=state.status==='finished'?'PENTATHLON FULLFØRT':
       'ØVELSE '+(state.stageIndex+1)+' AV '+E.STAGES.length;
     $('pentaUndo').disabled=!state.undo?.length;
@@ -517,13 +505,6 @@
     if(state&&!window.confirm('Starte en ny Pentathlon? Nåværende resultat og angrehistorikk overskrives.'))return;
     state=null;
     try{localStorage.removeItem(STORE)}catch(_){}
-    document.body.classList.remove('penta-playing');
-    detailOpen=null;
-    for(const type of ['Results','Rules']){
-      $('penta'+type+'Details').hidden=true;
-      $('penta'+type+'Open').setAttribute('aria-expanded','false');
-    }
-    $('pentaSide').classList.remove('is-open');
     $('pentaGame').hidden=true;$('pentaSetup').hidden=false;showResume();
     $('pentaSetup').scrollIntoView({block:'start',behavior:'smooth'});
   }
@@ -553,8 +534,6 @@
     document.body.appendChild(link);link.click();link.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
-  $('pentaResultsOpen').addEventListener('click',()=>setDetailOpen('Results'));
-  $('pentaRulesOpen').addEventListener('click',()=>setDetailOpen('Rules'));
   $('pentaStatsOpen').addEventListener('click',()=>setStatsOpen(!statsOpen));
   $('pentaStatsClose').addEventListener('click',()=>setStatsOpen(false));
   $('pentaStatsBackdrop').addEventListener('click',()=>setStatsOpen(false));
