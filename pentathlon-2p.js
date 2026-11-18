@@ -23,7 +23,7 @@
   }
   function showResume(){const old=stored();$('pentaResume').hidden=!old; if(old)$('pentaResume').textContent=old.status==='finished'?'Åpne forrige resultat':'Gjenoppta forrige femkamp'}
   function course(){
-    const wrap=$('pentaCourse').lastElementChild;
+    const wrap=$('pentaCourse');
     E.STAGES.forEach((stage,index)=>{
       const pill=create('span','penta-course-item');
       pill.append(create('b','',String(index+1).padStart(2,'0')),document.createTextNode(stage.label));
