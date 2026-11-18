@@ -338,9 +338,7 @@
       const number=E.currentTarget(state)?.number||1;
       $('pentaShanghaiTarget').textContent=String(number);
       $('pentaShanghaiTurn').textContent='Pil '+(c.pending.length+1)+' av 3 · '+c.used[c.turn]+' / 27 totalt';
-      for(const [id,prefix] of [['pentaShanghaiSingle','S'],['pentaShanghaiDouble','D'],['pentaShanghaiTriple','T']]){
-        $(id).firstChild.textContent=prefix+number+' ';
-      }
+
     }
     if(c.kind!=='x01'){
       const slots=$('pentaDartSlots').children;
