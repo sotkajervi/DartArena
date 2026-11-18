@@ -179,6 +179,7 @@
       $('winnerText').textContent=match.winner_id?`${names[match.winner_id]||'Vinner'} vinner ${match.player1_score}–${match.player2_score}`:`Uavgjort ${match.player1_score}–${match.player2_score}`;
       const mineScore=myId()===match.player1_id?Number(match.player1_score||0):Number(match.player2_score||0),badge=badgeFor(mineScore);
       $('tierText').textContent=`Din offisielle score: ${mineScore} • ${TIER_LABELS[badge]} tier`;
+      document.dispatchEvent(new Event('dartarena-jdc-online-finished'));
       return;
     }
     if(match.status==='cancelled'){
