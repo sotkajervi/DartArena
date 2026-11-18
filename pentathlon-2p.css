@@ -165,3 +165,12 @@
  .da-penta .local-entry-controls #pentaSubmitVisit{display:none}
  .da-penta .local-entry-controls #pentaBustButton{grid-column:2;min-height:46px;height:46px;padding:6px 8px;font-size:14px}
 }
+
+/* Keep the cumulative standings out of the active game's way until requested. */
+.da-penta .penta-standings-details{margin:0;min-width:0}
+.da-penta .penta-standings-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;padding:10px 14px;border:1px solid #2c5660;border-radius:10px;background:#0b232a;color:#d5f5f5;font-size:12px;font-weight:850}
+.da-penta .penta-standings-toggle::-webkit-details-marker{display:none}
+.da-penta .penta-standings-toggle:hover,.da-penta .penta-standings-toggle:focus-visible{border-color:#00e0e4;color:#00ebec}
+.da-penta .penta-standings-details[open]>.penta-standings-toggle{border-color:#00d8df}
+.da-penta .penta-standings-details[open]>.penta-standings-toggle span{transform:rotate(180deg)}
+.da-penta .penta-standings-details>.penta-scoreboard{margin-top:8px}
