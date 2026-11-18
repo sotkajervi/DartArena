@@ -43,7 +43,7 @@ const setStatus=t=>{$('cameraStatus').textContent=t};
 const selectedGame=()=>$('roomGame')?.value||'501';
 const isSpecialGame=()=>['chicago','cricket','half_it','half_it_standard','sixty_one','jdc'].includes(selectedGame());
 // X01 game values share one engine and one eventual seamless media handoff.
-const SEAMLESS_X01_GAMES=Object.freeze(['170','301','501','1001']);
+const SEAMLESS_X01_GAMES=Object.freeze(['170','301','501','1001','2001']);
 const isSeamlessX01=(raw,variant)=>SEAMLESS_X01_GAMES.includes(String(raw||''))&&(!variant||variant==='x01');
 window.DartArenaChallengeX01=Object.freeze({games:SEAMLESS_X01_GAMES,isSupported:isSeamlessX01});
 const pageForVariant=v=>v==='cricket'?'cricket.html':v==='half_it'?'half-it.html':v==='sixty_one'?'61-match.html':v==='jdc'?'jdc-match.html':'match.html';
