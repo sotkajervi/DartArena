@@ -94,8 +94,85 @@
     );
     return block;
   }
+  function x01LiveStats(){
+    const c=state.current,host=$('pentaX01Stats');
+    if(!host)return;
+    host.replaceChildren();
+    const rows=[
+      ['3-dart AVG',p=>x01Average(c.entries,p,c.used[p])],
+      ['First 9 AVG',p=>{
+        const visits=c.entries.filter(e=>e.type==='visit'&&e.player===p).slice(0,3);
+        const darts=Math.min(9,c.used[p]);
+        return darts?(visits.reduce((n,e)=>n+e.score,0)*3/darts).toFixed(2).replace('.',','):'–';
+      }],
+      ['Piler',p=>c.used[p]],
+      ['100+',p=>c.entries.filter(e=>e.type==='visit'&&e.player===p&&e.score>=100).length],
+      ['140+',p=>c.entries.filter(e=>e.type==='visit'&&e.player===p&&e.score>=140).length],
+      ['170+',p=>c.entries.filter(e=>e.type==='visit'&&e.player===p&&e.score>=170).length],
+      ['180',p=>c.entries.filter(e=>e.type==='visit'&&e.player===p&&e.score===180).length],
+      ['Høyeste checkout',p=>Math.max(0,...c.entries.filter(e=>e.type==='visit'&&e.player===p&&e.checkout).map(e=>e.score))||'–'],
+      ['Pentathlon-poeng',p=>c.pent[p]]
+    ];
+    const head=create('div','penta-x01-row penta-x01-head');
+    head.append(create('span','','STATISTIKK'),...state.players.map(name=>create('strong','',name)));
+    host.appendChild(head);
+    rows.forEach(([title,value])=>{
+      const row=create('div','penta-x01-row');
+      row.append(create('span','',title),create('strong','',value(0)),create('strong','',value(1)));
+      host.appendChild(row);
+    });
+  }
+  function renderX01Board(){
+    const c=state.current,board=$('pentaLocalBoard');
+    board.replaceChildren();
+    for(let p=0;p<2;p++){
+      const card=create('article','local-player'+(c.turn===p?' active':''));
+      const top=create('div','local-player-top');
+      top.append(create('small','','SPILLER '+(p+1)),create('span','local-current-marker','Kaster nå'));
+      const name=create('h2','local-match-name');
+      name.appendChild(create('span','',state.players[p]));
+      if(c.starter===p){
+        const marker=create('span','local-starter-mark','🎯');
+        marker.title='Starter leget';
+        marker.setAttribute('aria-label','Starter leget');
+        name.appendChild(marker);
+      }
+      const band=create('div','local-score-band');
+      const darts=create('div','local-live-darts');
+      darts.append(create('b','',c.used[p]),create('span','','PILER'));
+      const avg=create('div','local-avg');
+      avg.append(create('b','',x01Average(c.entries,p,c.used[p])),create('span','','AVG'));
+      band.append(darts,create('div','local-score',c.remaining[p]),avg);
+      const extra=create('div','local-leg-label');
+      extra.append(create('span','','PENTATHLON +'+c.pent[p]+' · '+(c.starter===p?'STARTER':'')));
+      card.append(top,name,band,extra);
+      board.appendChild(card);
+    }
+    $('pentaX01Turn').textContent=state.players[c.turn]+' kaster';
+    x01LiveStats();
+    const throws=$('pentaX01Throws');
+    throws.replaceChildren();
+    for(let p=0;p<2;p++){
+      const line=create('div','penta-x01-throw-line');
+      line.appendChild(create('strong','',state.players[p]));
+      const chips=create('div','penta-x01-throw-chips');
+      const visits=c.entries.filter(e=>e.type==='visit'&&e.player===p).slice(-3);
+      for(const entry of visits){
+        const chip=create('span','penta-x01-throw-chip',entry.bust?'BUST':entry.score);
+        chip.title=entry.checkout?'Utsjekk med '+entry.darts+' piler':'Registrert kast';
+        chips.appendChild(chip);
+      }
+      if(!visits.length)chips.appendChild(create('span','penta-x01-empty','Ingen kast'));
+      line.appendChild(chips);throws.appendChild(line);
+    }
+  }
   function stageStats(){
     const c=state.current,wrap=$('pentaStagePlayers'),idx=state.stageIndex;
+    const x01=c.kind==='x01';
+    $('pentaX01Board').hidden=!x01;
+    wrap.hidden=x01;
+    $('pentaTarget').parentElement.parentElement.hidden=x01;
+    if(x01)renderX01Board();
     wrap.replaceChildren();
     for(let p=0;p<2;p++){
       const box=create('div','penta-stage-player'+(state.status==='playing'&&c.turn===p?' active':''));
@@ -257,6 +334,15 @@
     try{
       const score=$('pentaVisit').value.trim();
       const oldStage=state.stageIndex;
+      const remaining=state.current.remaining[state.current.turn];
+      const shouldCheckout=score!==''&&!$('pentaBust').checked&&Number(score)===remaining;
+      if(shouldCheckout&&!$('pentaCheckout').checked){
+        feedback='Bekreft dobbel-ut og velg antall piler for utsjekken.';
+        $('pentaCheckoutRow').hidden=false;
+        $('pentaCheckout').focus();
+        $('pentaFeedback').textContent=feedback;
+        return;
+      }
       state=E.submitX01(state,{
         score,bust:$('pentaBust').checked,doubleConfirmed:$('pentaCheckout').checked,
         darts:Number($('pentaCheckoutDarts').value)
@@ -368,5 +454,24 @@
   $('pentaX01Form').addEventListener('submit',submitX01);
   $('pentaVisit').addEventListener('input',updateCheckoutRow);
   $('pentaBust').addEventListener('change',updateCheckoutRow);
+  $('pentaBustButton').addEventListener('click',()=>{
+    if(state?.status!=='playing'||state.current.kind!=='x01')return;
+    $('pentaBust').checked=true;
+    $('pentaVisit').value='0';
+    $('pentaX01Form').requestSubmit();
+  });
+  $('pentaMobileKeypad').addEventListener('click',event=>{
+    const key=event.target.closest('button');
+    if(!key)return;
+    const input=$('pentaVisit');
+    if(key.dataset.pentaKey!==undefined){
+      input.value=(input.value+key.dataset.pentaKey).slice(0,3);
+      updateCheckoutRow();
+    }else if(key.dataset.pentaAction==='delete'){
+      input.value=input.value.slice(0,-1);updateCheckoutRow();
+    }else if(key.dataset.pentaAction==='enter'){
+      $('pentaX01Form').requestSubmit();
+    }
+  });
   course();makeNumberGrid();renderMultiplier();showResume();
 })();
