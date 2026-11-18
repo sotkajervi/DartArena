@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="./local-h2h.css?v=20261011-personas2">
 <link rel="stylesheet" href="./shared-results.css?v=20261023-bulldown2">
 <link rel="stylesheet" href="./premium-match-stats.css?v=20261003-premium1">
-<link rel="stylesheet" href="./pentathlon-2p.css?v=20261118-restored1">
+<link rel="stylesheet" href="./pentathlon-2p.css?v=20261118-shanghai-shortcuts1">
 </head>
 <body class="da-penta local-h2h-page">
 <header><div class="brand"><a href="./scoringarena.html" aria-label="Til ScoringArena"><img class="brand-logo" src="./assets/dartarena-logo.jpg" alt="DartArena" width="420" height="116"></a></div><div class="live"><i></i> PENTATHLON · 2P</div></header>
@@ -83,9 +83,23 @@
           <div id="pentaDartControls" class="penta-dart-entry" hidden>
             <p class="penta-hint">Registrer hver pil. Måltallet oppdateres automatisk. Treffer du feil tall, velg det faktiske treffet.</p>
             <div id="pentaDartSlots" class="penta-dart-slots"><div>–</div><div>–</div><div>–</div></div>
-            <div class="penta-mults" id="pentaMults"><button type="button" data-mult="1" class="active">SINGLE</button><button type="button" data-mult="2">DOUBLE</button><button type="button" data-mult="3">TRIPLE</button></div>
-            <div class="penta-nums" id="pentaNumbers"></div>
-            <div class="penta-extra"><button type="button" id="penta25">BULL 25</button><button type="button" id="penta50">BULL 50</button><button type="button" id="pentaMiss">BOM</button></div>
+            <section id="pentaShanghaiQuick" class="penta-shanghai-quick" hidden aria-label="Shanghai hurtigregistrering">
+              <div class="penta-shanghai-label">SHANGHAI · MÅL <strong id="pentaShanghaiTarget">1</strong> <span id="pentaShanghaiTurn">Pil 1 av 3</span></div>
+              <div class="penta-shanghai-buttons">
+                <button type="button" id="pentaShanghaiSingle" data-shanghai-mult="1">S1 <small>Single</small></button>
+                <button type="button" id="pentaShanghaiDouble" data-shanghai-mult="2">D1 <small>Dobbel</small></button>
+                <button type="button" id="pentaShanghaiTriple" data-shanghai-mult="3">T1 <small>Trippel</small></button>
+                <button type="button" id="pentaShanghaiMiss">BOM <small>0 poeng</small></button>
+              </div>
+              <details id="pentaShanghaiOther" class="penta-shanghai-other">
+                <summary>Annet treff / feil tall</summary>
+              </details>
+            </section>
+            <div id="pentaDartAdvanced">
+              <div class="penta-mults" id="pentaMults"><button type="button" data-mult="1" class="active">SINGLE</button><button type="button" data-mult="2">DOUBLE</button><button type="button" data-mult="3">TRIPLE</button></div>
+              <div class="penta-nums" id="pentaNumbers"></div>
+              <div class="penta-extra"><button type="button" id="penta25">BULL 25</button><button type="button" id="penta50">BULL 50</button><button type="button" id="pentaMiss">BOM</button></div>
+            </div>
           </div>
           <p id="pentaFeedback" class="penta-feedback" aria-live="polite">Klar.</p>
           <div class="penta-recent"><span class="penta-eyebrow">SISTE REGISTRERINGER</span><div id="pentaRecent"></div></div>
@@ -148,5 +162,5 @@
 </div>
 <script src="./room-coin-flip.js?v=20261002-coin9"></script>
 <script src="./pentathlon-2p-engine.js?v=1"></script>
-<script src="./pentathlon-2p.js?v=20261118-restored1"></script>
+<script src="./pentathlon-2p.js?v=20261118-shanghai-shortcuts1"></script>
 </body></html>
