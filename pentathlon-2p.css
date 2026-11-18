@@ -200,3 +200,28 @@
 .da-penta .penta-shanghai-other summary{cursor:pointer;font-size:12px;font-weight:750}
 .da-penta #pentaDartAdvanced[hidden]{display:none!important}
 @media(max-width:520px){.da-penta .penta-shanghai-buttons{gap:5px}.da-penta .penta-shanghai-buttons button{font-size:20px;min-height:66px}.da-penta .penta-shanghai-buttons button small{font-size:9px}.da-penta .penta-shanghai-quick{padding:9px}}
+
+/* Shanghai: same local H2H player-card composition; replace X01 remaining with Pentathlon score. */
+.da-penta .penta-stage-players.penta-shanghai-board{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:13px 0 10px
+}
+.da-penta .penta-shanghai-board .local-player{
+  min-width:0;padding:12px 13px;border-radius:12px;background:linear-gradient(155deg,#102125,#0a171a)
+}
+.da-penta .penta-shanghai-board .local-player.active{
+  border-color:var(--cyan);box-shadow:inset 0 0 0 1px rgba(0,234,244,.3)
+}
+.da-penta .penta-shanghai-board .local-score-band{
+  display:grid;grid-template-columns:clamp(46px,5.2vw,70px) minmax(0,1fr) clamp(46px,5.2vw,70px);
+  align-items:center;gap:6px;width:100%
+}
+.da-penta .penta-shanghai-board .local-score{
+  min-width:0;text-align:center;font-size:clamp(48px,7.8vh,84px);font-weight:950;line-height:1.04
+}
+.da-penta .penta-shanghai-board .local-leg-label{color:#00eaf4;text-align:right;font-weight:800;font-size:12px;margin-top:4px}
+.da-penta .penta-shanghai-board .local-starter-mark svg{width:34px;height:30px;display:block}
+.da-penta .penta-shanghai-quick .penta-shanghai-label{letter-spacing:0}
+@media(max-width:700px){
+ .da-penta .penta-stage-players.penta-shanghai-board{grid-template-columns:1fr}
+ .da-penta .penta-shanghai-board .local-score{font-size:clamp(44px,10vw,72px)}
+}
