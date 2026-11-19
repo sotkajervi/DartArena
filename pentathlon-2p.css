@@ -311,3 +311,12 @@
   .da-penta .penta-finish-round{gap:5px;padding:7px 5px;font-size:11px}
   .da-penta .penta-finish-breakdown-head small{font-size:9px}
 }
+
+/* Finished state only: center the complete online-inspired result, avoiding
+   a redundant second results table and rules sidebar. Regular play unchanged. */
+.da-penta.penta-finished .penta-layout{grid-template-columns:minmax(0,1fr)}
+.da-penta.penta-finished .penta-primary{width:100%;justify-items:stretch}
+.da-penta.penta-finished .penta-side{display:none}
+.da-penta.penta-finished #pentaFinishedPanel{width:min(900px,100%);justify-self:center}
+.da-penta.penta-finished #pentaStandingsDetails{width:min(900px,100%);justify-self:center}
+.da-penta.penta-finished .penta-progress{max-width:900px;width:100%;margin-left:auto;margin-right:auto}
