@@ -1513,11 +1513,16 @@
     selector.setAttribute('role','group');
     selector.setAttribute('aria-label','Language / Språk');
     selector.setAttribute('data-no-i18n','');
-    for(const [code,flag,name] of [['no','🇳🇴','Norsk'],['en','🇬🇧','English']]){
+    // Inline SVG flags work on Windows, where emoji country flags display as NO/GB.
+    const flagSvg={
+      no:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 16" aria-hidden="true" focusable="false"><rect width="22" height="16" fill="#ba1c2d"/><path d="M0 7H22V11H0ZM7 0H11V16H7Z" fill="#fff"/><path d="M0 8H22V10H0ZM8 0H10V16H8Z" fill="#00205b"/></svg>',
+      en:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 36" aria-hidden="true" focusable="false"><rect width="60" height="36" fill="#012169"/><path d="M0 0L60 36M60 0L0 36" stroke="#fff" stroke-width="8"/><path d="M0 0L60 36M60 0L0 36" stroke="#c8102e" stroke-width="3.5"/><path d="M30 0V36M0 18H60" stroke="#fff" stroke-width="12"/><path d="M30 0V36M0 18H60" stroke="#c8102e" stroke-width="6"/></svg>'
+    };
+    for(const [code,name] of [['no','Norsk'],['en','English']]){
       const button=document.createElement('button');
       button.type='button';button.className='da-language-button';
       button.dataset.language=code;
-      button.textContent=flag;
+      button.innerHTML=flagSvg[code];
       button.setAttribute('lang',code==='no'?'nb':'en');
       button.setAttribute('title',name);
       button.setAttribute('aria-label',name);
@@ -1533,6 +1538,7 @@
   sheet.textContent=[
     'header .da-language-switch{display:inline-flex;align-items:center;gap:3px;margin-left:10px;padding:3px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.20);flex-shrink:0;order:20}',
     'header .da-language-switch .da-language-button{appearance:none;display:grid;place-items:center;min-width:31px;min-height:29px;height:29px;padding:2px 4px;border:1px solid transparent!important;border-radius:6px;background:transparent!important;box-shadow:none!important;font-size:18px;line-height:1;cursor:pointer;opacity:.65;transition:opacity .15s,border-color .15s,background .15s}',
+    'header .da-language-switch .da-language-button svg{display:block;width:22px;height:16px;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.17);object-fit:cover}',
     'header .da-language-switch .da-language-button.active{opacity:1;border-color:#00eaf4!important;background:rgba(0,234,244,.12)!important}',
     'header .da-language-switch .da-language-button:hover{opacity:1}',
     'header .da-language-switch .da-language-button:focus-visible{outline:2px solid #00eaf4;outline-offset:2px}',
@@ -1542,6 +1548,7 @@
   sheet.textContent+=[
     '.da-language-floating{position:fixed;z-index:999;right:12px;top:12px;display:inline-flex;gap:3px;padding:3px;border:1px solid rgba(255,255,255,.12);border-radius:9px;background:#071012}',
     '.da-language-floating .da-language-button{appearance:none;display:grid;place-items:center;min-width:31px;min-height:29px;height:29px;padding:2px 4px;border:1px solid transparent;border-radius:6px;background:transparent;color:#fff;box-shadow:none;font-size:18px;line-height:1;cursor:pointer;opacity:.65}',
+    '.da-language-floating .da-language-button svg{display:block;width:22px;height:16px;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.17)}',
     '.da-language-floating .da-language-button.active{opacity:1;border-color:#00eaf4;background:rgba(0,234,244,.12)}',
     '.da-language-floating .da-language-button:focus-visible{outline:2px solid #00eaf4;outline-offset:2px}'
   ].join('\n');
