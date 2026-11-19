@@ -72,7 +72,7 @@
     try{
       const signature=clockIdentity();
       if(signature&&clockQueue.length)localStorage.setItem(CLOCK_QUEUE_KEY,JSON.stringify({signature,darts:clockQueue}));
-      else localStorage.removeItem(CLOCK_QUEUE_KEY);localStorage.removeItem(HALF_QUEUE_KEY);
+      else localStorage.removeItem(CLOCK_QUEUE_KEY);
     }catch(_){}
   }
   function restoreClockQueue(){
@@ -907,7 +907,7 @@
   function reset(){
     if(state&&!window.confirm('Starte en ny Pentathlon? Nåværende resultat og angrehistorikk overskrives.'))return;
     state=null;shanghaiQueue=[];clockQueue=[];halfQueue=[];
-    try{localStorage.removeItem(STORE);localStorage.removeItem(SHANGHAI_QUEUE_KEY);localStorage.removeItem(CLOCK_QUEUE_KEY)}catch(_){}
+    try{localStorage.removeItem(STORE);localStorage.removeItem(SHANGHAI_QUEUE_KEY);localStorage.removeItem(CLOCK_QUEUE_KEY);localStorage.removeItem(HALF_QUEUE_KEY)}catch(_){}
     $('pentaGame').hidden=true;$('pentaSetup').hidden=false;showResume();
     $('pentaSetup').scrollIntoView({block:'start',behavior:'smooth'});
   }
