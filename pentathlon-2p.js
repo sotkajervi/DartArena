@@ -778,6 +778,124 @@
     }
     $('pentaNextStage').textContent=state.stageIndex===E.STAGES.length-1?'SE SLUTTRESULTAT →':'NESTE ØVELSE →';
   }
+  // Read-only drilldown for completed exercises. Uses the saved summary and
+  // throw records, never resumes or mutates the scoring engine.
+  let stageStatsReturnFocus=null;
+  function statLine(label,value){
+    const row=create('div','penta-drill-metric');
+    row.append(create('span','',label),create('strong','',value));
+    return row;
+  }
+  function stageStatValues(summary,p){
+    const entries=(summary.entries||[]).filter(entry=>entry.player===p);
+    const used=summary.used[p];
+    if(summary.kind==='x01'){
+      const throws=entries.filter(e=>e.type==='visit');
+      const scored=throws.reduce((sum,e)=>sum+Number(e.score||0),0);
+      const checkout=throws.find(e=>e.checkout);
+      const counts=summary.counts?.[p]||{};
+      return [
+        ['Pentathlon-poeng',summary.pent[p]],
+        ['Piler brukt',used],
+        ['3-pilssnitt',used?(scored*3/used).toFixed(2):'0.00'],
+        ['95–130 / 131–159 / 160–180', [counts.n95||0,counts.n131||0,counts.n160||0].join(' / ')],
+        ['100+ kast',counts.tons||0],
+        ['Høyeste kast',throws.length?Math.max(...throws.map(e=>Number(e.score)||0)):0],
+        ['Vunnet leg',summary.winner===p?'Ja':'Nei'],
+        ['Utsjekk',checkout?checkout.score+' poeng · '+checkout.darts+' piler':'–'],
+        ['Utsjekkbonus',checkout?Number(checkout.speedBonus||0)+' P':'–']
+      ];
+    }
+    if(summary.kind==='shanghai'){
+      return [
+        ['Pentathlon-poeng',summary.pent[p]],
+        ['Piler brukt',used+' / 27'],
+        ['Single / Dobbel / Trippel',[
+          entries.filter(e=>/^S[1-9]/.test(e.hit)&&e.bonus>0).length,
+          entries.filter(e=>/^D[1-9]/.test(e.hit)&&e.bonus>0).length,
+          entries.filter(e=>/^T[1-9]/.test(e.hit)&&e.bonus>0).length].join(' / ')],
+        ['Shanghai-bonuser',entries.filter(e=>e.shanghai).length],
+        ['Bom / feil mål',entries.filter(e=>!e.bonus).length],
+        ['Beste runde',Math.max(0,...Array.from({length:9},(_,i)=>
+          entries.filter(e=>e.dart>=i*3+1&&e.dart<=i*3+3).reduce((n,e)=>n+Number(e.bonus||0),0)))+' P']
+      ];
+    }
+    if(summary.kind==='clock'){
+      const hits=entries.filter(e=>e.hit===e.target&&Number(e.bonus)>0).length;
+      const finished=entries.some(e=>e.finishBonus!==undefined);
+      const finishBonus=entries.reduce((n,e)=>n+Number(e.finishBonus||0),0);
+      return [
+        ['Pentathlon-poeng',summary.pent[p]],
+        ['Dobbeltmål truffet',hits+' / 20'],
+        ['Piler brukt',used+' / 42'],
+        ['Bom / feil dobbel',used-hits],
+        ['Fullført D20',finished?'Ja':'Nei'],
+        ['Bonus for ubrukte piler',finishBonus+' P']
+      ];
+    }
+    const halfRows=Array.from({length:7},(_,i)=>entries.filter(e=>e.dart>=i*3+1&&e.dart<=i*3+3));
+    return [
+      ['Pentathlon-poeng',summary.pent[p]],
+      ['Half-It-score',summary.halfScores[p]],
+      ['Piler brukt',used+' / 21'],
+      ['Halveringer',entries.filter(e=>e.halved).length],
+      ['Runder med treff',halfRows.filter(row=>row.some(e=>Number(e.scoreValue||0)>0)).length+' / 7'],
+      ['Gyldige treff',entries.filter(e=>Number(e.scoreValue||0)>0).length]
+    ];
+  }
+  function stageThrowText(summary,entry){
+    if(summary.kind==='x01'){
+      return (entry.bust?'BUST · ':'')+entry.score+' poeng'+
+        (entry.checkout?' · UTSJEKK '+entry.darts+' piler':'');
+    }
+    return (entry.target||'Mål')+' · '+(entry.hit||'BOM')+
+      (entry.shanghai?' · SHANGHAI!':'')+
+      (entry.halved?' · HALVERT':'')+
+      (entry.finishBonus!==undefined?' · fullført':'');
+  }
+  function openStageStats(index){
+    if(state?.status!=='finished'||!Number.isInteger(index)||index<0)return;
+    const summary=state.summaries[index];
+    if(!summary)return;
+    stageStatsReturnFocus=document.activeElement;
+    $('pentaStageStatsCounter').textContent='ØVELSE '+(index+1)+' AV '+E.STAGES.length;
+    $('pentaStageStatsTitle').textContent=summary.label;
+    const host=$('pentaStageStatsContent');host.replaceChildren();
+    const cards=create('div','penta-drill-players');
+    for(let p=0;p<2;p++){
+      const card=create('section','penta-drill-player');
+      const top=create('div','penta-drill-player-top');
+      top.append(create('h3','',state.players[p]),create('strong','',summary.pent[p]+' P'));
+      card.appendChild(top);
+      for(const [label,value] of stageStatValues(summary,p))card.appendChild(statLine(label,value));
+      cards.appendChild(card);
+    }
+    host.appendChild(cards);
+    const entries=summary.entries||[];
+    const disclosure=create('details','penta-drill-throws');
+    const title=create('summary','','Kastlogg · '+entries.length+' registreringer');
+    disclosure.appendChild(title);
+    if(entries.length){
+      const log=create('div','penta-drill-throw-list');
+      for(const entry of entries){
+        const row=create('div','penta-drill-throw');
+        row.append(create('span','',state.players[entry.player]),
+          create('span','',stageThrowText(summary,entry)),
+          create('b','',String(entry.bonus||0)+' P'));
+        log.appendChild(row);
+      }
+      disclosure.appendChild(log);
+    }else disclosure.appendChild(create('p','penta-hint','Ingen registreringer.'));
+    host.appendChild(disclosure);
+    $('pentaStageStatsModal').hidden=false;
+    $('pentaStageStatsClose').focus({preventScroll:true});
+  }
+  function closeStageStats(){
+    if($('pentaStageStatsModal').hidden)return;
+    $('pentaStageStatsModal').hidden=true;
+    if(stageStatsReturnFocus?.isConnected)stageStatsReturnFocus.focus({preventScroll:true});
+    stageStatsReturnFocus=null;
+  }
   function finish(){
     const [a,b]=state.total;
     const tied=a===b,winner=tied?-1:(a>b?0:1);
@@ -837,8 +955,16 @@
     if(state.status!=='playing'||state.current.kind!=='x01')setStatsOpen(false);
     const progress=$('pentaProgress');progress.replaceChildren();
     E.STAGES.forEach((stage,i)=>{
-      const item=create('div',i<state.summaries.length?'done':(i===state.stageIndex?'active':''),stage.label);
-      item.title=stage.caption;
+      const completed=Boolean(state.summaries[i]);
+      const viewable=state.status==='finished'&&completed;
+      const item=create(viewable?'button':'div',completed?'done':(i===state.stageIndex?'active':''),stage.label);
+      item.title=viewable?'Se statistikk: '+stage.label:stage.caption;
+      if(viewable){
+        item.type='button';
+        item.classList.add('penta-progress-stats');
+        item.setAttribute('aria-label','Se statistikk for '+stage.label);
+        item.addEventListener('click',()=>openStageStats(i));
+      }
       progress.appendChild(item);
     });
     leaderboard();
@@ -985,6 +1111,13 @@
     document.body.appendChild(link);link.click();link.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
+  $('pentaStageStatsClose').addEventListener('click',closeStageStats);
+  $('pentaStageStatsShade').addEventListener('click',closeStageStats);
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&!$('pentaStageStatsModal').hidden){
+      event.preventDefault();closeStageStats();
+    }
+  });
   $('pentaStatsOpen').addEventListener('click',()=>setStatsOpen(!statsOpen));
   $('pentaStatsClose').addEventListener('click',()=>setStatsOpen(false));
   $('pentaStatsBackdrop').addEventListener('click',()=>setStatsOpen(false));
