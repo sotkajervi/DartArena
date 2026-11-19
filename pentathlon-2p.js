@@ -29,7 +29,7 @@
     }catch(_){}
   }
   function shanghaiQueueHit(n,m){
-    if(state?.status!=='playing'||state.current.kind!=='shanghai'||shanghaiQueue.length>=3)return;
+    if(state?.status!=='playing'||state.current.kind!=='shanghai'||shanghaiQueue.length>=3-state.current.pending.length)return;
     const dart={n,m};
     if(!E.isDart(dart))return;
     shanghaiQueue.push(dart);
@@ -42,7 +42,7 @@
   }
   function shanghaiSubmitTurn(){
     if(state?.status!=='playing'||state.current.kind!=='shanghai')return;
-    if(shanghaiQueue.length!==3){
+    if(shanghaiQueue.length!==3-state.current.pending.length){
       $('pentaShanghaiMessage').textContent='Registrer alle tre pilene før Enter.';
       return;
     }
@@ -365,11 +365,14 @@
     $('pentaShanghaiActive').textContent=state.players[c.turn]+' kaster';
     $('pentaShanghaiPhase').textContent='SHANGHAI · MÅL '+n+'/9';
     $('pentaShanghaiTarget').textContent='Shanghai '+n;
-    $('pentaShanghaiTurn').textContent=(3-shanghaiQueue.length)+' piler denne turen';
-    $('pentaShanghaiPending').textContent=shanghaiQueue.length?shanghaiQueue.map(E.labelDart).join(' · '):'–';
+    const existing=c.pending.map(E.labelDart);
+    const chosen=shanghaiQueue.map(E.labelDart);
+    const remaining=3-c.pending.length-shanghaiQueue.length;
+    $('pentaShanghaiTurn').textContent=remaining+' piler denne turen';
+    $('pentaShanghaiPending').textContent=[...existing,...chosen].join(' · ')||'–';
     $('pentaShanghaiRemove').disabled=!shanghaiQueue.length;
-    $('pentaShanghaiSubmit').disabled=shanghaiQueue.length!==3;
-    $('pentaShanghaiMessage').textContent=shanghaiQueue.length===3?'Tre piler valgt. Trykk Enter for å registrere.':'Velg treff, og trykk Enter etter tre piler.';
+    $('pentaShanghaiSubmit').disabled=remaining!==0;
+    $('pentaShanghaiMessage').textContent=remaining===0?'Tre piler valgt. Trykk Enter for å registrere.':'Velg treff, og trykk Enter etter tre piler.';
     const stats=$('pentaShanghaiStats');stats.replaceChildren();
     const names=create('div','special-stats-names');
     names.append(create('span','',''),create('strong','',state.players[0]),create('strong','',state.players[1]));
@@ -639,7 +642,13 @@
       if(state.status==='playing'&&state.current.kind==='shanghai'&&shanghaiQueue.length){
         shanghaiRemoveHit();return;
       }
-      state=E.undo(state);shanghaiQueue=[];saveShanghaiQueue();
+      if(state.current.kind==='shanghai'&&state.current.entries.length){
+        // A JDC turn is confirmed as one action. Undo all committed darts
+        // from the most recent turn rather than leaving a half-registered one.
+        const n=state.current.pending.length||3;
+        for(let i=0;i<n;i++)state=E.undo(state);
+      }else state=E.undo(state);
+      shanghaiQueue=[];saveShanghaiQueue();
       feedback='Forrige registrering angret.';persist();render();focusX01Score()
     }
     catch(error){report(error)}
