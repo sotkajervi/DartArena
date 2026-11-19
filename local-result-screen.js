@@ -210,6 +210,54 @@
    });
    overlay.querySelector('#daLocalResultReview').addEventListener('click',hide);
  }
+ // Shared DartArena statistics presentation for completed local exercises.
+ // Reuses the exact playerCard/statRows classes and shared result overlay used by
+ // local Head-to-Head and online result screens; only the data is adapted.
+ function showReadOnlyStats(options={}){
+   hide();
+   const players=Array.isArray(options.players)?options.players:['Spiller 1','Spiller 2'];
+   const points=Array.isArray(options.scores)?options.scores:[0,0];
+   const winner=Number.isInteger(options.winner)?options.winner:null;
+   const state={players,winner};
+   const order=winner===1?[1,0]:[0,1];
+   const rows=Array.isArray(options.stats)?options.stats:[[],[]];
+   const prior=document.activeElement;
+   document.body.classList.add('da-result-open');
+   const overlay=document.createElement('div');
+   overlay.id='dartArenaResultOverlay';
+   overlay.className='da-result-overlay';
+   const throws=Array.isArray(options.throws)?options.throws:[];
+   const entries=throws.map(entry=>
+     '<div class="da-result-legrow">'+
+       '<span>'+esc(entry.player||'Spiller')+'</span>'+
+       '<span class="da-result-legwinner">'+esc(entry.label||'')+'</span>'+
+       '<span class="da-result-legscore">'+esc(entry.points||'0 P')+'</span>'+
+     '</div>'
+   ).join('');
+   overlay.innerHTML='<section class="da-result-card" role="dialog" aria-modal="true" aria-label="Øvelsesstatistikk">'+
+     '<div class="da-result-kicker">'+esc(options.kicker||'PENTATHLON · ØVELSE FERDIG')+'</div>'+
+     '<h1 class="da-result-title"><span class="da-result-winner-name">'+esc(options.title||'Øvelsesstatistikk')+'</span></h1>'+
+     '<div class="da-result-sub">'+esc(options.subtitle||'Resultat og statistikk')+'</div>'+
+     '<div class="da-result-scorebox">'+esc(points[order[0]])+'<span>–</span>'+esc(points[order[1]])+'</div>'+
+     '<div class="da-result-stats">'+playerCard(order[0],state,rows)+playerCard(order[1],state,rows)+'</div>'+
+     '<section class="da-result-legs"><details class="da-result-readonly-throws">'+
+       '<summary class="da-result-legs-title" style="cursor:pointer">KASTLOGG · '+throws.length+' REGISTRERINGER</summary>'+
+       '<div class="da-result-legs-scroll">'+(entries||'<div class="da-result-note">Ingen registreringer.</div>')+'</div>'+
+     '</details></section>'+
+     '<div class="da-result-actions"><button type="button" class="primary" id="daLocalStatsClose">Tilbake til Pentathlon</button></div>'+
+     '<p class="da-result-note">DartArena · lokal Pentathlon · historiske kast</p></section>';
+   document.body.appendChild(overlay);
+   const close=()=>{
+     document.removeEventListener('keydown',onKey);
+     hide();
+     if(prior?.isConnected)prior.focus({preventScroll:true});
+   };
+   const onKey=e=>{if(e.key==='Escape'){e.preventDefault();close()}};
+   overlay.querySelector('#daLocalStatsClose').addEventListener('click',close);
+   overlay.addEventListener('click',e=>{if(e.target===overlay)close()});
+   document.addEventListener('keydown',onKey);
+   overlay.querySelector('#daLocalStatsClose').focus({preventScroll:true});
+ }
  function sync(state,kind,onRematch){
    if(!state||state.status!=='finished'){
      hide();lastKey=null;return;
@@ -221,6 +269,6 @@
    show(state,payload,onRematch);
  }
  root.DartArenaLocalResults={syncX01:(state,onRematch)=>sync(state,'x01',onRematch),
-   syncSpecial:(state,onRematch)=>sync(state,'special',onRematch),hide,
+   syncSpecial:(state,onRematch)=>sync(state,'special',onRematch),showReadOnlyStats,hide,
    isOpen:()=>!!document.getElementById('dartArenaResultOverlay')};
 })(window);
