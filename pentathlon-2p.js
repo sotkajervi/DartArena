@@ -779,9 +779,53 @@
     $('pentaNextStage').textContent=state.stageIndex===E.STAGES.length-1?'SE SLUTTRESULTAT →':'NESTE ØVELSE →';
   }
   function finish(){
-    const a=state.total[0],b=state.total[1];
-    $('pentaWinner').textContent=a===b?'UAVGJORT!':state.players[a>b?0:1]+' VINNER!';
-    $('pentaFinishDescription').textContent=state.players[0]+': '+a+' poeng · '+state.players[1]+': '+b+' poeng. Alle 7 øvelser er fullført.';
+    const [a,b]=state.total;
+    const tied=a===b,winner=tied?-1:(a>b?0:1);
+    const order=tied?[0,1]:[winner,1-winner];
+    $('pentaWinner').textContent=tied?'UAVGJORT':state.players[winner]+' VINNER!';
+    $('pentaFinishDescription').textContent=tied
+      ?'Begge spillere endte med like mange Pentathlon-poeng.'
+      :'Seier med '+Math.abs(a-b)+' poeng etter sju øvelser.';
+    const score=$('pentaFinishScore');score.replaceChildren();
+    score.append(create('strong','',state.total[order[0]]),create('span','','–'),
+      create('strong','',state.total[order[1]]),create('small','','PENTATHLON-POENG'));
+    const players=$('pentaFinishPlayers');players.replaceChildren();
+    for(const p of order){
+      const card=create('article','penta-finish-player'+(winner===p?' winner':''));
+      const heading=create('div','penta-finish-player-head');
+      const avatar=create('div','penta-finish-avatar',winner===p?'♛':state.players[p].trim().slice(0,1).toUpperCase());
+      const detail=create('div','penta-finish-player-info');
+      detail.append(create('div','penta-finish-name',state.players[p]));
+      if(winner===p)detail.append(create('span','penta-finish-badge','VINNER'));
+      else if(tied)detail.append(create('span','penta-finish-badge tie','UAVGJORT'));
+      heading.append(avatar,detail);
+      const result=create('div','penta-finish-player-score');
+      result.append(create('strong','',state.total[p]),create('span','','POENG'));
+      const wins=state.summaries.filter(item=>item.pent[p]>item.pent[1-p]).length;
+      const rows=create('div','penta-finish-player-metrics');
+      for(const [label,value] of [['Øvelser med flest poeng',wins+' / 7'],
+        ['501-leg og X01',state.summaries.slice(0,4).reduce((n,item)=>n+item.pent[p],0)+' P'],
+        ['Shanghai · Klokka · Half-It',state.summaries.slice(4).reduce((n,item)=>n+item.pent[p],0)+' P']]){
+        const row=create('div','penta-finish-metric');
+        row.append(create('span','',label),create('b','',value));rows.appendChild(row);
+      }
+      card.append(heading,result,rows);players.appendChild(card);
+    }
+    const rounds=$('pentaFinishRounds');rounds.replaceChildren();
+    const header=create('div','penta-finish-round penta-finish-round-header');
+    header.append(create('span','','ØVELSE'),
+      create('span','',state.players[order[0]]),create('span','',state.players[order[1]]));
+    rounds.appendChild(header);
+    for(const summary of state.summaries){
+      const row=create('div','penta-finish-round');
+      row.append(create('span','',summary.label),
+        create('strong',summary.pent[order[0]]>summary.pent[order[1]]?'leading':'',summary.pent[order[0]]),
+        create('strong',summary.pent[order[1]]>summary.pent[order[0]]?'leading':'',summary.pent[order[1]]));
+      rounds.appendChild(row);
+    }
+    const total=create('div','penta-finish-round penta-finish-round-total');
+    total.append(create('span','','TOTAL'),create('strong','',state.total[order[0]]),create('strong','',state.total[order[1]]));
+    rounds.appendChild(total);
   }
   function render(){
     if(!state)return;
