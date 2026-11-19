@@ -356,3 +356,35 @@
  .da-penta .penta-drill-throw b{grid-column:2;grid-row:2}
  .da-penta .penta-progress>button{padding:8px 3px;font-size:9px}
 }
+
+/* Per-exercise stats now use DartArena's actual premium statistics template. */
+.da-penta .penta-stage-stats-card.premium-result-card{
+  width:min(970px,100%);max-height:min(91dvh,960px);overflow:auto;
+  padding:21px 23px;border:1px solid rgba(0,234,244,.64);border-radius:20px;
+  background:linear-gradient(180deg,rgba(7,24,28,.985),rgba(3,14,17,.995));
+  box-shadow:0 24px 70px rgba(0,0,0,.6),0 0 34px rgba(0,234,244,.11)
+}
+.da-penta .penta-stage-stats-card .penta-stage-stats-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:2px}
+.da-penta .penta-stage-stats-card .premium-result-title{margin:4px 0 7px;line-height:1.12;text-align:center;color:#f5ad36;font-size:clamp(26px,4vw,39px)}
+.da-penta .penta-stage-stats-card .premium-result-sub{text-align:center;margin:0}
+.da-penta .penta-stage-stats-card .premium-result-score{color:#eaffff;font-variant-numeric:tabular-nums}
+.da-penta .penta-stage-stats-card .premium-player-grid{margin-top:12px}
+.da-penta .penta-stage-stats-card .premium-player-card{padding:14px 15px;min-width:0}
+.da-penta .penta-stage-stats-card .premium-stat-grid{grid-template-columns:1fr 1fr}
+.da-penta .penta-stage-stats-card .premium-stat{min-width:0}
+.da-penta .penta-stage-stats-card .premium-stat span{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35}
+.da-penta .penta-stage-stats-card .premium-stat b{white-space:normal;text-align:right}
+.da-penta .penta-premium-throws{margin-top:14px}
+.da-penta .penta-premium-throws summary{cursor:pointer;list-style:revert;padding:5px 0}
+.da-penta .penta-premium-throw-list{max-height:320px;overflow:auto;margin-top:8px}
+.da-penta .penta-premium-throw{grid-template-columns:minmax(85px,.7fr) minmax(0,1.8fr) 58px;gap:9px}
+.da-penta .penta-premium-throw .penta-premium-hit{overflow-wrap:anywhere;color:#aecfd3}
+.da-penta .penta-premium-throw>b{text-align:right;color:#00eaf4}
+.da-penta .penta-stage-stats-card .premium-leg-section{background:rgba(4,17,20,.58)}
+@media(max-width:680px){
+  .da-penta .penta-stage-stats-card.premium-result-card{padding:14px 12px;max-height:95dvh}
+  .da-penta .penta-stage-stats-card .premium-player-grid{grid-template-columns:1fr;gap:8px}
+  .da-penta .penta-stage-stats-card .premium-stat-grid{column-gap:9px}
+  .da-penta .penta-premium-throw{grid-template-columns:minmax(65px,.6fr) minmax(0,1.5fr) 45px;padding:7px 5px}
+  .da-penta .penta-stage-stats-card .premium-result-score{font-size:clamp(35px,8vw,50px)}
+}
