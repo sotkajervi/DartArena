@@ -858,29 +858,45 @@
     const summary=state.summaries[index];
     if(!summary)return;
     stageStatsReturnFocus=document.activeElement;
-    $('pentaStageStatsCounter').textContent='ØVELSE '+(index+1)+' AV '+E.STAGES.length;
+    $('pentaStageStatsCounter').textContent='PENTATHLON · ØVELSE '+(index+1)+' AV '+E.STAGES.length;
     $('pentaStageStatsTitle').textContent=summary.label;
     const host=$('pentaStageStatsContent');host.replaceChildren();
-    const cards=create('div','penta-drill-players');
-    for(let p=0;p<2;p++){
-      const card=create('section','penta-drill-player');
-      const top=create('div','penta-drill-player-top');
-      top.append(create('h3','',state.players[p]),create('strong','',summary.pent[p]+' P'));
-      card.appendChild(top);
-      for(const [label,value] of stageStatValues(summary,p))card.appendChild(statLine(label,value));
-      cards.appendChild(card);
+    const lead=summary.pent[0]===summary.pent[1]?-1:summary.pent[0]>summary.pent[1]?0:1;
+    const order=lead===-1?[0,1]:[lead,1-lead];
+    const subtitle=create('div','premium-result-sub','Fullført øvelse · Pentathlon-poeng');
+    const score=create('div','premium-result-score');
+    score.append(document.createTextNode(String(summary.pent[order[0]])),
+      create('span','','–'),document.createTextNode(String(summary.pent[order[1]])));
+    const scoreLabel=create('div','premium-result-score-label','PENTATHLON-POENG');
+    host.append(subtitle,score,scoreLabel);
+    const cards=create('div','premium-player-grid');
+    for(const p of order){
+      const card=create('article','premium-player-card'+(p===lead?' winner':''));
+      const heading=create('div','premium-player-head');
+      const avatar=create('div','premium-player-icon',p===lead?'♛':state.players[p].trim().slice(0,1).toUpperCase());
+      const info=create('div','penta-premium-player-info');
+      info.append(create('div','premium-player-name',state.players[p]));
+      if(p===lead)info.append(create('span','premium-winner-badge','FLEST POENG'));
+      heading.append(avatar,info);
+      const stats=create('div','premium-stat-grid');
+      for(const [label,value] of stageStatValues(summary,p)){
+        const row=create('div','premium-stat');
+        row.append(create('span','',label),create('b','',value));
+        stats.appendChild(row);
+      }
+      card.append(heading,stats);cards.appendChild(card);
     }
     host.appendChild(cards);
     const entries=summary.entries||[];
-    const disclosure=create('details','penta-drill-throws');
-    const title=create('summary','','Kastlogg · '+entries.length+' registreringer');
+    const disclosure=create('details','premium-leg-section penta-premium-throws');
+    const title=create('summary','premium-leg-title','KASTLOGG · '+entries.length+' REGISTRERINGER');
     disclosure.appendChild(title);
     if(entries.length){
-      const log=create('div','penta-drill-throw-list');
+      const log=create('div','penta-premium-throw-list');
       for(const entry of entries){
-        const row=create('div','penta-drill-throw');
-        row.append(create('span','',state.players[entry.player]),
-          create('span','',stageThrowText(summary,entry)),
+        const row=create('div','premium-leg-row penta-premium-throw');
+        row.append(create('span','premium-leg-label',state.players[entry.player]),
+          create('span','penta-premium-hit',stageThrowText(summary,entry)),
           create('b','',String(entry.bonus||0)+' P'));
         log.appendChild(row);
       }
