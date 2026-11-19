@@ -336,3 +336,67 @@
 @media(max-width:650px){
  .da-penta .penta-progress>button.penta-progress-stats{padding:8px 3px;font-size:9px}
 }
+
+/* Pentathlon setup uses the actual Head-to-Head card/heading/field/button system. */
+.da-penta #pentaSetup.local-setup{
+  width:min(920px,100%);max-width:920px;margin:12px auto 35px;
+  padding:24px 26px 23px;border-radius:16px;
+  background:linear-gradient(155deg,#102328,#09171c);
+  border:1px solid #294954;
+}
+.da-penta .penta-setup-heading{margin:0 0 8px}
+.da-penta .penta-setup-heading h2{margin:3px 0 0;font-size:clamp(22px,2.4vw,29px)}
+.da-penta .penta-setup-heading .local-pill{align-self:flex-start}
+.da-penta .penta-setup-lead{margin:0 0 21px;line-height:1.55;color:#a8c0c6}
+.da-penta .penta-setup-form.local-setup-form{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px;
+}
+.da-penta .penta-setup-form .field{min-width:0;font-size:12px;font-weight:850;color:#c7dce0}
+.da-penta .penta-setup-form input,.da-penta .penta-setup-form select{
+  width:100%;min-width:0;min-height:45px;margin-top:7px;
+  border:1px solid #35535d;border-radius:9px;padding:11px 13px;
+  color:#f3ffff;background:#07191d;font-size:13px;
+}
+.da-penta .penta-setup-form input:focus,.da-penta .penta-setup-form select:focus{
+  border-color:#00eaf4;outline:2px solid rgba(0,234,244,.18);outline-offset:1px
+}
+.da-penta .penta-setup-form .penta-setup-starter{grid-column:1/-1;max-width:calc(50% - 8px)}
+.da-penta #pentaSetup .penta-course{
+  margin-top:23px;padding:19px 0 15px;border-top:1px solid #29454e;border-bottom:1px solid #29454e
+}
+.da-penta .penta-course-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.da-penta .penta-course-title small{display:block;color:#00eaf4;font-size:10px;font-weight:900;letter-spacing:.1em}
+.da-penta .penta-course-title h3{margin:5px 0 0;font-size:16px;color:#edfafa}
+.da-penta #pentaSetup .penta-course-list{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:14px
+}
+.da-penta #pentaSetup .penta-course-item{
+  display:flex;align-items:center;gap:8px;min-width:0;padding:11px 10px;border:1px solid #335760;
+  border-radius:9px;background:#0b242a;font-size:11px;line-height:1.35;font-weight:800;color:#d7eaed
+}
+.da-penta #pentaSetup .penta-course-item b{
+  display:grid;place-items:center;flex:0 0 26px;height:26px;border:1px solid #23626a;
+  border-radius:7px;background:#12383c;color:#00eaf4;font-size:10px;margin:0
+}
+.da-penta .penta-setup-note{margin:16px 0 7px;color:#8daeb6}
+.da-penta #pentaSetup .penta-error{margin:0;min-height:0}
+.da-penta #pentaSetup .penta-setup-actions{
+  display:flex;justify-content:flex-end;align-items:center;gap:10px;
+  margin-top:15px;grid-column:auto
+}
+.da-penta #pentaSetup .penta-setup-actions button{
+  min-height:43px;padding:11px 19px;min-width:175px;border-radius:9px;
+  font-size:13px;font-weight:900;cursor:pointer
+}
+@media(max-width:700px){
+  .da-penta #pentaSetup.local-setup{padding:18px 14px;margin-top:11px}
+  .da-penta .penta-setup-form.local-setup-form{grid-template-columns:1fr;gap:12px}
+  .da-penta .penta-setup-form .penta-setup-starter{grid-column:auto;max-width:none}
+  .da-penta #pentaSetup .penta-course-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .da-penta #pentaSetup .penta-setup-actions{justify-content:stretch}
+  .da-penta #pentaSetup .penta-setup-actions button{min-width:0;flex:1}
+}
+@media(max-width:390px){
+ .da-penta #pentaSetup .penta-course-list{grid-template-columns:1fr}
+ .da-penta .penta-course-title .local-pill{display:none}
+}
