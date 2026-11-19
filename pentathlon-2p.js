@@ -1082,6 +1082,79 @@
     document.body.appendChild(link);link.click();link.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
+  function setExportOpen(open){
+    const menu=$('pentaExportOptions');
+    menu.hidden=!open;
+    $('pentaExport').setAttribute('aria-expanded',String(open));
+  }
+  function exportPdf(){
+    if(!state||state.status!=='finished')return;
+    // Browser-native print produces a vector-text PDF when the user selects
+    // "Save as PDF" as the print destination. No remote service is involved.
+    const printWindow=window.open('','_blank');
+    if(!printWindow){
+      window.alert('Nettleseren blokkerte rapportvinduet. Tillat popup-vinduer for DartArena og prøv igjen.');
+      return;
+    }
+    const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,ch=>({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    })[ch]);
+    const scores=state.total;
+    const winner=scores[0]===scores[1]?'Uavgjort':state.players[scores[0]>scores[1]?0:1]+' vinner';
+    const rows=state.summaries.map((summary,index)=>
+      '<tr><td>'+(index+1)+'. '+escapeHtml(summary.label)+'</td>'+
+      '<td>'+escapeHtml(summary.pent[0])+'</td>'+
+      '<td>'+escapeHtml(summary.pent[1])+'</td></tr>'
+    ).join('');
+    const now=new Date().toLocaleDateString('nb-NO',{day:'2-digit',month:'long',year:'numeric'});
+    const documentHtml=`<!doctype html><html lang="no"><head><meta charset="utf-8">
+      <title>DartArena Pentathlon – resultatrapport</title><style>
+      @page{size:A4;margin:18mm}
+      *{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#102126;margin:0;font-size:12px}
+      header{border-bottom:3px solid #00b8bd;padding-bottom:15px;margin-bottom:22px}
+      .kicker{font-size:11px;letter-spacing:2px;font-weight:800;color:#007e86}
+      h1{font-size:29px;line-height:1.1;margin:8px 0 4px}
+      .date{font-size:11px;color:#536b70}
+      .winner{margin:20px 0;padding:18px;border:1px solid #9cced0;border-radius:10px;text-align:center}
+      .winner h2{font-size:23px;margin:0 0 8px}
+      .score{font-size:40px;font-weight:900;letter-spacing:1px}
+      .score span{color:#00a7ad}
+      .players{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:#40565b}
+      .players strong{color:#102126}
+      h3{font-size:15px;margin:25px 0 11px}
+      table{width:100%;border-collapse:collapse;table-layout:fixed}
+      th{text-align:left;background:#10282d;color:white;padding:11px}
+      th:not(:first-child),td:not(:first-child){text-align:right;width:22%}
+      td{padding:11px;border-bottom:1px solid #c9d9dc}
+      tbody tr:nth-child(even){background:#f1f7f7}
+      tfoot td{font-weight:900;background:#dbf5f5;border-top:2px solid #00a7ad}
+      footer{margin-top:30px;padding-top:12px;border-top:1px solid #c9d9dc;color:#597075;font-size:10px}
+      @media print{.no-print{display:none}}
+      </style></head><body>
+      <header><div class="kicker">DARTARENA · SCORINGARENA</div><h1>Pentathlon</h1>
+      <div class="date">Lokal kamp · 7 øvelser · Rapport laget ${escapeHtml(now)}</div></header>
+      <div class="winner"><h2>${escapeHtml(winner)}</h2>
+      <div class="score"><span>${escapeHtml(scores[0])}</span> – ${escapeHtml(scores[1])}</div>
+      <div class="players"><span>${escapeHtml(state.players[0])}</span><span>${escapeHtml(state.players[1])}</span></div></div>
+      <h3>Resultat per øvelse</h3><table><thead><tr>
+      <th>Øvelse</th><th>${escapeHtml(state.players[0])}</th><th>${escapeHtml(state.players[1])}</th></tr></thead>
+      <tbody>${rows}</tbody><tfoot><tr><td>TOTAL</td><td>${escapeHtml(scores[0])}</td><td>${escapeHtml(scores[1])}</td></tr></tfoot></table>
+      <footer>DartArena · Pentathlon · Lokal resultatrapport</footer>
+      <script>window.addEventListener('load',function(){setTimeout(function(){window.focus();window.print()},200)})<\/script>
+      </body></html>`;
+    printWindow.document.open();
+    printWindow.document.write(documentHtml);
+    printWindow.document.close();
+  }
+  $('pentaExport').addEventListener('click',()=>setExportOpen($('pentaExportOptions').hidden));
+  $('pentaExportCsv').addEventListener('click',()=>{setExportOpen(false);exportCsv()});
+  $('pentaExportPdf').addEventListener('click',()=>{setExportOpen(false);exportPdf()});
+  document.addEventListener('pointerdown',event=>{
+    if(!$('pentaExportOptions').hidden&&!event.target.closest('.penta-export-menu'))setExportOpen(false);
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&!$('pentaExportOptions').hidden){setExportOpen(false);$('pentaExport').focus()}
+  });
   $('pentaStatsOpen').addEventListener('click',()=>setStatsOpen(!statsOpen));
   $('pentaStatsClose').addEventListener('click',()=>setStatsOpen(false));
   $('pentaStatsBackdrop').addEventListener('click',()=>setStatsOpen(false));
@@ -1171,7 +1244,7 @@
   $('pentaReset').addEventListener('click',reset);
   $('pentaUndo').addEventListener('click',undo);
   $('pentaNextStage').addEventListener('click',nextStage);
-  $('pentaExport').addEventListener('click',exportCsv);
+
   $('pentaX01Form').addEventListener('submit',submitX01);
   $('pentaCorrectionScore').addEventListener('input',()=>{$('pentaCorrectionError').hidden=true;correctionOptions()});
   $('pentaCorrectionForm').addEventListener('submit',saveCorrection);
