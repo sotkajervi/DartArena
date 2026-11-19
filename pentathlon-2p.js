@@ -60,6 +60,70 @@
     }catch(error){report(error)}
   }
 
+  // Clock is confirmed per turn, as in local JDC. Pending hits never alter
+  // official Pentathlon state until Enter; targets are previewed in sequence.
+  const CLOCK_QUEUE_KEY=STORE+':clock-pending';
+  let clockQueue=[];
+  function clockIdentity(){
+    if(state?.status!=='playing'||state.current.kind!=='clock')return null;
+    return [state.createdAt,state.stageIndex,state.current.turn,state.current.entries.length].join(':');
+  }
+  function saveClockQueue(){
+    try{
+      const signature=clockIdentity();
+      if(signature&&clockQueue.length)localStorage.setItem(CLOCK_QUEUE_KEY,JSON.stringify({signature,darts:clockQueue}));
+      else localStorage.removeItem(CLOCK_QUEUE_KEY);
+    }catch(_){}
+  }
+  function restoreClockQueue(){
+    clockQueue=[];
+    try{
+      const data=JSON.parse(localStorage.getItem(CLOCK_QUEUE_KEY)||'null');
+      if(clockIdentity()&&data?.signature===clockIdentity()&&Array.isArray(data.darts)&&data.darts.length<=3&&data.darts.every(E.isDart)){
+        clockQueue=data.darts;
+      }else localStorage.removeItem(CLOCK_QUEUE_KEY);
+    }catch(_){}
+  }
+  function clockPreviewTarget(){
+    const c=state.current,p=c.turn;
+    let n=c.clockTarget[p];
+    for(const dart of clockQueue)if(dart.n===n&&dart.m===2)n++;
+    return n;
+  }
+  function clockQueueHit(hit){
+    if(state?.status!=='playing'||state.current.kind!=='clock')return;
+    const c=state.current,n=clockPreviewTarget(),remaining=42-c.used[c.turn]-clockQueue.length;
+    if(n>20||clockQueue.length>=3-c.pending.length||remaining<=0)return;
+    clockQueue.push(hit?{n,m:2}:{n:0,m:0});
+    saveClockQueue();render();
+  }
+  function clockRemoveHit(){
+    if(state?.status!=='playing'||state.current.kind!=='clock'||!clockQueue.length)return;
+    clockQueue.pop();saveClockQueue();render();
+  }
+  function clockSubmitTurn(){
+    if(state?.status!=='playing'||state.current.kind!=='clock')return;
+    const c=state.current,p=c.turn;
+    const completed=clockPreviewTarget()>20;
+    const expected=Math.min(3-c.pending.length,42-c.used[p]);
+    if(!completed&&clockQueue.length!==expected){
+      $('pentaClockMessage').textContent='Registrer alle '+expected+' pilene før Enter.';
+      return;
+    }
+    if(!clockQueue.length)return;
+    try{
+      let next=state;
+      for(const dart of clockQueue){
+        if(next.status!=='playing')break;
+        next=E.submitDart(next,dart);
+      }
+      state=next;clockQueue=[];saveClockQueue();
+      feedback=state.players[p]+': klokka er oppdatert.';
+      persist();render();
+      if(state.status==='review')$('pentaReviewPanel').scrollIntoView({block:'nearest',behavior:'smooth'});
+    }catch(error){report(error)}
+  }
+
   let starting=false;
   let statsOpen=false;
   function setStatsOpen(open){
@@ -404,6 +468,61 @@
       history.appendChild(line);
     }
   }
+  function renderClock(){
+    const c=state.current,host=$('pentaClockPlayers');
+    host.replaceChildren();
+    for(let p=0;p<2;p++){
+      const card=create('article','local-player'+(c.turn===p?' active':''));
+      card.style.order=p===c.starter?'0':'1';
+      const top=create('div','local-player-top');
+      top.append(create('small','','SPILLER '+(p+1)),create('span','local-current-marker','Kaster nå'));
+      const band=create('div','local-score-band');
+      const darts=create('div','local-live-darts');
+      darts.append(create('b','',c.used[p]),create('span','','PILER'));
+      const score=create('div','local-score',c.pent[p]);
+      const stats=create('div','local-avg');
+      const visits=Math.ceil(c.used[p]/3);
+      stats.append(create('b','',visits?(c.pent[p]/visits).toFixed(2):'0.00'),create('span','','P/R'));
+      band.append(darts,score,stats);
+      card.append(top,create('h2','',state.players[p]),band,create('div','local-leg-label','PENTATHLON-POENG'));
+      host.appendChild(card);
+    }
+    const p=c.turn,n=clockPreviewTarget(),completed=n>20;
+    $('pentaClockActive').textContent=state.players[p]+' kaster';
+    $('pentaClockTarget').textContent=completed?'D20 FULLFØRT':'D'+n;
+    $('pentaClockPhase').textContent='KLOKKA · D1–D20';
+    const remaining=Math.min(3-c.pending.length,42-c.used[p])-clockQueue.length;
+    $('pentaClockTurn').textContent=completed?'Alle dobbeltmål truffet':remaining+' piler denne turen';
+    $('pentaClockPending').textContent=[...c.pending.map(E.labelDart),...clockQueue.map(E.labelDart)].join(' · ')||'–';
+    $('pentaClockRemove').disabled=!clockQueue.length;
+    $('pentaClockMiss').disabled=completed||remaining<=0;
+    $('pentaClockHit').disabled=completed||remaining<=0;
+    $('pentaClockSubmit').disabled=!clockQueue.length||(!completed&&remaining>0);
+    $('pentaClockMessage').textContent=completed?'D20 truffet. Trykk Enter for å fullføre turen.':remaining===0?'Tre piler valgt. Trykk Enter for å registrere.':'Velg treff eller bom. Målet øker bare ved treff.';
+    const stats=$('pentaClockStats');stats.replaceChildren();
+    const head=create('div','special-stats-names');
+    head.append(create('span','',''),create('strong','',state.players[0]),create('strong','',state.players[1]));
+    stats.appendChild(head);
+    const rows=[
+      ['Pentathlon-poeng',p=>c.pent[p]],
+      ['Siste dobbel',p=>Math.min(20,c.clockTarget[p]-1)],
+      ['Piler brukt',p=>c.used[p]+'/42'],
+      ['Dobbeltmål truffet',p=>Math.min(20,c.clockTarget[p]-1)+'/20']
+    ];
+    for(const [label,calc] of rows){
+      const row=create('div','special-stats-cell');
+      row.append(create('span','',label),create('strong','',calc(0)),create('strong','',calc(1)));
+      stats.appendChild(row);
+    }
+    const history=$('pentaClockLog');history.replaceChildren();
+    const hits=c.entries.slice(-12).reverse();
+    if(!hits.length)history.appendChild(create('div','penta-hint','Ingen kast ennå.'));
+    for(const e of hits){
+      const row=create('div','penta-jdc-history-row');
+      row.append(create('strong','',state.players[e.player]),create('span','',e.target+' · '+e.hit),create('b','','+'+e.bonus+' P'));
+      history.appendChild(row);
+    }
+  }
   function stageStats(){
     const c=state.current,wrap=$('pentaStagePlayers'),idx=state.stageIndex;
     const x01=c.kind==='x01';
@@ -414,11 +533,13 @@
     $('pentaX01StatsPanel').hidden=!x01||!statsOpen;
     $('pentaStatsBackdrop').hidden=!x01||!statsOpen;
     $('pentaStatsOpen').setAttribute('aria-expanded',String(statsOpen));
-    const shanghai=c.kind==='shanghai';
-    wrap.hidden=x01||shanghai;
+    const shanghai=c.kind==='shanghai',clock=c.kind==='clock';
+    wrap.hidden=x01||shanghai||clock;
     $('pentaShanghaiGame').hidden=!shanghai;
+    $('pentaClockGame').hidden=!clock;
     if(shanghai)renderShanghai();
-    $('pentaTarget').parentElement.parentElement.hidden=x01||shanghai;
+    if(clock)renderClock();
+    $('pentaTarget').parentElement.parentElement.hidden=x01||shanghai||clock;
     if(x01)renderX01Board();
     wrap.replaceChildren();
     wrap.classList.remove('penta-shanghai-board','local-board');
@@ -453,7 +574,7 @@
     $('pentaTarget').textContent=target?.label||'FERDIG';
     $('pentaDartsRemaining').textContent=c.kind==='x01'?'REGISTRER KASTESUM':(c.kind==='clock'?(42-c.used[c.turn])+' PILER IGJEN':'PIL '+(c.pending.length+1)+' AV 3');
     $('pentaX01Controls').hidden=c.kind!=='x01';
-    $('pentaDartControls').hidden=c.kind==='x01'||c.kind==='shanghai';
+    $('pentaDartControls').hidden=c.kind==='x01'||c.kind==='shanghai'||c.kind==='clock';
     $('pentaDartAdvanced').hidden=false;
     if(c.kind!=='x01'){
       const slots=$('pentaDartSlots').children;
@@ -622,7 +743,7 @@
         });
       }
       state=next;
-      shanghaiQueue=[];saveShanghaiQueue();
+      shanghaiQueue=[];saveShanghaiQueue();clockQueue=[];saveClockQueue();
       feedback=state.players[starter]+' starter første 501-leg.';
       persist();render();
       $('pentaGame').scrollIntoView({block:'start',behavior:'smooth'});
@@ -635,28 +756,31 @@
       resumeButton.disabled=false;
     }
   }
-  function resume(){const saved=stored();if(!saved)return;state=saved;restoreShanghaiQueue();feedback='Femkampen er gjenopptatt.';render();focusX01Score()}
+  function resume(){const saved=stored();if(!saved)return;state=saved;restoreShanghaiQueue();restoreClockQueue();feedback='Femkampen er gjenopptatt.';render();focusX01Score()}
   function undo(){
     if(!state)return;
     try{
+      if(state.status==='playing'&&state.current.kind==='clock'&&clockQueue.length){
+        clockRemoveHit();return;
+      }
       if(state.status==='playing'&&state.current.kind==='shanghai'&&shanghaiQueue.length){
         shanghaiRemoveHit();return;
       }
-      if(state.current.kind==='shanghai'&&state.current.entries.length){
+      if(['shanghai','clock'].includes(state.current.kind)&&state.current.entries.length){
         // A JDC turn is confirmed as one action. Undo all committed darts
         // from the most recent turn rather than leaving a half-registered one.
         const n=state.current.pending.length||3;
         for(let i=0;i<n;i++)state=E.undo(state);
       }else state=E.undo(state);
-      shanghaiQueue=[];saveShanghaiQueue();
+      shanghaiQueue=[];saveShanghaiQueue();clockQueue=[];saveClockQueue();
       feedback='Forrige registrering angret.';persist();render();focusX01Score()
     }
     catch(error){report(error)}
   }
   function reset(){
     if(state&&!window.confirm('Starte en ny Pentathlon? Nåværende resultat og angrehistorikk overskrives.'))return;
-    state=null;shanghaiQueue=[];
-    try{localStorage.removeItem(STORE);localStorage.removeItem(SHANGHAI_QUEUE_KEY)}catch(_){}
+    state=null;shanghaiQueue=[];clockQueue=[];
+    try{localStorage.removeItem(STORE);localStorage.removeItem(SHANGHAI_QUEUE_KEY);localStorage.removeItem(CLOCK_QUEUE_KEY)}catch(_){}
     $('pentaGame').hidden=true;$('pentaSetup').hidden=false;showResume();
     $('pentaSetup').scrollIntoView({block:'start',behavior:'smooth'});
   }
@@ -664,7 +788,7 @@
     if(state?.status!=='review')return;
     try{
       state=E.nextStage(state);
-      shanghaiQueue=[];saveShanghaiQueue();
+      shanghaiQueue=[];saveShanghaiQueue();clockQueue=[];saveClockQueue();
       feedback='Neste øvelse er klar. '+state.players[state.current.turn]+' starter.';
       persist();render();
       $('pentaGame').scrollIntoView({block:'start',behavior:'smooth'});
@@ -728,6 +852,20 @@
       input.focus({preventScroll:true});
       input.setSelectionRange(input.value.length,input.value.length);
     }
+  });
+  $('pentaClockMiss').addEventListener('click',()=>clockQueueHit(false));
+  $('pentaClockHit').addEventListener('click',()=>clockQueueHit(true));
+  $('pentaClockRemove').addEventListener('click',clockRemoveHit);
+  $('pentaClockSubmit').addEventListener('click',clockSubmitTurn);
+  document.addEventListener('keydown',event=>{
+    if(event.defaultPrevented||event.repeat||event.ctrlKey||event.altKey||event.metaKey||
+       event.isComposing||state?.status!=='playing'||state.current.kind!=='clock')return;
+    const target=event.target;
+    if(target?.isContentEditable||['INPUT','TEXTAREA','SELECT'].includes(target?.tagName))return;
+    if(event.key==='0'){event.preventDefault();clockQueueHit(false)}
+    else if(event.key==='2'){event.preventDefault();clockQueueHit(true)}
+    else if(event.key==='Enter'){event.preventDefault();clockSubmitTurn()}
+    else if(event.key==='Backspace'){event.preventDefault();clockRemoveHit()}
   });
   $('pentaShanghaiRemove').addEventListener('click',shanghaiRemoveHit);
   $('pentaShanghaiSubmit').addEventListener('click',shanghaiSubmitTurn);
@@ -803,7 +941,7 @@
   const saved=stored();
   if(saved){
     state=saved;
-    restoreShanghaiQueue();
+    restoreShanghaiQueue();restoreClockQueue();
     feedback=saved.status==='review'?'Øvelsen er fullført. Fortsett når du er klar.':
       saved.status==='finished'?'Tidligere Pentathlon-resultat gjenopprettet.':
       'Pentathlon gjenopprettet på samme øvelse.';
