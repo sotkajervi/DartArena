@@ -95,11 +95,12 @@
     const c=state.current,n=clockPreviewTarget(),remaining=42-c.used[c.turn]-clockQueue.length;
     if(n>20||clockQueue.length>=3-c.pending.length||remaining<=0)return;
     clockQueue.push(hit?{n,m:2}:{n:0,m:0});
+    $('pentaClockMessage').classList.remove('is-error');
     saveClockQueue();render();
   }
   function clockRemoveHit(){
     if(state?.status!=='playing'||state.current.kind!=='clock'||!clockQueue.length)return;
-    clockQueue.pop();saveClockQueue();render();
+    clockQueue.pop();$('pentaClockMessage').classList.remove('is-error');saveClockQueue();render();
   }
   function clockSubmitTurn(){
     if(state?.status!=='playing'||state.current.kind!=='clock')return;
@@ -108,6 +109,7 @@
     const expected=Math.min(3-c.pending.length,42-c.used[p]);
     if(!completed&&clockQueue.length!==expected){
       $('pentaClockMessage').textContent='Registrer alle '+expected+' pilene før Enter.';
+      $('pentaClockMessage').classList.add('is-error');
       return;
     }
     if(!clockQueue.length)return;
