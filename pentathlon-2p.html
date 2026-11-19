@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="./shared-results.css?v=20261023-bulldown2">
 <link rel="stylesheet" href="./premium-match-stats.css?v=20261003-premium1">
 <link rel="stylesheet" href="./jdc-challenge.css?v=20261011-jdcstyles1">
-<link rel="stylesheet" href="./pentathlon-2p.css?v=20261118-jdcshanghai3">
+<link rel="stylesheet" href="./pentathlon-2p.css?v=20261119-local-jdc1">
 </head>
 <body class="da-penta local-h2h-page">
 <header><div class="brand"><a href="./scoringarena.html" aria-label="Til ScoringArena"><img class="brand-logo" src="./assets/dartarena-logo.jpg" alt="DartArena" width="420" height="116"></a></div><div class="live"><i></i> PENTATHLON · 2P</div></header>
@@ -38,6 +38,38 @@
 </div>
           </div>
           <div class="penta-stage-players" id="pentaStagePlayers"></div>
+          <section class="penta-shanghai-game" id="pentaShanghaiGame" hidden aria-label="Shanghai-spillefelt">
+            <div class="local-board penta-jdc-board" id="pentaShanghaiPlayers"></div>
+            <section class="card local-entry-card special-entry penta-jdc-entry">
+              <div class="local-turn" id="pentaShanghaiActive">Spiller 1 kaster</div>
+              <p class="muted compact penta-jdc-help">Velg treff eller bom for hver pil i turen.</p>
+              <div class="special-target penta-jdc-target">
+                <small id="pentaShanghaiPhase">SHANGHAI · MÅL 1/9</small>
+                <strong id="pentaShanghaiTarget">Shanghai 1</strong>
+                <span id="pentaShanghaiTurn">3 piler denne turen</span>
+              </div>
+              <div class="special-choice-row penta-jdc-choices">
+                <button type="button" class="outline special-choice" id="pentaShanghaiMiss">MISS <span class="da-key">0</span></button>
+                <button type="button" class="outline special-choice" id="pentaShanghaiSingle" data-shanghai-mult="1">SINGLE <span class="da-key">1</span></button>
+                <button type="button" class="outline special-choice" id="pentaShanghaiDouble" data-shanghai-mult="2">DOUBLE <span class="da-key">2</span></button>
+                <button type="button" class="outline special-choice" id="pentaShanghaiTriple" data-shanghai-mult="3">TRIPLE <span class="da-key">3</span></button>
+              </div>
+              <div class="special-darts penta-jdc-pending"><span>Registrert:</span><div id="pentaShanghaiPending">–</div></div>
+              <div class="special-actions penta-jdc-actions">
+                <button type="button" class="outline" id="pentaShanghaiRemove">Fjern siste <span class="da-key">Backspace</span></button>
+                <button type="button" class="primary" id="pentaShanghaiSubmit">Registrer <span class="da-key">Enter</span></button>
+              </div>
+              <p class="local-message" id="pentaShanghaiMessage" role="status" aria-live="polite"></p>
+            </section>
+            <section class="card local-stats-card penta-jdc-stats">
+              <div class="heading"><div><small>HELE ØVELSEN</small><h2>Kampstatistikk</h2></div></div>
+              <div class="special-stats-grid" id="pentaShanghaiStats"></div>
+            </section>
+            <details class="card local-history-card penta-jdc-history">
+              <summary>Siste kast <span>Vis kastlogg</span></summary>
+              <div id="pentaShanghaiLog" class="local-history"></div>
+            </details>
+          </section>
           <div class="penta-target"><div><span>NESTE MÅL</span><strong id="pentaTarget">REST 501</strong></div><span id="pentaDartsRemaining">3 piler</span></div>
           <div id="pentaX01Controls" class="penta-throw-entry card local-entry-card">
             <div id="pentaX01Turn" class="local-turn" aria-live="polite">Spiller 1 kaster</div>
@@ -84,20 +116,6 @@
           <div id="pentaDartControls" class="penta-dart-entry" hidden>
             <p class="penta-hint">Registrer hver pil. Måltallet oppdateres automatisk. Treffer du feil tall, velg det faktiske treffet.</p>
             <div id="pentaDartSlots" class="penta-dart-slots"><div>–</div><div>–</div><div>–</div></div>
-            <section id="pentaShanghaiQuick" class="penta-shanghai-quick jdc-target-card" hidden aria-label="Shanghai hurtigregistrering">
-              <div class="jdc-phase">SHANGHAI · GJELDENDE MÅL</div>
-              <div class="jdc-target" id="pentaShanghaiTarget">1</div>
-              <div class="jdc-dart-meta" id="pentaShanghaiTurn">Pil 1 av 3</div>
-              <div class="jdc-actions" aria-label="Registrer Shanghai-pil">
-                <button type="button" class="jdc-hit-btn" id="pentaShanghaiMiss">Bom <span class="da-key">0</span></button>
-                <button type="button" class="jdc-hit-btn" id="pentaShanghaiSingle" data-shanghai-mult="1">Single <span class="da-key">1</span></button>
-                <button type="button" class="jdc-hit-btn" id="pentaShanghaiDouble" data-shanghai-mult="2">Double <span class="da-key">2</span></button>
-                <button type="button" class="jdc-hit-btn" id="pentaShanghaiTriple" data-shanghai-mult="3">Triple <span class="da-key">3</span></button>
-              </div>
-              <details id="pentaShanghaiOther" class="penta-shanghai-other">
-                <summary>Annet treff / feil tall</summary>
-              </details>
-            </section>
             <div id="pentaDartAdvanced">
               <div class="penta-mults" id="pentaMults"><button type="button" data-mult="1" class="active">SINGLE</button><button type="button" data-mult="2">DOUBLE</button><button type="button" data-mult="3">TRIPLE</button></div>
               <div class="penta-nums" id="pentaNumbers"></div>
@@ -165,5 +183,5 @@
 </div>
 <script src="./room-coin-flip.js?v=20261002-coin9"></script>
 <script src="./pentathlon-2p-engine.js?v=1"></script>
-<script src="./pentathlon-2p.js?v=20261119-enter-next1"></script>
+<script src="./pentathlon-2p.js?v=20261119-local-jdc1"></script>
 </body></html>
