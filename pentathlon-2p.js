@@ -646,8 +646,8 @@
   }
   function reset(){
     if(state&&!window.confirm('Starte en ny Pentathlon? Nåværende resultat og angrehistorikk overskrives.'))return;
-    state=null;
-    try{localStorage.removeItem(STORE)}catch(_){}
+    state=null;shanghaiQueue=[];
+    try{localStorage.removeItem(STORE);localStorage.removeItem(SHANGHAI_QUEUE_KEY)}catch(_){}
     $('pentaGame').hidden=true;$('pentaSetup').hidden=false;showResume();
     $('pentaSetup').scrollIntoView({block:'start',behavior:'smooth'});
   }
@@ -686,7 +686,7 @@
     if(event.key==='Escape'&&statsOpen)setStatsOpen(false);
   });
 
-  $('pentaShanghaiQuick').querySelectorAll('[data-shanghai-mult]').forEach(button=>{
+  $('pentaShanghaiGame').querySelectorAll('[data-shanghai-mult]').forEach(button=>{
     button.addEventListener('click',()=>{
       if(state?.status!=='playing'||state.current.kind!=='shanghai')return;
       const target=E.currentTarget(state);
