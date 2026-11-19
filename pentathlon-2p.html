@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="./shared-results.css?v=20261023-bulldown2">
 <link rel="stylesheet" href="./premium-match-stats.css?v=20261003-premium1">
 <link rel="stylesheet" href="./local-special.css?v=20261026-cricketmarks1">
-<link rel="stylesheet" href="./pentathlon-2p.css?v=20261119-half-local1">
+<link rel="stylesheet" href="./pentathlon-2p.css?v=20261119-result-finale1">
 </head>
 <body class="da-penta local-h2h-page">
 <header><div class="brand"><a href="./scoringarena.html" aria-label="Til ScoringArena"><img class="brand-logo" src="./assets/dartarena-logo.jpg" alt="DartArena" width="420" height="116"></a></div><div class="live"><i></i> PENTATHLON · 2P</div></header>
@@ -196,10 +196,23 @@
           <p id="pentaReviewCaption"></p><div id="pentaReviewDetails"></div>
           <button id="pentaNextStage" class="penta-main-btn" type="button">NESTE ØVELSE →</button>
         </section>
-        <section id="pentaFinishedPanel" class="penta-card penta-finish" hidden>
-          <div class="penta-trophy">🏆</div><span class="penta-eyebrow">ALLE ØVELSER FULLFØRT</span>
-          <h2 id="pentaWinner">Pentathlon ferdig!</h2><p id="pentaFinishDescription"></p>
-          <button id="pentaExport" type="button" class="outline">Last ned resultat (CSV)</button>
+        <section id="pentaFinishedPanel" class="penta-card penta-finish" hidden aria-labelledby="pentaWinner">
+          <div class="penta-finish-kicker">DARTARENA · PENTATHLON</div>
+          <div class="penta-finish-emblem" aria-hidden="true">♛</div>
+          <span class="penta-eyebrow">ALLE 7 ØVELSER FULLFØRT</span>
+          <h2 id="pentaWinner">Pentathlon ferdig!</h2>
+          <p id="pentaFinishDescription" class="penta-finish-subtitle"></p>
+          <div id="pentaFinishScore" class="penta-finish-score" aria-label="Sluttresultat"></div>
+          <div id="pentaFinishPlayers" class="penta-finish-players"></div>
+          <div class="penta-finish-breakdown">
+            <div class="penta-finish-breakdown-head"><strong>ØVELSESOVERSIKT</strong><small>Pentathlon-poeng per øvelse</small></div>
+            <div id="pentaFinishRounds" class="penta-finish-rounds"></div>
+          </div>
+          <div class="penta-finish-actions">
+            <button id="pentaExport" type="button" class="primary">Last ned resultat (CSV)</button>
+            <a class="outline penta-finish-back" href="./scoringarena.html">Til ScoringArena</a>
+          </div>
+          <div class="penta-finish-footer">DARTARENA · LOKAL FEMKAMP</div>
         </section>
       </div>
       <aside class="penta-side">
@@ -243,5 +256,5 @@
 </div>
 <script src="./room-coin-flip.js?v=20261002-coin9"></script>
 <script src="./pentathlon-2p-engine.js?v=1"></script>
-<script src="./pentathlon-2p.js?v=20261119-half-local1"></script>
+<script src="./pentathlon-2p.js?v=20261119-result-finale1"></script>
 </body></html>
