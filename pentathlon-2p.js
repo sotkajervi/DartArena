@@ -829,6 +829,7 @@
   }
   function render(){
     if(!state)return;
+    document.body.classList.toggle('penta-finished',state.status==='finished');
     $('pentaSetup').hidden=true;$('pentaGame').hidden=false;
     $('pentaStatus').textContent=state.status==='finished'?'PENTATHLON FULLFØRT':
       'ØVELSE '+(state.stageIndex+1)+' AV '+E.STAGES.length;
@@ -951,6 +952,7 @@
   function reset(){
     if(state&&!window.confirm('Starte en ny Pentathlon? Nåværende resultat og angrehistorikk overskrives.'))return;
     state=null;shanghaiQueue=[];clockQueue=[];halfQueue=[];
+    document.body.classList.remove('penta-finished');
     try{localStorage.removeItem(STORE);localStorage.removeItem(SHANGHAI_QUEUE_KEY);localStorage.removeItem(CLOCK_QUEUE_KEY);localStorage.removeItem(HALF_QUEUE_KEY)}catch(_){}
     $('pentaGame').hidden=true;$('pentaSetup').hidden=false;showResume();
     $('pentaSetup').scrollIntoView({block:'start',behavior:'smooth'});
