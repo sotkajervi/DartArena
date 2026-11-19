@@ -186,13 +186,51 @@
 @media(max-width:700px){.da-penta #pentaX01StatsPanel{padding:14px;width:calc(100vw - 18px);max-height:calc(100dvh - 18px)}.da-penta .penta-top-actions{flex-wrap:wrap}}
 
 
-/* JDC Challenge Shanghai display: reuse its target, action grid and hit-button styling. */
-.da-penta .penta-shanghai-quick{margin:12px 0;padding:18px 16px;text-align:center;border:1px solid #315663;border-radius:12px;background:#0a2026}
-.da-penta .penta-shanghai-quick .jdc-target{font-size:clamp(52px,7vw,72px);margin:7px 0 2px}
-.da-penta .penta-shanghai-quick .jdc-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:16px}
-.da-penta .penta-shanghai-quick .jdc-hit-btn{min-width:0;min-height:64px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:900;cursor:pointer}
-.da-penta .penta-shanghai-quick .da-key{display:inline-grid;place-items:center;min-width:24px;min-height:24px;padding:3px 5px;border:1px solid #286b73;border-radius:6px;color:#8bf3ec;font-size:11px;font-weight:950}
-.da-penta .penta-shanghai-other{margin-top:12px;text-align:left;color:#a6ced4}
-.da-penta .penta-shanghai-other summary{cursor:pointer;font-size:12px;font-weight:800}
-.da-penta #pentaDartAdvanced[hidden]{display:none!important}
-@media(max-width:600px){.da-penta .penta-shanghai-quick .jdc-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.da-penta .penta-shanghai-quick{padding:12px}}
+
+/* Shanghai: same local-special JDC Challenge layout, scoped to Pentathlon only.
+   The NDF Pentathlon score engine is unchanged. */
+.da-penta .penta-shanghai-game{display:grid;gap:9px;margin-top:12px}
+.da-penta .penta-shanghai-game[hidden]{display:none!important}
+.da-penta .penta-jdc-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.da-penta .penta-jdc-board .local-player{padding:12px 14px;min-width:0}
+.da-penta .penta-jdc-board .local-player.active{border-color:#00eaf4!important;background:linear-gradient(145deg,rgba(0,234,244,.075),rgba(8,19,21,.98))!important;box-shadow:inset 0 0 0 1px rgba(0,234,244,.46),inset 0 0 30px rgba(0,234,244,.10),0 0 10px rgba(0,234,244,.48),0 0 24px rgba(0,234,244,.20)!important}
+.da-penta .penta-jdc-board .local-score{font-size:clamp(48px,7.4vh,80px);font-weight:950;line-height:1.05}
+.da-penta .penta-jdc-board .local-player h2{font-size:clamp(17px,1.7vw,23px);overflow-wrap:anywhere}
+.da-penta .penta-jdc-board .local-score-band{min-width:0}
+.da-penta .penta-jdc-board .local-leg-label{color:#00eaf4}
+.da-penta .penta-jdc-entry{margin:0;padding:12px 14px}
+.da-penta .penta-jdc-entry .local-turn{margin:0 0 4px}
+.da-penta .penta-jdc-help{margin:0 0 9px;font-size:11px;color:#9fbdc4}
+.da-penta .penta-jdc-target{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px;padding:12px;border:1px solid rgba(0,234,244,.22);border-radius:10px;background:rgba(0,234,244,.035)}
+.da-penta .penta-jdc-target small{font-size:10px;font-weight:900;color:#00eaf4}
+.da-penta .penta-jdc-target strong{font-size:clamp(19px,3vw,27px);color:#00eaf4}
+.da-penta .penta-jdc-target span{font-size:12px;color:#a6bdc3}
+.da-penta .penta-jdc-choices{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.da-penta .penta-jdc-choices button{padding:9px 14px;border-radius:9px;font-size:11px;font-weight:900}
+.da-penta .penta-jdc-pending{display:flex;gap:8px;align-items:center;min-height:30px;margin:8px 0 5px;font-size:12px;color:#a7c7ca}
+.da-penta .penta-jdc-pending>div{color:#e8f9fb;font-weight:850}
+.da-penta .penta-jdc-actions{display:flex;gap:7px;flex-wrap:wrap;margin:0}
+.da-penta .penta-jdc-actions button{padding:8px 12px;font-size:12px}
+.da-penta .penta-jdc-stats{padding:12px 15px;margin:0}
+.da-penta .penta-jdc-stats .heading{margin:0 0 5px}
+.da-penta .penta-jdc-stats h2{font-size:17px;margin:3px 0}
+.da-penta .penta-jdc-stats .special-stats-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 15px}
+.da-penta .penta-jdc-stats .special-stats-names,
+.da-penta .penta-jdc-stats .special-stats-cell{display:grid;grid-template-columns:minmax(95px,1.2fr) minmax(0,1fr) minmax(0,1fr);align-items:center;gap:6px;padding:6px 9px;border-bottom:1px solid rgba(255,255,255,.07);font-size:12px}
+.da-penta .penta-jdc-stats .special-stats-names{grid-column:1/-1;color:#00eaf4;background:rgba(255,255,255,.02)}
+.da-penta .penta-jdc-stats .special-stats-cell span{color:#9fbdc4}
+.da-penta .penta-jdc-stats .special-stats-grid strong{text-align:center}
+.da-penta .penta-jdc-history{padding:0 13px;margin:0}
+.da-penta .penta-jdc-history summary{cursor:pointer;padding:9px 0;font-size:12px;font-weight:850}
+.da-penta .penta-jdc-history summary span{float:right;font-size:10px;color:#9db4bc}
+.da-penta .penta-jdc-history-row{display:grid;grid-template-columns:minmax(0,.7fr) minmax(0,1.1fr) auto;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:11px}
+.da-penta .penta-jdc-history-row b{color:#00eaf4}
+.da-penta:has(#pentaShanghaiGame:not([hidden])) .penta-recent,
+.da-penta:has(#pentaShanghaiGame:not([hidden])) .penta-feedback{display:none}
+@media(max-width:700px){
+ .da-penta .penta-jdc-board .local-player{padding:9px}
+ .da-penta .penta-jdc-board .local-score{font-size:clamp(35px,9vw,60px)}
+ .da-penta .penta-jdc-board .local-player h2{font-size:14px}
+ .da-penta .penta-jdc-stats .special-stats-grid{grid-template-columns:1fr}
+ .da-penta .penta-jdc-choices button{padding:9px 8px}
+}
