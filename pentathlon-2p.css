@@ -247,3 +247,67 @@
   .da-penta .penta-half-game .penta-half-choices{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
   .da-penta .penta-half-game .penta-half-choices .special-choice{font-size:14px}
 }
+
+/* Pentathlon final result: same visual hierarchy as DartArena Online result screen. */
+.da-penta .penta-finish{
+  --penta-gold:#f5ad36;
+  text-align:center;
+  border:1px solid rgba(0,234,244,.65);
+  border-radius:20px;
+  padding:22px clamp(14px,2.7vw,30px) 18px;
+  background:linear-gradient(180deg,rgba(7,26,31,.98),rgba(3,14,19,.985));
+  box-shadow:0 20px 58px rgba(0,0,0,.36),0 0 30px rgba(0,234,244,.08);
+}
+.da-penta .penta-finish-kicker{font-size:10px;letter-spacing:.22em;font-weight:950;color:#00eaf4}
+.da-penta .penta-finish-emblem{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;margin:9px auto 6px;border:1px solid rgba(245,173,54,.6);background:rgba(245,173,54,.08);font-size:31px;color:var(--penta-gold);line-height:1}
+.da-penta .penta-finish>.penta-eyebrow{color:#8cbbc4;font-size:10px}
+.da-penta .penta-finish h2{font-size:clamp(25px,3.4vw,39px);line-height:1.12;letter-spacing:-.025em;color:var(--penta-gold);overflow-wrap:anywhere;margin:5px 0}
+.da-penta .penta-finish .penta-finish-subtitle{margin:0;color:#a9c3ca;font-size:12px}
+.da-penta .penta-finish-score{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:9px 13px;margin:15px auto 16px;padding:9px 24px;width:max-content;max-width:100%;border:1px solid rgba(0,234,244,.42);border-radius:13px;background:rgba(0,234,244,.045)}
+.da-penta .penta-finish-score strong{color:#f5fbfc;font-size:clamp(36px,5vw,55px);line-height:1;font-weight:950;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.da-penta .penta-finish-score strong:first-child{color:var(--penta-gold)}
+.da-penta .penta-finish-score>span{font-size:28px;color:#6d949c}
+.da-penta .penta-finish-score small{flex-basis:100%;color:#8dafb8;letter-spacing:.13em;font-weight:850;font-size:9px}
+.da-penta .penta-finish-players{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;text-align:left}
+.da-penta .penta-finish-player{min-width:0;border:1px solid rgba(0,234,244,.24);border-radius:13px;background:rgba(4,18,22,.8);padding:13px 14px}
+.da-penta .penta-finish-player.winner{border-color:rgba(245,173,54,.72);box-shadow:inset 3px 0 0 rgba(245,173,54,.9);background:linear-gradient(120deg,rgba(245,173,54,.07),rgba(4,18,22,.86) 50%)}
+.da-penta .penta-finish-player-head{display:flex;align-items:center;gap:10px;min-width:0}
+.da-penta .penta-finish-avatar{display:grid;place-items:center;width:37px;height:37px;flex:0 0 37px;border:1px solid rgba(0,234,244,.5);border-radius:50%;background:rgba(0,234,244,.06);color:#00eaf4;font-size:19px;font-weight:950}
+.da-penta .penta-finish-player.winner .penta-finish-avatar{border-color:var(--penta-gold);color:var(--penta-gold);background:rgba(245,173,54,.1)}
+.da-penta .penta-finish-player-info{min-width:0}
+.da-penta .penta-finish-name{font-weight:950;font-size:16px;overflow-wrap:anywhere}
+.da-penta .penta-finish-badge{display:inline-block;margin-top:3px;padding:2px 7px;border:1px solid rgba(245,173,54,.6);color:var(--penta-gold);border-radius:999px;font-size:9px;font-weight:900;letter-spacing:.09em}
+.da-penta .penta-finish-badge.tie{color:#00eaf4;border-color:#00eaf4}
+.da-penta .penta-finish-player-score{display:flex;align-items:baseline;gap:8px;margin:9px 0}
+.da-penta .penta-finish-player-score strong{font-size:31px;line-height:1;color:#f4fbfc;font-weight:950;font-variant-numeric:tabular-nums}
+.da-penta .penta-finish-player.winner .penta-finish-player-score strong{color:var(--penta-gold)}
+.da-penta .penta-finish-player-score span{font-size:10px;font-weight:850;letter-spacing:.08em;color:#93acb4}
+.da-penta .penta-finish-player-metrics{display:grid;gap:0}
+.da-penta .penta-finish-metric{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:6px 1px;border-top:1px solid rgba(255,255,255,.07)}
+.da-penta .penta-finish-metric span{font-size:11px;color:#9cbac2}
+.da-penta .penta-finish-metric b{font-size:12px;color:#ebffff;white-space:nowrap}
+.da-penta .penta-finish-breakdown{margin-top:13px;border:1px solid rgba(255,255,255,.12);border-radius:13px;background:rgba(4,17,21,.69);padding:12px 14px;text-align:left}
+.da-penta .penta-finish-breakdown-head{display:flex;justify-content:space-between;align-items:baseline;gap:9px;margin-bottom:5px}
+.da-penta .penta-finish-breakdown-head strong{color:#00eaf4;font-size:11px;letter-spacing:.12em}
+.da-penta .penta-finish-breakdown-head small{color:#87a8b0;font-size:10px}
+.da-penta .penta-finish-round{display:grid;grid-template-columns:minmax(0,1fr) minmax(55px,.31fr) minmax(55px,.31fr);gap:8px;padding:6px 8px;border-top:1px solid rgba(255,255,255,.07);align-items:center;font-size:12px}
+.da-penta .penta-finish-round>span{overflow-wrap:anywhere;color:#c5dbe0}
+.da-penta .penta-finish-round strong{font-size:13px;text-align:right;color:#effbfc;font-variant-numeric:tabular-nums}
+.da-penta .penta-finish-round strong.leading{color:var(--penta-gold)}
+.da-penta .penta-finish-round-header{border-top:0;font-size:10px;font-weight:900;color:#8faeb5}
+.da-penta .penta-finish-round-header span{color:#80afb8;font-size:10px;text-align:right}
+.da-penta .penta-finish-round-header span:first-child{text-align:left}
+.da-penta .penta-finish-round-total{border-top:1px solid rgba(0,234,244,.5);background:rgba(0,234,244,.05);border-radius:0 0 7px 7px;font-weight:900}
+.da-penta .penta-finish-round-total>span,.da-penta .penta-finish-round-total strong{color:#00eaf4}
+.da-penta .penta-finish-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:15px}
+.da-penta .penta-finish-actions button,.da-penta .penta-finish-actions a{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:9px;font-weight:850;text-decoration:none;font-size:12px;margin:0}
+.da-penta .penta-finish-footer{margin-top:13px;color:#6c969f;font-size:9px;letter-spacing:.18em;font-weight:850}
+@media(max-width:640px){
+  .da-penta .penta-finish{padding:17px 12px}
+  .da-penta .penta-finish-players{grid-template-columns:1fr;gap:8px}
+  .da-penta .penta-finish-player{padding:11px 12px}
+  .da-penta .penta-finish-score{margin:12px auto}
+  .da-penta .penta-finish-breakdown{padding:10px 7px}
+  .da-penta .penta-finish-round{gap:5px;padding:7px 5px;font-size:11px}
+  .da-penta .penta-finish-breakdown-head small{font-size:9px}
+}
