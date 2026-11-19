@@ -237,3 +237,13 @@
 
 /* Red validation warning, matching local JDC/Shanghai. */
 .da-penta #pentaClockMessage.is-error{color:#ff6d7e!important;font-weight:800}
+
+/* Half-It Pentathlon follows the existing local Half-It/JDC player and entry layout. */
+.da-penta .penta-half-game .penta-half-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:9px 0 5px}
+.da-penta .penta-half-game .penta-half-choices .special-choice{min-height:45px;min-width:0;font-size:15px;font-weight:900;border-radius:9px}
+.da-penta .penta-half-game .penta-half-choices:has(> :only-child){grid-template-columns:minmax(140px,250px)}
+.da-penta .penta-half-game .penta-jdc-stats{margin-top:0}
+@media(max-width:700px){
+  .da-penta .penta-half-game .penta-half-choices{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .da-penta .penta-half-game .penta-half-choices .special-choice{font-size:14px}
+}
