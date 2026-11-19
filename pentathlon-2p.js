@@ -72,7 +72,7 @@
     try{
       const signature=clockIdentity();
       if(signature&&clockQueue.length)localStorage.setItem(CLOCK_QUEUE_KEY,JSON.stringify({signature,darts:clockQueue}));
-      else localStorage.removeItem(CLOCK_QUEUE_KEY);
+      else localStorage.removeItem(CLOCK_QUEUE_KEY);localStorage.removeItem(HALF_QUEUE_KEY);
     }catch(_){}
   }
   function restoreClockQueue(){
@@ -126,6 +126,62 @@
     }catch(error){report(error)}
   }
 
+  // Local Half-It entry: collect up to three darts, Enter completes the visit.
+  // Unused darts are misses, matching local Half-It keyboard flow.
+  const HALF_QUEUE_KEY=STORE+':half-pending';
+  const HALF_TARGETS=[
+    {n:20,m:0,label:'20'},{n:16,m:0,label:'16'},
+    {n:7,m:2,label:'D7'},{n:14,m:0,label:'14'},
+    {n:10,m:3,label:'T10'},{n:17,m:0,label:'17'},
+    {n:25,m:2,label:'Bull 50'}
+  ];
+  let halfQueue=[];
+  function halfIdentity(){
+    if(state?.status!=='playing'||state.current.kind!=='half')return null;
+    return [state.createdAt,state.stageIndex,state.current.turn,state.current.entries.length].join(':');
+  }
+  function saveHalfQueue(){
+    try{
+      const signature=halfIdentity();
+      if(signature&&halfQueue.length)localStorage.setItem(HALF_QUEUE_KEY,JSON.stringify({signature,darts:halfQueue}));
+      else localStorage.removeItem(HALF_QUEUE_KEY);
+    }catch(_){}
+  }
+  function restoreHalfQueue(){
+    halfQueue=[];
+    try{
+      const data=JSON.parse(localStorage.getItem(HALF_QUEUE_KEY)||'null');
+      if(halfIdentity()&&data?.signature===halfIdentity()&&Array.isArray(data.darts)&&
+        data.darts.length<=3&&data.darts.every(E.isDart))halfQueue=data.darts;
+      else localStorage.removeItem(HALF_QUEUE_KEY);
+    }catch(_){}
+  }
+  function halfAdd(n,m){
+    if(state?.status!=='playing'||state.current.kind!=='half')return;
+    if(halfQueue.length>=3-state.current.pending.length)return;
+    const dart={n,m};if(!E.isDart(dart))return;
+    halfQueue.push(dart);saveHalfQueue();render();
+  }
+  function halfRemove(){
+    if(state?.status!=='playing'||state.current.kind!=='half'||!halfQueue.length)return;
+    halfQueue.pop();saveHalfQueue();render();
+  }
+  function halfSubmit(){
+    if(state?.status!=='playing'||state.current.kind!=='half')return;
+    const existing=state.current.pending.length;
+    const darts=[...halfQueue];
+    while(darts.length<3-existing)darts.push({n:0,m:0});
+    if(!darts.length)return;
+    try{
+      const player=state.current.turn,rule=E.currentTarget(state)?.label;
+      let next=state;
+      for(const dart of darts)next=E.submitDart(next,dart);
+      state=next;halfQueue=[];saveHalfQueue();
+      feedback=state.players[player]+': '+darts.map(E.labelDart).join(' · ')+' mot '+rule+'.';
+      persist();render();
+      if(state.status==='review')$('pentaReviewPanel').scrollIntoView({block:'nearest',behavior:'smooth'});
+    }catch(error){report(error)}
+  }
   let starting=false;
   let statsOpen=false;
   function setStatsOpen(open){
@@ -525,6 +581,67 @@
       history.appendChild(row);
     }
   }
+  function renderHalf(){
+    const c=state.current,host=$('pentaHalfPlayers');host.replaceChildren();
+    for(let p=0;p<2;p++){
+      const card=create('article','local-player'+(c.turn===p?' active':''));
+      card.style.order=p===c.starter?'0':'1';
+      const head=create('div','local-player-top');
+      head.append(create('small','','SPILLER '+(p+1)),create('span','local-current-marker','Kaster nå'));
+      const band=create('div','local-score-band');
+      const used=create('div','local-live-darts');
+      used.append(create('b','',c.used[p]),create('span','','PILER'));
+      const score=create('div','local-score',c.halfScores[p]);
+      const average=create('div','local-avg');
+      const completedRounds=Math.ceil(c.used[p]/3);
+      average.append(create('b','',completedRounds?(c.halfScores[p]/completedRounds).toFixed(2):'0.00'),create('span','','P/R'));
+      band.append(used,score,average);
+      card.append(head,create('h2','',state.players[p]),band,create('div','local-leg-label',c.pent[p]+' PENTATHLON-POENG'));
+      host.appendChild(card);
+    }
+    const p=c.turn,round=Math.min(6,Math.floor(c.used[p]/3)),target=HALF_TARGETS[round];
+    $('pentaHalfActive').textContent=state.players[p]+' kaster';
+    $('pentaHalfTarget').textContent=target.label;
+    $('pentaHalfPhase').textContent='HALF-IT · MÅL '+(round+1)+'/7';
+    $('pentaHalfTurn').textContent=(3-c.pending.length-halfQueue.length)+' piler denne turen';
+    $('pentaHalfPending').textContent=[...c.pending,...halfQueue].map(E.labelDart).join(' · ')||'–';
+    $('pentaHalfRemove').disabled=!halfQueue.length;
+    const choices=$('pentaHalfChoices');choices.replaceChildren();
+    const options=target.m===0?[1,2,3].map(m=>({n:target.n,m})):
+      [{n:target.n,m:target.m}];
+    for(const {n,m} of options){
+      const button=create('button','outline special-choice');
+      button.type='button';button.textContent=E.labelDart({n,m})+' ';
+      button.append(create('span','da-key',m===1?'1':m===2?'2':'3'));
+      button.addEventListener('click',()=>halfAdd(n,m));
+      choices.appendChild(button);
+    }
+    $('pentaHalfMessage').textContent='Velg opptil 3 piler. Enter registrerer turen; ubrukte piler blir bom.';
+    const stats=$('pentaHalfStats');stats.replaceChildren();
+    const head=create('div','special-stats-names');
+    head.append(create('span','',''),create('strong','',state.players[0]),create('strong','',state.players[1]));
+    stats.appendChild(head);
+    const rows=[
+      ['Half-It-score',p=>c.halfScores[p]],
+      ['Pentathlon-poeng',p=>c.pent[p]],
+      ['Runder fullført',p=>Math.floor(c.used[p]/3)+'/7'],
+      ['Piler brukt',p=>c.used[p]+'/21']
+    ];
+    for(const [label,fn] of rows){
+      const row=create('div','special-stats-cell');
+      row.append(create('span','',label),create('strong','',fn(0)),create('strong','',fn(1)));
+      stats.appendChild(row);
+    }
+    const log=$('pentaHalfLog');log.replaceChildren();
+    const entries=c.entries.slice(-12).reverse();
+    if(!entries.length)log.appendChild(create('div','penta-hint','Ingen kast ennå.'));
+    for(const item of entries){
+      const row=create('div','penta-jdc-history-row');
+      row.append(create('strong','',state.players[item.player]),create('span','',item.target+' · '+item.hit),create('b','',
+        item.halved?'HALVERT':('+'+item.bonus+' P')));
+      log.appendChild(row);
+    }
+  }
   function stageStats(){
     const c=state.current,wrap=$('pentaStagePlayers'),idx=state.stageIndex;
     const x01=c.kind==='x01';
@@ -535,13 +652,15 @@
     $('pentaX01StatsPanel').hidden=!x01||!statsOpen;
     $('pentaStatsBackdrop').hidden=!x01||!statsOpen;
     $('pentaStatsOpen').setAttribute('aria-expanded',String(statsOpen));
-    const shanghai=c.kind==='shanghai',clock=c.kind==='clock';
-    wrap.hidden=x01||shanghai||clock;
+    const shanghai=c.kind==='shanghai',clock=c.kind==='clock',half=c.kind==='half';
+    wrap.hidden=x01||shanghai||clock||half;
     $('pentaShanghaiGame').hidden=!shanghai;
     $('pentaClockGame').hidden=!clock;
+    $('pentaHalfGame').hidden=!half;
     if(shanghai)renderShanghai();
     if(clock)renderClock();
-    $('pentaTarget').parentElement.parentElement.hidden=x01||shanghai||clock;
+    if(half)renderHalf();
+    $('pentaTarget').parentElement.parentElement.hidden=x01||shanghai||clock||half;
     if(x01)renderX01Board();
     wrap.replaceChildren();
     wrap.classList.remove('penta-shanghai-board','local-board');
@@ -576,7 +695,7 @@
     $('pentaTarget').textContent=target?.label||'FERDIG';
     $('pentaDartsRemaining').textContent=c.kind==='x01'?'REGISTRER KASTESUM':(c.kind==='clock'?(42-c.used[c.turn])+' PILER IGJEN':'PIL '+(c.pending.length+1)+' AV 3');
     $('pentaX01Controls').hidden=c.kind!=='x01';
-    $('pentaDartControls').hidden=c.kind==='x01'||c.kind==='shanghai'||c.kind==='clock';
+    $('pentaDartControls').hidden=c.kind==='x01'||c.kind==='shanghai'||c.kind==='clock'||c.kind==='half';
     $('pentaDartAdvanced').hidden=false;
     if(c.kind!=='x01'){
       const slots=$('pentaDartSlots').children;
@@ -745,7 +864,7 @@
         });
       }
       state=next;
-      shanghaiQueue=[];saveShanghaiQueue();clockQueue=[];saveClockQueue();
+      shanghaiQueue=[];saveShanghaiQueue();clockQueue=[];saveClockQueue();halfQueue=[];saveHalfQueue();
       feedback=state.players[starter]+' starter første 501-leg.';
       persist();render();
       $('pentaGame').scrollIntoView({block:'start',behavior:'smooth'});
@@ -758,17 +877,20 @@
       resumeButton.disabled=false;
     }
   }
-  function resume(){const saved=stored();if(!saved)return;state=saved;restoreShanghaiQueue();restoreClockQueue();feedback='Femkampen er gjenopptatt.';render();focusX01Score()}
+  function resume(){const saved=stored();if(!saved)return;state=saved;restoreShanghaiQueue();restoreClockQueue();restoreHalfQueue();feedback='Femkampen er gjenopptatt.';render();focusX01Score()}
   function undo(){
     if(!state)return;
     try{
+      if(state.status==='playing'&&state.current.kind==='half'&&halfQueue.length){
+        halfRemove();return;
+      }
       if(state.status==='playing'&&state.current.kind==='clock'&&clockQueue.length){
         clockRemoveHit();return;
       }
       if(state.status==='playing'&&state.current.kind==='shanghai'&&shanghaiQueue.length){
         shanghaiRemoveHit();return;
       }
-      if(['shanghai','clock'].includes(state.current.kind)&&state.current.entries.length){
+      if(['shanghai','clock','half'].includes(state.current.kind)&&state.current.entries.length){
         // A JDC turn is confirmed as one action. Undo all committed darts
         // from the most recent turn rather than leaving a half-registered one.
         const entries=state.current.entries;
@@ -777,14 +899,14 @@
         for(let i=entries.length-1;i>=0&&n<3&&entries[i].player===lastPlayer;i--)n++;
         for(let i=0;i<n;i++)state=E.undo(state);
       }else state=E.undo(state);
-      shanghaiQueue=[];saveShanghaiQueue();clockQueue=[];saveClockQueue();
+      shanghaiQueue=[];saveShanghaiQueue();clockQueue=[];saveClockQueue();halfQueue=[];saveHalfQueue();
       feedback='Forrige registrering angret.';persist();render();focusX01Score()
     }
     catch(error){report(error)}
   }
   function reset(){
     if(state&&!window.confirm('Starte en ny Pentathlon? Nåværende resultat og angrehistorikk overskrives.'))return;
-    state=null;shanghaiQueue=[];clockQueue=[];
+    state=null;shanghaiQueue=[];clockQueue=[];halfQueue=[];
     try{localStorage.removeItem(STORE);localStorage.removeItem(SHANGHAI_QUEUE_KEY);localStorage.removeItem(CLOCK_QUEUE_KEY)}catch(_){}
     $('pentaGame').hidden=true;$('pentaSetup').hidden=false;showResume();
     $('pentaSetup').scrollIntoView({block:'start',behavior:'smooth'});
@@ -793,7 +915,7 @@
     if(state?.status!=='review')return;
     try{
       state=E.nextStage(state);
-      shanghaiQueue=[];saveShanghaiQueue();clockQueue=[];saveClockQueue();
+      shanghaiQueue=[];saveShanghaiQueue();clockQueue=[];saveClockQueue();halfQueue=[];saveHalfQueue();
       feedback='Neste øvelse er klar. '+state.players[state.current.turn]+' starter.';
       persist();render();
       $('pentaGame').scrollIntoView({block:'start',behavior:'smooth'});
@@ -857,6 +979,24 @@
       input.focus({preventScroll:true});
       input.setSelectionRange(input.value.length,input.value.length);
     }
+  });
+  $('pentaHalfMiss').addEventListener('click',()=>halfAdd(0,0));
+  $('pentaHalfRemove').addEventListener('click',halfRemove);
+  $('pentaHalfSubmit').addEventListener('click',halfSubmit);
+  document.addEventListener('keydown',event=>{
+    if(event.defaultPrevented||event.repeat||event.ctrlKey||event.altKey||event.metaKey||
+      event.isComposing||state?.status!=='playing'||state.current.kind!=='half')return;
+    const target=event.target;
+    if(target?.isContentEditable||['INPUT','TEXTAREA','SELECT'].includes(target?.tagName))return;
+    if(event.key==='0'){event.preventDefault();halfAdd(0,0)}
+    else if(['1','2','3'].includes(event.key)){
+      const rule=HALF_TARGETS[Math.min(6,Math.floor(state.current.used[state.current.turn]/3))];
+      const m=rule.m||Number(event.key);
+      if(rule.m===0||Number(event.key)===rule.m){
+        event.preventDefault();halfAdd(rule.n,m);
+      }
+    }else if(event.key==='Enter'){event.preventDefault();halfSubmit()}
+    else if(event.key==='Backspace'){event.preventDefault();halfRemove()}
   });
   $('pentaClockMiss').addEventListener('click',()=>clockQueueHit(false));
   $('pentaClockHit').addEventListener('click',()=>clockQueueHit(true));
@@ -946,7 +1086,7 @@
   const saved=stored();
   if(saved){
     state=saved;
-    restoreShanghaiQueue();restoreClockQueue();
+    restoreShanghaiQueue();restoreClockQueue();restoreHalfQueue();
     feedback=saved.status==='review'?'Øvelsen er fullført. Fortsett når du er klar.':
       saved.status==='finished'?'Tidligere Pentathlon-resultat gjenopprettet.':
       'Pentathlon gjenopprettet på samme øvelse.';
