@@ -6,6 +6,60 @@
   const $=id=>document.getElementById(id);
   const STORE='dartarena-pentathlon-local-2p-v1';
   let state=null,mult=1,feedback='Klar for første kast.';
+  const SHANGHAI_QUEUE_KEY=STORE+':shanghai-pending';
+  let shanghaiQueue=[];
+  function queueIdentity(){
+    if(!state||state.status!=='playing'||state.current.kind!=='shanghai')return null;
+    return [state.createdAt,state.stageIndex,state.current.turn,state.current.entries.length].join(':');
+  }
+  function saveShanghaiQueue(){
+    try{
+      const signature=queueIdentity();
+      if(signature&&shanghaiQueue.length)localStorage.setItem(SHANGHAI_QUEUE_KEY,JSON.stringify({signature,darts:shanghaiQueue}));
+      else localStorage.removeItem(SHANGHAI_QUEUE_KEY);
+    }catch(_){}
+  }
+  function restoreShanghaiQueue(){
+    shanghaiQueue=[];
+    try{
+      const data=JSON.parse(localStorage.getItem(SHANGHAI_QUEUE_KEY)||'null');
+      if(queueIdentity()&&data?.signature===queueIdentity()&&Array.isArray(data.darts)&&data.darts.length<=3&&data.darts.every(E.isDart)){
+        shanghaiQueue=data.darts;
+      }else localStorage.removeItem(SHANGHAI_QUEUE_KEY);
+    }catch(_){}
+  }
+  function shanghaiQueueHit(n,m){
+    if(state?.status!=='playing'||state.current.kind!=='shanghai'||shanghaiQueue.length>=3)return;
+    const dart={n,m};
+    if(!E.isDart(dart))return;
+    shanghaiQueue.push(dart);
+    saveShanghaiQueue();
+    render();
+  }
+  function shanghaiRemoveHit(){
+    if(state?.status!=='playing'||state.current.kind!=='shanghai'||!shanghaiQueue.length)return;
+    shanghaiQueue.pop();saveShanghaiQueue();render();
+  }
+  function shanghaiSubmitTurn(){
+    if(state?.status!=='playing'||state.current.kind!=='shanghai')return;
+    if(shanghaiQueue.length!==3){
+      $('pentaShanghaiMessage').textContent='Registrer alle tre pilene før Enter.';
+      return;
+    }
+    try{
+      const target=E.currentTarget(state);
+      const who=state.current.turn;
+      const darts=[...shanghaiQueue];
+      let next=state;
+      for(const dart of darts)next=E.submitDart(next,dart);
+      state=next;
+      shanghaiQueue=[];saveShanghaiQueue();
+      feedback=state.players[who]+': '+darts.map(E.labelDart).join(' · ')+' på '+target.label+'.';
+      persist();render();
+      if(state.status==='review')$('pentaReviewPanel').scrollIntoView({block:'nearest',behavior:'smooth'});
+    }catch(error){report(error)}
+  }
+
   let starting=false;
   let statsOpen=false;
   function setStatsOpen(open){
@@ -284,6 +338,69 @@
       line.appendChild(chips);throws.appendChild(line);
     }
   }
+  function renderShanghai(){
+    const c=state.current,host=$('pentaShanghaiPlayers');
+    host.replaceChildren();
+    for(let p=0;p<2;p++){
+      const visits=c.entries.filter(row=>row.player===p);
+      const turns=[];
+      for(let i=0;i<visits.length;i+=3)turns.push(visits.slice(i,i+3));
+      const best=turns.length?Math.max(...turns.map(v=>v.reduce((sum,row)=>sum+Number(row.bonus||0),0))):0;
+      const avg=turns.length?(c.pent[p]/turns.length).toFixed(2):'0.00';
+      const card=create('article','local-player'+(c.turn===p?' active':''));
+      card.style.order=p===c.starter?'0':'1';
+      const top=create('div','local-player-top');
+      top.append(create('small','','SPILLER '+(p+1)),create('span','local-current-marker','Kaster nå'));
+      const band=create('div','local-score-band');
+      const darts=create('div','local-live-darts');
+      darts.append(create('b','',c.used[p]),create('span','','PILER'));
+      const score=create('div','local-score',c.pent[p]);
+      const average=create('div','local-avg');
+      average.append(create('b','',avg),create('span','','P/R'));
+      band.append(darts,score,average);
+      card.append(top,create('h2','',state.players[p]),band,create('div','local-leg-label','PENTATHLON-POENG'));
+      host.appendChild(card);
+    }
+    const n=E.currentTarget(state)?.number||1;
+    $('pentaShanghaiActive').textContent=state.players[c.turn]+' kaster';
+    $('pentaShanghaiPhase').textContent='SHANGHAI · MÅL '+n+'/9';
+    $('pentaShanghaiTarget').textContent='Shanghai '+n;
+    $('pentaShanghaiTurn').textContent=(3-shanghaiQueue.length)+' piler denne turen';
+    $('pentaShanghaiPending').textContent=shanghaiQueue.length?shanghaiQueue.map(E.labelDart).join(' · '):'–';
+    $('pentaShanghaiRemove').disabled=!shanghaiQueue.length;
+    $('pentaShanghaiSubmit').disabled=shanghaiQueue.length!==3;
+    $('pentaShanghaiMessage').textContent=shanghaiQueue.length===3?'Tre piler valgt. Trykk Enter for å registrere.':'Velg treff, og trykk Enter etter tre piler.';
+    const stats=$('pentaShanghaiStats');stats.replaceChildren();
+    const names=create('div','special-stats-names');
+    names.append(create('span','',''),create('strong','',state.players[0]),create('strong','',state.players[1]));
+    stats.appendChild(names);
+    const pairs=[
+      ['Pentathlon-poeng',p=>c.pent[p]],
+      ['Shanghai-bonus',p=>c.entries.filter(e=>e.player===p&&e.shanghai).length],
+      ['Mål fullført',p=>Math.floor(c.used[p]/3)+'/9'],
+      ['Beste runde',p=>{
+        const entries=c.entries.filter(e=>e.player===p);
+        let max=0;
+        for(let i=0;i<entries.length;i+=3){
+          max=Math.max(max,entries.slice(i,i+3).reduce((t,e)=>t+Number(e.bonus||0),0));
+        }
+        return max;
+      }]
+    ];
+    for(const [label,calc] of pairs){
+      const row=create('div','special-stats-cell');
+      row.append(create('span','',label),create('strong','',calc(0)),create('strong','',calc(1)));
+      stats.appendChild(row);
+    }
+    const history=$('pentaShanghaiLog');history.replaceChildren();
+    const rows=c.entries.slice(-12).reverse();
+    if(!rows.length)history.appendChild(create('div','penta-hint','Ingen kast ennå.'));
+    for(const e of rows){
+      const line=create('div','penta-jdc-history-row');
+      line.append(create('strong','',state.players[e.player]),create('span','',e.target+' · '+e.hit),create('b','', '+'+e.bonus+' P'+(e.shanghai?' · SHANGHAI!':'')));
+      history.appendChild(line);
+    }
+  }
   function stageStats(){
     const c=state.current,wrap=$('pentaStagePlayers'),idx=state.stageIndex;
     const x01=c.kind==='x01';
@@ -294,9 +411,11 @@
     $('pentaX01StatsPanel').hidden=!x01||!statsOpen;
     $('pentaStatsBackdrop').hidden=!x01||!statsOpen;
     $('pentaStatsOpen').setAttribute('aria-expanded',String(statsOpen));
-    wrap.hidden=x01;
-    // JDC Shanghai already shows its large current target; avoid a duplicate target panel.
-    $('pentaTarget').parentElement.parentElement.hidden=x01||c.kind==='shanghai';
+    const shanghai=c.kind==='shanghai';
+    wrap.hidden=x01||shanghai;
+    $('pentaShanghaiGame').hidden=!shanghai;
+    if(shanghai)renderShanghai();
+    $('pentaTarget').parentElement.parentElement.hidden=x01||shanghai;
     if(x01)renderX01Board();
     wrap.replaceChildren();
     wrap.classList.remove('penta-shanghai-board','local-board');
@@ -331,16 +450,8 @@
     $('pentaTarget').textContent=target?.label||'FERDIG';
     $('pentaDartsRemaining').textContent=c.kind==='x01'?'REGISTRER KASTESUM':(c.kind==='clock'?(42-c.used[c.turn])+' PILER IGJEN':'PIL '+(c.pending.length+1)+' AV 3');
     $('pentaX01Controls').hidden=c.kind!=='x01';
-    $('pentaDartControls').hidden=c.kind==='x01';
-    const shanghai=c.kind==='shanghai';
-    $('pentaShanghaiQuick').hidden=!shanghai;
-    $('pentaDartAdvanced').hidden=shanghai&&!$('pentaShanghaiOther').open;
-    if(shanghai){
-      const number=E.currentTarget(state)?.number||1;
-      $('pentaShanghaiTarget').textContent=String(number);
-      $('pentaShanghaiTurn').textContent='Pil '+(c.pending.length+1)+' av 3 · '+c.used[c.turn]+' / 27 totalt';
-
-    }
+    $('pentaDartControls').hidden=c.kind==='x01'||c.kind==='shanghai';
+    $('pentaDartAdvanced').hidden=false;
     if(c.kind!=='x01'){
       const slots=$('pentaDartSlots').children;
       for(let i=0;i<3;i++){
@@ -508,6 +619,7 @@
         });
       }
       state=next;
+      shanghaiQueue=[];saveShanghaiQueue();
       feedback=state.players[starter]+' starter første 501-leg.';
       persist();render();
       $('pentaGame').scrollIntoView({block:'start',behavior:'smooth'});
@@ -520,10 +632,16 @@
       resumeButton.disabled=false;
     }
   }
-  function resume(){const saved=stored();if(!saved)return;state=saved;feedback='Femkampen er gjenopptatt.';render();focusX01Score()}
+  function resume(){const saved=stored();if(!saved)return;state=saved;restoreShanghaiQueue();feedback='Femkampen er gjenopptatt.';render();focusX01Score()}
   function undo(){
     if(!state)return;
-    try{state=E.undo(state);feedback='Forrige registrering angret.';persist();render();focusX01Score()}
+    try{
+      if(state.status==='playing'&&state.current.kind==='shanghai'&&shanghaiQueue.length){
+        shanghaiRemoveHit();return;
+      }
+      state=E.undo(state);shanghaiQueue=[];saveShanghaiQueue();
+      feedback='Forrige registrering angret.';persist();render();focusX01Score()
+    }
     catch(error){report(error)}
   }
   function reset(){
@@ -537,6 +655,7 @@
     if(state?.status!=='review')return;
     try{
       state=E.nextStage(state);
+      shanghaiQueue=[];saveShanghaiQueue();
       feedback='Neste øvelse er klar. '+state.players[state.current.turn]+' starter.';
       persist();render();
       $('pentaGame').scrollIntoView({block:'start',behavior:'smooth'});
@@ -566,20 +685,16 @@
   document.addEventListener('keydown',event=>{
     if(event.key==='Escape'&&statsOpen)setStatsOpen(false);
   });
-  $('pentaShanghaiOther').addEventListener('toggle',()=>{
-    if(state?.status==='playing'&&state.current.kind==='shanghai'){
-      $('pentaDartAdvanced').hidden=!$('pentaShanghaiOther').open;
-    }
-  });
+
   $('pentaShanghaiQuick').querySelectorAll('[data-shanghai-mult]').forEach(button=>{
     button.addEventListener('click',()=>{
       if(state?.status!=='playing'||state.current.kind!=='shanghai')return;
       const target=E.currentTarget(state);
-      if(target?.number)addDart(target.number,Number(button.dataset.shanghaiMult));
+      if(target?.number)shanghaiQueueHit(target.number,Number(button.dataset.shanghaiMult));
     });
   });
   $('pentaShanghaiMiss').addEventListener('click',()=>{
-    if(state?.status==='playing'&&state.current.kind==='shanghai')addDart(0,0);
+    if(state?.status==='playing'&&state.current.kind==='shanghai')shanghaiQueueHit(0,0);
   });
   // Shanghai scoring: 1=S, 2=D, 3=T, 0=BOM on the current target.
   document.addEventListener('keydown',event=>{
@@ -592,7 +707,7 @@
       const n=E.currentTarget(state)?.number;
       if(!n)return;
       event.preventDefault();
-      addDart(event.key==='0'?0:n,event.key==='0'?0:Number(event.key));
+      shanghaiQueueHit(event.key==='0'?0:n,event.key==='0'?0:Number(event.key));
       return;
     }
     if(state.current.kind==='x01'&&event.key.length===1&&/^[0-9]$/.test(event.key)&&
@@ -604,6 +719,17 @@
       input.focus({preventScroll:true});
       input.setSelectionRange(input.value.length,input.value.length);
     }
+  });
+  $('pentaShanghaiRemove').addEventListener('click',shanghaiRemoveHit);
+  $('pentaShanghaiSubmit').addEventListener('click',shanghaiSubmitTurn);
+  // JDC: Enter confirms the whole 3-dart turn; Backspace removes the latest unconfirmed dart.
+  document.addEventListener('keydown',event=>{
+    if(event.defaultPrevented||event.repeat||event.ctrlKey||event.altKey||event.metaKey||
+       event.isComposing||state?.status!=='playing'||state.current.kind!=='shanghai')return;
+    const target=event.target;
+    if(target?.isContentEditable||['INPUT','TEXTAREA','SELECT'].includes(target?.tagName))return;
+    if(event.key==='Enter'){event.preventDefault();shanghaiSubmitTurn()}
+    else if(event.key==='Backspace'){event.preventDefault();shanghaiRemoveHit()}
   });
   $('pentaStart').addEventListener('click',start);
   $('pentaResume').addEventListener('click',resume);
@@ -668,6 +794,7 @@
   const saved=stored();
   if(saved){
     state=saved;
+    restoreShanghaiQueue();
     feedback=saved.status==='review'?'Øvelsen er fullført. Fortsett når du er klar.':
       saved.status==='finished'?'Tidligere Pentathlon-resultat gjenopprettet.':
       'Pentathlon gjenopprettet på samme øvelse.';
