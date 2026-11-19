@@ -769,7 +769,10 @@
       if(['shanghai','clock'].includes(state.current.kind)&&state.current.entries.length){
         // A JDC turn is confirmed as one action. Undo all committed darts
         // from the most recent turn rather than leaving a half-registered one.
-        const n=state.current.pending.length||3;
+        const entries=state.current.entries;
+        const lastPlayer=entries[entries.length-1].player;
+        let n=0;
+        for(let i=entries.length-1;i>=0&&n<3&&entries[i].player===lastPlayer;i--)n++;
         for(let i=0;i<n;i++)state=E.undo(state);
       }else state=E.undo(state);
       shanghaiQueue=[];saveShanghaiQueue();clockQueue=[];saveClockQueue();
