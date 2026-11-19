@@ -234,3 +234,6 @@
  .da-penta .penta-jdc-stats .special-stats-grid{grid-template-columns:1fr}
  .da-penta .penta-jdc-choices button{padding:9px 8px}
 }
+
+/* Red validation warning, matching local JDC/Shanghai. */
+.da-penta #pentaClockMessage.is-error{color:#ff6d7e!important;font-weight:800}
