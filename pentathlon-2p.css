@@ -400,3 +400,21 @@
  .da-penta #pentaSetup .penta-course-list{grid-template-columns:1fr}
  .da-penta .penta-course-title .local-pill{display:none}
 }
+
+/* Finished Pentathlon export: choose PDF report or spreadsheet CSV. */
+.da-penta .penta-export-menu{position:relative;display:inline-flex;flex-direction:column;align-items:stretch}
+.da-penta .penta-export-options[hidden]{display:none!important}
+.da-penta .penta-export-options{
+  position:absolute;left:0;bottom:calc(100% + 7px);z-index:100;
+  width:235px;max-width:min(85vw,300px);
+  background:#071a20;border:1px solid #287b81;border-radius:11px;
+  box-shadow:0 12px 32px rgba(0,0,0,.58);padding:5px;display:grid;gap:3px;
+}
+.da-penta .penta-export-options button{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;min-width:0;margin:0;padding:12px;border:0;border-radius:8px;
+  font-size:13px;font-weight:900;color:#eefeff;background:transparent;cursor:pointer;
+}
+.da-penta .penta-export-options button:hover,
+.da-penta .penta-export-options button:focus-visible{background:#103840;outline:1px solid #00eaf4}
+.da-penta .penta-export-options button small{font-weight:550;font-size:11px;color:#90b6bc}
