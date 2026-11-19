@@ -632,6 +632,17 @@
     commitX01({score:0,bust:true,doubleConfirmed:false,darts:3});
   });
   document.addEventListener('keydown',event=>{
+    // On the result/review screen Enter means "Neste øvelse", even if
+    // keyboard focus remains on a control from the just-completed exercise.
+    // Capture the key before the browser can activate a stale focused button.
+    if(event.key==='Enter'&&state?.status==='review'&&!event.repeat&&
+       !event.ctrlKey&&!event.altKey&&!event.metaKey&&!event.isComposing&&
+       $('pentaCheckout').hidden&&$('pentaCorrectionModal').hidden){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      nextStage();
+      return;
+    }
     if(event.key==='Escape'){
       if(!$('pentaCheckout').hidden){event.preventDefault();closeCheckout()}
       else if(!$('pentaCorrectionModal').hidden){event.preventDefault();closeCorrection()}
