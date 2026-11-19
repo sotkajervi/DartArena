@@ -320,3 +320,39 @@
 .da-penta.penta-finished #pentaFinishedPanel{width:min(900px,100%);justify-self:center}
 .da-penta.penta-finished #pentaStandingsDetails{width:min(900px,100%);justify-self:center}
 .da-penta.penta-finished .penta-progress{max-width:900px;width:100%;margin-left:auto;margin-right:auto}
+
+/* Read-only stats drilldowns from the finished Pentathlon progress bar. */
+.da-penta .penta-progress>button{font-family:inherit;min-width:0;padding:11px 8px;border:1px solid #286750;background:#102e28;border-radius:9px;text-align:center;font-size:10px;font-weight:800;color:#64f0b2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.da-penta .penta-progress>button.penta-progress-stats:hover,
+.da-penta .penta-progress>button.penta-progress-stats:focus-visible{border-color:#00eaf4;background:#0e4947;color:#e6ffff;outline:2px solid rgba(0,234,244,.45);outline-offset:1px}
+.da-penta .penta-stage-stats-modal{position:fixed;inset:0;z-index:11000;display:grid;place-items:center;padding:16px}
+.da-penta .penta-stage-stats-modal[hidden]{display:none!important}
+.da-penta .penta-stage-stats-shade{position:absolute;inset:0;background:rgba(0,7,10,.84);backdrop-filter:blur(5px)}
+.da-penta .penta-stage-stats-card{position:relative;width:min(850px,100%);max-height:min(88dvh,900px);overflow:auto;padding:18px 21px;border:1px solid rgba(0,234,244,.66);border-radius:17px;background:linear-gradient(170deg,#102930,#06161b 85%);box-shadow:0 24px 70px #000c;color:#ecffff}
+.da-penta .penta-stage-stats-head{display:flex;justify-content:space-between;align-items:flex-start;gap:13px;margin-bottom:16px}
+.da-penta .penta-stage-stats-head small{color:#00eaf4;letter-spacing:.12em;font-size:10px;font-weight:950}
+.da-penta .penta-stage-stats-head h2{font-size:clamp(20px,3.2vw,28px);margin:4px 0 0}
+.da-penta .penta-stage-stats-head button{padding:9px 12px;flex-shrink:0}
+.da-penta .penta-drill-players{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.da-penta .penta-drill-player{border:1px solid rgba(0,234,244,.28);border-radius:12px;background:#071a20;padding:13px;min-width:0}
+.da-penta .penta-drill-player-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 11px}
+.da-penta .penta-drill-player-top h3{margin:0;overflow-wrap:anywhere;font-size:17px}
+.da-penta .penta-drill-player-top strong{font-size:23px;white-space:nowrap;color:#00eaf4}
+.da-penta .penta-drill-metric{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:8px 1px;border-top:1px solid rgba(255,255,255,.08)}
+.da-penta .penta-drill-metric span{color:#a2c1c7;font-size:11px}
+.da-penta .penta-drill-metric strong{font-size:12px;text-align:right;color:#f2ffff}
+.da-penta .penta-drill-throws{margin-top:14px;border:1px solid #31545d;border-radius:11px;padding:10px 13px;background:#091f26}
+.da-penta .penta-drill-throws summary{cursor:pointer;color:#00eaf4;font-size:12px;font-weight:850}
+.da-penta .penta-drill-throw-list{margin-top:10px;max-height:285px;overflow:auto}
+.da-penta .penta-drill-throw{display:grid;grid-template-columns:minmax(80px,.7fr) minmax(0,1.6fr) auto;align-items:baseline;gap:10px;padding:7px 3px;border-top:1px solid rgba(255,255,255,.07);font-size:11px}
+.da-penta .penta-drill-throw span:first-child{font-weight:800}
+.da-penta .penta-drill-throw span:nth-child(2){color:#bbd3d8;overflow-wrap:anywhere}
+.da-penta .penta-drill-throw b{color:#00eaf4;white-space:nowrap}
+@media(max-width:650px){
+ .da-penta .penta-stage-stats-card{padding:14px 11px;max-height:94dvh}
+ .da-penta .penta-drill-players{grid-template-columns:1fr;gap:9px}
+ .da-penta .penta-drill-throw{grid-template-columns:minmax(0,1fr) auto}
+ .da-penta .penta-drill-throw span:nth-child(2){grid-column:1;grid-row:2}
+ .da-penta .penta-drill-throw b{grid-column:2;grid-row:2}
+ .da-penta .penta-progress>button{padding:8px 3px;font-size:9px}
+}
