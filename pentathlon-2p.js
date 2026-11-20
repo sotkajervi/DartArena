@@ -208,7 +208,7 @@
   function stored(){
     try{return E.restore(JSON.parse(localStorage.getItem(STORE)||'null'))}catch(_){return null}
   }
-  function showResume(){const old=stored();$('pentaResume').hidden=!old; if(old)$('pentaResume').textContent=old.status==='finished'?'Åpne forrige resultat':'Gjenoppta forrige femkamp'}
+  function showResume(){const old=stored();$('pentaResume').hidden=!old; if(old)$('pentaResume').textContent=old.status==='finished'?'Åpne forrige resultat':'Gjenoppta forrige Pentathlon'}
   function course(){
     const wrap=$('pentaCourse');
     E.STAGES.forEach((stage,index)=>{
@@ -1019,7 +1019,7 @@
       resumeButton.disabled=false;
     }
   }
-  function resume(){const saved=stored();if(!saved)return;state=saved;restoreShanghaiQueue();restoreClockQueue();restoreHalfQueue();feedback='Femkampen er gjenopptatt.';render();focusX01Score()}
+  function resume(){const saved=stored();if(!saved)return;state=saved;restoreShanghaiQueue();restoreClockQueue();restoreHalfQueue();feedback='Pentathlon-kampen er gjenopptatt.';render();focusX01Score()}
   function undo(){
     if(!state)return;
     try{
