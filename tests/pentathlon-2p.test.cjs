@@ -148,3 +148,37 @@ test('entire 7-stage local pentathlon completes and totals are never counted twi
   assert.equal(s.status,'review');
   assert.equal(s.summaries.length,7);
 });
+
+test('Shanghai quick entry pads zero, one or two hits to a full three-dart turn',()=>{
+  const fresh=()=>{
+    const game=newGame();
+    game.stageIndex=4;game.current.kind='shanghai';
+    game.current.start=null;game.current.remaining=[0,0];
+    return game;
+  };
+  for(const [hits,points] of [
+    [[],0],
+    [[dart(1,1)],1],
+    [[dart(1,1),dart(1,2)],3],
+    [[dart(1,1),dart(1,2),dart(1,3)],12]
+  ]){
+    const result=E.submitShanghaiTurn(fresh(),hits);
+    assert.equal(result.current.turn,1);
+    assert.equal(result.current.used[0],3);
+    assert.equal(result.current.pent[0],points);
+    assert.equal(result.current.entries.length,3);
+    assert.deepEqual(result.current.entries.map(x=>x.hit),[
+      ...hits.map(E.labelDart),
+      ...Array.from({length:3-hits.length},()=> 'BOM')
+    ]);
+    assert.equal(E.currentTarget(result).number,1);
+    assert.equal(E.undo(E.undo(E.undo(result))).current.used[0],0);
+  }
+});
+test('Shanghai quick entry cannot add invalid hits or more than three darts',()=>{
+  const game=newGame();
+  game.stageIndex=4;game.current.kind='shanghai';
+  assert.throws(()=>E.submitShanghaiTurn(game,[dart(1),dart(1),dart(1),dart(1)]));
+  assert.throws(()=>E.submitShanghaiTurn(game,[{n:23,m:2}]));
+  assert.throws(()=>E.submitShanghaiTurn(newGame(),[dart(1)]));
+});
