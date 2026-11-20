@@ -42,19 +42,16 @@
   }
   function shanghaiSubmitTurn(){
     if(state?.status!=='playing'||state.current.kind!=='shanghai')return;
-    if(shanghaiQueue.length!==3-state.current.pending.length){
-      $('pentaShanghaiMessage').textContent='Registrer alle tre pilene før Enter.';
-      return;
-    }
     try{
       const target=E.currentTarget(state);
       const who=state.current.turn;
       const darts=[...shanghaiQueue];
-      let next=state;
-      for(const dart of darts)next=E.submitDart(next,dart);
-      state=next;
+      const missing=3-state.current.pending.length-darts.length;
+      if(missing<0)return;
+      state=E.submitShanghaiTurn(state,darts);
       shanghaiQueue=[];saveShanghaiQueue();
-      feedback=state.players[who]+': '+darts.map(E.labelDart).join(' · ')+' på '+target.label+'.';
+      const recorded=[...darts,...Array.from({length:missing},()=>({n:0,m:0}))];
+      feedback=state.players[who]+': '+recorded.map(E.labelDart).join(' · ')+' på '+target.label+'.';
       persist();render();
       if(state.status==='review')$('pentaReviewPanel').scrollIntoView({block:'nearest',behavior:'smooth'});
     }catch(error){report(error)}
@@ -493,8 +490,12 @@
     $('pentaShanghaiTurn').textContent=remaining+' piler denne turen';
     $('pentaShanghaiPending').textContent=[...existing,...chosen].join(' · ')||'–';
     $('pentaShanghaiRemove').disabled=!shanghaiQueue.length;
-    $('pentaShanghaiSubmit').disabled=remaining!==0;
-    $('pentaShanghaiMessage').textContent=remaining===0?'Tre piler valgt. Trykk Enter for å registrere.':'Velg treff, og trykk Enter etter tre piler.';
+    $('pentaShanghaiSubmit').disabled=false;
+    $('pentaShanghaiMessage').textContent=remaining===0
+      ?'Tre piler valgt. Trykk Enter for å registrere.'
+      :remaining===3
+        ?'Velg treff, eller trykk Enter for tre bom.'
+        :'Trykk Enter når du er ferdig. '+remaining+' resterende '+(remaining===1?'pil blir':'piler blir')+' registrert som bom.';
     const stats=$('pentaShanghaiStats');stats.replaceChildren();
     const names=create('div','special-stats-names');
     names.append(create('span','',''),create('strong','',state.players[0]),create('strong','',state.players[1]));
