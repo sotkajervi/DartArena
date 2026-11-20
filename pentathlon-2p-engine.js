@@ -212,6 +212,20 @@
     }
     return remember(state,next);
   }
+  // Shanghai quick entry: only successful hits need manual registration.
+  // Missing darts are committed as ordinary misses, preserving 3 darts
+  // per turn, Shanghai bonuses, the log, undo and stage progression.
+  function submitShanghaiTurn(state, darts) {
+    need(state?.status==='playing' && state.current?.kind==='shanghai','Ikke i en aktiv Shanghai-øvelse.');
+    need(Array.isArray(darts),'Ugyldig Shanghai-tur.');
+    const remaining=3-state.current.pending.length;
+    need(remaining>=1 && remaining<=3 && darts.length<=remaining && darts.every(isDart),
+      'Ugyldig antall piler i Shanghai-turen.');
+    let next=state;
+    for(const dart of darts)next=submitDart(next,dart);
+    for(let i=darts.length;i<remaining;i++)next=submitDart(next,{n:0,m:0});
+    return next;
+  }
   function nextStage(state) {
     need(state?.status==='review','Fullfør øvelsen før du går videre.');
     const next=snapshot(state),idx=state.stageIndex+1;
@@ -238,6 +252,6 @@
        !Array.isArray(value.summaries)||!value.current) return null;
     return value;
   }
-  return Object.freeze({STAGES,HALF,create,restore,currentTarget,submitX01,submitDart,nextStage,undo,
+  return Object.freeze({STAGES,HALF,create,restore,currentTarget,submitX01,submitDart,submitShanghaiTurn,nextStage,undo,
     isScore,isCheckout,isDart,pointsForVisit,finishBonus,labelDart});
 });
