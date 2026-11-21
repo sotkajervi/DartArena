@@ -25,10 +25,12 @@ function boot(state){
    if(logSeen.size>50)logSeen.clear();
    logSeen.set(key,now);
    console.warn('[X01 score]',reason,detail);
-   Promise.resolve(db.from('client_error_logs').insert({
-     user_id:me,match_id:matchId,page:location.pathname.split('/').pop()||'match.html',
-     message:('X01 score: '+reason+(detail?' | '+detail:'')).slice(0,1000),source:'set-engine.js'
-   })).catch(()=>{});
+   try{
+     Promise.resolve(db.from('client_error_logs').insert({
+       user_id:me,match_id:matchId,page:location.pathname.split('/').pop()||'match.html',
+       message:('X01 score: '+reason+(detail?' | '+detail:'')).slice(0,1000),source:'set-engine.js'
+     })).catch(()=>{});
+   }catch(_){} // Telemetry must never interrupt scoring.
  }
  function draw(){
    const m=current();if(!m)return;
@@ -92,14 +94,15 @@ function boot(state){
    busy=true;draw();
    let sent=false,darts=null;
    try{
-     message('Kontrollerer kampstatus…');
-     if(!await refresh()){message('Får ikke kontakt med serveren. Scoren er ikke sendt. Prøv igjen.');return}
-     if(revision(current())!==expected||!mine(current())){
-       if(revision(current())!==expected){input.value='';uncertain=null}
-       message('Kampstatus er oppdatert. Kontroller hvem som skal kaste før du registrerer igjen.');
-       log('state_changed_before_submit');return;
+     // No extra read on each throw: the database RPC checks the exact
+     // expected match revision under a row lock. Reconcile on rejection.
+     if(!mine(before)){
+       message('Det er ikke din tur. Kampstatus oppdateres.');
+       log('turn_not_current');
+       await refresh();
+       return;
      }
-     const m=current(),remaining=Number(me===m.player1_id?m.player1_score:m.player2_score);
+     const m=before,remaining=Number(me===m.player1_id?m.player1_score:m.player2_score);
      if(n===remaining){
        if(!window.DartArenaCheckout.possibleDarts(n).length){message(n+' kan ikke avsluttes på tre piler.');log('invalid_checkout');return}
        message('');
@@ -123,8 +126,18 @@ function boot(state){
        message('Checkout '+n+' på '+darts+' '+(darts===1?'pil':'piler')+' • '+(won?'Kamp vunnet!':setWon?'Set vunnet!':'Leg vunnet!'));
      }else message(data.bust?'Bust.':'');
    }catch(error){
-     log(sent?'submit_failed':'checkout_failed',error);
-     if(sent){
+     const reason=String(error?.message||'');
+     const rejected=sent&&/DA_STALE_SCORE_STATE|DA_INVALID_SCORE_TURN/.test(reason);
+     log(rejected?'stale_server_state':sent?'submit_failed':'checkout_failed',error);
+     if(rejected){
+       // The guarded RPC has definitely rejected this throw: never replay
+       // it automatically and never leave a pending input from an old turn.
+       const refreshed=await refresh();
+       input.value='';uncertain=null;
+       message(refreshed
+         ?'Kampstatus ble endret. Kastet er ikke registrert herfra. Kontroller hvem som kaster før du prøver igjen.'
+         :'Kampstatus er endret. Kunne ikke hente siste stilling. Kontroller kampen før du prøver igjen.');
+     }else if(sent){
        uncertain={revision:expected};
        const refreshed=await refresh();
        if(refreshed&&revision(current())!==expected){
