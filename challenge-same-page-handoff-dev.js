@@ -90,7 +90,7 @@
          'stats-engine.js?v=20261102-stats-button4',
          'spectator-presence.js?v=20261104-shared-auth1',
          'match-spectator-broadcast.js?v=20261104-shared-auth1',
-         'match-media-telemetry.js?v=20261104-shared-auth1',
+         'match-media-telemetry.js?v=20261121-telemetry10s1',
          'ui-feedback.js?v=20260930-cam2',
          'shared-results.js?v=20261105-single-return1',
          'chicago-flow.js?v=20261104-live-match-id1',

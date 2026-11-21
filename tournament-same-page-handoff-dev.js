@@ -90,7 +90,7 @@
          'spectator-presence.js?v=20261102-live-id-fix3',
          'match-spectator-broadcast.js?v=20261031-spectator1',
          'tournament-match-sync.js?v=20261103-cancel-tab-fix1',
-         'match-media-telemetry.js?v=20261102-samepage-id1',
+         'match-media-telemetry.js?v=20261121-telemetry10s1',
          'ui-feedback.js?v=20260930-cam2',
          'shared-results.js?v=20261102-finish-liveid5',
          'chicago-flow.js?v=20261006-chicago5',

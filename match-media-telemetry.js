@@ -160,7 +160,8 @@
     if(error||!session?.user?.id)return;
     playerId=session.user.id;
     await sample();
-    sampleTimer=setInterval(sample,2000);
+    // Lightweight production telemetry: one quality snapshot per 10 seconds.
+    sampleTimer=setInterval(sample,10000);
     flushTimer=setInterval(flush,10000);
     console.debug('[MEDIA TELEMETRY] recording',matchId,tournamentMatchId||'normal-1v1');
   }
