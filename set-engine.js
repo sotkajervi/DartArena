@@ -1,86 +1,166 @@
+/* X01 scoring controller: one authoritative match snapshot, one Enter handler.
+   Uses existing checkout dialog, scoring RPC rules and UI. No media transport changes. */
 (()=>{
+'use strict';
 const $=id=>document.getElementById(id);
-const wait=setInterval(()=>{if(!window.supabase||!$('matchScoreBtn'))return;clearInterval(wait);boot()},100);
-async function boot(){
- const matchId=(window.DartArenaMatchEngineState?.matchId?.()||new URLSearchParams(location.search).get('id')); if(!matchId)return;
- const db=window.DartArenaMatchDb||window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
- const {data:{session}}=await db.auth.getSession(); if(!session)return;
- let {data:match}=await db.from('matches').select('*').eq('id',matchId).single(); if(!match)return;
- const me=session.user.id;
- const isChicago=()=>String(match?.game_config?.chicago??'false').toLowerCase()==='true';
- const chicagoStage=()=>Number(match?.game_config?.chicago_stage||match?.current_leg||1);
- let legDelayUntil=0,legDelayTimer=null,scoreSubmitting=false;
- function legDelayActive(){return Date.now()<legDelayUntil}
- function syncEntryLock(){
-   const input=$('matchScoreInput'),btn=$('matchScoreBtn');
-   if(!input||!btn)return;
-   const mine=match.status==='playing'&&match.turn_player_id===me;
-   const locked=scoreSubmitting||(mine&&legDelayActive());
-   if(locked){
-     input.disabled=true;
-     btn.disabled=true;
-     if(legDelayActive())input.value='';
-     input.blur();
-     return;
-   }
-   input.disabled=!mine;
-   btn.disabled=!mine;
-   if(mine)requestAnimationFrame(()=>{if(!input.disabled&&document.activeElement!==input)input.focus({preventScroll:true})});
- }
- function startLegDelay(){
-   clearTimeout(legDelayTimer);
-   legDelayUntil=Date.now()+3000;
-   syncEntryLock();
-   legDelayTimer=setTimeout(()=>{legDelayUntil=0;syncEntryLock()},3000);
+const wait=setInterval(()=>{
+ const state=window.DartArenaMatchEngineState;
+ if(!state?.match?.()||!state.profile?.()?.id||!state.applyScoreState||!window.DartArenaCheckout||!$('matchScoreInput')||!$('matchScoreBtn'))return;
+ clearInterval(wait);boot(state);
+},100);
+function boot(state){
+ if(window.__dartArenaX01ScoreController)return;
+ window.__dartArenaX01ScoreController=true;
+ const db=state.client(),me=state.profile().id,matchId=state.matchId();
+ const input=$('matchScoreInput'),btn=$('matchScoreBtn');
+ const current=()=>state.match();
+ const mine=m=>m?.status==='playing'&&m.turn_player_id===me&&(m.game_variant||'x01')==='x01';
+ const revision=m=>m?.updated_at||null;
+ const message=t=>{const e=$('matchMessage');if(e)e.textContent=t};
+ let busy=false,closed=false,fetching=null,entryRevision=revision(current()),uncertain=null,logSeen=new Map();
+ function log(reason,error){
+   const detail=String(error?.message||error||'').slice(0,180);
+   const now=Date.now(),key=reason+'|'+detail;
+   if(now-(logSeen.get(key)||0)<15000)return;
+   if(logSeen.size>50)logSeen.clear();
+   logSeen.set(key,now);
+   console.warn('[X01 score]',reason,detail);
+   Promise.resolve(db.from('client_error_logs').insert({
+     user_id:me,match_id:matchId,page:location.pathname.split('/').pop()||'match.html',
+     message:('X01 score: '+reason+(detail?' | '+detail:'')).slice(0,1000),source:'set-engine.js'
+   })).catch(()=>{});
  }
  function draw(){
-   const chicago=isChicago(),setMode=!chicago&&match.match_mode==='sets';
-   $('matchSets1')?.classList.toggle('hidden',!setMode);$('matchSets2')?.classList.toggle('hidden',!setMode);
-   if($('matchSets1'))$('matchSets1').textContent=`${match.player1_sets||0} sets`;
-   if($('matchSets2'))$('matchSets2').textContent=`${match.player2_sets||0} sets`;
-   if($('matchLegs1'))$('matchLegs1').textContent=chicago?`${match.player1_legs||0} game${Number(match.player1_legs||0)===1?'':'s'}`:`${match.player1_legs||0} legs`;
-   if($('matchLegs2'))$('matchLegs2').textContent=chicago?`${match.player2_legs||0} game${Number(match.player2_legs||0)===1?'':'s'}`:`${match.player2_legs||0} legs`;
+   const m=current();if(!m)return;
+   const chicago=String(m.game_config?.chicago??'false').toLowerCase()==='true',setMode=!chicago&&m.match_mode==='sets';
+   for(const p of [1,2]){
+     const sets=$('matchSets'+p),legs=$('matchLegs'+p);
+     sets?.classList.toggle('hidden',!setMode);
+     if(sets)sets.textContent=(m['player'+p+'_sets']||0)+' sets';
+     if(legs){const n=Number(m['player'+p+'_legs']||0);legs.textContent=chicago?n+' game'+(n===1?'':'s'):n+' legs'}
+   }
    if($('matchFormat')){
-     if(chicago){
-       const stage=chicagoStage(),label=stage===1?'301 DOUBLE IN / DOUBLE OUT':stage===3?'501 DOUBLE OUT':'CRICKET';
-       $('matchFormat').textContent=`CHICAGO STYLE • GAME ${stage}/3 • ${label}`;
-     }else $('matchFormat').textContent=setMode?`${match.game} • BEST OF ${match.best_of_sets} SETS • BEST OF ${match.legs} LEGS`:`${match.game} • BEST OF ${match.legs} LEGS`;
+     const stage=Number(m.game_config?.chicago_stage||m.current_leg||1);
+     $('matchFormat').textContent=chicago
+       ?'CHICAGO STYLE • GAME '+stage+'/3 • '+(stage===1?'301 DOUBLE IN / DOUBLE OUT':stage===3?'501 DOUBLE OUT':'CRICKET')
+       :setMode?m.game+' • BEST OF '+m.best_of_sets+' SETS • BEST OF '+m.legs+' LEGS':m.game+' • BEST OF '+m.legs+' LEGS';
+   }
+   input.disabled=btn.disabled=busy||!mine(m);
+ }
+ function reconcile(){
+   const m=current();if(!m)return;
+   if(!busy&&revision(m)!==entryRevision){
+     if(input.value.trim()!==''){
+       input.value='';
+       message(uncertain?'Kampstatus er endret. Kontroller kastloggen før du registrerer på nytt.':'Kampstatus er oppdatert. Registrer poengsummen på nytt ved behov.');
+       log('entry_invalidated');
+     }
+     entryRevision=revision(m);
+     uncertain=null;
+   }
+   draw();
+ }
+ async function bounded(make){
+   const controller=new AbortController();
+   const timer=setTimeout(()=>controller.abort(),10000);
+   try{return await make(controller.signal)}finally{clearTimeout(timer)}
+ }
+ async function refresh(){
+   if(closed)return false;
+   if(fetching)return fetching;
+   fetching=(async()=>{
+     try{
+       const {data,error}=await bounded(signal=>db.from('matches').select('*').eq('id',matchId).abortSignal(signal).single());
+       if(error||!data)throw error||Error('Kampstatus mangler');
+       if(closed)return false;
+       state.applyScoreState(data);
+       reconcile();
+       return true;
+     }catch(e){log('refresh_failed',e);return false}
+   })();
+   try{return await fetching}finally{fetching=null}
+ }
+ async function submit(){
+   if(closed||busy)return;
+   const raw=String(input.value??'').trim(),n=Number(raw);
+   if(!raw||!Number.isInteger(n)||n<0||n>180){message('Skriv en gyldig score fra 0 til 180.');log('invalid_score');return}
+   const before=current(),expected=revision(before);
+   if(!expected){message('Kampstatus mangler. Prøv igjen.');log('no_revision');return}
+   if(entryRevision!==expected){
+     input.value='';entryRevision=expected;message('Kampstatus er endret. Skriv poengsummen på nytt.');log('stale_input');return;
+   }
+   busy=true;draw();
+   let sent=false,darts=null;
+   try{
+     message('Kontrollerer kampstatus…');
+     if(!await refresh()){message('Får ikke kontakt med serveren. Scoren er ikke sendt. Prøv igjen.');return}
+     if(revision(current())!==expected||!mine(current())){
+       if(revision(current())!==expected){input.value='';uncertain=null}
+       message('Kampstatus er oppdatert. Kontroller hvem som skal kaste før du registrerer igjen.');
+       log('state_changed_before_submit');return;
+     }
+     const m=current(),remaining=Number(me===m.player1_id?m.player1_score:m.player2_score);
+     if(n===remaining){
+       if(!window.DartArenaCheckout.possibleDarts(n).length){message(n+' kan ikke avsluttes på tre piler.');log('invalid_checkout');return}
+       message('');
+       darts=await window.DartArenaCheckout.askDarts(n);
+       if(!darts){message('Checkout avbrutt.');return}
+       if(revision(current())!==expected||!mine(current())){
+         input.value='';message('Kampstatus er endret. Kontroller scoren før du prøver igjen.');log('checkout_state_changed');return;
+       }
+     }
+     message('Lagrer score…');
+     sent=true;
+     const {data,error}=await bounded(signal=>db.rpc('submit_x01_checked',{
+       p_match_id:matchId,p_score:n,p_expected_at:expected,p_darts:darts
+     }).abortSignal(signal));
+     if(error||!data)throw error||Error('Mangler svar fra serveren');
+     const next=data.match||data;
+     if(!next?.id||next.id!==matchId)throw Error('Ugyldig svar fra serveren');
+     input.value='';uncertain=null;state.applyScoreState(next);
+     if(darts){
+       const won=next.status==='finished',setWon=Number(next.current_set||1)>Number(before.current_set||1);
+       message('Checkout '+n+' på '+darts+' '+(darts===1?'pil':'piler')+' • '+(won?'Kamp vunnet!':setWon?'Set vunnet!':'Leg vunnet!'));
+     }else message(data.bust?'Bust.':'');
+   }catch(error){
+     log(sent?'submit_failed':'checkout_failed',error);
+     if(sent){
+       uncertain={revision:expected};
+       const refreshed=await refresh();
+       if(refreshed&&revision(current())!==expected){
+         input.value='';uncertain=null;message('Kampstatus er endret. Kontroller kastloggen. Ikke registrer samme kast på nytt.');
+       }else{
+         message('Kastet er ikke bekreftet. Prøv igjen når forbindelsen er tilbake – samme kampstatus kontrolleres på serveren.');
+       }
+     }else message('Registreringen ble avbrutt. Prøv igjen.');
+   }finally{
+     busy=false;
+     if(revision(current())!==expected&&input.value.trim()!=='')input.value='';
+     entryRevision=revision(current());
+     reconcile();
+     if(!input.disabled)requestAnimationFrame(()=>{if(!input.disabled&&!closed)input.focus({preventScroll:true})});
    }
  }
- draw();
- const roomChannel=db.channel('set-engine-'+matchId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{const oldSet=Number(match.current_set||1),oldLeg=Number(match.current_leg||1);match=p.new;const changedLeg=oldSet!==Number(match.current_set||1)||oldLeg!==Number(match.current_leg||1);draw();syncEntryLock()}).subscribe();
- async function submit(){
-   const input=$('matchScoreInput'),raw=String(input.value??'').trim();
-   if(!raw||legDelayActive()||scoreSubmitting)return;
-   const n=Number(raw);
-   if(!Number.isInteger(n)||n<0||n>180||match.status!=='playing'||match.turn_player_id!==me)return;
-   const scoreKey=me===match.player1_id?'player1_score':'player2_score',remaining=Number(match[scoreKey]);
-   if(n===remaining)return; // checkout-engine håndterer checkout + pileantall
-   scoreSubmitting=true;
-   syncEntryLock();
-   $('matchMessage').textContent='Lagrer score…';
-   try{
-     const rpc=isChicago()?'submit_chicago_x01_visit':'submit_x01_visit';
-     const {data,error}=await db.rpc(rpc,{p_match_id:match.id,p_score:n});
-     if(error||!data){$('matchMessage').textContent=error?.message||'Kastet kunne ikke lagres. Kontroller kampstatus før du prøver igjen.';return}
-     match=data.match||data;
-     input.value='';
-     // Keep the last zoom while darts are removed; resume and reset when
-      // the opponent confirms their visit and our next turn begins.
-      if(match.status!=='playing'||match.turn_player_id!==me)window.DartArenaX01ZoomSession?.pauseTracking?.();
-     $('matchMessage').textContent=data.bust?'Bust.':'';
-     draw();
-   }catch(error){
-     $('matchMessage').textContent='Uklart om kastet ble lagret. Kontroller oppdatert score før du prøver igjen.';
-     console.warn('Score request failed',error);
-   }finally{scoreSubmitting=false;syncEntryLock()}
- }
- const scoreBtn=$('matchScoreBtn'),scoreInput=$('matchScoreInput');
- scoreBtn.addEventListener('click',e=>{if(!legDelayActive()&&!scoreSubmitting)return;e.preventDefault();e.stopImmediatePropagation()},true);
- scoreInput.addEventListener('keydown',e=>{if(e.key!=='Enter'||!legDelayActive())return;e.preventDefault();e.stopImmediatePropagation()},true);
- scoreBtn.onclick=e=>{e.stopImmediatePropagation();submit()};
- scoreInput.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();e.stopImmediatePropagation();submit()}};
- syncEntryLock();
- window.addEventListener('pagehide',()=>{clearTimeout(legDelayTimer);db.removeChannel(roomChannel).catch(()=>{})},{once:true});
+ function onInput(){if(!busy)entryRevision=revision(current())}
+ function click(e){e.preventDefault();e.stopImmediatePropagation();submit()}
+ function key(e){if(e.key==='Enter'&&!e.repeat&&!e.isComposing){e.preventDefault();e.stopImmediatePropagation();submit()}}
+ function wake(){if(!closed&&!document.hidden&&!busy&&current()?.status==='playing')refresh()}
+ input.addEventListener('input',onInput);
+ btn.addEventListener('click',click,true);
+ input.addEventListener('keydown',key,true);
+ // Remove old direct-write handlers. Both ordinary score and checkout use submit().
+ btn.onclick=null;input.onkeydown=null;
+ window.addEventListener('dartarena:score-state',reconcile);
+ window.addEventListener('online',wake);
+ document.addEventListener('visibilitychange',wake);
+ const timer=setInterval(wake,15000);
+ window.addEventListener('pagehide',()=>{
+   closed=true;clearInterval(timer);
+   window.removeEventListener('dartarena:score-state',reconcile);
+   window.removeEventListener('online',wake);
+   document.removeEventListener('visibilitychange',wake);
+ },{once:true});
+ reconcile();
+ wake();
 }
 })();

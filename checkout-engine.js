@@ -1,14 +1,7 @@
+/* Existing checkout dialog; scoring submission is owned by set-engine.js. */
 (()=>{
-const $=id=>document.getElementById(id),wait=setInterval(()=>{if(!window.supabase||!$('matchScoreBtn')||!$('matchScoreInput'))return;clearInterval(wait);boot()},100);
-async function boot(){
- const matchId=(window.DartArenaMatchEngineState?.matchId?.()||new URLSearchParams(location.search).get('id'));if(!matchId)return;
- const db=window.DartArenaMatchDb||window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
- const {data:{session}}=await db.auth.getSession();if(!session)return;
- let {data:match}=await db.from('matches').select('*').eq('id',matchId).single();if(!match)return;
- const me=session.user.id;let busy=false;
- const roomChannel=db.channel('checkout-engine-'+matchId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},p=>{match=p.new}).subscribe();
-
- window.addEventListener('pagehide',()=>db.removeChannel(roomChannel).catch(()=>{}),{once:true});
+const $=id=>document.getElementById(id);
+if(window.DartArenaCheckout)return;
  const singles=Array.from({length:20},(_,i)=>i+1),doubles=Array.from({length:20},(_,i)=>(i+1)*2).concat(50),triples=Array.from({length:20},(_,i)=>(i+1)*3),all=[0,...singles,...doubles,...triples,25,50];
  function canCheckout(score,darts){if(darts===1)return doubles.includes(score);if(darts===2)return all.some(a=>doubles.includes(score-a));if(darts===3)return all.some(a=>all.some(b=>doubles.includes(score-a-b)));return false}
  function possibleDarts(score){return[1,2,3].filter(d=>canCheckout(score,d))}
@@ -17,36 +10,4 @@ async function boot(){
  function askDarts(score){return new Promise(resolve=>{const dlg=$('checkoutDartsDialog'),buttons=$('checkoutDartsButtons'),allowed=possibleDarts(score);let done=false;const finish=n=>{if(done)return;done=true;document.removeEventListener('keydown',keyHandler,true);dlg.classList.add('hidden');resolve(n)},keyHandler=e=>{if(dlg.classList.contains('hidden'))return;if(['1','2','3'].includes(e.key)){e.preventDefault();e.stopImmediatePropagation();const n=Number(e.key);if(allowed.includes(n))finish(n)}else if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();finish(null)}};$('checkoutDartsTitle').textContent=`Checkout ${score}`;$('checkoutDartsHint').textContent='Hvor mange piler brukte du på å lukke? Trykk 1, 2 eller 3.';buttons.innerHTML='';[1,2,3].forEach(n=>{const b=document.createElement('button');b.type='button';b.className=allowed.includes(n)?'primary':'outline';b.textContent=String(n);b.disabled=!allowed.includes(n);b.onclick=()=>finish(n);buttons.appendChild(b)});$('checkoutDartsCancel').onclick=()=>finish(null);document.addEventListener('keydown',keyHandler,true);dlg.classList.remove('hidden')})}
  window.DartArenaCheckout={possibleDarts,askDarts};
 
- async function finishCheckout(score,darts){
-  if(busy||match.status!=='playing'||match.turn_player_id!==me)return;
-  busy=true;
-  try{
-   const beforeSet=Number(match.current_set||1),chicago=String(match.game_config?.chicago??'false').toLowerCase()==='true',beforeStage=Number(match.game_config?.chicago_stage||match.current_leg||1);
-   const rpc=chicago?'submit_chicago_checkout':'submit_match_checkout';
-   const {data,error}=await db.rpc(rpc,{p_match_id:match.id,p_score:score,p_darts:darts});
-   if(error||!data){$('matchMessage').textContent='Checkout kunne ikke lagres: '+(error?.message||'ukjent feil');return}
-   match=data;$('matchScoreInput').value='';
-   // Do not reset while collecting darts. The match Realtime handler
-    // resets T20 on the confirmed start of our next turn.
-    if(match.status!=='playing'||match.turn_player_id!==me)window.DartArenaX01ZoomSession?.pauseTracking?.();
-   const wonMatch=match.status==='finished',wonSet=!chicago&&match.match_mode==='sets'&&Number(match.current_set||1)>beforeSet;
-   if(chicago){
-    $('matchMessage').textContent=beforeStage===1?`301 vunnet på checkout ${score} • videre til Cricket`:wonMatch?'Chicago Style vunnet!':`Checkout ${score} på ${darts} ${darts===1?'pil':'piler'}`;
-   }else $('matchMessage').textContent=`Checkout ${score} på ${darts} ${darts===1?'pil':'piler'} • ${wonMatch?'Kamp vunnet!':wonSet?'Set vunnet!':'Leg vunnet!'}`;
-  }finally{busy=false}
- }
- async function intercept(){
-  if(busy||match.status!=='playing'||match.turn_player_id!==me)return;
-  const input=$('matchScoreInput'),n=Number(input.value);if(!Number.isInteger(n)||n<0||n>180)return;
-  const scoreKey=me===match.player1_id?'player1_score':'player2_score',remaining=Number(match[scoreKey]);if(n!==remaining)return;
-  const allowed=possibleDarts(remaining);if(!allowed.length){$('matchMessage').textContent=`${remaining} kan ikke avsluttes på tre piler.`;return}
-  // Always ask for darts used, even when only one dart count is mathematically possible.
-  // This dialog itself gives the player a chance to go back if the entered checkout was wrong.
-  const darts=await askDarts(remaining);if(darts)await finishCheckout(remaining,darts)
- }
- function shouldIntercept(){if(busy||match.status!=='playing'||match.turn_player_id!==me)return false;const n=Number($('matchScoreInput').value);if(!Number.isInteger(n)||n<0||n>180)return false;const scoreKey=me===match.player1_id?'player1_score':'player2_score';return n===Number(match[scoreKey])}
- const btn=$('matchScoreBtn'),input=$('matchScoreInput');
- btn.addEventListener('click',e=>{if(!shouldIntercept())return;e.preventDefault();e.stopImmediatePropagation();intercept()},true);
- input.addEventListener('keydown',e=>{if(e.key!=='Enter'||!shouldIntercept())return;e.preventDefault();e.stopImmediatePropagation();intercept()},true);
-}
 })();

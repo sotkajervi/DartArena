@@ -59,7 +59,7 @@
        // The match page owns the new authenticated SFU session.
        await script('match-preferred-media.js?v=20261031-owner1');
        // Module scope isolates match.js declarations from classic room.js globals.
-       await script('match.js?v=20261104-zoom-session-transfer1',{module:true});
+       await script('match.js?v=20261121-score-sync1',{module:true});
        if(typeof window.DartArenaBootLiveMatch!=='function')throw Error('Kampmotor mangler');
        await window.DartArenaBootLiveMatch(liveMatchId);
        window.DartArenaMediaTrace?.mark('MATCH_ENGINE_BOOTED');
@@ -79,9 +79,9 @@
          'dartarena-dialog.js?v=20261027-correction2',
          'cancelled-match-modal.js?v=20261103-tournament-return3',
          'throw-log.js?v=20261104-shared-auth1',
-         'set-engine.js?v=20261102-live-id-fix3',
+         'set-engine.js?v=20261121-score-sync1',
          'x01-leg-starter-marker.js?v=20261104-shared-auth1',
-         'checkout-engine.js?v=20261102-live-id-fix3',
+         'checkout-engine.js?v=20261121-score-sync1',
          'secure-match-cancel.js?v=20261104-shared-auth1',
          'x01-stats.js?v=20260929-first9a',
          'match-room-polish.js?v=20261002-matchrooms2',
