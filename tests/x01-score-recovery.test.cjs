@@ -6,7 +6,7 @@ async function simulate(source){
  const tick=async()=>{for(let i=0;i<60;i++)await Promise.resolve()};
  const nodes={};
  const target=()=>({events:{},addEventListener(k,f){(this.events[k]??=[]).push(f)},removeEventListener(k,f){this.events[k]=(this.events[k]||[]).filter(x=>x!==f)},emit(k,e={}){for(const f of this.events[k]||[])f({preventDefault(){},stopImmediatePropagation(){},...e})}});
- const doc={...target(),hidden:false,getElementById(id){return nodes[id]||(nodes[id]={...target(),value:'',textContent:'',disabled:false,focus(){},classList:{toggle(){}}})}};
+ const doc={...target(),hidden:false,getElementById(id){return nodes[id]||(nodes[id]={...target(),value:'',textContent:'',disabled:false,focus(){},classList:{toggle(){},contains(){return true}}})}};
  const win={...target(),DartArenaCheckout:{possibleDarts:()=>[1,2,3],askDarts:async()=>1}};
  const player='A',opp='B',id='m';
  let stamp=0,server={id,status:'playing',turn_player_id:player,game_variant:'x01',game:501,legs:9,player1_id:player,player2_id:opp,player1_score:501,player2_score:501,updated_at:'v0'};

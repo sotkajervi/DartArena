@@ -18,6 +18,34 @@ function boot(state){
  const revision=m=>m?.updated_at||null;
  const message=t=>{const e=$('matchMessage');if(e)e.textContent=t};
  let busy=false,closed=false,fetching=null,entryRevision=revision(current()),uncertain=null,logSeen=new Map();
+ // Place the blinking caret in X01 as each turn becomes playable.
+ // Never open the mobile soft keyboard or steal focus from other text fields.
+ let focusedTurn=null,initialFocusTimer=null;
+ function focusScoreWhenReady(force=false){
+   requestAnimationFrame(()=>{
+     if(closed||busy||!mine(current())||input.disabled||input.readOnly||document.hidden)return;
+     if(window.matchMedia?.('(max-width: 700px)').matches)return; // mobile uses its own keypad
+     if(typeof document.hasFocus==='function'&&!document.hasFocus())return;
+     const checkout=$('checkoutDartsDialog');
+     if(checkout&&!checkout.classList.contains('hidden'))return;
+     const active=document.activeElement;
+     if(active&&active!==input){
+       const tag=String(active.tagName||'').toUpperCase();
+       if(['INPUT','TEXTAREA','SELECT'].includes(tag)||active.isContentEditable)return;
+       if(!force&&active!==document.body&&active!==document.documentElement
+         &&active.isConnected!==false&&active.getClientRects?.().length!==0)return;
+     }
+     if(active!==input)input.focus({preventScroll:true});
+   });
+ }
+ function focusForNewTurn(){
+   const m=current();
+   const key=mine(m)?[m.id,m.current_set,m.current_leg,m.turn_player_id].join(':'):null;
+   if(key===focusedTurn)return;
+   focusedTurn=key;
+   if(key)focusScoreWhenReady(true);
+ }
+
  function log(reason,error){
    const detail=String(error?.message||error||'').slice(0,180);
    const now=Date.now(),key=reason+'|'+detail;
@@ -61,6 +89,7 @@ function boot(state){
      uncertain=null;
    }
    draw();
+   focusForNewTurn();
  }
  async function bounded(make){
    const controller=new AbortController();
@@ -151,13 +180,13 @@ function boot(state){
      if(revision(current())!==expected&&input.value.trim()!=='')input.value='';
      entryRevision=revision(current());
      reconcile();
-     if(!input.disabled)requestAnimationFrame(()=>{if(!input.disabled&&!closed)input.focus({preventScroll:true})});
+     if(!input.disabled)focusScoreWhenReady(true);
    }
  }
  function onInput(){if(!busy)entryRevision=revision(current())}
  function click(e){e.preventDefault();e.stopImmediatePropagation();submit()}
  function key(e){if(e.key==='Enter'&&!e.repeat&&!e.isComposing){e.preventDefault();e.stopImmediatePropagation();submit()}}
- function wake(){if(!closed&&!document.hidden&&!busy&&current()?.status==='playing')refresh()}
+ function wake(){if(!closed&&!document.hidden&&!busy&&current()?.status==='playing'){focusScoreWhenReady();refresh()}}
  input.addEventListener('input',onInput);
  btn.addEventListener('click',click,true);
  input.addEventListener('keydown',key,true);
@@ -165,12 +194,16 @@ function boot(state){
  btn.onclick=null;input.onkeydown=null;
  window.addEventListener('dartarena:score-state',reconcile);
  window.addEventListener('online',wake);
+ window.addEventListener('focus',focusScoreWhenReady);
  document.addEventListener('visibilitychange',wake);
  const timer=setInterval(wake,15000);
+ // Same-page handoff can finish loading the match UI after the first focus.
+ initialFocusTimer=setTimeout(focusScoreWhenReady,700);
  window.addEventListener('pagehide',()=>{
-   closed=true;clearInterval(timer);
+   closed=true;clearInterval(timer);clearTimeout(initialFocusTimer);
    window.removeEventListener('dartarena:score-state',reconcile);
    window.removeEventListener('online',wake);
+   window.removeEventListener('focus',focusScoreWhenReady);
    document.removeEventListener('visibilitychange',wake);
  },{once:true});
  reconcile();

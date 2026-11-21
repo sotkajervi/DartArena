@@ -79,7 +79,7 @@
          'dartarena-dialog.js?v=20261027-correction2',
          'cancelled-match-modal.js?v=20261103-tournament-return3',
          'throw-log.js?v=20261104-shared-auth1',
-         'set-engine.js?v=20261121-score-sync1',
+         'set-engine.js?v=20261121-x01-autofocus1',
          'x01-leg-starter-marker.js?v=20261104-shared-auth1',
          'checkout-engine.js?v=20261121-score-sync1',
          'secure-match-cancel.js?v=20261104-shared-auth1',
