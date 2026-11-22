@@ -17,7 +17,7 @@
    if(started||!valid(matchId))return;
    started=true;
    // Covers non-coin starts and direct navigation recovery.
-   if(variant!=='pentathlon')window.DartArenaRoomMedia?.beginHandoff?.();
+   window.DartArenaRoomMedia?.beginHandoff?.();
    window.DartArenaMediaTrace?.mark('CHALLENGE_START',{matchId:String(matchId).slice(0,8),variant});
    try{
      const db=window.DartArenaChallengeRoomState?.client?.();
