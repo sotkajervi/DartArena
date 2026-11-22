@@ -65,9 +65,10 @@ async function ensureScene(){
      darts.innerHTML='<b id="ptDarts'+i+'">0</b><span>PILER</span>';
      const avg=node('div','live-avg');
      avg.innerHTML='<span id="ptAverageLabel'+i+'">AVG</span><b id="ptAverage'+i+'">0.00</b>';
-     const points=node('div','pt-points');
-     points.innerHTML='<span>DENNE ØVELSEN <b id="ptStagePoints'+i+'">0 P</b></span><span>TOTALT <b id="ptTotalPoints'+i+'">0 P</b></span>';
-     card.append(darts,avg,points);
+     card.append(darts,avg);
+     const detail=$('ptDetail'+i);
+     detail.classList.add('pt-live-points');
+     detail.innerHTML='<span>ØVELSE <b id="ptStagePoints'+i+'">0 P</b></span><span>TOTALT <b id="ptTotalPoints'+i+'">0 P</b></span>';
    }
    const players=score.querySelector('.match-players');
    if(!players)throw Error('X01-spillerkortene mangler');
@@ -178,7 +179,6 @@ function render(){
    $('ptDarts'+i).textContent=c.used[i];
    $('ptAverage'+i).textContent=avg.toFixed(2);
    $('ptAverageLabel'+i).textContent=x01?'AVG':'P/R';
-   $('ptDetail'+i).textContent='PENTATHLON';
    $('ptStagePoints'+i).textContent=c.pent[i]+' P';
    $('ptTotalPoints'+i).textContent=(s.total[i]+(live?c.pent[i]:0))+' P';
    $('ptCard'+i).classList.toggle('active',live&&c.turn===i);
