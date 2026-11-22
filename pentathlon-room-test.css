@@ -98,3 +98,8 @@ body.pt-online-test .focus-input-dock .pt-x01-turn{display:none}
 body.pt-online-test #ptPanel .pt-details{margin:7px 0 0;border-top:1px solid #31525a;padding-top:5px}
 body.pt-online-test #ptPanel .pt-details summary{cursor:pointer;color:#00eaf4;font-size:11px;font-weight:900;padding:5px 2px}
 body.pt-online-test #ptPanel .pt-details[open] summary{margin-bottom:5px}
+
+/* Compact live Pentathlon points, kept inside the existing X01 player cards. */
+body.pt-online-test #ptPanel .pt-points{display:flex;justify-content:space-between;gap:7px;margin:5px 7px 0;padding:5px 4px 2px;border-top:1px solid rgba(0,234,244,.2)}
+body.pt-online-test #ptPanel .pt-points span{display:flex;flex-direction:column;gap:2px;text-align:center;flex:1;font-size:9px;letter-spacing:.02em;color:#9abac0;font-weight:700}
+body.pt-online-test #ptPanel .pt-points b{font-size:15px;color:#00eaf4;font-weight:900;letter-spacing:0}
