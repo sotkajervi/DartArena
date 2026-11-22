@@ -226,6 +226,29 @@
     for(let i=darts.length;i<remaining;i++)next=submitDart(next,{n:0,m:0});
     return next;
   }
+  // Clock quick entry: Enter fills unused darts with ordinary misses.
+  // An early D20 finish stops immediately, so no extra darts or bonus
+  // deductions are added after the player has completed the clock.
+  function submitClockTurn(state, darts) {
+    need(state?.status==='playing' && state.current?.kind==='clock','Ikke i en aktiv Klokka rundt-øvelse.');
+    need(Array.isArray(darts),'Ugyldig Klokka rundt-tur.');
+    const c=state.current,p=c.turn;
+    const remaining=Math.min(3-c.pending.length,42-c.used[p]);
+    need(!c.done[p] && remaining>=1 && remaining<=3 &&
+      darts.length<=remaining && darts.every(isDart),'Ugyldig antall piler i Klokka rundt-turen.');
+    let next=state;
+    for(const dart of darts) {
+      need(next.status==='playing' && next.current.kind==='clock' &&
+        !next.current.done[p] && next.current.turn===p,'Klokka er allerede fullført.');
+      next=submitDart(next,dart);
+    }
+    for(let i=darts.length;i<remaining;i++) {
+      if(next.status!=='playing'||next.current.kind!=='clock'||
+        next.current.done[p]||next.current.turn!==p)break;
+      next=submitDart(next,{n:0,m:0});
+    }
+    return next;
+  }
   function nextStage(state) {
     need(state?.status==='review','Fullfør øvelsen før du går videre.');
     const next=snapshot(state),idx=state.stageIndex+1;
@@ -252,6 +275,6 @@
        !Array.isArray(value.summaries)||!value.current) return null;
     return value;
   }
-  return Object.freeze({STAGES,HALF,create,restore,currentTarget,submitX01,submitDart,submitShanghaiTurn,nextStage,undo,
+  return Object.freeze({STAGES,HALF,create,restore,currentTarget,submitX01,submitDart,submitShanghaiTurn,submitClockTurn,nextStage,undo,
     isScore,isCheckout,isDart,pointsForVisit,finishBonus,labelDart});
 });

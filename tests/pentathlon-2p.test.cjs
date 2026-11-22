@@ -182,3 +182,57 @@ test('Shanghai quick entry cannot add invalid hits or more than three darts',()=
   assert.throws(()=>E.submitShanghaiTurn(game,[{n:23,m:2}]));
   assert.throws(()=>E.submitShanghaiTurn(newGame(),[dart(1)]));
 });
+
+test('Clock quick Enter fills unused darts with misses and advances correct doubles',()=>{
+  const fresh=()=>{
+    const game=newGame();
+    game.stageIndex=5;game.current.kind='clock';
+    game.current.start=null;game.current.remaining=[0,0];
+    return game;
+  };
+  for(const [hits,points,nextTarget] of [
+    [[],0,1],
+    [[dart(1,2)],2,2],
+    [[dart(1,2),dart(2,2)],4,3],
+    [[dart(1,2),dart(2,2),dart(3,2)],6,4]
+  ]){
+    const result=E.submitClockTurn(fresh(),hits);
+    assert.equal(result.current.used[0],3);
+    assert.equal(result.current.turn,1);
+    assert.equal(result.current.clockTarget[0],nextTarget);
+    assert.equal(result.current.pent[0],points);
+    assert.deepEqual(result.current.entries.map(x=>x.hit),[
+      ...hits.map(E.labelDart),...Array.from({length:3-hits.length},()=> 'BOM')
+    ]);
+    assert.equal(E.undo(E.undo(E.undo(result))).current.used[0],0);
+  }
+});
+test('Clock quick Enter honors 42-dart cap and finishes immediately on D20',()=>{
+  const fresh=()=>{
+    const s=newGame();s.stageIndex=5;s.current.kind='clock';
+    s.current.start=null;s.current.remaining=[0,0];return s;
+  };
+  const capped=fresh();capped.current.used[0]=40;
+  const done=E.submitClockTurn(capped,[]);
+  assert.equal(done.current.used[0],42);
+  assert.equal(done.current.done[0],true);
+  assert.equal(done.current.entries.length,2);
+  assert.equal(done.current.turn,1);
+  const end=fresh();end.current.clockTarget[0]=20;end.current.used[0]=20;
+  const finished=E.submitClockTurn(end,[dart(20,2)]);
+  assert.equal(finished.current.used[0],21);
+  assert.equal(finished.current.done[0],true);
+  assert.equal(finished.current.clockTarget[0],21);
+  assert.equal(finished.current.entries.length,1);
+  assert.equal(finished.current.entries[0].finishBonus,21);
+  assert.equal(finished.current.pent[0],23);
+  assert.equal(E.undo(finished).current.clockTarget[0],20);
+});
+test('Clock quick Enter rejects invalid, excessive or post-finish input',()=>{
+  const s=newGame();s.stageIndex=5;s.current.kind='clock';
+  assert.throws(()=>E.submitClockTurn(newGame(),[]));
+  assert.throws(()=>E.submitClockTurn(s,[dart(1,2),dart(2,2),dart(3,2),dart(4,2)]));
+  assert.throws(()=>E.submitClockTurn(s,[{n:23,m:2}]));
+  s.current.clockTarget[0]=20;
+  assert.throws(()=>E.submitClockTurn(s,[dart(20,2),dart(20,2)]));
+});

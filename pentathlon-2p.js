@@ -102,22 +102,13 @@
   function clockSubmitTurn(){
     if(state?.status!=='playing'||state.current.kind!=='clock')return;
     const c=state.current,p=c.turn;
-    const completed=clockPreviewTarget()>20;
-    const expected=Math.min(3-c.pending.length,42-c.used[p]);
-    if(!completed&&clockQueue.length!==expected){
-      $('pentaClockMessage').textContent='Registrer alle '+expected+' pilene før Enter.';
-      $('pentaClockMessage').classList.add('is-error');
-      return;
-    }
-    if(!clockQueue.length)return;
+    const darts=[...clockQueue];
+    const beforeEntries=c.entries.length;
     try{
-      let next=state;
-      for(const dart of clockQueue){
-        if(next.status!=='playing')break;
-        next=E.submitDart(next,dart);
-      }
+      const next=E.submitClockTurn(state,darts);
+      const recorded=next.current.entries.slice(beforeEntries).map(entry=>entry.hit);
       state=next;clockQueue=[];saveClockQueue();
-      feedback=state.players[p]+': klokka er oppdatert.';
+      feedback=state.players[p]+': '+recorded.join(' · ')+' · klokka er oppdatert.';
       persist();render();
       if(state.status==='review')$('pentaReviewPanel').scrollIntoView({block:'nearest',behavior:'smooth'});
     }catch(error){report(error)}
@@ -556,8 +547,10 @@
     $('pentaClockRemove').disabled=!clockQueue.length;
     $('pentaClockMiss').disabled=completed||remaining<=0;
     $('pentaClockHit').disabled=completed||remaining<=0;
-    $('pentaClockSubmit').disabled=!clockQueue.length||(!completed&&remaining>0);
-    $('pentaClockMessage').textContent=completed?'D20 truffet. Trykk Enter for å fullføre turen.':remaining===0?'Tre piler valgt. Trykk Enter for å registrere.':'Velg treff eller bom. Målet øker bare ved treff.';
+    $('pentaClockSubmit').disabled=false;
+    $('pentaClockMessage').textContent=completed?'D20 truffet. Trykk Enter for å fullføre turen.':
+      remaining===0?'Tre piler valgt. Trykk Enter for å registrere.':
+      'Registrer treffene. Enter fyller resten av de tre pilene med bom.';
     const stats=$('pentaClockStats');stats.replaceChildren();
     const head=create('div','special-stats-names');
     head.append(create('span','',''),create('strong','',state.players[0]),create('strong','',state.players[1]));
