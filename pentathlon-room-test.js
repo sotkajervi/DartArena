@@ -68,7 +68,7 @@ async function ensureScene(){
      card.append(darts,avg);
      const detail=$('ptDetail'+i);
      detail.classList.add('pt-live-points');
-     detail.innerHTML='<span>ØVELSE <b id="ptStagePoints'+i+'">0 P</b></span><span>TOTALT <b id="ptTotalPoints'+i+'">0 P</b></span>';
+     detail.innerHTML='<span class="pt-points-pair"><span>ØVELSE</span><b id="ptStagePoints'+i+'">0 P</b></span><span class="pt-points-divider" aria-hidden="true"></span><span class="pt-points-pair"><span>TOTALT</span><b id="ptTotalPoints'+i+'">0 P</b></span>';
    }
    const players=score.querySelector('.match-players');
    if(!players)throw Error('X01-spillerkortene mangler');
