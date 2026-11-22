@@ -349,7 +349,7 @@ async function establishMatchVideo(matchId){
      mediaReady:()=>!!pentathlonMediaStream?.getTracks().some(t=>t.readyState==='live')
    });
    oldRoom?.beginHandoff?.(); // Freeze the unauthorized challenge SFU retries.
-   const source='match-sfu-media-secure.js?v=20261104-preserve-challenge1';
+   const source='match-sfu-media-secure.js?v=20261122-penta-mediaready1';
    await new Promise((resolve,reject)=>{
      const script=document.createElement('script');script.src=source;script.async=false;
      script.onload=resolve;script.onerror=()=>reject(Error('X01-kampvideo kunne ikke lastes.'));
