@@ -87,7 +87,26 @@ async function ensureScene(){
    dock.append(message);
    scene.appendChild(dock);
    aside.querySelector('#cameraBtn')?.remove(); // Camera already belongs to the waiting room.
-   aside.insertAdjacentHTML('beforeend',"<div class=\"pt-tools\"><button type=\"button\" id=\"ptRefresh\" class=\"outline\">Oppdater</button><button type=\"button\" id=\"ptUndo\" class=\"outline\">↶ Angre</button></div><div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSE FULLFØRT</small><h3 id=\"ptReviewTitle\"></h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button type=\"button\" id=\"ptAdvance\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\"></h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong></div><details id=\"ptResultDetails\" class=\"pt-details\"><summary>Resultatliste · 7 øvelser</summary><div id=\"ptResultsTable\"></div><small class=\"pt-side-label\">SISTE REGISTRERINGER</small><div id=\"ptLog\" class=\"pt-log\"></div></details><p class=\"pt-note\">Owner-test · ikke ranket.</p>");
+   aside.insertAdjacentHTML('beforeend',"<div class=\"pt-tools\"><button type=\"button\" id=\"ptRefresh\" class=\"outline\">Oppdater</button><button type=\"button\" id=\"ptUndo\" class=\"outline\">↶ Angre</button></div><div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSE FULLFØRT</small><h3 id=\"ptReviewTitle\"></h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button type=\"button\" id=\"ptAdvance\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\"></h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong></div><p class=\"pt-note\">Owner-test · ikke ranket.</p>");
+   // Result list lives in a top-right action and reuses the existing table/log renderers.
+   const topActions=scene.querySelector('.match-head .top-actions');
+   if(!topActions)throw Error('Kamprommets toppknapper mangler.');
+   const resultButton=node('button','outline','Resultatliste');
+   resultButton.id='ptResultsButton';resultButton.type='button';
+   resultButton.setAttribute('aria-haspopup','dialog');
+   resultButton.setAttribute('aria-expanded','false');
+   topActions.prepend(resultButton);
+   const resultOverlay=node('div','pt-results-overlay');
+   resultOverlay.id='ptResultsOverlay';resultOverlay.hidden=true;
+   resultOverlay.innerHTML='<section class="pt-results-modal" role="dialog" aria-modal="true" aria-labelledby="ptResultsHeading" tabindex="-1"><div class="pt-results-header"><h2 id="ptResultsHeading">Resultatliste · 7 øvelser</h2><button id="ptCloseResults" type="button" class="outline" aria-label="Lukk resultatliste">Lukk ×</button></div><div class="pt-results-body"><div id="ptResultsTable"></div><small class="pt-side-label">SISTE REGISTRERINGER</small><div id="ptLog" class="pt-log"></div></div></section>';
+   scene.append(resultOverlay);
+   const closeResults=()=>{
+     resultOverlay.hidden=true;resultButton.setAttribute('aria-expanded','false');resultButton.focus();
+   };
+   resultButton.onclick=()=>{resultOverlay.hidden=false;resultButton.setAttribute('aria-expanded','true');resultOverlay.querySelector('.pt-results-modal').focus();};
+   $('ptCloseResults').onclick=closeResults;
+   resultOverlay.addEventListener('click',e=>{if(e.target===resultOverlay)closeResults()});
+   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!resultOverlay.hidden){e.preventDefault();closeResults()}});
    const cancel=scene.querySelector('#cancelMatchBtn');
    if(cancel){
      cancel.hidden=false;cancel.textContent='Avbryt testkamp';
