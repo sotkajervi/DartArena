@@ -1,82 +1,132 @@
-/* Pentathlon Online test: the same visual components as local Pentathlon.
-   Only room integration/layout differs. Camera transport is unchanged. */
+/* Pentathlon online test uses the real X01 match.html scoreboard and the
+   existing waiting room media elements. Only layout/CSS changes; no SFU calls. */
 #ptStart{margin-top:8px;padding:9px 13px;font-size:12px;font-weight:900}
-#ptStart[hidden]{display:none!important}
-body.pt-active #matchView{width:min(1430px,97vw);margin:6px auto}
-body.pt-active .room-options,
-body.pt-active .camera-controls{display:none!important}
-body.pt-active .waiting-video-grid{
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
-  height:clamp(115px,20vh,198px);gap:10px;margin:7px 0 12px;
+#ptStart[hidden],#ptPanel[hidden],#ptPanel [hidden]{display:none!important}
+body.pt-active.match-page.match-tv-layout #matchView{
+  width:min(1580px,98vw);margin:0 auto;padding:6px 0 8px;
+  display:grid;grid-template-columns:320px minmax(0,1fr);
+  grid-template-rows:auto minmax(0,1fr);
+  grid-template-areas:"head head" "score video";
+  gap:8px 12px;min-height:0
 }
-body.pt-active .waiting-video-grid .video-card{height:100%;min-height:0;aspect-ratio:auto;overflow:hidden}
-body.pt-active .waiting-video-grid video{width:100%;height:100%;object-fit:contain}
-#ptPanel.da-penta{
-  width:100%;max-width:none;margin:4px 0 26px;padding:0;
-  background:transparent;color:#ebf9fa;min-width:0;
+body.pt-active .room-options,body.pt-active .camera-controls{display:none!important}
+body.pt-active.match-page.match-tv-layout #videoGrid{
+  display:block!important;position:relative;grid-area:video;
+  height:calc(100dvh - 154px)!important;
+  min-height:0!important;max-height:calc(100dvh - 154px)!important;
+  margin:0!important;overflow:hidden;border-radius:14px
 }
-#ptPanel.da-penta::before{display:none}
-#ptPanel[hidden],#ptPanel [hidden]{display:none!important}
-#ptPanel .penta-progress{margin:0 0 12px}
-#ptPanel .penta-layout{grid-template-columns:minmax(0,1fr) minmax(260px,325px);gap:12px}
-#ptPanel .penta-primary,#ptPanel .penta-side{min-width:0}
-#ptPanel .penta-card.penta-active{padding:16px 18px}
-#ptPanel .penta-top-bar{margin-bottom:9px}
-#ptPanel .penta-stage-header h2{font-size:clamp(21px,2.3vw,29px);margin:4px 0}
-#ptPanel .penta-x01-board{margin:12px 0 10px}
-#ptPanel .local-board{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-#ptPanel .local-player{padding:13px 14px;min-width:0}
-#ptPanel .local-score-band{min-width:0;grid-template-columns:minmax(50px,.65fr) minmax(0,2fr) minmax(50px,.65fr)}
-#ptPanel .local-score{font-size:clamp(40px,5.5vw,86px);font-variant-numeric:tabular-nums}
-#ptPanel .local-match-name{font-size:clamp(16px,1.7vw,23px);overflow-wrap:anywhere}
-#ptPanel .local-entry-card{margin:0;padding:13px 15px}
-#ptPanel .local-score-form{margin:0}
-#ptPanel .local-score-form label{font-size:12px}
-#ptPanel .local-entry-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-#ptPanel .local-entry-controls input{
-  width:136px;min-width:0;flex:0 0 136px;max-width:100%;
-  background:#06171c;color:#effefe;border:1px solid #3a6e74;border-radius:10px;
-  font-size:20px;font-weight:850;padding:9px 12px
+/* Preserve both video nodes and tracks; only rearrange their existing cards. */
+body.pt-active.match-page #videoGrid>.video-card:nth-child(2){
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  z-index:1;border:1px solid rgba(0,234,244,.4);border-radius:14px;overflow:hidden
 }
-#ptPanel .local-entry-controls button{min-height:43px}
-#ptPanel .penta-target{margin:9px 0}
-#ptPanel .penta-target strong{font-size:clamp(19px,2vw,25px)}
-#ptPanel .penta-jdc-entry{margin:0}
-#ptPanel .penta-jdc-choices{display:flex;gap:7px;flex-wrap:wrap}
-#ptPanel .penta-jdc-choices button{min-width:95px;flex:0 1 auto}
-#ptPanel .penta-jdc-pending{margin:5px 0}
-#ptPanel .penta-recent{margin-top:11px}
-#ptPanel .penta-recent-item{font-size:11px}
-#ptPanel .penta-feedback{min-height:22px;margin:8px 0 0}
-#ptPanel .penta-feedback.error{color:#ff8b96}
-#ptPanel .penta-results .penta-table{width:100%}
-#ptPanel .penta-results .penta-table th,#ptPanel .penta-results .penta-table td{font-size:11px;padding:8px 5px;overflow-wrap:anywhere}
-#ptPanel .penta-online-note .penta-hint{margin:4px 0}
-#ptPanel .penta-finish-score{justify-content:center}
-@media(max-width:960px){
- #ptPanel .penta-layout{grid-template-columns:minmax(0,1fr)}
- #ptPanel .penta-side{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
- #ptPanel .penta-online-note{grid-column:1/-1}
+body.pt-active.match-page #videoGrid>.video-card:first-child{
+  position:absolute!important;inset:auto 12px 12px auto!important;
+  width:clamp(148px,24%,270px)!important;height:clamp(98px,25%,185px)!important;
+  z-index:4;border:1px solid rgba(231,247,247,.55);border-radius:11px;
+  overflow:hidden;box-shadow:0 8px 30px #000a
 }
-@media(max-width:700px){
- body.pt-active #matchView{width:98vw}
- body.pt-active .waiting-video-grid{height:clamp(95px,17vh,140px);gap:5px;margin-bottom:7px}
- #ptPanel .penta-card.penta-active{padding:12px}
- #ptPanel .penta-top-bar{flex-wrap:wrap}
- #ptPanel .penta-progress{grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
- #ptPanel .penta-progress>div{font-size:9px;padding:7px 3px}
- #ptPanel .local-board{gap:6px}
- #ptPanel .local-player{padding:8px 9px}
- #ptPanel .local-score-band{grid-template-columns:minmax(30px,.65fr) minmax(0,2fr) minmax(30px,.65fr);gap:3px}
- #ptPanel .local-score{font-size:clamp(31px,8vw,52px)}
- #ptPanel .local-match-name{font-size:13px}
- #ptPanel .local-live-darts b,#ptPanel .local-avg b{font-size:13px}
- #ptPanel .local-live-darts span,#ptPanel .local-avg span{font-size:8px}
- #ptPanel .penta-side{grid-template-columns:minmax(0,1fr)}
- #ptPanel .penta-online-note{grid-column:auto}
- #ptPanel .local-entry-controls input{flex:1 1 110px;width:110px}
- #ptPanel .penta-jdc-choices button{min-width:70px;padding:8px}
- #ptPanel .penta-stage-header{align-items:center;gap:7px}
- #ptPanel .penta-stage-header h2{font-size:19px}
- #ptPanel .penta-stage-tag{font-size:9px;padding:6px}
+body.pt-active.match-page #videoGrid>.video-card video{
+  width:100%;height:100%;object-fit:contain;background:#020607
+}
+body.pt-active.match-page #videoGrid>.video-card:first-child .video-name{
+  font-size:11px;padding:3px 6px
+}
+body.pt-active.match-page.match-tv-layout #ptPanel.match-grid{
+  grid-area:score;display:block!important;min-width:0;max-height:calc(100dvh - 154px);
+  overflow-y:auto;scrollbar-width:thin;padding-right:2px
+}
+body.pt-active.match-page.match-tv-layout #ptPanel .score-card{
+  display:block!important;padding:10px!important
+}
+body.pt-active.match-page.match-tv-layout #ptPanel .match-info{
+  display:block!important;margin-top:7px;padding:11px!important
+}
+#ptPanel .match-player{min-width:0}
+#ptPanel .match-name{overflow-wrap:anywhere}
+#ptPanel .match-sets{font-size:10px;font-weight:800;color:#91b7be}
+#ptPanel .match-sets b{color:#e8f8f9;font-size:13px}
+#ptPanel .match-legs{font-size:10px!important;line-height:1.35}
+#ptPanel .pt-stage-head{display:flex;flex-direction:column;gap:3px;
+  margin:0 0 9px;padding:6px 5px 10px;border-bottom:1px solid #28505b}
+#ptPanel .pt-stage-head small{color:#00eaf4;font-size:10px;font-weight:900;letter-spacing:.08em}
+#ptPanel .pt-stage-head strong{font-size:19px;color:#edfafa}
+#ptPanel .pt-stage-head span{font-size:11px;color:#96b5b9}
+#ptPanel .pt-progress{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin:6px 0 12px}
+#ptPanel .pt-progress>div{padding:7px 2px;border:1px solid #294951;background:#112027;
+  border-radius:6px;text-align:center;color:#8da9b0;font-size:10px;font-weight:850;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#ptPanel .pt-progress>div.active{border-color:#00eaf4;background:#104046;color:#00f7ff}
+#ptPanel .pt-progress>div.done{border-color:#2b8e78;color:#62ebaa}
+#ptPanel .pt-target{margin:8px 0;text-align:center;border:1px solid #29616a;
+  border-radius:9px;background:#103039;color:#00eaf4;padding:10px;
+  font-size:17px;font-weight:900}
+#ptPanel #ptX01.score-entry{display:grid!important;grid-template-columns:minmax(0,1fr) auto;
+  gap:7px;margin:7px 0!important}
+#ptPanel #ptX01Turn{grid-column:1/-1;font-size:11px;color:#b4d9db;text-align:center}
+#ptPanel #ptInput{min-width:0;width:100%;font-size:19px;font-weight:800;padding:10px}
+#ptPanel #ptXSubmit{font-size:12px;padding:9px 12px;min-height:42px;white-space:nowrap}
+#ptPanel #ptMessage{min-height:22px;font-size:11px;margin:7px 0}
+#ptPanel #ptMessage.error{color:#ff9aa1}
+#ptPanel .pt-special{display:grid;gap:8px;margin:7px 0}
+#ptPanel .pt-special-target{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;
+  align-items:center;border:1px solid #28636c;background:#0b2932;border-radius:9px;padding:9px}
+#ptPanel .pt-special-target small{font-size:10px;color:#00eaf4}
+#ptPanel .pt-special-target strong{color:#00eaf4;font-size:20px}
+#ptPanel .pt-special-target span{font-size:10px}
+#ptPanel .pt-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+#ptPanel .pt-choices button{padding:10px 5px;font-size:12px;min-width:0;min-height:39px}
+#ptPanel .pt-pending{font-size:11px;color:#abc6c9}
+#ptPanel .pt-special-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#ptPanel .pt-special-actions button{padding:9px 5px;font-size:11px}
+#ptPanel .pt-review,#ptPanel .pt-finished{margin:10px 0;border:1px solid #267780;
+  background:#12333a;border-radius:10px;padding:13px;text-align:center}
+#ptPanel .pt-review small,#ptPanel .pt-finished small{font-size:10px;color:#00eaf4}
+#ptPanel .pt-review h3,#ptPanel .pt-finished h3{margin:6px 0;font-size:17px}
+#ptPanel .pt-review p,#ptPanel .pt-finished p{font-size:11px}
+#ptPanel .pt-review-result{display:flex;justify-content:space-between;margin:5px 0;font-size:12px}
+#ptPanel .pt-review>button{margin-top:9px;width:100%;min-height:42px}
+#ptPanel .pt-finished strong{font-size:32px;color:#00eaf4}
+#ptPanel .pt-tools{display:flex;gap:5px;margin:8px 0}
+#ptPanel .pt-tools button{flex:1;min-width:0;padding:8px 5px;font-size:11px}
+#ptPanel .pt-side-label{display:block;margin:12px 0 6px;color:#00dce4;font-weight:900;font-size:10px}
+#ptPanel .pt-results-table{width:100%;border-collapse:collapse;font-size:10px}
+#ptPanel .pt-results-table th,#ptPanel .pt-results-table td{
+  padding:6px 3px;border-bottom:1px solid #29444a;text-align:center;overflow-wrap:anywhere
+}
+#ptPanel .pt-results-table th:first-child,#ptPanel .pt-results-table td:first-child{text-align:left}
+#ptPanel .pt-results-table th{font-size:9px;color:#88b9be}
+#ptPanel .pt-results-table tr.future{opacity:.55}
+#ptPanel .pt-test-note{font-size:10px;color:#9cb4ba;line-height:1.5;margin:9px 0}
+#ptPanel .pt-log{display:grid;gap:3px;max-height:110px;overflow-y:auto}
+#ptPanel .pt-log-entry{font-size:10px;color:#a6c1c7;padding:5px;border-radius:4px;background:#12252b}
+@media(max-width:800px){
+ body.pt-active.match-page.match-tv-layout #matchView{
+   width:98vw!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+   grid-template-rows:auto auto auto!important;grid-template-areas:"head" "video" "score"!important;
+   gap:7px!important
+ }
+ body.pt-active.match-page.match-tv-layout #videoGrid{
+   height:clamp(230px,38vh,400px)!important;min-height:0!important;
+   max-height:400px!important
+ }
+ body.pt-active.match-page #videoGrid>.video-card:first-child{
+   width:clamp(116px,27%,185px)!important;height:clamp(85px,29%,130px)!important;right:6px;bottom:6px
+ }
+ body.pt-active.match-page.match-tv-layout #ptPanel.match-grid{
+   grid-area:score!important;max-height:none!important;height:auto!important;overflow:visible!important;
+   padding:0 0 18px
+ }
+ body.pt-active.match-page.match-tv-layout #ptPanel .match-players{
+   display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important
+ }
+ body.pt-active.match-page.match-tv-layout #ptPanel .match-player{
+   padding:9px!important;min-height:0!important
+ }
+ body.pt-active.match-page.match-tv-layout #ptPanel .match-score{
+   font-size:clamp(37px,9vw,60px)!important
+ }
+ #ptPanel .match-name{font-size:12px!important}
+ #ptPanel .match-sets,#ptPanel .match-legs{font-size:9px!important}
 }

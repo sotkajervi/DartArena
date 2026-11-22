@@ -6,7 +6,7 @@ const R=window.DartArenaChallengeRoomState,E=window.DartArenaPentathlon;
 if(!R||!E)return;
 const $=id=>document.getElementById(id),db=R.client(),challengeId=R.challengeId();
 if(!challengeId)return;
-let uid=null,challenge=null,record=null,channel=null,poll=null,pending=[],saving=false;
+let uid=null,challenge=null,record=null,channel=null,poll=null,pending=[],saving=false,lastInputTurn=null;
 const copy=o=>JSON.parse(JSON.stringify(o));
 const clean=o=>{const a=copy(o);delete a.undo;return a};
 const game=()=>record?.state,stage=()=>game()?.current;
@@ -14,141 +14,39 @@ const player=()=>uid===challenge?.challenger_id?0:1;
 const mine=()=>game()?.status==='playing'&&stage()?.turn===player();
 const msg=(s,bad=false)=>{const el=$('ptMessage');if(el){el.textContent=s;el.classList.toggle('error',bad)}};
 function node(tag,cls,value){const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el}
-function setup(){
- const start=node('button','outline','Pentathlon Online · TEST');
- start.id='ptStart';start.hidden=true;start.onclick=startGame;
- document.querySelector('.room-head-copy')?.append(start);
-
- const panel=node('section','da-penta penta-shell pt-panel');
- panel.id='ptPanel';panel.hidden=true;
- panel.innerHTML=`
-  <div class="penta-top-bar">
-    <div id="ptProgressTitle">ØVELSE 1 AV 7</div>
-    <div class="penta-top-actions">
-      <button id="ptRefresh" type="button" class="outline">Oppdater</button>
-      <button id="ptUndo" type="button" class="outline">↶ Angre</button>
-    </div>
-  </div>
-  <div id="ptProgress" class="penta-progress" aria-label="Pentathlon-øvelser"></div>
-  <div class="penta-layout">
-    <div class="penta-primary">
-      <section class="penta-card penta-active">
-        <div class="penta-stage-header">
-          <div><span id="ptCounter" class="penta-eyebrow">ØVELSE 1</span>
-            <h2 id="ptStage">501 · Leg 1</h2><p id="ptDescription">Dobbel ut</p></div>
-          <span id="ptTurn" class="penta-stage-tag">KASTER NÅ</span>
-        </div>
-        <div id="ptBoard" class="penta-x01-board">
-          <div class="local-board" id="ptLocalBoard">
-            <article id="ptCard0" class="local-player">
-              <div class="local-player-top"><small>SPILLER 1</small><span class="local-current-marker">Kaster nå</span></div>
-              <h2 class="local-match-name"><span id="ptName0">Spiller 1</span></h2>
-              <div class="local-score-band">
-                <div class="local-live-darts"><b id="ptDarts0">0</b><span>PILER</span></div>
-                <div class="local-score" id="ptScore0">501</div>
-                <div class="local-avg"><b id="ptAverage0">–</b><span id="ptAverageLabel0">AVG</span></div>
-              </div>
-              <div class="local-leg-label" id="ptDetail0">0 LEGS</div>
-            </article>
-            <article id="ptCard1" class="local-player">
-              <div class="local-player-top"><small>SPILLER 2</small><span class="local-current-marker">Kaster nå</span></div>
-              <h2 class="local-match-name"><span id="ptName1">Spiller 2</span></h2>
-              <div class="local-score-band">
-                <div class="local-live-darts"><b id="ptDarts1">0</b><span>PILER</span></div>
-                <div class="local-score" id="ptScore1">501</div>
-                <div class="local-avg"><b id="ptAverage1">–</b><span id="ptAverageLabel1">AVG</span></div>
-              </div>
-              <div class="local-leg-label" id="ptDetail1">0 LEGS</div>
-            </article>
-          </div>
-        </div>
-        <div id="ptX01" class="pt-score-entry">
-          <div class="penta-target"><div><span>NESTE MÅL</span><strong id="ptTarget">REST 501</strong></div><span id="ptDartsRemaining">REGISTRER KASTESUM</span></div>
-          <div class="penta-throw-entry card local-entry-card">
-            <div class="local-turn" id="ptX01Turn">Spiller 1 kaster</div>
-            <div class="local-score-form">
-              <label for="ptInput">Score for tre piler</label>
-              <div class="local-entry-controls">
-                <input id="ptInput" type="text" maxlength="3" inputmode="numeric" autocomplete="off" placeholder="0–180">
-                <button type="button" class="primary" id="ptXSubmit">Registrer / Enter</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div id="ptSpecial" class="penta-shanghai-game penta-special-online" hidden>
-          <section class="card local-entry-card special-entry penta-jdc-entry">
-            <div class="local-turn" id="ptSpecialTurn">Spiller 1 kaster</div>
-            <p class="muted compact penta-jdc-help">Registrer treffene og trykk Enter. Resten av pilene blir bom.</p>
-            <div class="special-target penta-jdc-target">
-              <small id="ptSpecialPhase">SHANGHAI</small><strong id="ptSpecialTarget">1</strong><span id="ptSpecialRemaining">3 piler denne turen</span>
-            </div>
-            <div id="ptChoices" class="special-choice-row penta-jdc-choices"></div>
-            <div class="special-darts penta-jdc-pending"><span>Registrert:</span><div id="ptPending">–</div></div>
-            <div class="special-actions penta-jdc-actions">
-              <button id="ptRemove" type="button" class="outline">Fjern siste · Backspace</button>
-              <button id="ptSSubmit" type="button" class="primary">Registrer · Enter</button>
-            </div>
-          </section>
-        </div>
-        <p id="ptMessage" class="penta-feedback" role="status" aria-live="polite"></p>
-        <div class="penta-recent"><span class="penta-eyebrow">SISTE REGISTRERINGER</span><div id="ptLog"></div></div>
-      </section>
-      <section id="ptReview" class="penta-card penta-review" hidden>
-        <span class="penta-eyebrow">ØVELSEN ER FULLFØRT</span>
-        <h2 id="ptReviewTitle">Resultat</h2>
-        <p id="ptReviewCaption"></p>
-        <div id="ptReviewDetails" class="penta-review-details"></div>
-        <button id="ptAdvance" type="button" class="penta-main-btn">NESTE ØVELSE →</button>
-      </section>
-      <section id="ptFinished" class="penta-card penta-finish" hidden>
-        <div class="penta-finish-kicker">DARTARENA · PENTATHLON</div>
-        <div class="penta-finish-emblem" aria-hidden="true">♛</div>
-        <span class="penta-eyebrow">ALLE 7 ØVELSER FULLFØRT</span>
-        <h2 id="ptWinner">Pentathlon ferdig!</h2>
-        <p id="ptFinalText" class="penta-finish-subtitle"></p>
-        <div id="ptFinalScore" class="penta-finish-score"></div>
-      </section>
-    </div>
-    <aside class="penta-side">
-      <section class="penta-card penta-results">
-        <span class="penta-eyebrow">KONTROLLKORT</span><h2>Resultatliste</h2>
-        <p class="penta-hint">Poeng i hver øvelse og samlet total.</p>
-        <div id="ptResultsTable"></div>
-      </section>
-      <section class="penta-card penta-rules">
-        <span class="penta-eyebrow">PENTATHLON-POENG</span><h2>Hvordan telles det?</h2>
-        <div class="penta-rule-line"><span>95–130 poeng på 3 piler</span><strong>+1</strong></div>
-        <div class="penta-rule-line"><span>131–159 poeng</span><strong>+2</strong></div>
-        <div class="penta-rule-line"><span>160–180 poeng</span><strong>+3</strong></div>
-        <div class="penta-rule-line"><span>Vunnet X01-leg</span><strong>+2</strong></div>
-        <div class="penta-rule-line"><span>Shanghai S/D/T</span><strong>1 / 2 / 3</strong></div>
-        <div class="penta-rule-line"><span>Klokka · riktig dobbel</span><strong>+2</strong></div>
-      </section>
-      <section class="penta-card penta-online-note">
-        <span class="penta-eyebrow">ONLINE TEST</span>
-        <p class="penta-hint">Begge kontoene deler samme kampstatus. Kamera og lyd kommer fra det eksisterende venterommet. Resultatet teller ikke i karriere eller ranking.</p>
-      </section>
-    </aside>
-  </div>`;
- $('matchView')?.append(panel);
- $('ptRefresh').onclick=refresh;
- $('ptXSubmit').onclick=submitX01;
- $('ptSSubmit').onclick=submitSpecial;
- $('ptRemove').onclick=()=>{pending.pop();render()};
- $('ptAdvance').onclick=advance;
- $('ptUndo').onclick=undo;
- $('ptInput').onkeydown=ev=>{if(ev.key==='Enter'){ev.preventDefault();submitX01()}};
- document.addEventListener('keydown',ev=>{
-   if(!record||saving||ev.repeat||ev.ctrlKey||ev.altKey||ev.metaKey||ev.isComposing)return;
-   if(['INPUT','TEXTAREA','SELECT'].includes(ev.target?.tagName)||ev.target?.isContentEditable)return;
-   if(ev.key==='Enter'){
-     if(game().status==='review'){ev.preventDefault();advance()}
-     else if(mine()){ev.preventDefault();stage().kind==='x01'?$('ptInput').focus():submitSpecial()}
-   }else if(ev.key==='Backspace'&&pending.length){ev.preventDefault();pending.pop();render()}
-   else if(mine()&&stage().kind!=='x01'){
-     const btn=[...$('ptChoices').querySelectorAll('button')].find(b=>b.dataset.key===ev.key);
-     if(btn){ev.preventDefault();btn.click()}
-   }
+async function setup(){
+ const launch=node('button','outline','Pentathlon Online · TEST');launch.id='ptStart';launch.hidden=true;launch.type='button';launch.onclick=startGame;
+ document.querySelector('.room-head-copy')?.append(launch);
+ // Reuse the original match.html X01 score-card/sidebar markup. Nothing from match.js is executed.
+ const response=await fetch(new URL('match.html',location.href),{cache:'no-store'});
+ if(!response.ok)throw Error('X01-mal ikke tilgjengelig: '+response.status);
+ const doc=new DOMParser().parseFromString(await response.text(),'text/html');
+ const original=doc.querySelector('#matchView .match-grid');
+ if(!original||!original.querySelector('.score-card')||!original.querySelector('.match-info'))throw Error('X01-scorekort mangler');
+ const panel=document.importNode(original,true);panel.id='ptPanel';panel.hidden=true;
+ const map={matchP1:'ptCard0',matchP2:'ptCard1',matchName1:'ptName0',matchName2:'ptName1',matchScore1:'ptScore0',matchScore2:'ptScore1',matchLegs1:'ptDetail0',matchLegs2:'ptDetail1',matchScoreInput:'ptInput',matchScoreBtn:'ptXSubmit',matchMessage:'ptMessage',matchStatus:'ptStatus',turnText:'ptTurn'};
+ for(const [from,to] of Object.entries(map)){const el=panel.querySelector('#'+from);if(!el)throw Error('X01-felt mangler: '+from);el.id=to;}
+ for(let i=0;i<2;i++){const sets=panel.querySelector('#ptCard'+i+' .match-sets');if(!sets)throw Error('X01-statistikk mangler');sets.classList.remove('hidden');
+ sets.innerHTML='PILER <b id="ptDarts'+i+'">0</b> · <b id="ptAverage'+i+'">0.00</b> <span id="ptAverageLabel'+i+'">AVG</span>';}
+ const card=panel.querySelector('.score-card');
+ card.insertAdjacentHTML('afterbegin',"<div class=\"pt-stage-head\"><small id=\"ptProgressTitle\">ØVELSE 1 AV 7</small><strong id=\"ptStage\">501 · Leg 1</strong><span id=\"ptDescription\">Dobbel ut</span></div><div id=\"ptCounter\" hidden></div><div id=\"ptProgress\" class=\"pt-progress\"></div>");
+ const players=card.querySelector('.match-players'),board=node('div');board.id='ptBoard';players.replaceWith(board);board.append(players);
+ const entry=card.querySelector('.score-entry');entry.id='ptX01';
+ entry.insertAdjacentHTML('afterbegin','<div id="ptX01Turn" class="pt-x01-turn">Spiller 1 kaster</div>');
+ entry.insertAdjacentHTML('beforebegin',"<div id=\"ptTarget\" class=\"pt-target\">REST 501</div><div id=\"ptSpecial\" class=\"pt-special\" hidden><div id=\"ptSpecialTurn\" class=\"pt-special-turn\">Spiller 1 kaster</div><div class=\"pt-special-target\"><small id=\"ptSpecialPhase\">SHANGHAI</small><strong id=\"ptSpecialTarget\">Shanghai 1</strong><span id=\"ptSpecialRemaining\">3 piler</span></div><div id=\"ptChoices\" class=\"pt-choices\"></div><div class=\"pt-pending\">Registrert: <b id=\"ptPending\">–</b></div><div class=\"pt-special-actions\"><button id=\"ptRemove\" type=\"button\" class=\"outline\">Fjern siste · Backspace</button><button id=\"ptSSubmit\" type=\"button\" class=\"primary\">Registrer · Enter</button></div></div><div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSEN ER FULLFØRT</small><h3 id=\"ptReviewTitle\">Resultat</h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button id=\"ptAdvance\" type=\"button\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\">Pentathlon ferdig!</h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong></div>");
+ const aside=panel.querySelector('.match-info');aside.querySelector('#cameraBtn')?.remove();
+ if(aside.querySelector('small'))aside.querySelector('small').textContent='PENTATHLON ONLINE';
+ aside.insertAdjacentHTML('beforeend',"<div class=\"pt-tools\"><button id=\"ptRefresh\" type=\"button\" class=\"outline\">Oppdater</button><button id=\"ptUndo\" type=\"button\" class=\"outline\">↶ Angre</button></div><small class=\"pt-side-label\">RESULTATLISTE</small><div id=\"ptResultsTable\"></div><p class=\"pt-test-note\">Owner-test. Ingen karriere-, ranking- eller turneringsstatistikk.</p><small class=\"pt-side-label\">SISTE REGISTRERINGER</small><div id=\"ptLog\" class=\"pt-log\"></div>");
+ document.getElementById('matchView')?.append(panel);
+ $('ptRefresh').onclick=refresh;$('ptXSubmit').onclick=submitX01;$('ptSSubmit').onclick=submitSpecial;
+ $('ptRemove').onclick=()=>{pending.pop();render()};$('ptAdvance').onclick=advance;$('ptUndo').onclick=undo;
+ $('ptInput').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();submitX01()}};
+ document.addEventListener('keydown',e=>{
+  if(!record||saving||e.repeat||e.ctrlKey||e.altKey||e.metaKey||e.isComposing)return;
+  if(['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName)||e.target?.isContentEditable)return;
+  if(e.key==='Enter'){if(game().status==='review'){e.preventDefault();advance()}else if(mine()){e.preventDefault();stage().kind==='x01'?$('ptInput').focus():submitSpecial()}}
+  else if(e.key==='Backspace'&&pending.length){e.preventDefault();pending.pop();render()}
+  else if(mine()&&stage().kind!=='x01'){const btn=[...$('ptChoices').querySelectorAll('button')].find(b=>b.dataset.key===e.key);if(btn){e.preventDefault();btn.click()}}
  });
 }
 function choice(key,label,dart){
@@ -177,14 +75,15 @@ function actions(){
 function render(){
  if(!record)return;
  const panel=$('ptPanel'),s=game(),c=s.current;
- panel.hidden=false;document.body.classList.add('pt-active');
+ panel.hidden=false;document.body.classList.add('pt-active','match-page','match-tv-layout');
  $('ptStart').hidden=true;
  const live=s.status==='playing',review=s.status==='review',finished=s.status==='finished';
+ document.body.classList.toggle('opponent-focus',live&&!mine());
  const st=E.STAGES[s.stageIndex];
  $('ptProgressTitle').textContent=finished?'PENTATHLON FULLFØRT':'ØVELSE '+(s.stageIndex+1)+' AV '+E.STAGES.length;
  const progress=$('ptProgress');progress.replaceChildren();
  E.STAGES.forEach((item,i)=>{
-   const step=node('div',s.summaries[i]?'done':i===s.stageIndex?'active':'',item.label);
+   const step=node('div',s.summaries[i]?'done':i===s.stageIndex?'active':'',String(i+1));
    step.title=item.caption||item.label;progress.append(step);
  });
  $('ptCounter').textContent=finished?'FULLFØRT':'ØVELSE '+(s.stageIndex+1);
@@ -207,6 +106,7 @@ function render(){
    $('ptCard'+i).classList.toggle('active',live&&c.turn===i);
  }
  $('ptBoard').hidden=finished;
+ $('ptTarget').hidden=!live||c.kind!=='x01';
  $('ptX01').hidden=!live||c.kind!=='x01';
  $('ptSpecial').hidden=!live||c.kind==='x01';
  $('ptReview').hidden=!review;
@@ -236,7 +136,20 @@ function render(){
  }
  $('ptInput').disabled=saving||!mine();
  $('ptXSubmit').disabled=saving||!mine();
+ if(live&&c.kind==='x01'&&mine()&&!saving){
+   const key=s.stageIndex+':'+c.turn+':'+c.used[c.turn];
+   if(lastInputTurn!==key){
+     lastInputTurn=key;
+     requestAnimationFrame(()=>{
+       const el=$('ptInput'),focused=document.activeElement;
+       if(el&&!el.disabled&&!document.hidden&&
+          (!focused||focused===document.body||focused===el))
+         el.focus({preventScroll:true});
+     });
+   }
+ }else lastInputTurn=null;
  $('ptAdvance').disabled=saving;
+ $('ptStatus').textContent=review?'Øvelse fullført':finished?'Ferdig':'Pågår';
  $('ptAdvance').textContent=s.stageIndex===6?'SE SLUTTRESULTAT →':'NESTE ØVELSE →';
  $('ptUndo').disabled=saving||record.last_actor!==uid||!(live||review)||!(s.undo?.length);
  if(review){
@@ -285,7 +198,7 @@ async function refresh(){
  if(data&&(!record||data.version>record.version)){
    record=data;pending=[];render();
  }else if(!data&&record){
-   record=null;document.body.classList.remove('pt-active');$('ptPanel').hidden=true;
+   record=null;document.body.classList.remove('pt-active','match-page','match-tv-layout','opponent-focus');$('ptPanel').hidden=true;
  }
 }
 async function broadcast(){
@@ -353,7 +266,7 @@ function undo(){
  catch(e){msg(e.message||String(e),true)}
 }
 async function boot(){
- setup();
+ await setup();
  for(let i=0;i<100&&!R.user();i++)await new Promise(resolve=>setTimeout(resolve,100));
  uid=R.user();if(!uid)return;
  const {data,error}=await db.from('challenges').select('id,challenger_id,challenged_id,status').eq('id',challengeId).maybeSingle();
