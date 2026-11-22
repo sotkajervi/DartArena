@@ -41,7 +41,7 @@ window.DartArenaChallengeRoomState=Object.freeze({
 const isOfferer=()=>profile?.id===c?.challenger_id;
 const setStatus=t=>{$('cameraStatus').textContent=t};
 const selectedGame=()=>$('roomGame')?.value||'501';
-const isSpecialGame=()=>['chicago','cricket','half_it','half_it_standard','sixty_one','jdc'].includes(selectedGame());
+const isSpecialGame=()=>['chicago','cricket','half_it','half_it_standard','sixty_one','jdc','pentathlon'].includes(selectedGame());
 // X01 game values share one engine and one eventual seamless media handoff.
 const SEAMLESS_X01_GAMES=Object.freeze(['170','301','501','1001','2001']);
 const isSeamlessX01=(raw,variant)=>SEAMLESS_X01_GAMES.includes(String(raw||''))&&(!variant||variant==='x01');
@@ -88,14 +88,20 @@ async function resumeAcceptedChallenge(challenge){
   if(!active)return false;
   try{sessionStorage.setItem(key,active.id)}catch{}
   window.DartArenaMediaTrace?.mark('ROOM_RELOAD_REJOIN',{matchId:active.id.slice(0,8)});
+  if(active.game_variant==='pentathlon')return {pentathlonMatchId:active.id};
   location.replace(pageForVariant(active.game_variant)+'?id='+encodeURIComponent(active.id));
   return true;
 }
 
 function setMatchMode(mode){const special=isSpecialGame();matchMode=special?'legs':mode==='sets'?'sets':'legs';$('legsModeBtn').classList.toggle('active',matchMode==='legs');$('setsModeBtn').classList.toggle('active',matchMode==='sets');$('setsField').classList.toggle('hidden',matchMode!=='sets')}
-function syncGameMode(){const g=selectedGame(),special=isSpecialGame(),chicago=g==='chicago',half=g==='half_it'||g==='half_it_standard',sixty=g==='sixty_one',jdc=g==='jdc';$('setsModeBtn').disabled=special;$('legsModeBtn').disabled=half||jdc||chicago;$('legsField').classList.toggle('hidden',half||jdc||chicago);$('sixtyOneTimeField').classList.toggle('hidden',!sixty);if(half||jdc)$('roomLegs').value='1';if(chicago)$('roomLegs').value='3';if(special)setMatchMode('legs')}
+function syncGameMode(){const g=selectedGame(),special=isSpecialGame(),chicago=g==='chicago',half=g==='half_it'||g==='half_it_standard',sixty=g==='sixty_one',jdc=g==='jdc',pentathlon=g==='pentathlon';$('setsModeBtn').disabled=special;$('legsModeBtn').disabled=half||jdc||chicago;$('legsField').classList.toggle('hidden',half||jdc||chicago||pentathlon);$('sixtyOneTimeField').classList.toggle('hidden',!sixty);if(half||jdc||pentathlon)$('roomLegs').value='1';if(chicago)$('roomLegs').value='3';if(special)setMatchMode('legs')}
 $('legsModeBtn').onclick=()=>setMatchMode('legs');$('setsModeBtn').onclick=()=>setMatchMode('sets');$('roomGame').onchange=syncGameMode;setMatchMode('legs');syncGameMode();
-(async()=>{const{data:{session}}=await db.auth.getSession();if(!session||!challengeId)return location.replace('./');({data:profile}=await db.from('profiles').select('*').eq('id',session.user.id).single());const{data,error}=await db.from('challenges').select('*').eq('id',challengeId).single();c=data;if(error||!c||![c.challenger_id,c.challenged_id].includes(profile.id))return location.replace('./');if(c.status==='accepted'){if(await resumeAcceptedChallenge(c))return;return location.replace('./')}if(c.status!=='room')return location.replace('./');other=profile.id===c.challenger_id?c.challenged_id:c.challenger_id;const{data:p}=await db.from('profiles').select('id,username').in('id',[profile.id,other]);names=Object.fromEntries((p||[]).map(x=>[x.id,x.username]));$('roomTitle').textContent=`${names[profile.id]||'Spiller'} vs ${names[other]||'Spiller'}`;$('localVideoName').textContent=names[profile.id]||'Spiller';$('remoteVideoName').textContent=names[other]||'Spiller';setupChannel()})();
+(async()=>{const{data:{session}}=await db.auth.getSession();if(!session||!challengeId)return location.replace('./');({data:profile}=await db.from('profiles').select('*').eq('id',session.user.id).single());const{data,error}=await db.from('challenges').select('*').eq('id',challengeId).single();c=data;if(error||!c||![c.challenger_id,c.challenged_id].includes(profile.id))return location.replace('./');if(c.status==='accepted'){
+ const resumed=await resumeAcceptedChallenge(c);
+ if(resumed===true)return;
+ if(resumed?.pentathlonMatchId)window.DartArenaPentathlonResumeMatchId=resumed.pentathlonMatchId;
+ else return location.replace('./');
+}if(!['room','accepted'].includes(c.status))return location.replace('./');other=profile.id===c.challenger_id?c.challenged_id:c.challenger_id;const{data:p}=await db.from('profiles').select('id,username').in('id',[profile.id,other]);names=Object.fromEntries((p||[]).map(x=>[x.id,x.username]));$('roomTitle').textContent=`${names[profile.id]||'Spiller'} vs ${names[other]||'Spiller'}`;$('localVideoName').textContent=names[profile.id]||'Spiller';$('remoteVideoName').textContent=names[other]||'Spiller';setupChannel()})();
 function setupChannel(){channel=db.channel('room-'+challengeId).on('broadcast',{event:'ready'},async({payload})=>{if(payload.from!==other)return;remoteReady=true;await connectIfReady()}).on('broadcast',{event:'signal'},async({payload})=>{if(payload.from!==other)return;remoteReady=true;await handleSignal(payload)}).on('broadcast',{event:'proposal'},({payload})=>{if(payload.from!==profile.id)showProposal(payload)}).on('broadcast',{event:'proposal-rejected'},({payload})=>{if(payload.from!==profile.id)$('roomMessage').textContent='Motstanderen avslo kampforslaget.'}).on('broadcast',{event:'room-cancelled'},({payload})=>{if(payload.from!==profile.id)closeRoomTab('Motstanderen avsluttet venterommet.')}).on('broadcast',{event:'match-start'},({payload})=>{if(!payload.matchId)return;try{sessionStorage.setItem('dartarena-challenge-match:'+challengeId,payload.matchId)}catch{}window.DartArenaChallengeStart?.open?.(payload.matchId,payload.gameVariant,{startAt:payload.startAt})|| (location.href=`${pageForVariant(payload.gameVariant)}?id=${encodeURIComponent(payload.matchId)}`)}).subscribe(async s=>{if(s==='SUBSCRIBED'){await startCamera();startHandshake()}})}
 function startHandshake(){clearInterval(helloTimer);helloTimer=setInterval(async()=>{if(!localReady||leaving)return;await send('ready');if(remoteReady&&(!pc||['failed','closed'].includes(pc.connectionState)))await restartPeer()},1500)}
 function cameraErrorText(e){if(e?.name==='NotAllowedError')return'Kamera/mikrofon er blokkert i nettleseren.';if(e?.name==='NotFoundError')return'Fant ikke kamera eller mikrofon.';if(e?.name==='NotReadableError')return'Kameraet kan være i bruk av et annet program.';return'Kamera kunne ikke startes.'}
@@ -115,13 +121,13 @@ function scheduleReconnect(ms){if(leaving||reconnectTimer)return;reconnectTimer=
 $('remoteAudioBtn').onclick=async()=>{const v=$('remoteVideo'),b=$('remoteAudioBtn');v.muted=!v.muted;b.textContent=v.muted?'Slå på lyd':'Slå av lyd';try{await v.play()}catch{v.muted=true;b.textContent='Slå på lyd'}};async function send(event,payload={}){if(channel)await channel.send({type:'broadcast',event,payload:{...payload,from:profile.id}})}
 function showProposal(p){
   const raw=String(p.game||''),chicago=!!p.isChicago||raw==='chicago'||String(p.gameConfig?.chicago??'false').toLowerCase()==='true',
-    variant=chicago?'x01':p.gameVariant==='jdc'||raw==='jdc'?'jdc':p.gameVariant==='sixty_one'||raw==='sixty_one'?'sixty_one':p.gameVariant==='half_it'||raw==='half_it'||raw==='half_it_standard'?'half_it':p.gameVariant==='cricket'||raw==='cricket'?'cricket':'x01',
+    variant=chicago?'x01':p.gameVariant==='pentathlon'||raw==='pentathlon'?'pentathlon':p.gameVariant==='jdc'||raw==='jdc'?'jdc':p.gameVariant==='sixty_one'||raw==='sixty_one'?'sixty_one':p.gameVariant==='half_it'||raw==='half_it'||raw==='half_it_standard'?'half_it':p.gameVariant==='cricket'||raw==='cricket'?'cricket':'x01',
     special=variant!=='x01'||chicago,half=variant==='half_it',sixty=variant==='sixty_one',jdc=variant==='jdc',
     durationMinutes=sixty&&[10,20,30,45,60].includes(Number(p.durationMinutes))?Number(p.durationMinutes):10;
   pendingProposal={...p,isChicago:chicago,gameVariant:variant,mode:special?'legs':p.mode||'legs',sets:special?1:Number(p.sets)||1,legs:chicago?3:jdc?1:half?1:Number(p.legs)||1,durationMinutes,isWarmup:!!p.isWarmup};
   const who=p.starter==='random'?'Tilfeldig':p.starter===profile.id?'Du starter':`${names[other]} starter`;
-  const label=chicago?'Chicago Style':jdc?'JDC Challenge':sixty?'61':half?'Half-It':variant==='cricket'?'Cricket':p.game;
-  const format=chicago?`${label} • 301 DI/DO → Cricket → 501 DO`:jdc?`${label} • 57 piler hver`:half?`${label} • 12 runder`:sixty?`${label} • Best of ${pendingProposal.legs} legs • ${durationMinutes} min/leg`:pendingProposal.mode==='sets'?`${label} • Best of ${pendingProposal.sets} sets • Best of ${pendingProposal.legs} legs`:`${label} • Best of ${pendingProposal.legs} legs`;
+  const label=chicago?'Chicago Style':variant==='pentathlon'?'Pentathlon':jdc?'JDC Challenge':sixty?'61':half?'Half-It':variant==='cricket'?'Cricket':p.game;
+  const format=variant==='pentathlon'?`${label} • 7 øvelser • Owner-test`:chicago?`${label} • 301 DI/DO → Cricket → 501 DO`:jdc?`${label} • 57 piler hver`:half?`${label} • 12 runder`:sixty?`${label} • Best of ${pendingProposal.legs} legs • ${durationMinutes} min/leg`:pendingProposal.mode==='sets'?`${label} • Best of ${pendingProposal.sets} sets • Best of ${pendingProposal.legs} legs`:`${label} • Best of ${pendingProposal.legs} legs`;
   $('proposalTitle').textContent=(pendingProposal.isWarmup?'OPPVARMING • ':'')+format;
   $('proposalText').textContent=pendingProposal.isWarmup?`${who}. Oppvarmingskampen teller ikke på AVG, form, historikk, Top 10 eller ranking. Godta for å starte.`:`${who}. Godta for å starte kampen.`;
   $('proposalActions').classList.remove('hidden')

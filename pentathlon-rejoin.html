@@ -1,0 +1,18 @@
+<!doctype html><html lang="no"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DartArena · Pentathlon gjenoppta</title><link rel="stylesheet" href="style.css?v=20261023-bulldown2"></head>
+<body><main class="shell" style="max-width:650px;margin:10vh auto"><section class="card"><small>PENTATHLON ONLINE</small><h1>Gjenoppta kamp</h1><p id="status">Henter det eksisterende kamprommet …</p><a href="./">Til hovedlobbyen</a></section></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+<script>
+(async()=>{
+ const status=document.getElementById('status'),id=new URLSearchParams(location.search).get('id');
+ if(!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(id||'')){status.textContent='Ugyldig kamp-ID.';return}
+ const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
+ const {data:{session}}=await db.auth.getSession();
+ if(!session){status.textContent='Logg inn i DartArena først.';return}
+ const {data:row,error}=await db.from('pentathlon_room_tests').select('challenge_id,match_id').eq('match_id',id).maybeSingle();
+ if(error||!row){status.textContent='Fant ikke en tilgjengelig Pentathlon-test for denne kontoen. Åpne venterommet fra lobbyen.';return}
+ const url=new URL('room.html',location.href);
+ url.searchParams.set('id',row.challenge_id);
+ url.searchParams.set('challengeSeamlessDev','1');
+ location.replace(url.href);
+})().catch(err=>{document.getElementById('status').textContent='Kunne ikke gjenoppta: '+(err.message||err)});
+</script></body></html>

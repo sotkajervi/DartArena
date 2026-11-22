@@ -105,16 +105,16 @@
     propose.onclick=async()=>{
       const raw=selectedGame();
       const chicago=raw==='chicago',variant=chicago?'x01':resolveVariant(raw),special=variant!=='x01'||chicago,half=variant==='half_it',sixty=variant==='sixty_one',jdc=variant==='jdc';
-      const legs=chicago?3:jdc?1:Number(document.getElementById('roomLegs').value),mode=special?'legs':matchMode;
+      const legs=chicago?3:(jdc||raw==='pentathlon')?1:Number(document.getElementById('roomLegs').value),mode=special?'legs':matchMode;
       const sets=special?1:(mode==='sets'?Number(document.getElementById('roomSets').value):1);
       const durationMinutes=sixty?Number(document.getElementById('room61Time').value):null;
-      const warmup=!!document.getElementById('roomWarmup')?.checked;
+      const warmup=raw==='pentathlon'||!!document.getElementById('roomWarmup')?.checked;
       const live=document.getElementById('roomLive')?.checked!==false;
       if(legs<1||legs>21||legs%2===0||sets<1||sets>11||sets%2===0){document.getElementById('roomMessage').textContent='Best of må være et gyldig oddetall.';return}
       if(sixty&&![10,20,30,45,60].includes(durationMinutes)){document.getElementById('roomMessage').textContent='Velg gyldig tid per leg.';return}
       const starterChoice=document.getElementById('roomStarter').value;
       const starterId=starterChoice==='me'?profile.id:starterChoice==='opponent'?other:null;
-      const gameConfig=chicago?{chicago:true,chicago_stage:1,ranked:false,chicago_results:[]}:sixty?{duration_seconds:durationMinutes*60}:half?{half_it_mode:halfModeFor(raw)}:jdc?{ranked:!warmup}:{};
+      const gameConfig=raw==='pentathlon'?{pentathlon:true,ranked:false}:chicago?{chicago:true,chicago_stage:1,ranked:false,chicago_results:[]}:sixty?{duration_seconds:durationMinutes*60}:half?{half_it_mode:halfModeFor(raw)}:jdc?{ranked:!warmup}:{};
       const game=chicago?301:special?501:Number(raw);
       propose.disabled=true;propose.textContent='Sender…';
       try{
@@ -128,7 +128,8 @@
         const payload={proposalId:data.id,game:raw,gameVariant:variant,isChicago:serverChicago,gameConfig:data.game_config||gameConfig,halfItMode:half?halfModeFor(raw):null,legs:Number(data.legs),sets:Number(data.best_of_sets),mode:data.match_mode,starter:data.starter_id||'random',durationMinutes,isWarmup:!!data.is_warmup,isLive:data.is_live!==false};
         await send('proposal',payload);
         const label=labelFor(raw),prefix=warmup?'Oppvarming • ':'',liveText=live?'Live PÅ':'Live AV';
-        const core=chicago
+        const core=raw==='pentathlon'?`${prefix}Pentathlon • 7 øvelser • ikke ranket`
+          :chicago
           ?`${prefix}Chicago Style • 301 DI/DO → Cricket → 501 DO`
           :half
           ?`${prefix}${label} • Best of ${legs} legs • 12 runder/leg`
@@ -148,7 +149,7 @@
         const {data:match,error}=await db.rpc('accept_challenge_match_proposal',{p_proposal_id:pendingProposal.proposalId});
         if(error||!match)throw error||new Error('Kampen kunne ikke opprettes.');
         // The challenge is now accepted; retain old playback but stop new room SFU requests.
-        window.DartArenaRoomMedia?.beginHandoff?.();
+        if(match.game_variant!=='pentathlon')window.DartArenaRoomMedia?.beginHandoff?.();
         const variant=match.game_variant||pendingProposal.gameVariant||'x01';
         if(pendingProposal.starter==='random'&&window.DartArenaCoinFlipSync){
           accept.textContent='Kaster mynt…';

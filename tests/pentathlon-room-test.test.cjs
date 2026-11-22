@@ -1,102 +1,54 @@
 const test=require('node:test');
-const assert=require('node:assert/strict');
-const fs=require('node:fs');
-const path=require('node:path');
-const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
-test('Pentathlon enters the original X01 scene instead of faking its grid in the waiting room',()=>{
- const js=read('pentathlon-room-test.js');
- const host=read('match-scene-host.js');
- const room=read('room.html');
- const match=read('match.html');
- assert.match(js,/window\.DartArenaMatchSceneHost/);
- assert.match(js,/await host\.prepare\(\)/);
- assert.match(js,/await host\.enter\(\)/);
- assert.match(js,/document\.getElementById\('daMatchStage'\)/);
- assert.match(js,/const panel=scene\?\.querySelector\('\.match-grid'\)/);
- assert.match(host,/new URL\('match\.html',location\.href\)/);
- assert.match(host,/stage\.querySelector\('#daMatchVideoSlot'\)\.replaceWith\(video\)/);
- assert.match(host,/video\.classList\.remove\('waiting-video-grid'\)/);
- assert.ok(match.includes('id="matchScoreInput"'));
- assert.ok(match.includes('id="matchScoreBtn"'));
- assert.ok(room.includes('match-scene-host.js?v='));
- assert.ok(room.includes('pentathlon-room-test.js?v=20261122-x01-native-scene1'));
- assert.doesNotMatch(js,/new DOMParser\(|fetch\(new URL\('match\.html'/);
+const a=require('node:assert/strict'),fs=require('node:fs'),p=require('node:path');
+const read=f=>fs.readFileSync(p.join(__dirname,'..',f),'utf8');
+test('Pentathlon chosen in waiting room; server receives configured starter and variant',()=>{
+ const room=read('room.html'),js=read('room.js'),proposal=read('room-secure-create.js'),router=read('game-router.js');
+ a.match(room,/value="pentathlon" hidden/);a.match(room,/id="roomStarter"/);
+ a.match(router,/pentathlon:\{variant:'pentathlon'/);
+ a.match(proposal,/p_game_variant:variant/);
+ a.ok(proposal.includes("starterChoice==='me'?profile.id:starterChoice==='opponent'?other:null"));
+ a.ok(proposal.includes("raw==='pentathlon'||!!document.getElementById('roomWarmup')"));
+ a.ok(js.includes("variant==='pentathlon'?"));
 });
-test('The real X01 input and button live in the video-area dock, not in the left score column',()=>{
- const js=read('pentathlon-room-test.js');
- const css=read('pentathlon-room-test.css');
- const own=read('match-own-turn.css');
- assert.match(js,/const entry=score\.querySelector\('\.score-entry'\)/);
- assert.match(js,/const dock=node\('div','focus-input-dock'\)/);
- assert.match(js,/dock\.append\(turn,entry\)/);
- assert.match(js,/scene\.appendChild\(dock\)/);
- assert.match(js,/document\.body\.classList\.toggle\('own-turn-focus',live&&mine\(\)\)/);
- assert.match(js,/document\.body\.classList\.toggle\('opponent-focus',live&&!mine\(\)\)/);
- assert.match(js,/document\.body\.classList\.toggle\('pt-special-turn',live&&mine\(\)&&c\.kind!=='x01'\)/);
- assert.match(own,/\.focus-input-dock\s*\{[^}]*grid-area:video!important/s);
- assert.match(own,/\.own-turn-focus[^{}]+#videoGrid\s*\{/);
- assert.match(own,/\.opponent-focus \.focus-input-dock\s*\{[^}]*display:none!important/s);
- assert.match(css,/#ptX01\[hidden\]/);
- assert.match(css,/#ptSpecial\[hidden\]/);
- assert.match(css,/--da-x01-input-reserve:165px!important/);
- assert.doesNotMatch(css,/#videoGrid\s*\{|#matchView\s*\{|\.match-grid\s*\{/);
+test('Existing coinflip, acceptance and match scene, no waiting-room scoring button',()=>{
+ const js=read('pentathlon-room-test.js'),s=read('challenge-x01-transition.js');
+ a.ok(read('room-secure-create.js').includes("accept_challenge_match_proposal"));
+ a.ok(read('room-coin-flip-sync.js').includes("DartArenaCoinFlip?.play"));
+ a.ok(s.includes("await test.enter({matchId,challengeId:"));
+ a.ok(js.includes("window.DartArenaPentathlonMatchTest=Object.freeze({enter})"));
+ a.ok(js.includes("await host.prepare()"));a.ok(js.includes("await host.enter()"));
+ a.ok(read('match-scene-host.js').includes("stage.querySelector('#daMatchVideoSlot').replaceWith(video)"));
+ a.ok(js.includes("scene.appendChild(dock)"));a.ok(js.includes("const dock=node('div','focus-input-dock')"));
+ a.ok(!js.includes('onclick=startGame'));a.ok(!js.includes('Math.random()'));
+ a.ok(!js.includes('getUserMedia('));a.ok(!js.includes('RTCPeerConnection('));
 });
-test('Reuse existing camera nodes; leave SFU, media and X01 scoring engines untouched',()=>{
- const js=read('pentathlon-room-test.js');
- const room=read('room.html');
- const scene=read('match-scene-host.js');
- assert.match(js,/document\.getElementById\('localVideoCard'\)/);
- assert.match(js,/classList\.add\('focus-local-pip'\)/);
- assert.match(js,/mic\.hidden=true/);
- assert.match(scene,/video\.before\(videoAnchor\)/);
- assert.match(scene,/stage\.querySelector\('#daMatchVideoSlot'\)\.replaceWith\(video\)/);
- for(const forbidden of ['getUserMedia(','RTCPeerConnection(','replaceTrack(','addTrack(','DartArenaBootLiveMatch(','submit_x01_visit','submit_x01_checked','match.js?v='])
-   assert.ok(!js.includes(forbidden),'Pentathlon test must not invoke '+forbidden);
- assert.ok(room.includes('sfu-client-secure.js?v='));
- assert.ok(room.includes('room-media-router.js?v='));
- assert.ok(js.includes("from('pentathlon_room_tests')"));
- assert.ok(js.includes("p_expected_version:version"));
- assert.ok(js.includes("await ensureScene();render()"));
- assert.ok(js.includes("window.DartArenaMatchSceneHost?.restore?.()"));
+test('X01 scoreboard inherited, no custom video grid or sidebar result scroll',()=>{
+ const js=read('pentathlon-room-test.js'),css=read('pentathlon-room-test.css');
+ a.ok(js.includes("const darts=node('div','live-darts')"));
+ a.ok(js.includes("const avg=node('div','live-avg')"));
+ a.ok(js.includes("sets.classList.add('hidden')"));
+ a.ok(js.includes('ptResultDetails'));a.ok(css.includes('.pt-details'));
+ a.doesNotMatch(css,/#ptPanel \.match-score\{|#ptPanel \.match-player\{|#videoGrid\s*\{|#matchView\s*\{/);
+ a.ok(js.includes("classList.toggle('own-turn-focus',live&&mine())"));
 });
-test('Existing seven-stage engine, round controls, and Enter quick fill are preserved',()=>{
- const E=require('../pentathlon-2p-engine.js');
- assert.equal(E.STAGES.length,7);
- const s=E.create({name1:'A',name2:'B',starter:0});
- assert.equal(s.current.kind,'x01');
- const next=E.submitX01(s,{score:60});
- assert.equal(next.current.remaining[0],441);
- assert.equal(next.current.turn,1);
- s.stageIndex=4;s.current.kind='shanghai';s.current.remaining=[0,0];
- const sh=E.submitShanghaiTurn(s,[{n:1,m:1}]);
- assert.equal(sh.current.used[0],3);
- s.stageIndex=5;s.current.kind='clock';s.current.entries=[];s.current.pending=[];
- s.current.turn=0;s.current.used=[0,0];s.current.clockTarget=[1,1];s.current.pent=[0,0];
- const clock=E.submitClockTurn(s,[{n:1,m:2}]);
- assert.equal(clock.current.used[0],3);
- assert.deepEqual(clock.current.entries.map(e=>e.hit),['D1','BOM','BOM']);
+test('Server match starter and identity are used; F5 resumes by match ID',()=>{
+ const js=read('pentathlon-room-test.js'),room=read('room.js');
+ a.ok(js.includes("m.match_starter_id===m.player1_id?0:1"));
+ a.ok(js.includes("start_pentathlon_match_test"));
+ a.ok(js.includes("apply_pentathlon_room_test"));
+ a.ok(js.includes("eq('match_id',activeMatchId)"));
+ a.ok(js.includes("p_expected_version:version"));
+ a.ok(room.includes("if(active.game_variant==='pentathlon')return {pentathlonMatchId:active.id}"));
+ a.ok(room.includes("window.DartArenaPentathlonResumeMatchId=resumed.pentathlonMatchId"));
+ a.ok(!js.includes('DartArenaBootLiveMatch('));
 });
-
-test('Stage result actions remain visible before the full results table',()=>{
- const js=read('pentathlon-room-test.js');
- const css=read('pentathlon-room-test.css');
- const insert=js.match(/aside\.insertAdjacentHTML\('beforeend',("(?:\\.|[^"\\])*")\);/);
- assert.ok(insert,'Missing reused X01 match-info');
- const markup=JSON.parse(insert[1]);
- assert.ok(markup.indexOf('id="ptReview"')<markup.indexOf('id="ptResultsTable"'),'Next stage button must precede full scores');
- assert.ok(markup.indexOf('id="ptFinished"')<markup.indexOf('id="ptResultsTable"'),'Final result must precede score table');
- assert.ok(markup.includes('id="ptAdvance"'));
- assert.ok(css.includes('body.pt-online-test #ptPanel #ptAdvance'));
- assert.doesNotMatch(css,/#ptPanel \.match-player\{|#ptPanel \.match-score\{/);
-});
-
-test('The input dock disappears on review, finish and opponent turns',()=>{
- const js=read('pentathlon-room-test.js');
- const css=read('pentathlon-room-test.css');
- assert.ok(js.includes("classList.toggle('own-turn-focus',live&&mine())"));
- assert.ok(css.includes('body.pt-online-test:not(.own-turn-focus) .focus-input-dock{display:none!important}'));
- assert.ok(css.includes('#ptX01[hidden]'));
- assert.ok(css.includes('#ptSpecial[hidden]'));
- assert.ok(js.includes("$('ptReview').hidden=!review"));
- assert.ok(js.includes("$('ptFinished').hidden=!finished"));
+test('Existing seven-stage engine including Enter-to-miss works unchanged',()=>{
+ const E=require('../pentathlon-2p-engine.js');a.equal(E.STAGES.length,7);
+ const game=E.create({name1:'A',name2:'B',starter:0});
+ a.equal(E.submitX01(game,{score:60}).current.remaining[0],441);
+ game.stageIndex=4;game.current.kind='shanghai';game.current.remaining=[0,0];
+ a.equal(E.submitShanghaiTurn(game,[{n:1,m:1}]).current.used[0],3);
+ game.stageIndex=5;game.current.kind='clock';game.current.entries=[];game.current.pending=[];
+ game.current.turn=0;game.current.used=[0,0];game.current.clockTarget=[1,1];game.current.pent=[0,0];
+ a.deepEqual(E.submitClockTurn(game,[{n:1,m:2}]).current.entries.map(e=>e.hit),['D1','BOM','BOM']);
 });

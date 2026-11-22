@@ -6,7 +6,7 @@ const R=window.DartArenaChallengeRoomState,E=window.DartArenaPentathlon;
 if(!R||!E)return;
 const $=id=>document.getElementById(id),db=R.client(),challengeId=R.challengeId();
 if(!challengeId)return;
-let uid=null,challenge=null,record=null,channel=null,poll=null,pending=[],saving=false,lastInputTurn=null,sceneReady=false,sceneConfigured=false,sceneLoading=null;
+let uid=null,challenge=null,record=null,channel=null,poll=null,pending=[],saving=false,lastInputTurn=null,sceneReady=false,sceneConfigured=false,sceneLoading=null,activeMatchId=null,entering=null;
 const copy=o=>JSON.parse(JSON.stringify(o));
 const clean=o=>{const a=copy(o);delete a.undo;return a};
 const game=()=>record?.state,stage=()=>game()?.current;
@@ -16,9 +16,6 @@ const msg=(s,bad=false)=>{const el=$('ptMessage');if(el){el.textContent=s;el.cla
 function node(tag,cls,value){const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el}
 
 function setup(){
- const btn=node('button','outline','Pentathlon Online · TEST');
- btn.id='ptStart';btn.type='button';btn.hidden=true;btn.onclick=startGame;
- document.querySelector('.room-head-copy')?.append(btn);
  document.addEventListener('keydown',e=>{
    if(!sceneReady||!record||saving||e.repeat||e.isComposing||e.ctrlKey||e.metaKey||e.altKey)return;
    if(['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName)||e.target?.isContentEditable)return;
@@ -61,10 +58,14 @@ async function ensureScene(){
      element.id=dest;
    }
    for(let i=0;i<2;i++){
-     const sets=panel.querySelector('#ptCard'+i+' .match-sets');
+     const card=panel.querySelector('#ptCard'+i),sets=card?.querySelector('.match-sets');
      if(!sets)throw Error('X01-spillerstatistikk mangler');
-     sets.classList.remove('hidden');
-     sets.innerHTML='PILER <b id="ptDarts'+i+'">0</b> · <b id="ptAverage'+i+'">0.00</b> <span id="ptAverageLabel'+i+'">AVG</span>';
+     sets.classList.add('hidden');
+     const darts=node('div','live-darts');
+     darts.innerHTML='<b id="ptDarts'+i+'">0</b><span>PILER</span>';
+     const avg=node('div','live-avg');
+     avg.innerHTML='<span id="ptAverageLabel'+i+'">AVG</span><b id="ptAverage'+i+'">0.00</b>';
+     card.append(darts,avg);
    }
    const players=score.querySelector('.match-players');
    if(!players)throw Error('X01-spillerkortene mangler');
@@ -83,16 +84,24 @@ async function ensureScene(){
    dock.append(message);
    scene.appendChild(dock);
    aside.querySelector('#cameraBtn')?.remove(); // Camera already belongs to the waiting room.
-   aside.insertAdjacentHTML('beforeend',"<div class=\"pt-tools\"><button type=\"button\" id=\"ptRefresh\" class=\"outline\">Oppdater</button><button type=\"button\" id=\"ptUndo\" class=\"outline\">↶ Angre</button></div><div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSE FULLFØRT</small><h3 id=\"ptReviewTitle\"></h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button type=\"button\" id=\"ptAdvance\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\"></h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong></div><small class=\"pt-side-label\">RESULTATLISTE · 7 ØVELSER</small><div id=\"ptResultsTable\"></div><small class=\"pt-side-label\">SISTE REGISTRERINGER</small><div id=\"ptLog\" class=\"pt-log\"></div><p class=\"pt-note\">Pentathlon Online • test. Teller ikke i karriere eller ranking.</p>");
+   aside.insertAdjacentHTML('beforeend',"<div class=\"pt-tools\"><button type=\"button\" id=\"ptRefresh\" class=\"outline\">Oppdater</button><button type=\"button\" id=\"ptUndo\" class=\"outline\">↶ Angre</button></div><div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSE FULLFØRT</small><h3 id=\"ptReviewTitle\"></h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button type=\"button\" id=\"ptAdvance\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\"></h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong></div><details id=\"ptResultDetails\" class=\"pt-details\"><summary>Resultatliste · 7 øvelser</summary><div id=\"ptResultsTable\"></div><small class=\"pt-side-label\">SISTE REGISTRERINGER</small><div id=\"ptLog\" class=\"pt-log\"></div></details><p class=\"pt-note\">Owner-test · ikke ranket.</p>");
    const cancel=scene.querySelector('#cancelMatchBtn');
-   if(cancel)cancel.hidden=true; // This is a score test, not a regular ranked match.
+   if(cancel){
+     cancel.hidden=false;cancel.textContent='Avbryt testkamp';
+     cancel.onclick=async()=>{
+       if(!confirm('Vil du avbryte Pentathlon-testkampen?'))return;
+       const {error}=await db.rpc('cancel_pentathlon_match_test',{p_match_id:activeMatchId});
+       if(error){alert('Kunne ikke avbryte: '+error.message);return}
+       location.replace('./');
+     };
+   }
    const close=scene.querySelector('#closeMatchBtn');
    if(close){close.textContent='Til hovedlobby';close.onclick=()=>{
      if(record?.state?.status==='playing'&&!confirm('Pentathlon-testen pågår. Gå til hovedlobbyen?'))return;
      location.replace('./');
    }}
    scene.querySelector('#matchFormat').textContent='PENTATHLON • 7 ØVELSER';
-   scene.querySelector('#matchTitle').textContent='Pentathlon Online · Test';
+   scene.querySelector('#matchTitle').textContent='Pentathlon Online';
    $('ptRefresh').onclick=refresh;$('ptXSubmit').onclick=submitX01;$('ptSSubmit').onclick=submitSpecial;
    $('ptRemove').onclick=()=>{pending.pop();render()};$('ptAdvance').onclick=advance;$('ptUndo').onclick=undo;
    $('ptInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();submitX01()}});
@@ -132,18 +141,21 @@ function actions(){
  if(!(kind==='clock'&&(c.clockTarget[c.turn]>20||pending.some(d=>d.n===20&&d.m===2))))
    choice('0','BOM · 0',{n:0,m:0});
 }
+function stLabel(i){return E.STAGES[i]?.label||'Pentathlon'}
 function render(){
  if(!record)return;
  if(!sceneReady)return;
  const panel=$('ptPanel'),s=game(),c=s.current;
  panel.hidden=false;
- $('ptStart').hidden=true;
  const live=s.status==='playing',review=s.status==='review',finished=s.status==='finished';
  document.body.classList.toggle('opponent-focus',live&&!mine());
  document.body.classList.toggle('own-turn-focus',live&&mine());
  document.body.classList.toggle('pt-special-turn',live&&mine()&&c.kind!=='x01');
  const st=E.STAGES[s.stageIndex];
  $('ptProgressTitle').textContent=finished?'PENTATHLON FULLFØRT':'ØVELSE '+(s.stageIndex+1)+' AV '+E.STAGES.length;
+ const formatEl=$('matchFormat');
+ if(formatEl)formatEl.textContent=finished?'PENTATHLON · FULLFØRT':'PENTATHLON · '+(s.stageIndex+1)+'/7 · '+stLabel(s.stageIndex);
+ const titleEl=$('matchTitle');if(titleEl)titleEl.textContent=s.players[0]+' vs '+s.players[1];
  const progress=$('ptProgress');progress.replaceChildren();
  E.STAGES.forEach((item,i)=>{
    const step=node('div',s.summaries[i]?'done':i===s.stageIndex?'active':'',String(i+1));
@@ -164,8 +176,7 @@ function render(){
    $('ptDarts'+i).textContent=c.used[i];
    $('ptAverage'+i).textContent=avg.toFixed(2);
    $('ptAverageLabel'+i).textContent=x01?'AVG':'P/R';
-   $('ptDetail'+i).textContent=x01?(c.win===i?'1':'0')+' LEGS · +'+c.pent[i]+' PENTATHLON-POENG':
-      c.kind==='half'?c.pent[i]+' PENTATHLON-POENG': 'PENTATHLON-POENG';
+   $('ptDetail'+i).textContent=x01?(c.win===i?'1':'0')+' legs':c.pent[i]+' Pentathlon-poeng';
    $('ptCard'+i).classList.toggle('active',live&&c.turn===i);
  }
  // Keep original X01 scorecards visible through the result screen.
@@ -174,6 +185,7 @@ function render(){
  $('ptSpecial').hidden=!live||c.kind==='x01';
  $('ptReview').hidden=!review;
  $('ptFinished').hidden=!finished;
+ if(review||finished)$('ptResultDetails').open=true;
  const turnName=s.players[c.turn]||'Spiller';
  if(live&&c.kind==='x01'){
    $('ptTarget').textContent=E.currentTarget(s)?.label||'';
@@ -255,30 +267,46 @@ function render(){
  }
 }
 async function refresh(){
- if(!uid||!challenge)return;
- const {data,error}=await db.from('pentathlon_room_tests').select('*').eq('challenge_id',challengeId).maybeSingle();
+ if(!uid||!challenge||!activeMatchId)return;
+ const {data,error}=await db.from('pentathlon_room_tests').select('*').eq('match_id',activeMatchId).maybeSingle();
  if(error){msg('Synkronisering feilet: '+error.message,true);return}
- if(data&&(!record||data.version>record.version)){
-   record=data;pending=[];try{await ensureScene();render()}catch(e){console.error('[Pentathlon scene]',e);alert('Kunne ikke åpne X01-kamprommet: '+(e.message||e))}
- }else if(!data&&record){
-   record=null;document.body.classList.remove('pt-online-test','pt-special-turn','opponent-focus','own-turn-focus');window.DartArenaMatchSceneHost?.restore?.();sceneReady=false;sceneConfigured=false;
- }
+ if(data&&(!record||data.version>record.version)){record=data;pending=[];render()}
 }
 async function broadcast(){
  await channel?.send({type:'broadcast',event:'changed',payload:{from:uid}}).catch(()=>{});
 }
-async function startGame(){
- if(saving||record)return;saving=true;$('ptStart').disabled=true;
- try{
-   const {data:p,error:pe}=await db.from('profiles').select('id,username').in('id',[challenge.challenger_id,challenge.challenged_id]);
+async function enter({matchId}={}){
+ if(entering)return entering;
+ if(sceneReady&&activeMatchId===matchId)return;
+ entering=(async()=>{
+   if(!uid||!challenge){
+     for(let i=0;i<50&&(!uid||!challenge);i++)await new Promise(r=>setTimeout(r,100));
+     if(!uid||!challenge)throw Error('Venterommets sesjon er ikke klar');
+   }
+   const {data:m,error}=await db.from('matches')
+     .select('id,player1_id,player2_id,match_starter_id,status,game_variant')
+     .eq('id',matchId).maybeSingle();
+   if(error||!m||m.game_variant!=='pentathlon'||m.status!=='playing'||
+      ![m.player1_id,m.player2_id].includes(uid)||
+      m.player1_id!==challenge.challenger_id||m.player2_id!==challenge.challenged_id){
+     throw error||Error('Ugyldig Pentathlon-kamp');
+   }
+   activeMatchId=m.id;
+   try{sessionStorage.setItem('dartarena-challenge-match:'+challengeId,m.id)}catch{}
+   const {data:players,error:pe}=await db.from('profiles')
+     .select('id,username').in('id',[m.player1_id,m.player2_id]);
    if(pe)throw pe;
-   const name=id=>p?.find(x=>x.id===id)?.username||'Spiller';
-   const seed=E.create({name1:name(challenge.challenger_id),name2:name(challenge.challenged_id),starter:Math.random()<.5?0:1});
-   const {data,error}=await db.rpc('start_pentathlon_room_test',{p_challenge_id:challengeId,p_state:seed});
-   if(error)throw error;record=data;pending=[];await ensureScene();render();msg('Test startet. Ingen karriere- eller rankingstatistikk.');
-   await broadcast();
- }catch(e){msg(e.message||String(e),true);if(!sceneReady)alert('Pentathlon-testen kunne ikke åpnes: '+(e.message||e))}
- finally{saving=false;$('ptStart').disabled=false;if(record)render()}
+   const name=id=>players?.find(p=>p.id===id)?.username||'Spiller';
+   const seed=E.create({name1:name(m.player1_id),name2:name(m.player2_id),
+     starter:m.match_starter_id===m.player1_id?0:1});
+   const {data,error:initError}=await db.rpc('start_pentathlon_match_test',{
+     p_match_id:m.id,p_challenge_id:challengeId,p_state:seed
+   });
+   if(initError||!data)throw initError||Error('Kunne ikke hente Pentathlon-kampen');
+   record=data;pending=[];
+   await ensureScene();render();msg('Pentathlon Online · Owner-test');
+ })();
+ try{await entering}finally{entering=null}
 }
 async function save(action,next){
  if(!record||saving)return;
@@ -333,17 +361,20 @@ async function boot(){
  for(let i=0;i<100&&!R.user();i++)await new Promise(resolve=>setTimeout(resolve,100));
  uid=R.user();if(!uid)return;
  const {data,error}=await db.from('challenges').select('id,challenger_id,challenged_id,status').eq('id',challengeId).maybeSingle();
- if(error||!data||data.status!=='room'||![data.challenger_id,data.challenged_id].includes(uid))return;
+ if(error||!data||!['room','accepted'].includes(data.status)||![data.challenger_id,data.challenged_id].includes(uid))return;
  challenge=data;
  const {data:isOwner}=await db.rpc('is_owner');
- $('ptStart').hidden=!isOwner;
+ const option=document.querySelector('#roomGame option[value="pentathlon"]');
+ if(option)option.hidden=!isOwner;
  channel=db.channel('pentathlon-room-test-'+challengeId)
   .on('postgres_changes',{event:'*',schema:'public',table:'pentathlon_room_tests',filter:'challenge_id=eq.'+challengeId},()=>refresh())
   .on('broadcast',{event:'changed'},()=>refresh())
   .subscribe();
- await refresh();
- poll=setInterval(()=>{if(record&&!document.hidden)refresh()},6000);
+ const resume=window.DartArenaPentathlonResumeMatchId;
+ if(resume)enter({matchId:resume}).catch(e=>console.error('[Pentathlon resume]',e));
+ poll=setInterval(()=>{if(activeMatchId&&!document.hidden)refresh()},6000);
 }
 window.addEventListener('pagehide',()=>{clearInterval(poll);if(channel)db.removeChannel(channel).catch(()=>{})},{once:true});
-boot().catch(e=>console.warn('Pentathlon room test failed',e));
+window.DartArenaPentathlonMatchTest=Object.freeze({enter});
+boot().catch(e=>console.warn('Pentathlon match test failed',e));
 })();

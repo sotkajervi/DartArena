@@ -1,8 +1,6 @@
 /* Pentathlon Owner-test: reuse the ORIGINAL X01 Online match scene.
    All scene/video geometry comes from match-scene-host, opponent-focus and
    match-own-turn. This file styles only Pentathlon-specific content. */
-#ptStart{margin-top:8px;font-size:12px;font-weight:900}
-#ptStart[hidden]{display:none!important}
 body.pt-online-test #cancelMatchBtn[hidden],
 body.pt-online-test #micBtn[hidden],
 body.pt-online-test #ptPanel [hidden],
@@ -11,23 +9,18 @@ body.pt-online-test .focus-input-dock #ptSpecial[hidden]{display:none!important}
 body.pt-online-test #viewerCount{display:none!important}
 /* On completed/review stages there is no active throw: don't create an empty grid row. */
 body.pt-online-test:not(.own-turn-focus) .focus-input-dock{display:none!important}
-body.pt-online-test .pt-stage{display:flex;flex-direction:column;gap:2px;
-  padding:0 2px 7px;margin-bottom:7px;border-bottom:1px solid #284950}
+body.pt-online-test .pt-stage{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:5px;
+  padding:0 2px 4px;margin-bottom:5px;border-bottom:1px solid #284950;flex-wrap:wrap}
 body.pt-online-test .pt-stage small{font-size:10px;color:#00eaf4;font-weight:900;letter-spacing:.06em}
 body.pt-online-test .pt-stage strong{font-size:15px;line-height:1.2}
 body.pt-online-test .pt-stage span{font-size:10px;color:#8fb2b8}
 body.pt-online-test .pt-progress{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
-  gap:4px;margin:0 0 7px}
-body.pt-online-test .pt-progress>div{min-width:0;padding:6px 0;text-align:center;
+  gap:4px;margin:0 0 4px}
+body.pt-online-test .pt-progress>div{min-width:0;padding:3px 0;text-align:center;
   font-size:10px;font-weight:900;background:#13242b;border:1px solid #29444c;
   border-radius:6px;color:#8da7ad}
 body.pt-online-test .pt-progress>div.active{border-color:#00eaf4;color:#00eaf4;background:#14363a}
 body.pt-online-test .pt-progress>div.done{border-color:#367861;color:#71e2a4}
-body.pt-online-test #ptPanel .match-name{font-size:clamp(12px,1.3vw,16px)!important;overflow-wrap:anywhere}
-body.pt-online-test #ptPanel .match-sets{font-size:10px!important;font-weight:850;color:#a0d9de}
-body.pt-online-test #ptPanel .match-sets b{color:#ecfdff}
-body.pt-online-test #ptPanel .match-legs{font-size:10px!important;line-height:1.3}
-body.pt-online-test #ptPanel .turn-text{margin:8px 0 2px!important;font-size:12px!important}
 body.pt-online-test .pt-target{font-size:13px;font-weight:850;text-align:center;
   margin:4px 0 2px;border:1px solid #2b6570;border-radius:7px;
   padding:6px;color:#00eaf4;background:#123239}
@@ -52,14 +45,6 @@ body.pt-online-test #ptPanel .pt-log-entry{font-size:9px;color:#a0c1c7;line-heig
 body.pt-online-test .focus-input-dock .pt-x01-turn,
 body.pt-online-test .focus-input-dock .pt-special-turn{text-align:left;color:#9ce6e9;
   font-size:11px;font-weight:900;margin:0 0 5px 2px}
-body.pt-online-test .focus-input-dock #ptX01.score-entry{
-  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;
-  width:100%;margin:0;padding:10px;border:1px solid rgba(0,234,244,.28);
-  border-radius:12px;background:rgba(8,22,26,.96)
-}
-body.pt-online-test .focus-input-dock #ptInput{width:100%;min-width:0;
-  font-size:22px;font-weight:900;padding:11px 13px}
-body.pt-online-test .focus-input-dock #ptXSubmit{padding:10px 17px;font-size:13px}
 body.pt-online-test .focus-input-dock #ptMessage{font-size:11px;min-height:0;margin:3px 2px}
 body.pt-online-test .focus-input-dock #ptMessage.error{color:#ff9da9}
 body.pt-online-test .focus-input-dock .pt-special{display:grid;gap:5px;
@@ -94,7 +79,6 @@ body.pt-online-test #ptPanel .pt-review-result{display:flex;justify-content:spac
 body.pt-online-test #ptPanel #ptAdvance{padding:9px;margin:4px 0;width:100%}
 body.pt-online-test #ptPanel #ptFinalScore{font-size:25px;color:#00eaf4}
 @media(max-width:800px){
- body.pt-online-test #ptPanel .match-name{font-size:11px!important}
  body.pt-online-test .focus-input-dock{width:100%;margin-top:4px}
  body.pt-online-test .focus-input-dock .pt-choices button{min-width:64px}
  body.pt-online-test #ptPanel .pt-stage strong{font-size:13px}
@@ -109,3 +93,8 @@ body.pt-online-test.match-page.match-tv-layout.standard-tv-layout.own-turn-focus
 
 /* X01 already labels the scoring strip with ::before. Avoid duplicate labels. */
 body.pt-online-test .focus-input-dock .pt-x01-turn{display:none}
+
+/* Totals are on demand; keep the native X01 scoreboard compact. */
+body.pt-online-test #ptPanel .pt-details{margin:7px 0 0;border-top:1px solid #31525a;padding-top:5px}
+body.pt-online-test #ptPanel .pt-details summary{cursor:pointer;color:#00eaf4;font-size:11px;font-weight:900;padding:5px 2px}
+body.pt-online-test #ptPanel .pt-details[open] summary{margin-bottom:5px}

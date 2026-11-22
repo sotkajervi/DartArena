@@ -17,7 +17,7 @@
    if(started||!valid(matchId))return;
    started=true;
    // Covers non-coin starts and direct navigation recovery.
-   window.DartArenaRoomMedia?.beginHandoff?.();
+   if(variant!=='pentathlon')window.DartArenaRoomMedia?.beginHandoff?.();
    window.DartArenaMediaTrace?.mark('CHALLENGE_START',{matchId:String(matchId).slice(0,8),variant});
    try{
      const db=window.DartArenaChallengeRoomState?.client?.();
@@ -25,7 +25,25 @@
      if(!db||!user)throw Error('Challenge credentials unavailable');
      const {data:match,error}=await db.from('matches').select('id,game,current_leg,game_variant,game_config,player1_id,player2_id,status').eq('id',matchId).maybeSingle();
      if(error||!match||![match.player1_id,match.player2_id].includes(user))throw error||new Error('Match access denied');
-     // Remember the exact match for this tab so Ctrl+R can rejoin directly.
+     if(match.game_variant==='pentathlon'){
+      // Owner test enters the existing X01 scene using the current room video.
+      // No match.js/X01 scoring boot and no new media negotiation.
+      try{
+        const test=window.DartArenaPentathlonMatchTest;
+        if(typeof test?.enter!=='function')throw Error('Pentathlon-kamprommet er ikke lastet');
+        if(Number.isFinite(Number(startAt))&&Number(startAt)>Date.now()){
+          await new Promise(resolve=>setTimeout(resolve,Math.min(4000,Math.max(0,Number(startAt)-Date.now()))));
+        }
+        await test.enter({matchId,challengeId:window.DartArenaChallengeRoomState.challengeId()});
+      }catch(err){
+        started=false;
+        console.error('[Pentathlon match entry]',err);
+        const notice=document.getElementById('roomMessage');
+        if(notice)notice.textContent='Pentathlon-kamprommet kunne ikke åpnes: '+(err?.message||err);
+      }
+      return;
+    }
+    // Remember the exact match for this tab so Ctrl+R can rejoin directly.
      if(['playing','live'].includes(match.status)){
        try{sessionStorage.setItem('dartarena-challenge-match:'+window.DartArenaChallengeRoomState.challengeId(),match.id)}catch{}
      }
