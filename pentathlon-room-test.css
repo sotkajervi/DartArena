@@ -99,7 +99,31 @@ body.pt-online-test #ptPanel .pt-details{margin:7px 0 0;border-top:1px solid #31
 body.pt-online-test #ptPanel .pt-details summary{cursor:pointer;color:#00eaf4;font-size:11px;font-weight:900;padding:5px 2px}
 body.pt-online-test #ptPanel .pt-details[open] summary{margin-bottom:5px}
 
-/* Use the native X01 'LEGS' location for live Pentathlon points. */
-body.pt-online-test #ptPanel .pt-live-points{display:flex!important;justify-content:center;gap:14px;align-items:center;margin:2px auto 0;padding:2px 0;font-size:10px!important;line-height:1.2;text-align:center;color:#91b8bd}
-body.pt-online-test #ptPanel .pt-live-points span{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;white-space:nowrap}
-body.pt-online-test #ptPanel .pt-live-points b{font-size:13px;color:#00eaf4;font-weight:900}
+/* Pentathlon points replace the native legs line: compact single-row layout. */
+body.pt-online-test #ptPanel .pt-live-points,
+body.pt-online-test #ptPanel #ptDetail0,
+body.pt-online-test #ptPanel #ptDetail1{
+ display:flex!important;flex-direction:row!important;align-items:center!important;
+ justify-content:center!important;gap:10px!important;width:100%!important;
+ min-height:23px!important;margin:1px 0 0!important;padding:0 3px!important;
+ line-height:1!important;white-space:nowrap!important;flex-wrap:nowrap!important;
+ text-align:center!important;font-size:11px!important;
+}
+body.pt-online-test #ptPanel .pt-live-points::before,
+body.pt-online-test #ptPanel .pt-live-points::after{content:none!important;display:none!important}
+body.pt-online-test #ptPanel .pt-live-points .pt-points-pair{
+ display:inline-flex!important;flex-direction:row!important;align-items:center!important;
+ gap:4px!important;flex:none!important;margin:0!important;padding:0!important;
+ line-height:1!important;white-space:nowrap!important
+}
+body.pt-online-test #ptPanel .pt-live-points .pt-points-pair span{
+ font-size:9px!important;font-weight:800!important;color:#9bbbc1!important;
+ line-height:1!important
+}
+body.pt-online-test #ptPanel .pt-live-points .pt-points-pair b{
+ font-size:12px!important;font-weight:900!important;color:#00eaf4!important;
+ line-height:1!important
+}
+body.pt-online-test #ptPanel .pt-live-points .pt-points-divider{
+ width:1px!important;height:13px!important;flex:none!important;background:#31535a!important
+}
