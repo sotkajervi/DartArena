@@ -1,0 +1,55 @@
+/* Pentathlon two-account test inside existing 1v1 waiting room. */
+#ptStart{margin-top:7px;font-size:12px}
+body.pt-active #matchView{width:min(1450px,97vw);margin:8px auto}
+body.pt-active .room-options{display:none!important}
+body.pt-active .camera-controls{display:none!important}
+body.pt-active .waiting-video-grid{margin:5px 0 7px;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;height:min(23vh,175px)}
+body.pt-active .waiting-video-grid .video-card{min-height:0;height:100%;aspect-ratio:auto}
+body.pt-active .waiting-video-grid video{height:100%;width:100%;object-fit:contain}
+.pt-panel{padding:14px 16px!important;margin:8px 0 16px;display:grid;gap:9px}
+.pt-panel[hidden]{display:none!important}
+.pt-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.pt-head h2{font-size:21px;margin:2px 0}
+.pt-head small{font-size:10px}
+.pt-head p{margin:0}
+.pt-progress{color:#00eaf4;font-weight:800;font-size:13px;margin:0}
+.pt-players{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.pt-players article{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;border:1px solid #33494b;border-radius:13px;padding:10px 12px;background:#071719}
+.pt-players article.active{border-color:#00eaf4;box-shadow:inset 0 0 0 1px #00eaf444}
+.pt-players span{font-size:15px;font-weight:750;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.pt-players strong{font-size:40px;line-height:1;color:#e3f4f5;grid-column:2;grid-row:1/3;font-variant-numeric:tabular-nums}
+.pt-players small{font-size:11px;letter-spacing:0;color:#91b6ba;grid-column:1}
+.pt-target{text-align:center;padding:5px 0;border-block:1px solid #29474a}
+.pt-target small{font-size:11px}
+.pt-target h2{font-size:clamp(27px,4vw,44px);margin:2px 0}
+.pt-target p{margin:0;font-size:13px}
+.pt-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;align-items:center}
+.pt-actions[hidden]{display:none!important}
+.pt-actions input{width:180px;min-height:44px;padding:8px 13px;border:1px solid #507b80;background:#091719;color:white;border-radius:10px}
+.pt-actions button,.pt-bottom button{padding:10px 15px;min-height:43px}
+#ptSpecial{display:grid;justify-items:center}
+#ptChoices{display:flex;justify-content:center;flex-wrap:wrap;gap:8px}
+#ptChoices button{min-width:105px}
+.pt-actions p{margin:0}
+.pt-bottom{display:flex;justify-content:center;gap:10px}
+#ptMessage{min-height:22px;text-align:center;margin:0;color:#a3d4d6;font-size:13px}
+#ptMessage.error{color:#ffabae}
+.pt-log{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px;font-size:11px;max-height:90px;overflow:auto}
+.pt-entry{padding:4px 8px;border-radius:5px;background:#102528}
+@media(max-width:700px){
+ body.pt-active #matchView{width:98vw}
+ body.pt-active .waiting-video-grid{height:min(19vh,120px);gap:5px}
+ body.pt-active .room-head-copy #ptStart{font-size:11px}
+ .pt-panel{padding:9px!important;gap:7px}
+ .pt-head h2{font-size:16px}
+ .pt-head p{display:none}
+ .pt-head button{font-size:11px;padding:6px}
+ .pt-players{gap:5px}
+ .pt-players article{padding:7px 8px;gap:3px}
+ .pt-players strong{font-size:27px}
+ .pt-players span{font-size:11px}
+ .pt-players small{font-size:9px}
+ .pt-target h2{font-size:26px}
+ .pt-log{grid-template-columns:1fr;max-height:85px}
+ #ptChoices button{min-width:70px;padding:8px 10px}
+}
