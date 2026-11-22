@@ -136,7 +136,7 @@
   async function recoverPublisher(reason){
     if(stopped||window.DARTARENA_POSTMATCH_MEDIA_STOPPED||publishing||!hasPublishableTracks())return;
     if(window.navigator?.onLine===false)return;
-    if(!(()=>{try{return !!localReady}catch{return false}})())return;
+    if(!(()=>{try{return engine()?.mediaReady?.()??!!localReady}catch{return false}})())return;
     const now=Date.now();
     if(now-lastPublisherRepairAt<PUBLISHER_REPAIR_COOLDOWN_MS)return;
     lastPublisherRepairAt=now;
@@ -216,7 +216,7 @@
   async function publish(force=false){
     if(stopped||publishing||!hasPublishableTracks())return;
     let ready=false;
-    try{ready=!!localReady}catch{}
+    try{ready=engine()?.mediaReady?.()??!!localReady}catch{}
     if(!ready)return;
 
     const signature=trackSignature();
