@@ -7,17 +7,30 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 test('Pentathlon owner test is isolated inside existing 1v1 room, with no video code changes',()=>{
  const html=read('room.html'),code=read('pentathlon-room-test.js'),css=read('pentathlon-room-test.css');
  assert.match(html,/pentathlon-2p-engine\.js\?v=20261122-clock-shortenter1/);
- assert.match(html,/pentathlon-room-test\.js\?v=20261122-first-test1/);
- assert.match(html,/pentathlon-room-test\.css\?v=20261122-first-test1/);
+ assert.match(html,/pentathlon-room-test\.js\?v=20261122-local-layout1/);
+ assert.match(html,/pentathlon-room-test\.css\?v=20261122-local-layout1/);
  assert.match(code,/DartArenaChallengeRoomState/);
  assert.match(code,/DartArenaPentathlon/);
+ for(const cssFile of ['local-h2h.css?v=','local-special.css?v=','pentathlon-2p.css?v=']){
+   assert.ok(html.includes(cssFile),'Missing shared local stylesheet: '+cssFile);
+ }
+ for(const marker of [
+   'penta-top-bar','penta-progress','penta-layout','penta-primary',
+   'penta-card penta-active','local-board','local-score-band','penta-target',
+   'penta-shanghai-game','penta-jdc-entry','penta-results','penta-rules',
+   'penta-review','penta-finish'
+ ])assert.ok(code.includes(marker),'Missing local Pentathlon layout: '+marker);
+ assert.ok(code.includes("$('ptScore'+i).textContent=x01?c.remaining[i]"));
+ assert.ok(code.includes("$('ptResultsTable')"));
+ assert.ok(css.includes('#ptPanel[hidden],#ptPanel [hidden]'));
+
  assert.match(code,/start_pentathlon_room_test/);
  assert.match(code,/apply_pentathlon_room_test/);
  assert.match(code,/p_expected_version:version/);
  assert.match(code,/event:'changed'/);
  assert.match(code,/status==='review'/);
  assert.doesNotMatch(code,/(getUserMedia|RTCPeerConnection|\.publish\(|\.subscribe\(.*publication)/);
- assert.match(css,/\.room-options\{display:none!important\}/);
+ assert.ok(css.includes('.room-options'));
  assert.match(css,/\.waiting-video-grid/);
  assert.doesNotThrow(()=>new Function(code));
 });

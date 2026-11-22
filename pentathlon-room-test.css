@@ -1,55 +1,82 @@
-/* Pentathlon two-account test inside existing 1v1 waiting room. */
-#ptStart{margin-top:7px;font-size:12px}
-body.pt-active #matchView{width:min(1450px,97vw);margin:8px auto}
-body.pt-active .room-options{display:none!important}
+/* Pentathlon Online test: the same visual components as local Pentathlon.
+   Only room integration/layout differs. Camera transport is unchanged. */
+#ptStart{margin-top:8px;padding:9px 13px;font-size:12px;font-weight:900}
+#ptStart[hidden]{display:none!important}
+body.pt-active #matchView{width:min(1430px,97vw);margin:6px auto}
+body.pt-active .room-options,
 body.pt-active .camera-controls{display:none!important}
-body.pt-active .waiting-video-grid{margin:5px 0 7px;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;height:min(23vh,175px)}
-body.pt-active .waiting-video-grid .video-card{min-height:0;height:100%;aspect-ratio:auto}
-body.pt-active .waiting-video-grid video{height:100%;width:100%;object-fit:contain}
-.pt-panel{padding:14px 16px!important;margin:8px 0 16px;display:grid;gap:9px}
-.pt-panel[hidden]{display:none!important}
-.pt-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.pt-head h2{font-size:21px;margin:2px 0}
-.pt-head small{font-size:10px}
-.pt-head p{margin:0}
-.pt-progress{color:#00eaf4;font-weight:800;font-size:13px;margin:0}
-.pt-players{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.pt-players article{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;border:1px solid #33494b;border-radius:13px;padding:10px 12px;background:#071719}
-.pt-players article.active{border-color:#00eaf4;box-shadow:inset 0 0 0 1px #00eaf444}
-.pt-players span{font-size:15px;font-weight:750;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
-.pt-players strong{font-size:40px;line-height:1;color:#e3f4f5;grid-column:2;grid-row:1/3;font-variant-numeric:tabular-nums}
-.pt-players small{font-size:11px;letter-spacing:0;color:#91b6ba;grid-column:1}
-.pt-target{text-align:center;padding:5px 0;border-block:1px solid #29474a}
-.pt-target small{font-size:11px}
-.pt-target h2{font-size:clamp(27px,4vw,44px);margin:2px 0}
-.pt-target p{margin:0;font-size:13px}
-.pt-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;align-items:center}
-.pt-actions[hidden]{display:none!important}
-.pt-actions input{width:180px;min-height:44px;padding:8px 13px;border:1px solid #507b80;background:#091719;color:white;border-radius:10px}
-.pt-actions button,.pt-bottom button{padding:10px 15px;min-height:43px}
-#ptSpecial{display:grid;justify-items:center}
-#ptChoices{display:flex;justify-content:center;flex-wrap:wrap;gap:8px}
-#ptChoices button{min-width:105px}
-.pt-actions p{margin:0}
-.pt-bottom{display:flex;justify-content:center;gap:10px}
-#ptMessage{min-height:22px;text-align:center;margin:0;color:#a3d4d6;font-size:13px}
-#ptMessage.error{color:#ffabae}
-.pt-log{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px;font-size:11px;max-height:90px;overflow:auto}
-.pt-entry{padding:4px 8px;border-radius:5px;background:#102528}
+body.pt-active .waiting-video-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  height:clamp(115px,20vh,198px);gap:10px;margin:7px 0 12px;
+}
+body.pt-active .waiting-video-grid .video-card{height:100%;min-height:0;aspect-ratio:auto;overflow:hidden}
+body.pt-active .waiting-video-grid video{width:100%;height:100%;object-fit:contain}
+#ptPanel.da-penta{
+  width:100%;max-width:none;margin:4px 0 26px;padding:0;
+  background:transparent;color:#ebf9fa;min-width:0;
+}
+#ptPanel.da-penta::before{display:none}
+#ptPanel[hidden],#ptPanel [hidden]{display:none!important}
+#ptPanel .penta-progress{margin:0 0 12px}
+#ptPanel .penta-layout{grid-template-columns:minmax(0,1fr) minmax(260px,325px);gap:12px}
+#ptPanel .penta-primary,#ptPanel .penta-side{min-width:0}
+#ptPanel .penta-card.penta-active{padding:16px 18px}
+#ptPanel .penta-top-bar{margin-bottom:9px}
+#ptPanel .penta-stage-header h2{font-size:clamp(21px,2.3vw,29px);margin:4px 0}
+#ptPanel .penta-x01-board{margin:12px 0 10px}
+#ptPanel .local-board{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#ptPanel .local-player{padding:13px 14px;min-width:0}
+#ptPanel .local-score-band{min-width:0;grid-template-columns:minmax(50px,.65fr) minmax(0,2fr) minmax(50px,.65fr)}
+#ptPanel .local-score{font-size:clamp(40px,5.5vw,86px);font-variant-numeric:tabular-nums}
+#ptPanel .local-match-name{font-size:clamp(16px,1.7vw,23px);overflow-wrap:anywhere}
+#ptPanel .local-entry-card{margin:0;padding:13px 15px}
+#ptPanel .local-score-form{margin:0}
+#ptPanel .local-score-form label{font-size:12px}
+#ptPanel .local-entry-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#ptPanel .local-entry-controls input{
+  width:136px;min-width:0;flex:0 0 136px;max-width:100%;
+  background:#06171c;color:#effefe;border:1px solid #3a6e74;border-radius:10px;
+  font-size:20px;font-weight:850;padding:9px 12px
+}
+#ptPanel .local-entry-controls button{min-height:43px}
+#ptPanel .penta-target{margin:9px 0}
+#ptPanel .penta-target strong{font-size:clamp(19px,2vw,25px)}
+#ptPanel .penta-jdc-entry{margin:0}
+#ptPanel .penta-jdc-choices{display:flex;gap:7px;flex-wrap:wrap}
+#ptPanel .penta-jdc-choices button{min-width:95px;flex:0 1 auto}
+#ptPanel .penta-jdc-pending{margin:5px 0}
+#ptPanel .penta-recent{margin-top:11px}
+#ptPanel .penta-recent-item{font-size:11px}
+#ptPanel .penta-feedback{min-height:22px;margin:8px 0 0}
+#ptPanel .penta-feedback.error{color:#ff8b96}
+#ptPanel .penta-results .penta-table{width:100%}
+#ptPanel .penta-results .penta-table th,#ptPanel .penta-results .penta-table td{font-size:11px;padding:8px 5px;overflow-wrap:anywhere}
+#ptPanel .penta-online-note .penta-hint{margin:4px 0}
+#ptPanel .penta-finish-score{justify-content:center}
+@media(max-width:960px){
+ #ptPanel .penta-layout{grid-template-columns:minmax(0,1fr)}
+ #ptPanel .penta-side{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ #ptPanel .penta-online-note{grid-column:1/-1}
+}
 @media(max-width:700px){
  body.pt-active #matchView{width:98vw}
- body.pt-active .waiting-video-grid{height:min(19vh,120px);gap:5px}
- body.pt-active .room-head-copy #ptStart{font-size:11px}
- .pt-panel{padding:9px!important;gap:7px}
- .pt-head h2{font-size:16px}
- .pt-head p{display:none}
- .pt-head button{font-size:11px;padding:6px}
- .pt-players{gap:5px}
- .pt-players article{padding:7px 8px;gap:3px}
- .pt-players strong{font-size:27px}
- .pt-players span{font-size:11px}
- .pt-players small{font-size:9px}
- .pt-target h2{font-size:26px}
- .pt-log{grid-template-columns:1fr;max-height:85px}
- #ptChoices button{min-width:70px;padding:8px 10px}
+ body.pt-active .waiting-video-grid{height:clamp(95px,17vh,140px);gap:5px;margin-bottom:7px}
+ #ptPanel .penta-card.penta-active{padding:12px}
+ #ptPanel .penta-top-bar{flex-wrap:wrap}
+ #ptPanel .penta-progress{grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+ #ptPanel .penta-progress>div{font-size:9px;padding:7px 3px}
+ #ptPanel .local-board{gap:6px}
+ #ptPanel .local-player{padding:8px 9px}
+ #ptPanel .local-score-band{grid-template-columns:minmax(30px,.65fr) minmax(0,2fr) minmax(30px,.65fr);gap:3px}
+ #ptPanel .local-score{font-size:clamp(31px,8vw,52px)}
+ #ptPanel .local-match-name{font-size:13px}
+ #ptPanel .local-live-darts b,#ptPanel .local-avg b{font-size:13px}
+ #ptPanel .local-live-darts span,#ptPanel .local-avg span{font-size:8px}
+ #ptPanel .penta-side{grid-template-columns:minmax(0,1fr)}
+ #ptPanel .penta-online-note{grid-column:auto}
+ #ptPanel .local-entry-controls input{flex:1 1 110px;width:110px}
+ #ptPanel .penta-jdc-choices button{min-width:70px;padding:8px}
+ #ptPanel .penta-stage-header{align-items:center;gap:7px}
+ #ptPanel .penta-stage-header h2{font-size:19px}
+ #ptPanel .penta-stage-tag{font-size:9px;padding:6px}
 }
