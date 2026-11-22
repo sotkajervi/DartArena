@@ -87,7 +87,7 @@ async function ensureScene(){
    dock.append(message);
    scene.appendChild(dock);
    aside.querySelector('#cameraBtn')?.remove(); // Camera already belongs to the waiting room.
-   aside.insertAdjacentHTML('beforeend',"<div class=\"pt-tools\"><button type=\"button\" id=\"ptRefresh\" class=\"outline\">Oppdater</button><button type=\"button\" id=\"ptUndo\" class=\"outline\">↶ Angre</button></div><div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSE FULLFØRT</small><h3 id=\"ptReviewTitle\"></h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button type=\"button\" id=\"ptAdvance\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\"></h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong></div><p class=\"pt-note\">Owner-test · ikke ranket.</p>");
+   aside.insertAdjacentHTML('beforeend',"<div class=\"pt-tools\"><button type=\"button\" id=\"ptRefresh\" class=\"outline\">Oppdater</button><button type=\"button\" id=\"ptUndo\" class=\"outline\">↶ Angre</button></div><div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSE FULLFØRT</small><h3 id=\"ptReviewTitle\"></h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button type=\"button\" id=\"ptAdvance\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\"></h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong></div><section id=\"ptPointsGuide\" class=\"pt-points-guide\" aria-label=\"Poengregler for aktiv øvelse\"><div class=\"pt-guide-heading\">POENGOVERSIKT <small id=\"ptGuideStage\"></small></div><div id=\"ptGuideRows\" class=\"pt-guide-rows\"></div><p id=\"ptGuideNote\" class=\"pt-guide-note\"></p></section><p class=\"pt-note\">Owner-test · ikke ranket.</p>");
    // Result list lives in a top-right action and reuses the existing table/log renderers.
    const topActions=scene.querySelector('.match-head .top-actions');
    if(!topActions)throw Error('Kamprommets toppknapper mangler.');
@@ -164,6 +164,38 @@ function actions(){
    choice('0','BOM · 0',{n:0,m:0});
 }
 function stLabel(i){return E.STAGES[i]?.label||'Pentathlon'}
+
+// A visible rule reference for the current stage; no scoring changes.
+function renderPointsGuide(s){
+ const current=s.stageIndex>=E.STAGES.length?E.STAGES.length-1:s.stageIndex;
+ const stageInfo=E.STAGES[current];
+ if(!stageInfo)return;
+ const rows=[];
+ let note='';
+ if(stageInfo.kind==='x01'){
+   rows.push(['95–130 per runde','+1 P'],['131–159 per runde','+2 P'],['160–180 per runde','+3 P'],['Dobbel ut / vunnet leg','+2 P']);
+   rows.push(['Utsjekk på 9 piler','+10 P'],['Utsjekk på 10–12 piler','+4 P'],['Utsjekk på 13–15 piler','+3 P'],['Utsjekk på 16–18 piler','+2 P'],['Utsjekk på 19–21 piler','+1 P']);
+   note='Poeng per registrerte runde. Bust gir 0 poeng. Utsjekkbonus kommer i tillegg.';
+ }else if(stageInfo.kind==='shanghai'){
+   rows.push(['Single på riktig tall','+1 P'],['Dobbel på riktig tall','+2 P'],['Trippel på riktig tall','+3 P'],['S + D + T på samme tall i én runde','+6 P']);
+   note='Tall 1–9, tre piler per tall. Feil tall og bom gir 0 P.';
+ }else if(stageInfo.kind==='clock'){
+   rows.push(['Hver riktig dobbel (D1 til D20)','+2 P'],['Fullfør D20','+1 P per ubrukt pil']);
+   note='Maks 42 piler per spiller. Bonus = 42 minus brukte piler ved fullføring.';
+ }else if(stageInfo.kind==='half'){
+   rows.push(['20, 16, 14 og 17','0 P*'],['Treff på D7','+2 P'],['Treff på T10','+3 P'],['Treff på Bull 50','+2 P']);
+   note='*Den nåværende motoren gir 0 P på vanlige tallmål (kjent feil). Halvering påvirker Half-It-score, ikke opptjente Pentathlon-poeng.';
+ }
+ $('ptGuideStage').textContent=stageInfo.label;
+ const host=$('ptGuideRows');host.replaceChildren();
+ for(const [label,amount] of rows){
+   const line=node('div','pt-guide-row');
+   line.append(node('span','',label),node('strong','',amount));
+   host.append(line);
+ }
+ $('ptGuideNote').textContent=note;
+}
+
 function render(){
  if(!record)return;
  if(!sceneReady)return;
@@ -174,6 +206,7 @@ function render(){
  document.body.classList.toggle('own-turn-focus',live&&mine());
  document.body.classList.toggle('pt-special-turn',live&&mine()&&c.kind!=='x01');
  const st=E.STAGES[s.stageIndex];
+ renderPointsGuide(s);
  $('ptProgressTitle').textContent=finished?'PENTATHLON FULLFØRT':'ØVELSE '+(s.stageIndex+1)+' AV '+E.STAGES.length;
  const formatEl=$('matchFormat');
  if(formatEl)formatEl.textContent=finished?'PENTATHLON · FULLFØRT':'PENTATHLON · '+(s.stageIndex+1)+'/7 · '+stLabel(s.stageIndex);
