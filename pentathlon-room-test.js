@@ -377,14 +377,29 @@ async function save(action,next){
  finally{saving=false;if(record)render()}
 }
 function turnState(next){const n=clean(next);n.undo=[clean(game())];return n}
-function submitX01(){
- if(!mine()||saving||stage().kind!=='x01')return;
+let checkoutPending=false;
+async function submitX01(){
+ if(!mine()||saving||checkoutPending||stage().kind!=='x01')return;
  const raw=$('ptInput').value.trim(),n=Number(raw);
  if(!raw||!E.isScore(n)){msg('Skriv score fra 0 til 180.',true);return}
+ const expectedVersion=record.version,expectedPlayer=player(),expectedStage=game().stageIndex;
  let darts=3,confirmed=false;
  if(n===stage().remaining[stage().turn]){
-   const answer=prompt('Checkout: antall piler (1, 2 eller 3)?','2');
-   if(answer===null)return;darts=Number(answer);confirmed=true;
+   const checkout=window.DartArenaCheckout;
+   if(!checkout){msg('Checkout-dialogen er ikke lastet. Oppdater siden.',true);return}
+   if(!checkout.possibleDarts(n).length){msg(n+' kan ikke avsluttes på tre piler.',true);return}
+   checkoutPending=true;
+   try{
+     darts=await checkout.askDarts(n);
+   }catch(e){msg('Checkout-dialogen feilet: '+(e.message||e),true);return}
+   finally{checkoutPending=false}
+   if(!darts){msg('Checkout avbrutt.');return}
+   confirmed=true;
+ }
+ if(!record||record.version!==expectedVersion||game().stageIndex!==expectedStage||!mine()||player()!==expectedPlayer){
+   $('ptInput').value='';
+   msg('Kampstatus er endret. Kontroller scoren før du prøver igjen.',true);
+   return;
  }
  try{save('turn',turnState(E.submitX01(game(),{score:n,darts,doubleConfirmed:confirmed})))}
  catch(e){msg(e.message||String(e),true)}
