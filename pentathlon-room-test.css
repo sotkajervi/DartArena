@@ -157,3 +157,12 @@ body.pt-online-test .pt-results-body .pt-log{display:grid;gap:5px;max-height:180
  body.pt-online-test .pt-results-header h2{font-size:15px}
  body.pt-online-test .pt-results-body .penta-table{font-size:11px}
 }
+
+/* Stage-specific points explanation in the available match-status sidebar. */
+body.pt-online-test #ptPanel .pt-points-guide{margin:12px 0 0;padding:11px 0 4px;border-top:1px solid #2d535a}
+body.pt-online-test #ptPanel .pt-guide-heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px;font-size:11px;font-weight:900;letter-spacing:.06em;color:#00eaf4}
+body.pt-online-test #ptPanel .pt-guide-heading small{font-size:10px;font-weight:700;letter-spacing:0;color:#9fc0c5}
+body.pt-online-test #ptPanel .pt-guide-rows{display:grid;gap:0;margin-top:9px}
+body.pt-online-test #ptPanel .pt-guide-row{display:flex;align-items:baseline;justify-content:space-between;gap:9px;padding:6px 1px;border-bottom:1px solid rgba(66,119,127,.23);font-size:11px;color:#d5e6e8;line-height:1.25}
+body.pt-online-test #ptPanel .pt-guide-row strong{font-size:12px;font-weight:900;color:#00eaf4;white-space:nowrap}
+body.pt-online-test #ptPanel .pt-guide-note{font-size:10px;line-height:1.45;color:#9abdc2;margin:9px 1px 0}
