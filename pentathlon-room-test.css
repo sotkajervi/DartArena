@@ -337,15 +337,16 @@ body.pt-online-test.pt-shanghai-active .focus-input-dock .pt-choices button{
  }
 }
 
-/* Shanghai only: hit type above its keyboard shortcut, original buttons. */
-body.pt-online-test.pt-shanghai-active .focus-input-dock .pt-choices button.pt-shanghai-choice{
+/* Original scoring buttons: one consistent two-line style for Shanghai
+   and Klokka rundt. No separate button implementation or input handlers. */
+body.pt-online-test .focus-input-dock .pt-choices button.pt-special-hit-choice{
  display:flex;flex-direction:column;align-items:center;justify-content:center;
  gap:4px;line-height:1.15;min-height:60px;
 }
-body.pt-online-test.pt-shanghai-active .focus-input-dock .pt-choices .pt-shanghai-choice-name{
+body.pt-online-test .focus-input-dock .pt-choices .pt-special-hit-name{
  display:block;color:#00eaf4;font-size:12px;font-weight:950;letter-spacing:.055em;
 }
-body.pt-online-test.pt-shanghai-active .focus-input-dock .pt-choices .pt-shanghai-choice-key{
+body.pt-online-test .focus-input-dock .pt-choices .pt-special-hit-key{
  display:block;color:#fff;font-size:17px;font-weight:900;
 }
 
