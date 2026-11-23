@@ -6,7 +6,7 @@
     half_it_standard:{variant:'half_it',label:'Half-It (Standard)',page:'half-it.html',halfItMode:'standard'},
     sixty_one:{variant:'sixty_one',label:'61',page:'61-match.html'},
     jdc:{variant:'jdc',label:'JDC Challenge',page:'jdc-match.html'},
-    pentathlon:{variant:'pentathlon',label:'Pentathlon · Owner-test',page:'pentathlon-rejoin.html'}
+    pentathlon:{variant:'pentathlon',label:'Pentathlon',page:'pentathlon-rejoin.html'}
   };
   const VARIANT_PAGES={x01:'match.html',cricket:'cricket.html',chicago:'match.html',half_it:'half-it.html',sixty_one:'61-match.html',jdc:'jdc-match.html',pentathlon:'pentathlon-rejoin.html'};
   const normalizeRaw=value=>String(value??'').trim();
