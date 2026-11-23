@@ -234,11 +234,13 @@ function render(){
    const avg=x01?(c.used[i]?scored*3/c.used[i]:0):(visits?c.pent[i]/visits:0);
    const nameEl=$('ptName'+i);
    nameEl.textContent=s.players[i];
-   if(c.starter===i){
-     const marker=node('span','pt-starter-marker','🎯 START');
-     marker.title='Starter denne øvelsen';
-     marker.setAttribute('aria-label','Starter denne øvelsen');
-     nameEl.append(marker);
+   if(c.starter===i&&live){
+     const marker=window.DartArenaLegStarterMarkerUI?.create?.();
+     if(marker){
+       marker.title='Starter denne øvelsen';
+       marker.setAttribute('aria-label','Starter denne øvelsen');
+       nameEl.appendChild(marker);
+     }
    }
    $('ptScore'+i).textContent=x01?c.remaining[i]:c.kind==='half'?c.halfScores[i]:c.pent[i];
    $('ptDarts'+i).textContent=c.used[i];
