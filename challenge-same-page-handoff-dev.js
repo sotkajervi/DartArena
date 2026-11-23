@@ -106,6 +106,8 @@
          // before Pentathlon adapts the scoring controls. Never build a second dock.
          await script('opponent-focus.js?v=20261026-owncam-pip1');
          await script('match-controls.js?v=20261123-action-label25');
+         await script('dartarena-dialog.js?v=20261027-correction2');
+         await script('throw-log.js?v=20261123-shared-lastthree31');
          await script('match-media-router.js?v=20261104-preserve-challenge1');
          const test=window.DartArenaPentathlonMatchTest;
          if(typeof test?.enter!=='function')throw Error('Pentathlon-spillmotoren er ikke lastet');
