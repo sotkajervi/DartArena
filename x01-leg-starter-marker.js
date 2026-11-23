@@ -1,15 +1,7 @@
 (()=>{
   if(window.__dartArenaLegStarterMarker)return;
-  window.__dartArenaLegStarterMarker=true;
 
   const matchId=(window.DartArenaMatchEngineState?.matchId?.()||new URLSearchParams(location.search).get('id'));
-  if(!matchId||!window.supabase)return;
-
-  const db=(window.DartArenaSupabaseClient||window.supabase.createClient(
-    'https://jqpxlbhwvskhjbqrbidk.supabase.co',
-    'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
-  ));
-
   const style=document.createElement('style');
   style.textContent=`
     .match-name{display:inline-flex;align-items:center;gap:8px;max-width:100%}
@@ -80,6 +72,17 @@
     </svg>`;
     return el;
   }
+
+  // Public presentation shared by every online mode. Only the X01 match
+  // binding and alternating-leg logic below are X01-specific.
+  window.DartArenaLegStarterMarkerUI=Object.freeze({create:marker});
+  if(!matchId||!window.supabase||
+     (/\\/room(?:\\.html)?$/.test(location.pathname)&&!window.DartArenaMatchEngineState?.matchId?.()))return;
+  window.__dartArenaLegStarterMarker=true;
+  const db=(window.DartArenaSupabaseClient||window.supabase.createClient(
+    'https://jqpxlbhwvskhjbqrbidk.supabase.co',
+    'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
+  ));
 
   function orderMatchStarterFirst(){
     const p1=document.getElementById('matchP1');
