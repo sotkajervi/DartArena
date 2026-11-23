@@ -23,7 +23,28 @@
      document.body.appendChild(el);
    });
  }
+ async function finishMediaHandoff({client,matchId,me,opponent,resuming=false}={}){
+   if(!client||!matchId||!me||!opponent)throw Error('Match handoff participants missing');
+   window.DartArenaMediaTrace?.mark('HANDOFF_WAIT_NEW_SFU',{resuming});
+   const deadline=Date.now()+20000;
+   while(!window.DartArenaMatchMedia?.readyForHandoff?.()){
+     if(Date.now()>deadline)throw Error('Kampvideo ble ikke klar før overgang');
+     await new Promise(resolve=>setTimeout(resolve,250));
+   }
+   window.DartArenaMediaTrace?.mark('HANDOFF_NEW_SFU_READY');
+   // On reload, the opponent is already in the match. A second mutual barrier
+   // would deadlock until the opponent also refreshed its page.
+   if(!resuming){
+     if(!window.DartArenaHandoffBarrier?.wait)throw Error('Both-player media barrier is not loaded');
+     await window.DartArenaHandoffBarrier.wait({client,matchId,me,opponent});
+   }
+   window.DartArenaMediaTrace?.mark('HANDOFF_RELEASING_OLD_MEDIA');
+   window.DartArenaChallengeRoomState?.releaseForHandoff?.();
+   window.DartArenaMediaTrace?.mark('HANDOFF_SUCCESS',{resuming});
+   return true;
+ }
  window.DartArenaChallengeSamePageHandoff={
+   finishMediaHandoff,
    async enter({liveMatchId,challengeId}={}){
      if(entering)return true;
      if(!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(liveMatchId||''))return false;
@@ -106,22 +127,10 @@
        }
        // Do not cut the waiting-room transport until both a new publication
        // and a live subscribed opponent video are visible in the match session.
-       window.DartArenaMediaTrace?.mark('HANDOFF_WAIT_NEW_SFU');
-       const deadline=Date.now()+15000;
-       while(!window.DartArenaMatchMedia?.readyForHandoff?.()){
-         if(Date.now()>deadline)throw Error('Kampvideo ble ikke klar før overgang');
-         await new Promise(resolve=>setTimeout(resolve,250));
-       }
-       window.DartArenaMediaTrace?.mark('HANDOFF_NEW_SFU_READY');
-       // Make-before-break must be mutual: a faster player must not close
-       // their waiting-room SFU while the opponent is still preparing match SFU.
-       if(!window.DartArenaHandoffBarrier?.wait)throw Error('Both-player media barrier is not loaded');
-       await window.DartArenaHandoffBarrier.wait({
+       await finishMediaHandoff({
          client,matchId:liveMatchId,me:state.user(),
          opponent:match.player1_id===state.user()?match.player2_id:match.player1_id
        });
-       window.DartArenaMediaTrace?.mark('HANDOFF_RELEASING_OLD_MEDIA');
-       state.releaseForHandoff?.();
        released=true;
        window.DartArenaMediaTrace?.mark('HANDOFF_SUCCESS');
        return true;
