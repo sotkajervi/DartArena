@@ -174,6 +174,7 @@ async function ensureScene(){
    showStageResult.onclick=()=>{
      stageOverlay.hidden=false;
      focusStageAction();
+     requestAnimationFrame(fitPentathlonFinal);
    };
    const closeResults=()=>{
      resultOverlay.hidden=true;resultButton.setAttribute('aria-expanded','false');resultButton.focus();
@@ -451,17 +452,31 @@ async function correctPentathlonVisit(index){
 }
 // Use the same DartArena X01 result-card vocabulary while showing
 // only statistics preserved by Pentathlon's seven stage summaries.
+// Match X01's fit-to-window principle: fit the entire completed result
+// instead of scrolling inside its card. Zoom affects layout (unlike a
+// transform) and avoids the clipped dialog seen with tall seven-stage results.
+function fitPentathlonFinal(){
+ const overlay=$('ptStageOverlay'),card=overlay?.querySelector('.pt-stage-modal');
+ if(!overlay||overlay.hidden||!card||$('ptFinished')?.hidden)return;
+ card.style.zoom='1';
+ const bounds=card.getBoundingClientRect();
+ const h=Math.max(card.scrollHeight,bounds.height);
+ const w=Math.max(card.scrollWidth,bounds.width);
+ if(!h||!w)return;
+ const factor=Math.min(1,(window.innerHeight-20)/h,(window.innerWidth-20)/w);
+ card.style.zoom=String(Math.max(.2,factor));
+}
+window.addEventListener('resize',()=>requestAnimationFrame(fitPentathlonFinal));
 function renderFinalPentathlon(s){
  const root=$('ptFinalDetails');
  if(!root)return;
  root.replaceChildren();
  const summaries=s.summaries||[];
- const totalWins=[0,0],totalDarts=[0,0],xDarts=[0,0],xScored=[0,0],tons=[0,0];
+ const totalWins=[0,0],xDarts=[0,0],xScored=[0,0],tons=[0,0];
  for(const stage of summaries){
    if(!stage||!Array.isArray(stage.pent))continue;
    if(stage.pent[0]!==stage.pent[1])totalWins[stage.pent[0]>stage.pent[1]?0:1]++;
    for(let p=0;p<2;p++){
-     totalDarts[p]+=Number(stage.used?.[p]||0);
      if(stage.kind==='x01'){
        xDarts[p]+=Number(stage.used?.[p]||0);
        for(const e of stage.entries||[]){
@@ -481,7 +496,6 @@ function renderFinalPentathlon(s){
    const stats=node('div','pt-final-player-stats');
    for(const [label,value] of [
      ['Vunne øvelser',String(totalWins[p])],
-     ['Totalt antall piler',String(totalDarts[p])],
      ['X01-snitt',xDarts[p]?(xScored[p]*3/xDarts[p]).toFixed(2):'–'],
      ['X01-kast 100+',String(tons[p])]
    ]){
@@ -660,6 +674,7 @@ function render(){
    $('ptFinalText').textContent='Endelig resultat etter sju øvelser';
    $('ptFinalScore').textContent=s.total[0]+' – '+s.total[1];
    renderFinalPentathlon(s);
+   requestAnimationFrame(fitPentathlonFinal);
  }
  renderPentathlonThrows(s,c);
  const table=$('ptResultsTable');table.replaceChildren();
@@ -784,6 +799,8 @@ async function showFinishedResult(matchId){
    renderFinalPentathlon(s);
    document.documentElement.classList.remove('da-penta-rejoin');
    overlay.hidden=false;
+   requestAnimationFrame(fitPentathlonFinal);
+   document.fonts?.ready?.then(()=>requestAnimationFrame(fitPentathlonFinal));
    $('ptFinishedLobby')?.focus({preventScroll:true});
  }catch(error){
    document.documentElement.classList.remove('da-penta-rejoin');
