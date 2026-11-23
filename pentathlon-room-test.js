@@ -477,7 +477,13 @@ function renderPentathlonWinner(label,hasWinner){
    trophy.setAttribute('aria-hidden','true');
    heading.append(trophy);
  }
- heading.append(node('span','',label));
+ if(hasWinner){
+   // Existing role-visuals.js adds OWNER/ADMIN immediately after this
+   // exact player-name element, as in Online X01.
+   const name=String(label).replace(/ vant$/,'');
+   heading.append(node('span','da-result-winner-name',name),node('span','',' vant'));
+ }else heading.append(node('span','',label));
+ window.DartArenaRoleVisuals?.scan?.(heading);
 }
 function renderFinalPentathlon(s){
  const root=$('ptFinalDetails');
@@ -504,14 +510,10 @@ function renderFinalPentathlon(s){
    const isWinner=s.total[0]!==s.total[1]&&s.total[p]>s.total[1-p];
    const card=node('article','pt-final-player da-result-statcard');
    if(isWinner)card.classList.add('winner');
-   // Reuse Online X01's player header, winner icon and orange winner tag.
+   // Reuse the actual global OWNER/ADMIN badge mechanism; no invented
+   // initial avatar, crown or "VINNER" tag in the player-name row.
    const header=node('div','da-result-playerhead');
-   header.append(node('div','da-result-playericon',isWinner?'♛':
-     (String(s.players[p]||'?').trim().slice(0,1).toUpperCase()||'?')));
-   const identity=node('div','pt-final-player-identity');
-   identity.append(node('div','pt-final-player-name da-result-stat-name',s.players[p]));
-   if(isWinner)identity.append(node('span','da-result-winner-badge','VINNER'));
-   header.append(identity);
+   header.append(node('span','pt-final-player-name da-result-stat-name',s.players[p]));
    card.append(header,node('strong','pt-final-player-points',s.total[p]+' P'));
    const stats=node('div','pt-final-player-stats');
    for(const [label,value] of [
@@ -526,6 +528,10 @@ function renderFinalPentathlon(s){
    card.append(stats);names.append(card);
  }
  root.append(names);
+ // RoleVisuals is the same module that decorates names everywhere else.
+ // It reads the authenticated user's public role records itself.
+ window.DartArenaRoleVisuals?.scan?.(names);
+ window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
  const section=node('section','pt-final-breakdown');
  section.append(node('h4','','RESULTAT PER ØVELSE'));
  const scroll=node('div','pt-final-table-scroll'),table=node('table','pt-final-table');
