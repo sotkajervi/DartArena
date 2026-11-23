@@ -13,7 +13,7 @@
      (variant==='cricket'?'cricket.html':variant==='half_it'?'half-it.html':variant==='sixty_one'?'61-match.html':variant==='jdc'?'jdc-match.html':'match.html');
    return page+'?id='+encodeURIComponent(id);
  };
- async function begin(matchId,variant,{startAt}={}){
+ async function begin(matchId,variant,{startAt,resuming:optionsResuming=false}={}){
    if(started||!valid(matchId))return;
    started=true;
    // Covers non-coin starts and direct navigation recovery.
@@ -26,23 +26,14 @@
      const {data:match,error}=await db.from('matches').select('id,game,current_leg,game_variant,game_config,player1_id,player2_id,status').eq('id',matchId).maybeSingle();
      if(error||!match||![match.player1_id,match.player2_id].includes(user))throw error||new Error('Match access denied');
      if(match.game_variant==='pentathlon'){
-      // Owner test enters the existing X01 scene using the current room video.
-      // No match.js/X01 scoring boot and no new media negotiation.
-      try{
-        const test=window.DartArenaPentathlonMatchTest;
-        if(typeof test?.enter!=='function')throw Error('Pentathlon-kamprommet er ikke lastet');
-        if(Number.isFinite(Number(startAt))&&Number(startAt)>Date.now()){
-          await new Promise(resolve=>setTimeout(resolve,Math.min(4000,Math.max(0,Number(startAt)-Date.now()))));
-        }
-        await test.enter({matchId,challengeId:window.DartArenaChallengeRoomState.challengeId()});
-      }catch(err){
-        started=false;
-        console.error('[Pentathlon match entry]',err);
-        const notice=document.getElementById('roomMessage');
-        if(notice)notice.textContent='Pentathlon-kamprommet kunne ikke åpnes: '+(err?.message||err);
-      }
-      return;
-    }
+       const bridge=window.DartArenaChallengeSamePageHandoff;
+       if(typeof bridge?.enter!=='function')throw Error('Felles X01-kampovergang mangler');
+       if(Number.isFinite(Number(startAt))&&Number(startAt)>Date.now()){
+         await new Promise(resolve=>setTimeout(resolve,Math.min(4000,Math.max(0,Number(startAt)-Date.now()))));
+       }
+       await bridge.enter({liveMatchId:matchId,challengeId:window.DartArenaChallengeRoomState.challengeId(),resuming:!!optionsResuming});
+       return;
+     }
     // Remember the exact match for this tab so Ctrl+R can rejoin directly.
      if(['playing','live'].includes(match.status)){
        try{sessionStorage.setItem('dartarena-challenge-match:'+window.DartArenaChallengeRoomState.challengeId(),match.id)}catch{}
@@ -75,7 +66,16 @@
      }
      if(isX01&&allowHandoff&&typeof bridge?.enter==='function'&&
        await bridge.enter({liveMatchId:matchId,challengeId:new URLSearchParams(location.search).get('id')})===true)return;
-   }catch(error){console.warn('[challenge transition] Using original match page',error)}
+   }catch(error){
+     if(variant==='pentathlon'){
+       started=false;
+       console.error('[Pentathlon X01 handoff]',error);
+       const el=document.getElementById('roomMessage');
+       if(el)el.textContent='Kampovergangen feilet: '+(error?.message||error);
+       return;
+     }
+     console.warn('[challenge transition] Using original match page',error);
+   }
    window.DartArenaMediaTrace?.mark('CHALLENGE_LEGACY_NAVIGATION');
    location.href=target(matchId,variant);
  }
