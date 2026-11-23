@@ -110,7 +110,7 @@ async function ensureScene(){
    // Keep the existing X01 camera control visible and functional.
    // match-controls.js owns its actions; no Pentathlon-specific handlers.
    if(cameraControl)cameraControl.hidden=false;
-   aside.insertAdjacentHTML('beforeend',"<div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSE FULLFØRT</small><h3 id=\"ptReviewTitle\"></h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button type=\"button\" id=\"ptAdvance\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\"></h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong></div><section id=\"ptPointsGuide\" class=\"pt-points-guide\" aria-label=\"Poengregler for aktiv øvelse\"><div class=\"pt-guide-heading\">POENGOVERSIKT <small id=\"ptGuideStage\"></small></div><div id=\"ptGuideRows\" class=\"pt-guide-rows\"></div><p id=\"ptGuideNote\" class=\"pt-guide-note\"></p></section><p class=\"pt-note\">Owner-test · ikke ranket.</p>");
+   aside.insertAdjacentHTML('beforeend',"<div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSE FULLFØRT</small><h3 id=\"ptReviewTitle\"></h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button type=\"button\" id=\"ptAdvance\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\"></h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong><div id=\"ptFinalDetails\" class=\"pt-final-details\"></div></div><section id=\"ptPointsGuide\" class=\"pt-points-guide\" aria-label=\"Poengregler for aktiv øvelse\"><div class=\"pt-guide-heading\">POENGOVERSIKT <small id=\"ptGuideStage\"></small></div><div id=\"ptGuideRows\" class=\"pt-guide-rows\"></div><p id=\"ptGuideNote\" class=\"pt-guide-note\"></p></section><p class=\"pt-note\">Owner-test · ikke ranket.</p>");
    // Result list lives in a top-right action and reuses the existing table/log renderers.
    const topActions=scene.querySelector('.match-head .top-actions');
    if(!topActions)throw Error('Kamprommets toppknapper mangler.');
@@ -449,6 +449,85 @@ async function correctPentathlonVisit(index){
    await save('correct',next);
  }catch(error){msg(error?.message||String(error),true)}
 }
+// Use the same DartArena X01 result-card vocabulary while showing
+// only statistics preserved by Pentathlon's seven stage summaries.
+function renderFinalPentathlon(s){
+ const root=$('ptFinalDetails');
+ if(!root)return;
+ root.replaceChildren();
+ const summaries=s.summaries||[];
+ const totalWins=[0,0],totalDarts=[0,0],xDarts=[0,0],xScored=[0,0],tons=[0,0];
+ for(const stage of summaries){
+   if(!stage||!Array.isArray(stage.pent))continue;
+   if(stage.pent[0]!==stage.pent[1])totalWins[stage.pent[0]>stage.pent[1]?0:1]++;
+   for(let p=0;p<2;p++){
+     totalDarts[p]+=Number(stage.used?.[p]||0);
+     if(stage.kind==='x01'){
+       xDarts[p]+=Number(stage.used?.[p]||0);
+       for(const e of stage.entries||[]){
+         if(e.type!=='visit'||e.player!==p)continue;
+         xScored[p]+=Number(e.score||0);
+         if(Number(e.score||0)>=100)tons[p]++;
+       }
+     }
+   }
+ }
+ const names=node('div','pt-final-players');
+ for(let p=0;p<2;p++){
+   const card=node('article','pt-final-player');
+   if(s.total[p]===Math.max(...s.total)&&s.total[0]!==s.total[1])card.classList.add('winner');
+   card.append(node('span','pt-final-player-name',s.players[p]),
+     node('strong','pt-final-player-points',s.total[p]+' P'));
+   const stats=node('div','pt-final-player-stats');
+   for(const [label,value] of [
+     ['Vunne øvelser',String(totalWins[p])],
+     ['Totalt antall piler',String(totalDarts[p])],
+     ['X01-snitt',xDarts[p]?(xScored[p]*3/xDarts[p]).toFixed(2):'–'],
+     ['X01-kast 100+',String(tons[p])]
+   ]){
+     const line=node('div','pt-final-stat');
+     line.append(node('span','',label),node('b','',value));
+     stats.append(line);
+   }
+   card.append(stats);names.append(card);
+ }
+ root.append(names);
+ const section=node('section','pt-final-breakdown');
+ section.append(node('h4','','RESULTAT PER ØVELSE'));
+ const scroll=node('div','pt-final-table-scroll'),table=node('table','pt-final-table');
+ const thead=node('thead'),head=node('tr');
+ head.append(node('th','','ØVELSE'),node('th','',s.players[0]),
+   node('th','',s.players[1]),node('th','','BEST'));
+ thead.append(head);table.append(thead);
+ const tbody=node('tbody');
+ E.STAGES.forEach((def,i)=>{
+   const item=summaries[i],tr=node('tr');
+   const label=node('td','pt-final-stage-name');
+   label.append(node('strong','',(i+1)+'. '+def.label));
+   const details=[];
+   if(item?.kind==='x01'){
+     const finished=item.winner;
+     if(finished===0||finished===1)details.push('Leg: '+s.players[finished]);
+   }else if(item?.kind==='shanghai')details.push('1–9 · S/D/T');
+   else if(item?.kind==='clock')details.push('D1–D20');
+   else if(item?.kind==='half')details.push('7 runder');
+   if(details.length)label.append(node('small','',details.join(' · ')));
+   tr.append(label);
+   const a=Number(item?.pent?.[0]||0),b=Number(item?.pent?.[1]||0);
+   tr.append(node('td',a>b?'pt-final-high':'',item?a+' P':'–'));
+   tr.append(node('td',b>a?'pt-final-high':'',item?b+' P':'–'));
+   tr.append(node('td','pt-final-stage-winner',item?(a===b?'Lik':a>b?s.players[0]:s.players[1]):'–'));
+   tbody.append(tr);
+ });
+ const footer=node('tr','pt-final-total');
+ footer.append(node('td','','TOTALT'),node('td','',s.total[0]+' P'),
+   node('td','',s.total[1]+' P'),
+   node('td','',s.total[0]===s.total[1]?'Uavgjort':s.players[s.total[0]>s.total[1]?0:1]));
+ tbody.append(footer);table.append(tbody);scroll.append(table);section.append(scroll);
+ root.append(section);
+ root.append(node('p','pt-final-footnote',
+   'X01-snitt og 100+ gjelder kun 501, 1001 og 2001. Øvrige poeng inngår i totalsummen.'));
+}
 function render(){
  if(!record)return;
  if(!sceneReady)return;
@@ -579,6 +658,7 @@ function render(){
    $('ptWinner').textContent=victor;
    $('ptFinalText').textContent='Endelig resultat etter sju øvelser';
    $('ptFinalScore').textContent=s.total[0]+' – '+s.total[1];
+   renderFinalPentathlon(s);
  }
  renderPentathlonThrows(s,c);
  const table=$('ptResultsTable');table.replaceChildren();
