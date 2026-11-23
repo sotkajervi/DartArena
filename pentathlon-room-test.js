@@ -102,6 +102,24 @@ async function ensureScene(){
    resultButton.setAttribute('aria-haspopup','dialog');
    resultButton.setAttribute('aria-expanded','false');
    topActions.prepend(resultButton);
+   // The points guide belongs behind an action, not inside the X01 sidebar.
+   const pointsButton=node('button','outline','Poengoversikt');
+   pointsButton.id='ptPointsButton';pointsButton.type='button';
+   pointsButton.setAttribute('aria-haspopup','dialog');
+   pointsButton.setAttribute('aria-expanded','false');
+   resultButton.after(pointsButton);
+   const pointsOverlay=node('div','da-dialog-layer');
+   pointsOverlay.id='ptPointsOverlay';pointsOverlay.hidden=true;
+   pointsOverlay.innerHTML='<div class="da-dialog-backdrop"></div><section class="da-dialog-card pt-points-modal" role="dialog" aria-modal="true" aria-labelledby="ptPointsHeading" tabindex="-1"><span class="da-dialog-kicker">PENTATHLON</span><h2 id="ptPointsHeading" class="da-dialog-title">Poengoversikt</h2><div class="pt-points-modal-body"></div><div class="da-dialog-actions"><button id="ptClosePoints" type="button" class="da-dialog-cancel">Lukk</button></div></section>';
+   const rules=aside.querySelector('#ptPointsGuide');
+   if(!rules)throw Error('Pentathlon-poengregler mangler');
+   pointsOverlay.querySelector('.pt-points-modal-body').append(rules);
+   scene.append(pointsOverlay);
+   const closePoints=()=>{pointsOverlay.hidden=true;pointsButton.setAttribute('aria-expanded','false');pointsButton.focus()};
+   pointsButton.onclick=()=>{pointsOverlay.hidden=false;pointsButton.setAttribute('aria-expanded','true');pointsOverlay.querySelector('.pt-points-modal')?.focus()};
+   $('ptClosePoints').onclick=closePoints;
+   pointsOverlay.addEventListener('click',e=>{if(e.target===pointsOverlay)closePoints()});
+   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pointsOverlay.hidden){e.preventDefault();closePoints()}});
    const resultOverlay=node('div','pt-results-overlay');
    resultOverlay.id='ptResultsOverlay';resultOverlay.hidden=true;
    resultOverlay.innerHTML='<section class="pt-results-modal" role="dialog" aria-modal="true" aria-labelledby="ptResultsHeading" tabindex="-1"><div class="pt-results-header"><h2 id="ptResultsHeading">Resultatliste · 7 øvelser</h2><button id="ptCloseResults" type="button" class="outline" aria-label="Lukk resultatliste">Lukk ×</button></div><div class="pt-results-body"><div id="ptResultsTable"></div><small class="pt-side-label">SISTE REGISTRERINGER</small><div id="ptLog" class="pt-log"></div></div></section>';
