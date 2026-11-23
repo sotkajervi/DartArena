@@ -89,6 +89,11 @@ async function ensureScene(){
    score.insertAdjacentHTML('afterbegin',"<div class=\"pt-stage\"><small id=\"ptProgressTitle\">ØVELSE 1 AV 7</small><strong id=\"ptStage\">501 · Leg 1</strong><span id=\"ptDescription\">Dobbel ut</span></div><div id=\"ptCounter\" hidden></div><div id=\"ptProgress\" class=\"pt-progress\" aria-label=\"Pentathlon-øvelser\"></div><div id=\"ptStarterInfo\" class=\"pt-starter-info\" aria-live=\"off\">Starter øvelsen: <strong id=\"ptStarterName\">–</strong></div>");
    const target=node('div','pt-target');target.id='ptTarget';
    players.after(target);
+   // The original X01 throw-log markup and CSS, with Pentathlon data.
+   if(!window.DartArenaThrowLogUI?.mount)
+     throw Error('Den originale X01-kastloggen er ikke lastet.');
+   const throwBox=window.DartArenaThrowLogUI.mount(score);
+   throwBox.id='ptThrowLog';
    // opponent-focus.js owns the standard X01 scoring dock and camera PiP.
    // Its original score-entry has already moved out of score-card.
    const entry=scene.querySelector('.score-entry');
@@ -105,7 +110,7 @@ async function ensureScene(){
    // Keep the existing X01 camera control visible and functional.
    // match-controls.js owns its actions; no Pentathlon-specific handlers.
    if(cameraControl)cameraControl.hidden=false;
-   aside.insertAdjacentHTML('beforeend',"<div class=\"pt-tools\"><button type=\"button\" id=\"ptUndo\" class=\"outline\">↶ Angre</button></div><div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSE FULLFØRT</small><h3 id=\"ptReviewTitle\"></h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button type=\"button\" id=\"ptAdvance\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\"></h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong></div><section id=\"ptPointsGuide\" class=\"pt-points-guide\" aria-label=\"Poengregler for aktiv øvelse\"><div class=\"pt-guide-heading\">POENGOVERSIKT <small id=\"ptGuideStage\"></small></div><div id=\"ptGuideRows\" class=\"pt-guide-rows\"></div><p id=\"ptGuideNote\" class=\"pt-guide-note\"></p></section><p class=\"pt-note\">Owner-test · ikke ranket.</p>");
+   aside.insertAdjacentHTML('beforeend',"<div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSE FULLFØRT</small><h3 id=\"ptReviewTitle\"></h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button type=\"button\" id=\"ptAdvance\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\"></h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong></div><section id=\"ptPointsGuide\" class=\"pt-points-guide\" aria-label=\"Poengregler for aktiv øvelse\"><div class=\"pt-guide-heading\">POENGOVERSIKT <small id=\"ptGuideStage\"></small></div><div id=\"ptGuideRows\" class=\"pt-guide-rows\"></div><p id=\"ptGuideNote\" class=\"pt-guide-note\"></p></section><p class=\"pt-note\">Owner-test · ikke ranket.</p>");
    // Result list lives in a top-right action and reuses the existing table/log renderers.
    const topActions=scene.querySelector('.match-head .top-actions');
    if(!topActions)throw Error('Kamprommets toppknapper mangler.');
@@ -141,7 +146,7 @@ async function ensureScene(){
    // Use the actual shared DartArena dialog components, not results-list styling.
    const stageOverlay=node('div','da-dialog-layer');
    stageOverlay.id='ptStageOverlay';stageOverlay.hidden=true;
-   stageOverlay.innerHTML='<div class="da-dialog-backdrop"></div><section class="da-dialog-card pt-stage-modal" role="dialog" aria-modal="true" aria-labelledby="ptStageModalHeading" tabindex="-1"><span class="da-dialog-kicker">PENTATHLON</span><h2 id="ptStageModalHeading" class="da-dialog-title">Øvelse fullført</h2><div class="pt-stage-modal-body"></div><div class="da-dialog-actions"><button id="ptCloseStageModal" type="button" class="da-dialog-cancel" aria-label="Lukk øvelsesresultat">Lukk</button></div></section>';
+   stageOverlay.innerHTML='<div class="da-dialog-backdrop"></div><section class="da-dialog-card pt-stage-modal" role="dialog" aria-modal="true" aria-labelledby="ptStageModalHeading" tabindex="-1"><h2 id="ptStageModalHeading" class="da-dialog-title pt-brand-heading"><span>PENTA</span><span>THLON</span></h2><div class="pt-stage-modal-body"></div><div class="da-dialog-actions"><button id="ptCloseStageModal" type="button" class="da-dialog-cancel" aria-label="Lukk øvelsesresultat">Lukk</button></div></section>';
    const modalBody=stageOverlay.querySelector('.pt-stage-modal-body');
    modalBody.append($('ptReview'),$('ptFinished'));
    // ptReview has just been moved into the detached modal. Query that
@@ -198,7 +203,7 @@ async function ensureScene(){
    // keyboard handler; Pentathlon owns score submission for its seven stages.
    $('ptInput').onkeydown=null;
    $('ptXSubmit').onclick=submitX01;$('ptSSubmit').onclick=submitSpecial;
-   $('ptRemove').onclick=()=>{pending.pop();render()};$('ptAdvance').onclick=advance;$('ptUndo').onclick=undo;
+   $('ptRemove').onclick=()=>{pending.pop();render()};$('ptAdvance').onclick=advance;
    $('ptInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();submitX01()}});
    sceneConfigured=true;
    }
@@ -281,6 +286,67 @@ function renderPointsGuide(s){
    host.append(col);
  }
  $('ptGuideNote').textContent=note;
+}
+// The standard X01 throw-log UI, with Pentathlon's own score persistence.
+function renderPentathlonThrows(s,c){
+ const box=$('ptThrowLog');
+ if(!box)return;
+ box.hidden=s.status==='finished';
+ const entries=(c.entries||[]).map((entry,index)=>({...entry,id:index}));
+ const own=entries.filter(t=>t.player===player());
+ const other=entries.filter(t=>t.player!==player());
+ const editable=new Set(c.kind==='x01'&&s.status==='playing'?
+   own.filter(t=>t.type==='visit'&&!t.checkout).slice(-3).map(t=>t.id):[]);
+ const hint=box.querySelector('.throw-log-head small');
+ if(hint)hint.textContent=c.kind==='x01'?'Trykk på et av dine siste kast for å korrigere':'Kastoversikt for denne øvelsen';
+ const draw=(id,visits)=>{
+   const dest=$(id);if(!dest)return;
+   dest.replaceChildren();
+   const latest=visits.slice(-3);
+   if(!latest.length){dest.append(node('div','throw-empty','Ingen kast ennå'));return}
+   for(const t of latest){
+     const label=t.type==='visit'?
+       (t.checkout?t.score+' ('+t.darts+'p)':String(t.score)):
+       t.hit;
+     if(editable.has(t.id)){
+       const b=node('button','throw-chip editable');
+       b.type='button';b.title='Korriger '+label;
+       b.setAttribute('aria-label','Korriger kast '+label);
+       b.append(node('span','',label),node('span','throw-edit-icon','✎'));
+       b.onclick=()=>correctPentathlonVisit(t.id);
+       dest.append(b);
+     }else dest.append(node('span','throw-chip',label));
+   }
+ };
+ draw('myThrowRows',own);draw('oppThrowRows',other);
+}
+async function correctPentathlonVisit(index){
+ if(saving||!record||game()?.status!=='playing'||stage()?.kind!=='x01')return;
+ const current=game(),selected=current.current.entries[index],me=player();
+ const mineEntries=current.current.entries.map((e,i)=>e.type==='visit'&&e.player===me?i:-1).filter(i=>i>=0);
+ if(!selected||selected.player!==me||selected.checkout||!mineEntries.slice(-3).includes(index)){
+   msg('Kun dine tre siste kast i aktivt X01-leg kan korrigeres.',true);return;
+ }
+ const ui=window.DartArenaDialog;
+ if(!ui?.prompt){msg('DartArena-dialogen er ikke tilgjengelig.',true);return}
+ const expectedVersion=record.version,expectedStage=current.stageIndex;
+ const raw=await ui.prompt('Endre registrert kast fra '+selected.attempt+' til riktig poengsum.',{
+   title:'Korriger kast',kicker:'DARTARENA · KAMPROM',
+   inputLabel:'NY SCORE (0–180)',inputType:'text',inputMode:'numeric',
+   value:String(selected.attempt),confirmText:'Lagre endring',cancelText:'Avbryt'
+ });
+ if(raw===null)return;
+ const value=String(raw).trim();
+ if(!/^\d{1,3}$/.test(value)||!E.isScore(Number(value))){
+   msg('Score må være et heltall fra 0 til 180.',true);return;
+ }
+ if(record.version!==expectedVersion||game().stageIndex!==expectedStage){
+   msg('Kampstatus er endret. Kontroller de siste kastene før du prøver igjen.',true);return;
+ }
+ try{
+   const next=E.correctX01Visit(game(),index,Number(value),me);
+   await save('correct',next);
+ }catch(error){msg(error?.message||String(error),true)}
 }
 function render(){
  if(!record)return;
@@ -392,7 +458,7 @@ function render(){
  $('ptAdvance').disabled=saving;
  $('ptStatus').textContent=review?'Øvelse fullført':finished?'Ferdig':'Pågår';
  $('ptAdvance').textContent=s.stageIndex===6?'SE SLUTTRESULTAT →':'NESTE ØVELSE →';
- $('ptUndo').disabled=saving||record.last_actor!==uid||!(live||review)||!(s.undo?.length);
+
  if(review){
    const last=s.summaries.at(-1);
    $('ptReviewTitle').textContent=(last?.label||'Øvelse')+' · Resultat';
@@ -410,6 +476,7 @@ function render(){
    $('ptFinalText').textContent='Endelig resultat etter sju øvelser';
    $('ptFinalScore').textContent=s.total[0]+' – '+s.total[1];
  }
+ renderPentathlonThrows(s,c);
  const table=$('ptResultsTable');table.replaceChildren();
  const t=node('table','penta-table'),head=node('thead'),header=node('tr');
  ['ØVELSE',s.players[0],s.players[1]].forEach(x=>header.append(node('th','',x)));
