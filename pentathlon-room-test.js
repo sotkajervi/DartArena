@@ -192,7 +192,7 @@ async function ensureScene(){
        if(!dialog?.confirm){msg('DartArena-dialogen er ikke klar. Prøv igjen.',true);return}
        const confirmed=await dialog.confirm('Vil du avbryte Pentathlon-kampen?',{
          title:'Avbryt kamp?',kicker:'DARTARENA · PENTATHLON',
-         tone:'danger',cancelText:'Tilbake',confirmText:'Avbryt kamp',
+         cancelText:'Tilbake',confirmText:'Avbryt kamp',
          backdropCancel:false
        });
        if(!confirmed)return;
