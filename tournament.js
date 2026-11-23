@@ -652,7 +652,7 @@ function matchHtml(m){
   const archiveResult=tournament?.status==='finished'&&done;
   const middle=archiveResult?`<span class="group-match-result">${score}</span>`:'<span class="muted">vs</span>';
   return `<div class="match-row ${live?'live-match':''} ${canStartAI?'ai-rival-ready':''}" ${m.is_ai_rival?'data-ai-match="'+esc(m.id)+'" data-ai-model="'+esc(m.model_player_id)+'" data-ai-best-of="'+Number(m.best_of)+'" data-ai-status="'+esc(m.status)+'" data-ai-human="'+esc(humanId)+'"':'data-match="'+esc(m.id)+'"'}>
-    <div class="match-players"><span class="group-match-player ${p1Winner?'winner':''}"><strong>${p1}</strong>${avg(m._player1_avg)}</span>${middle}<span class="group-match-player ${p2Winner?'winner':''}"><strong>${p2}</strong>${avg(m._player2_avg)}</span></div>
+    <div class="match-players"><span class="group-match-player ${p1Winner?'winner':''}"><strong>${p1}</strong>${avg(m._player1_avg)}</span>${middle}<span class="group-match-player ${p2Winner?'winner':''}">${archiveResult?avg(m._player2_avg):''}<strong>${p2}</strong>${archiveResult?'':avg(m._player2_avg)}</span></div>
     <div class="match-meta"><div class="match-score">${score}</div>${canStartAI?'<button type="button" class="primary ai-rival-start-btn" aria-label="Start AI-kamp mot '+esc(names[AI_RIVAL_ID]||'AI Rival')+'">Start AI-kamp</button>':''}<div class="match-state">${state}</div></div>
   </div>`;
 }
