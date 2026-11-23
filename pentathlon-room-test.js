@@ -7,7 +7,7 @@ if(!R||!E)return;
 const $=id=>document.getElementById(id),db=R.client(),challengeId=R.challengeId();
 if(!challengeId)return;
 let uid=null,challenge=null,record=null,channel=null,poll=null,pending=[],saving=false,lastInputTurn=null,sceneReady=false,sceneConfigured=false,sceneLoading=null,activeMatchId=null,entering=null;
-let pentathlonMediaStream=null,pentathlonMediaStarting=null,bootReady=false,resumeMatchId=null;
+let bootReady=false,resumeMatchId=null;
 let lastCompletionPopupKey=null;
 const copy=o=>JSON.parse(JSON.stringify(o));
 const clean=o=>{const a=copy(o);delete a.undo;return a};
@@ -37,7 +37,7 @@ async function ensureScene(){
  sceneLoading=(async()=>{
    const host=window.DartArenaMatchSceneHost;
    if(!host)throw Error('Eksisterende X01-kamprom er ikke tilgjengelig.');
-   if(host.isActive())throw Error('Et annet kamprom er allerede aktivt.');
+   // The shared X01 bridge may already have entered this scene.
    // Use the exact same stage/DOM transition as the existing X01 Online room.
    // The host moves existing video elements; no new media stream is created.
    await host.prepare();
@@ -88,7 +88,8 @@ async function ensureScene(){
    dock.insertAdjacentHTML('beforeend',"<div id=\"ptSpecial\" class=\"pt-special\" hidden><div id=\"ptSpecialTurn\" class=\"pt-special-turn\"></div><div class=\"pt-special-target\"><small id=\"ptSpecialPhase\">SHANGHAI</small><strong id=\"ptSpecialTarget\">TALL 1</strong><span id=\"ptSpecialRemaining\">3 piler</span></div><div id=\"ptChoices\" class=\"pt-choices\"></div><div class=\"pt-pending\">Valgt: <b id=\"ptPending\">–</b></div><div class=\"pt-special-actions\"><button type=\"button\" id=\"ptRemove\" class=\"outline\">Fjern siste · Backspace</button><button type=\"button\" id=\"ptSSubmit\" class=\"primary\">Registrer · Enter</button></div></div>");
    dock.append(message);
    scene.appendChild(dock);
-   aside.querySelector('#cameraBtn')?.remove(); // Camera already belongs to the waiting room.
+   const cameraControl=aside.querySelector('#cameraBtn');
+   if(cameraControl)cameraControl.hidden=true; // Keep the original X01 camera handler and DOM node.
    aside.insertAdjacentHTML('beforeend',"<div class=\"pt-tools\"><button type=\"button\" id=\"ptRefresh\" class=\"outline\">Oppdater</button><button type=\"button\" id=\"ptUndo\" class=\"outline\">↶ Angre</button></div><div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSE FULLFØRT</small><h3 id=\"ptReviewTitle\"></h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button type=\"button\" id=\"ptAdvance\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\"></h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong></div><section id=\"ptPointsGuide\" class=\"pt-points-guide\" aria-label=\"Poengregler for aktiv øvelse\"><div class=\"pt-guide-heading\">POENGOVERSIKT <small id=\"ptGuideStage\"></small></div><div id=\"ptGuideRows\" class=\"pt-guide-rows\"></div><p id=\"ptGuideNote\" class=\"pt-guide-note\"></p></section><p class=\"pt-note\">Owner-test · ikke ranket.</p>");
    // Result list lives in a top-right action and reuses the existing table/log renderers.
    const topActions=scene.querySelector('.match-head .top-actions');
@@ -383,64 +384,14 @@ async function refresh(){
 async function broadcast(){
  await channel?.send({type:'broadcast',event:'changed',payload:{from:uid}}).catch(()=>{});
 }
-// Use the existing authenticated X01 MATCH SFU module, never its scoring engine.
-async function establishMatchVideo(matchId,{resuming=false}={}){
- if(pentathlonMediaStarting)return pentathlonMediaStarting;
- pentathlonMediaStarting=(async()=>{
-   const state=window.DartArenaChallengeRoomState;
-   // The local camera may initialize AFTER the accepted-match lookup on reload.
-   let captured=null;
-   const captureDeadline=Date.now()+15000;
-   while(Date.now()<captureDeadline){
-     captured=state?.stream?.();
-     if(captured instanceof MediaStream&&captured.getTracks().some(t=>t.kind==='video'&&t.readyState==='live'))break;
-     await new Promise(resolve=>setTimeout(resolve,250));
-   }
-   if(!(captured instanceof MediaStream)||!captured.getTracks().some(t=>t.kind==='video'&&t.readyState==='live'))
-     throw Error('Kameraet ble ikke klart etter gjenåpning av kamp.');
-   if(window.DartArenaMatchEngineState?.matchId?.()!==undefined &&
-      window.DartArenaMatchEngineState.matchId()!==matchId)
-     throw Error('Et annet kamprom styrer videoen.');
-   pentathlonMediaStream=captured;
-   // Adapter only provides the match context; the unmodified shared X01 SFU
-   // transport owns publishing, subscribing and recovery. No X01 score engine.
-   if(!window.DartArenaMatchEngineState){
-     window.DartArenaMatchEngineState=Object.freeze({
-       client:()=>db,matchId:()=>activeMatchId,stream:()=>pentathlonMediaStream,
-       mediaReady:()=>!!pentathlonMediaStream?.getTracks().some(t=>t.readyState==='live')
-     });
-   }
-   window.DartArenaRoomMedia?.beginHandoff?.();
-   if(!window.DartArenaMatchMedia){
-     await new Promise((resolve,reject)=>{
-       const script=document.createElement('script');
-       script.src='match-sfu-media-secure.js?v=20261122-penta-mediaready1';
-       script.async=false;script.onload=resolve;
-       script.onerror=()=>reject(Error('X01-kampvideo kunne ikke lastes.'));
-       document.body.appendChild(script);
-     });
-   }
-   const handoff=window.DartArenaChallengeSamePageHandoff?.finishMediaHandoff;
-   if(!handoff)throw Error('Original X01-videoovergang er ikke tilgjengelig.');
-   const opponent=uid===challenge.challenger_id?challenge.challenged_id:challenge.challenger_id;
-   await handoff({client:db,matchId,me:uid,opponent,resuming});
-   state.takeMediaOwnership?.();
-   window.DartArenaMediaTrace?.mark('PENTATHLON_X01_VIDEO_READY',{resuming,matchId:matchId.slice(0,8)});
- })();
- try{await pentathlonMediaStarting}
- catch(error){
-   pentathlonMediaStarting=null;
-   window.DartArenaMediaTrace?.mark('PENTATHLON_X01_VIDEO_FAILED',String(error?.message||error));
-   throw error;
- }
-}
+// Video is bootstrapped by the original X01 handoff (match.js and media router).
+// Pentathlon owns only stage UI, score and persistence.
 
-async function enter({matchId,resuming=false}={}){
+async function enter({matchId,resuming=false,mediaManaged=false}={}){
  if(entering)return entering;
- if(sceneReady&&activeMatchId===matchId){
-   if(!window.DartArenaMatchMedia?.readyForHandoff?.())await establishMatchVideo(matchId,{resuming});
-   return;
- }
+ if(sceneReady&&activeMatchId===matchId)return;
+ if(!mediaManaged||window.DartArenaMatchEngineState?.matchId?.()!==matchId)
+   throw Error('Pentathlon må åpnes gjennom felles X01-kampmotor');
  entering=(async()=>{
    if(!uid||!challenge){
      for(let i=0;i<50&&(!uid||!challenge);i++)await new Promise(r=>setTimeout(r,100));
@@ -472,9 +423,7 @@ async function enter({matchId,resuming=false}={}){
    });
    if(initError||!data)throw initError||Error('Kunne ikke hente Pentathlon-kampen');
    record=data;pending=[];
-   await ensureScene();render();msg('Kobler til X01-kampvideo…');
-   try{await establishMatchVideo(m.id,{resuming});msg('Pentathlon Online · X01-kampvideo klar');}
-   catch(videoError){msg('Video: '+(videoError.message||videoError)+'. Scoringen er fortsatt tilgjengelig.',true);console.warn('[Pentathlon match media]',videoError)}
+   await ensureScene();render();msg('Pentathlon Online · X01-kampmotor aktiv');
  })();
  try{await entering}finally{entering=null}
 }
@@ -556,9 +505,7 @@ async function boot(){
   .on('broadcast',{event:'changed'},()=>refresh())
   .subscribe();
  bootReady=true;
- const resume=resumeMatchId||window.DartArenaPentathlonResumeMatchId||
-   new URLSearchParams(location.search).get('ptMatch');
- if(resume)enter({matchId:resume,resuming:true}).catch(e=>console.error('[Pentathlon resume]',e));
+ // Active match is reopened exclusively by the same X01 challenge bridge.
  poll=setInterval(()=>{if(activeMatchId&&!document.hidden)refresh()},6000);
 }
 window.addEventListener('pagehide',()=>{clearInterval(poll);if(channel)db.removeChannel(channel).catch(()=>{})},{once:true});
@@ -566,7 +513,7 @@ window.addEventListener('dartarena:pentathlon-resume',event=>{
  const matchId=event.detail?.matchId;
  if(!matchId||!/^[-0-9a-f]{36}$/i.test(matchId))return;
  resumeMatchId=matchId;
- if(bootReady)enter({matchId,resuming:true}).catch(e=>console.error('[Pentathlon resume event]',e));
+ // The room launcher hands this ID to the X01 bridge; no separate media startup.
 });
 window.DartArenaPentathlonMatchTest=Object.freeze({enter});
 boot().catch(e=>console.warn('Pentathlon match test failed',e));
