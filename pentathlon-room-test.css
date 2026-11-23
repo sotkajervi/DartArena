@@ -358,3 +358,15 @@ body.pt-online-test.pt-shanghai-active .focus-input-dock .pt-choices .pt-shangha
 body.pt-online-test.pt-shanghai-active .focus-input-dock .pt-choices .pt-shanghai-choice-key{
  display:block;color:#fff;font-size:17px;font-weight:900;
 }
+
+/* Existing special-game action buttons: name above keyboard shortcut. */
+body.pt-online-test .focus-input-dock .pt-special-actions button.pt-special-action-key{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:4px;min-height:60px;line-height:1.15;
+}
+body.pt-online-test .focus-input-dock .pt-special-action-name{
+ display:block;color:#00eaf4;font-size:12px;font-weight:950;letter-spacing:.055em;
+}
+body.pt-online-test .focus-input-dock .pt-special-action-shortcut{
+ display:block;color:#fff;font-size:14px;font-weight:900;
+}
