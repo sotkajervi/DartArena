@@ -153,9 +153,11 @@ async function load(){
 
   renderPage();
   window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
-  if(['groups','cup_setup'].includes(t.status) && window.DartArenaGroupResultsLayout?.show(t))await loadGroupLobby();
-  // During live cup, do not fetch the full finished group history on every tournament refresh.
-  if(['cup','finished'].includes(t.status))$('groupLobby')?.classList.add('hidden');
+  // The finished archive must show its group standings and all group matches,
+  // not depend on a later archive hook to reopen a hidden panel.
+  // During a live cup we still skip loading old group history on every refresh.
+  if(['groups','cup_setup','finished'].includes(t.status) && window.DartArenaGroupResultsLayout?.show(t))await loadGroupLobby();
+  if(t.status==='cup')$('groupLobby')?.classList.add('hidden');
   window.dispatchEvent(new CustomEvent('dartarena:tournament-loaded',{detail:{id:t.id,status:t.status,tournamentType:t.tournament_type,gameVariant:t.game_variant||'x01',cupGameVariant:t.cup_game_variant||t.game_variant||'x01'}}));
 }
 
@@ -605,7 +607,9 @@ async function loadGroupLobby(){
   matches.sort((a,b)=>Number(a.round_no)-Number(b.round_no)||Number(a.match_no)-Number(b.match_no));
   $('groupProgress').textContent=readonly?`${officialMatches.length} puljekamper`:`${done} / ${officialMatches.length} puljekamper ferdig`;
   if(trainingMatches.length)$('groupProgress').textContent+=' · '+trainingMatches.length+' AI-treningskamper';
-  const collapseArchivedGroups=readonly;
+  // Finished tournament archive displays the played group fixtures immediately.
+  // Cup setup remains collapsed to avoid crowding the live preparation screen.
+  const collapseArchivedGroups=readonly&&!archive;
   $('liveGroups').innerHTML=groups.map(g=>{
     const gp=players.filter(p=>p.group_id===g.id&&!p.is_ai_rival&&p.user_id!==AI_RIVAL_ID);
     const gm=matches.filter(m=>m.group_id===g.id&&!m.is_ai_rival);
