@@ -248,6 +248,7 @@
       );
       const unitLabel=mixedFormats?'Games/legs':chicago?'Games':'Legs';
 
+      for(const match of matches||[])if(match?.id)completedIds.add(match.id);
       const playedMatches=(matches||[]).filter(m=>!isBye(m));
       if(!playedMatches.length){
         meta.textContent='Ingen ferdige kamper';
@@ -330,9 +331,13 @@
     }
   }
 
+  // Fetch the complete statistics once at page load, and only when a new
+  // tournament match becomes completed. No refreshes for throws, focus,
+  // visibility or routine live-score updates.
+  const completedIds=new Set();
   function scheduleLoad(){
     clearTimeout(reloadTimer);
-    reloadTimer=setTimeout(load,120);
+    reloadTimer=setTimeout(load,250);
   }
 
   async function subscribeStats(){
@@ -340,16 +345,14 @@
     if(error)throw error;
     if(!data?.session?.access_token)return;
     db.channel(`tournament-stats-${tournamentId}`)
-      // These aggregates include finished matches only. Listening to ALL
-      // match_throws globally caused a full tournament-history fetch after
-      // unrelated players' visits, on every open tournament page.
-      // Tournament result changes already trigger the required refresh.
-      .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${tournamentId}`},scheduleLoad)
+      .on('postgres_changes',{event:'*',schema:'public',table:'tournament_matches',filter:`tournament_id=eq.${tournamentId}`},payload=>{
+        const match=payload.new;
+        if(!match?.id||!['finished','wo'].includes(match.status)||completedIds.has(match.id))return;
+        completedIds.add(match.id);
+        scheduleLoad();
+      })
       .subscribe();
   }
   subscribeStats().catch(error=>console.warn('Tournament stats Realtime auth failed',error));
-
-  window.addEventListener('focus',scheduleLoad);
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleLoad()});
   load();
 })();
