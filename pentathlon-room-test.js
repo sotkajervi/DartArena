@@ -467,6 +467,18 @@ function fitPentathlonFinal(){
  card.style.zoom=String(Math.max(.2,factor));
 }
 window.addEventListener('resize',()=>requestAnimationFrame(fitPentathlonFinal));
+// Present the winner identically in live and archived result screens.
+function renderPentathlonWinner(label,hasWinner){
+ const heading=$('ptWinner');
+ if(!heading)return;
+ heading.replaceChildren();
+ if(hasWinner){
+   const trophy=node('span','pt-final-trophy','🏆');
+   trophy.setAttribute('aria-hidden','true');
+   heading.append(trophy);
+ }
+ heading.append(node('span','',label));
+}
 function renderFinalPentathlon(s){
  const root=$('ptFinalDetails');
  if(!root)return;
@@ -487,12 +499,20 @@ function renderFinalPentathlon(s){
      }
    }
  }
- const names=node('div','pt-final-players');
+ const names=node('div','pt-final-players da-result-stats');
  for(let p=0;p<2;p++){
-   const card=node('article','pt-final-player');
-   if(s.total[p]===Math.max(...s.total)&&s.total[0]!==s.total[1])card.classList.add('winner');
-   card.append(node('span','pt-final-player-name',s.players[p]),
-     node('strong','pt-final-player-points',s.total[p]+' P'));
+   const isWinner=s.total[0]!==s.total[1]&&s.total[p]>s.total[1-p];
+   const card=node('article','pt-final-player da-result-statcard');
+   if(isWinner)card.classList.add('winner');
+   // Reuse Online X01's player header, winner icon and orange winner tag.
+   const header=node('div','da-result-playerhead');
+   header.append(node('div','da-result-playericon',isWinner?'♛':
+     (String(s.players[p]||'?').trim().slice(0,1).toUpperCase()||'?')));
+   const identity=node('div','pt-final-player-identity');
+   identity.append(node('div','pt-final-player-name da-result-stat-name',s.players[p]));
+   if(isWinner)identity.append(node('span','da-result-winner-badge','VINNER'));
+   header.append(identity);
+   card.append(header,node('strong','pt-final-player-points',s.total[p]+' P'));
    const stats=node('div','pt-final-player-stats');
    for(const [label,value] of [
      ['Vunne øvelser',String(totalWins[p])],
@@ -670,7 +690,7 @@ function render(){
  }
  if(finished){
    const victor=s.total[0]===s.total[1]?'Uavgjort':s.players[s.total[0]>s.total[1]?0:1]+' vant';
-   $('ptWinner').textContent=victor;
+   renderPentathlonWinner(victor,s.total[0]!==s.total[1]);
    $('ptFinalText').textContent='Endelig resultat etter sju øvelser';
    $('ptFinalScore').textContent=s.total[0]+' – '+s.total[1];
    renderFinalPentathlon(s);
@@ -793,8 +813,9 @@ async function showFinishedResult(matchId){
      document.body.append(overlay);
      $('ptFinishedLobby').onclick=()=>location.assign('./');
    }
-   $('ptWinner').textContent=s.total[0]===s.total[1]?
-     'Uavgjort':s.players[s.total[0]>s.total[1]?0:1]+' vant';
+   renderPentathlonWinner(s.total[0]===s.total[1]?
+     'Uavgjort':s.players[s.total[0]>s.total[1]?0:1]+' vant',
+     s.total[0]!==s.total[1]);
    $('ptFinalScore').textContent=s.total[0]+' – '+s.total[1];
    renderFinalPentathlon(s);
    document.documentElement.classList.remove('da-penta-rejoin');
