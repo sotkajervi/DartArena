@@ -340,6 +340,7 @@ async function correctPentathlonVisit(index){
  if(!/^\d{1,3}$/.test(value)||!E.isScore(Number(value))){
    msg('Score må være et heltall fra 0 til 180.',true);return;
  }
+ if(Number(value)===selected.attempt)return;
  if(record.version!==expectedVersion||game().stageIndex!==expectedStage){
    msg('Kampstatus er endret. Kontroller de siste kastene før du prøver igjen.',true);return;
  }
