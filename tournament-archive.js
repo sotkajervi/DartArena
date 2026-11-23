@@ -12,7 +12,12 @@
     const group=$('groupLobby');
     if(group){
       group.classList.toggle('hidden',!hasGroups);
-      if(hasGroups){try{if(typeof loadGroupLobby==='function')await loadGroupLobby()}catch(e){console.error('Archive groups failed',e)}}
+      // Group standings and fixtures are loaded by tournament.js on finished
+      // tournaments. Avoid a second asynchronous render that could re-close them.
+      if(hasGroups&&!group.querySelector('.group-card')){
+        try{if(typeof loadGroupLobby==='function')await loadGroupLobby()}
+        catch(e){console.error('Archive groups failed',e)}
+      }
     }
     const actions=document.querySelector('.top-actions');
     if(actions&&!$('archiveStatsBtn')){const b=document.createElement('button');b.id='archiveStatsBtn';b.className='primary';b.textContent='Sluttstatistikk';b.onclick=()=>location.href=`tournament-results.html?id=${encodeURIComponent(new URLSearchParams(location.search).get('id')||'')}`;actions.insertBefore(b,$('backBtn')||null)}
