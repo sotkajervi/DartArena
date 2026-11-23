@@ -74,7 +74,7 @@ async function ensureScene(){
    const players=score.querySelector('.match-players');
    if(!players)throw Error('X01-spillerkortene mangler');
    players.id='ptBoard';
-   score.insertAdjacentHTML('afterbegin',"<div class=\"pt-stage\"><small id=\"ptProgressTitle\">ØVELSE 1 AV 7</small><strong id=\"ptStage\">501 · Leg 1</strong><span id=\"ptDescription\">Dobbel ut</span></div><div id=\"ptCounter\" hidden></div><div id=\"ptProgress\" class=\"pt-progress\" aria-label=\"Pentathlon-øvelser\"></div>");
+   score.insertAdjacentHTML('afterbegin',"<div class=\"pt-stage\"><small id=\"ptProgressTitle\">ØVELSE 1 AV 7</small><strong id=\"ptStage\">501 · Leg 1</strong><span id=\"ptDescription\">Dobbel ut</span></div><div id=\"ptCounter\" hidden></div><div id=\"ptProgress\" class=\"pt-progress\" aria-label=\"Pentathlon-øvelser\"></div><div id=\"ptStarterInfo\" class=\"pt-starter-info\" aria-live=\"off\">Starter øvelsen: <strong id=\"ptStarterName\">–</strong></div>");
    const target=node('div','pt-target');target.id='ptTarget';
    players.after(target);
    const entry=score.querySelector('.score-entry');
@@ -166,37 +166,41 @@ function actions(){
 }
 function stLabel(i){return E.STAGES[i]?.label||'Pentathlon'}
 
-// A visible rule reference for the current stage; no scoring changes.
+// Compact stage-specific scoring reference. No changes to scoring rules.
 function renderPointsGuide(s){
- const current=s.stageIndex>=E.STAGES.length?E.STAGES.length-1:s.stageIndex;
- const stageInfo=E.STAGES[current];
- if(!stageInfo)return;
- const rows=[];
+ const index=Math.min(s.stageIndex,E.STAGES.length-1),info=E.STAGES[index];
+ if(!info)return;
+ const groups=[];
  let note='';
- if(stageInfo.kind==='x01'){
-   rows.push(['95–130 per runde','+1 P'],['131–159 per runde','+2 P'],['160–180 per runde','+3 P'],['Dobbel ut / vunnet leg','+2 P']);
-   rows.push(['Utsjekk på 9 piler','+10 P'],['Utsjekk på 10–12 piler','+4 P'],['Utsjekk på 13–15 piler','+3 P'],['Utsjekk på 16–18 piler','+2 P'],['Utsjekk på 19–21 piler','+1 P']);
-   note='Poeng per registrerte runde. Bust gir 0 poeng. Utsjekkbonus kommer i tillegg.';
- }else if(stageInfo.kind==='shanghai'){
-   rows.push(['Single på riktig tall','+1 P'],['Dobbel på riktig tall','+2 P'],['Trippel på riktig tall','+3 P'],['S + D + T på samme tall i én runde','+6 P']);
-   note='Tall 1–9, tre piler per tall. Feil tall og bom gir 0 P.';
- }else if(stageInfo.kind==='clock'){
-   rows.push(['Hver riktig dobbel (D1 til D20)','+2 P'],['Fullfør D20','+1 P per ubrukt pil']);
-   note='Maks 42 piler per spiller. Bonus = 42 minus brukte piler ved fullføring.';
- }else if(stageInfo.kind==='half'){
-   rows.push(['20, 16, 14 og 17','0 P*'],['Treff på D7','+2 P'],['Treff på T10','+3 P'],['Treff på Bull 50','+2 P']);
-   note='*Den nåværende motoren gir 0 P på vanlige tallmål (kjent feil). Halvering påvirker Half-It-score, ikke opptjente Pentathlon-poeng.';
+ if(info.kind==='x01'){
+   groups.push({title:'KAST / LEG',rows:[['95–130','+1 P'],['131–159','+2 P'],['160–180','+3 P'],['Vunnet leg','+2 P']]});
+   groups.push({title:'UTSJEKK',rows:[['9 piler','+10 P'],['10–12 piler','+4 P'],['13–15 piler','+3 P'],['16–18 piler','+2 P'],['19–21 piler','+1 P']]});
+   note='Bust: 0 P · Utsjekkbonus kommer i tillegg.';
+ }else if(info.kind==='shanghai'){
+   groups.push({title:'RIKTIG TALL',rows:[['Single','+1 P'],['Dobbel','+2 P'],['Trippel','+3 P'],['S + D + T i runden','+6 P']]});
+   note='Tall 1–9 · Tre piler per tall · Feil tall: 0 P.';
+ }else if(info.kind==='clock'){
+   groups.push({title:'KLOKKA RUNDT',rows:[['Riktig dobbel','+2 P'],['Fullført D20','+1 P per ubrukt pil']]});
+   note='D1–D20 · Maks 42 piler hver.';
+ }else if(info.kind==='half'){
+   groups.push({title:'HALF-IT',rows:[['20 / 16 / 14 / 17','0 P*'],['D7','+2 P'],['T10','+3 P'],['Bull 50','+2 P']]});
+   note='*Kjent feil: vanlige tallmål gir foreløpig 0 P i motoren.';
  }
- $('ptGuideStage').textContent=stageInfo.label;
+ $('ptGuideStage').textContent=info.label;
  const host=$('ptGuideRows');host.replaceChildren();
- for(const [label,amount] of rows){
-   const line=node('div','pt-guide-row');
-   line.append(node('span','',label),node('strong','',amount));
-   host.append(line);
+ host.classList.toggle('pt-guide-two-cols',groups.length===2);
+ for(const group of groups){
+   const col=node('div','pt-guide-group');
+   col.append(node('div','pt-guide-subhead',group.title));
+   for(const [label,amount] of group.rows){
+     const line=node('div','pt-guide-row');
+     line.append(node('span','',label),node('strong','',amount));
+     col.append(line);
+   }
+   host.append(col);
  }
  $('ptGuideNote').textContent=note;
 }
-
 function render(){
  if(!record)return;
  if(!sceneReady)return;
@@ -220,6 +224,7 @@ function render(){
  $('ptCounter').textContent=finished?'FULLFØRT':'ØVELSE '+(s.stageIndex+1);
  $('ptStage').textContent=st?.label||'Pentathlon';
  $('ptDescription').textContent=st?.caption||'';
+ $('ptStarterName').textContent=s.players[c.starter]||'Spiller';
  $('ptTurn').textContent=live?s.players[c.turn]+' kaster':review?'ØVELSE FULLFØRT':'KAMP FULLFØRT';
  for(let i=0;i<2;i++){
    const entries=c.entries.filter(e=>e.player===i);
