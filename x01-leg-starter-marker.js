@@ -77,7 +77,7 @@
   // binding and alternating-leg logic below are X01-specific.
   window.DartArenaLegStarterMarkerUI=Object.freeze({create:marker});
   if(!matchId||!window.supabase||
-     (/\\/room(?:\\.html)?$/.test(location.pathname)&&!window.DartArenaMatchEngineState?.matchId?.()))return;
+     (/\/room(?:\.html)?$/.test(location.pathname)&&!window.DartArenaMatchEngineState?.matchId?.()))return;
   window.__dartArenaLegStarterMarker=true;
   const db=(window.DartArenaSupabaseClient||window.supabase.createClient(
     'https://jqpxlbhwvskhjbqrbidk.supabase.co',
