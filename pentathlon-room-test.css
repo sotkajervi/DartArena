@@ -346,3 +346,15 @@ body.pt-online-test.pt-shanghai-active .focus-input-dock .pt-choices button:disa
    grid-template-columns:repeat(2,minmax(0,1fr))
  }
 }
+
+/* Shanghai only: hit type above its keyboard shortcut, original buttons. */
+body.pt-online-test.pt-shanghai-active .focus-input-dock .pt-choices button.pt-shanghai-choice{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:4px;line-height:1.15;min-height:60px;
+}
+body.pt-online-test.pt-shanghai-active .focus-input-dock .pt-choices .pt-shanghai-choice-name{
+ display:block;color:#00eaf4;font-size:12px;font-weight:950;letter-spacing:.055em;
+}
+body.pt-online-test.pt-shanghai-active .focus-input-dock .pt-choices .pt-shanghai-choice-key{
+ display:block;color:#fff;font-size:17px;font-weight:900;
+}
