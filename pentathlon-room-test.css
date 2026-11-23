@@ -2,7 +2,6 @@
    All scene/video geometry comes from match-scene-host, opponent-focus and
    match-own-turn. This file styles only Pentathlon-specific content. */
 body.pt-online-test #cancelMatchBtn[hidden],
-body.pt-online-test #micBtn[hidden],
 body.pt-online-test #ptPanel [hidden],
 body.pt-online-test .focus-input-dock #ptX01[hidden],
 body.pt-online-test .focus-input-dock #ptSpecial[hidden]{display:none!important}
@@ -256,3 +255,6 @@ body.pt-online-test #ptPointsOverlay .pt-guide-row strong{font-size:12px}
 body.pt-online-test #ptPointsOverlay .pt-guide-note{font-size:11px;margin-top:12px}
 body.pt-online-test #ptPointsButton{white-space:nowrap}
 @media(max-width:700px){body.pt-online-test #ptPointsButton{padding:7px 8px;font-size:11px}}
+
+/* Reuse the existing X01 media buttons in the sidebar; no new media UI. */
+body.pt-online-test #ptPanel .match-info > #micBtn{display:block;width:100%;margin-top:6px}
