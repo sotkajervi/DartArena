@@ -590,3 +590,25 @@ body.pt-online-test #ptStageOverlay #ptWinner .pt-final-trophy{
   font-size:11px
  }
 }
+
+/* Pentathlon player names use the existing global OWNER/ADMIN tag; no extra
+   invented avatars or duplicate winner badges. */
+body.pt-online-test #ptStageOverlay .pt-final-player .da-result-playerhead{
+ display:flex;align-items:center;gap:0;margin:0 0 4px;min-width:0;
+}
+body.pt-online-test #ptStageOverlay .pt-final-player .pt-final-player-name.da-result-stat-name{
+ display:inline-block;max-width:100%;width:auto;font-size:13px;
+ white-space:nowrap;overflow:visible;text-overflow:clip;
+}
+body.pt-online-test #ptStageOverlay .pt-final-player .player-role-badge{
+ margin-left:7px;
+}
+body.pt-online-test #ptStageOverlay #ptWinner .da-result-winner-name{
+ color:inherit;font-weight:inherit;
+}
+@media(max-width:600px){
+ body.pt-online-test #ptStageOverlay .pt-final-player .pt-final-player-name.da-result-stat-name{
+  font-size:11px;max-width:calc(100% - 65px);
+  overflow:hidden;text-overflow:ellipsis;
+ }
+}
