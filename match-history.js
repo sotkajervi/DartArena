@@ -196,18 +196,12 @@ async function toggleTrash(){
   }
 }
 
-function x01AverageLabel(m){
+function x01AverageLabel(m,playerId){
   if(variantOf(m)!=='x01'||isChicago(m)||trashMode)return '';
-  const values=x01HistoryAverages.get(m.id);
-  const avg=(id)=>{
-    const value=values?.get(id);
-    return Number.isFinite(value)?value.toFixed(2):'–';
-  };
-  return '<div class="history-x01-averages" aria-label="3-dart-snitt for begge spillere">'+
-    '<span class="history-x01-avg-label">3-DART AVG</span>'+
-    '<span>'+esc(m.player1_name||'Spiller 1')+': <strong>'+avg(m.player1_id)+'</strong></span>'+
-    '<span>'+esc(m.player2_name||'Spiller 2')+': <strong>'+avg(m.player2_id)+'</strong></span>'+
-  '</div>';
+  const value=x01HistoryAverages.get(m.id)?.get(playerId);
+  const average=Number.isFinite(value)?value.toFixed(2):'–';
+  return '<span class="history-avg-pill" title="3-dart-snitt" aria-label="3-dart-snitt: '+average+'">'+
+    '<strong>'+average+'</strong><small>AVG</small></span>';
 }
 async function loadX01HistoryAverages(matches){
   const ids=matches.filter(m=>variantOf(m)==='x01'&&!isChicago(m)).map(m=>m.id);
@@ -259,13 +253,12 @@ function render(){
       <div class="history-main">
         <div class="history-title">
           <span class="history-game">${esc(gameLabel(m))}</span>
-          <span class="history-player${p1Winner?' winner':''}">${esc(m.player1_name||'Spiller 1')}</span>
+          <span class="history-player-block"><span class="history-player-line"><span class="history-player${p1Winner?' winner':''}">${esc(m.player1_name||'Spiller 1')}</span></span>${x01AverageLabel(m,m.player1_id)}</span>
           <span class="history-result">${a}–${b}</span>
-          <span class="history-player${p2Winner?' winner':''}">${esc(m.player2_name||'Spiller 2')}</span>
+          <span class="history-player-block"><span class="history-player-line"><span class="history-player${p2Winner?' winner':''}">${esc(m.player2_name||'Spiller 2')}</span></span>${x01AverageLabel(m,m.player2_id)}</span>
           ${draw?'<span class="history-tag">Uavgjort</span>':''}
           ${m.is_warmup?'<span class="history-tag">OPPVARMING</span>':''}
         </div>
-        ${x01AverageLabel(m)}
         <div class="history-meta">
           <span>${fmtDate(m.finished_at||m.created_at)}</span>
           <span>${esc(formatLabel(m))}</span>
