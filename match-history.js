@@ -8,6 +8,7 @@ let isAdmin=false;
 let allMatches=[];
 let deletedMatches=[];
 let tournamentStatuses=new Map();
+let x01HistoryAverages=new Map();
 let activeFilter='all';
 let trashMode=false;
 let dialogPromise=null;
@@ -195,6 +196,37 @@ async function toggleTrash(){
   }
 }
 
+function x01AverageLabel(m){
+  if(variantOf(m)!=='x01'||isChicago(m)||trashMode)return '';
+  const values=x01HistoryAverages.get(m.id);
+  const avg=(id)=>{
+    const value=values?.get(id);
+    return Number.isFinite(value)?value.toFixed(2):'–';
+  };
+  return '<div class="history-x01-averages" aria-label="3-dart-snitt for begge spillere">'+
+    '<span class="history-x01-avg-label">3-DART AVG</span>'+
+    '<span>'+esc(m.player1_name||'Spiller 1')+': <strong>'+avg(m.player1_id)+'</strong></span>'+
+    '<span>'+esc(m.player2_name||'Spiller 2')+': <strong>'+avg(m.player2_id)+'</strong></span>'+
+  '</div>';
+}
+async function loadX01HistoryAverages(matches){
+  const ids=matches.filter(m=>variantOf(m)==='x01'&&!isChicago(m)).map(m=>m.id);
+  x01HistoryAverages=new Map();
+  if(!ids.length)return;
+  // The RPC aggregates existing match_throws, using exactly the same
+  // score / darts (checkout darts_used, otherwise 3) as x01-stats.js.
+  // Batch ID lists keep the request size bounded.
+  for(let i=0;i<ids.length;i+=300){
+    const {data,error}=await db.rpc('get_x01_history_averages',{p_match_ids:ids.slice(i,i+300)});
+    if(error)throw error;
+    for(const row of data||[]){
+      let players=x01HistoryAverages.get(row.match_id);
+      if(!players){players=new Map();x01HistoryAverages.set(row.match_id,players)}
+      const value=Number(row.average);
+      if(Number.isFinite(value))players.set(row.player_id,value);
+    }
+  }
+}
 function render(){
   const mineOnly=$('mineOnly').checked;
   const source=trashMode?deletedMatches:allMatches;
@@ -233,6 +265,7 @@ function render(){
           ${draw?'<span class="history-tag">Uavgjort</span>':''}
           ${m.is_warmup?'<span class="history-tag">OPPVARMING</span>':''}
         </div>
+        ${x01AverageLabel(m)}
         <div class="history-meta">
           <span>${fmtDate(m.finished_at||m.created_at)}</span>
           <span>${esc(formatLabel(m))}</span>
@@ -281,6 +314,8 @@ async function boot(){
   const {data,error}=await db.rpc('get_global_match_history',{p_limit:300});
   if(error)throw error;
   allMatches=data||[];
+  try{await loadX01HistoryAverages(allMatches)}
+  catch(error){console.warn('Could not load X01 match averages',error)}
   if(isAdmin){
     const tournamentIds=[...new Set(allMatches.map(m=>m.tournament_id).filter(Boolean))];
     if(tournamentIds.length){
