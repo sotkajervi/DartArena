@@ -418,3 +418,93 @@ body.pt-online-test #ptPanel .match-info .pt-note{
  padding:0 0 4px;
  line-height:1.45;
 }
+
+/* Pentathlon match finish inherits the visual system of Online X01 results:
+   trophy/result header, turquoise scorecards, comprehensive stage table. */
+body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])) .pt-stage-modal{
+ width:min(790px,96vw);max-height:min(92dvh,870px);overflow:auto;
+ border:1px solid rgba(0,234,244,.65);
+ background:linear-gradient(180deg,rgba(7,24,28,.98),rgba(3,14,17,.99));
+ box-shadow:0 24px 70px rgba(0,0,0,.6),0 0 34px rgba(0,234,244,.11);
+}
+body.pt-online-test #ptStageOverlay #ptFinished{
+ padding:10px 0 0;text-align:center;
+}
+body.pt-online-test #ptStageOverlay #ptFinished>h3{
+ color:var(--amber,#f5aa28);font-size:clamp(25px,3.5vw,37px);
+ font-weight:950;margin:8px 0 5px;
+}
+body.pt-online-test #ptStageOverlay #ptFinished>p{color:#aac6ca;margin:3px 0 8px}
+body.pt-online-test #ptStageOverlay #ptFinalScore{
+ display:block;width:max-content;max-width:100%;margin:10px auto 16px;
+ padding:9px 24px;border:1px solid rgba(0,234,244,.5);
+ border-radius:12px;background:rgba(0,234,244,.05);
+ color:#f2f7f7;font-size:clamp(32px,5vw,46px);line-height:1.1;font-weight:950;
+}
+body.pt-online-test #ptStageOverlay .pt-final-details{display:grid;gap:17px;text-align:left}
+body.pt-online-test #ptStageOverlay .pt-final-players{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px
+}
+body.pt-online-test #ptStageOverlay .pt-final-player{
+ min-width:0;padding:13px 15px;border:1px solid #2b454c;
+ border-radius:12px;background:#101e22
+}
+body.pt-online-test #ptStageOverlay .pt-final-player.winner{
+ border-color:rgba(0,234,244,.7);box-shadow:0 0 12px rgba(0,234,244,.09)
+}
+body.pt-online-test #ptStageOverlay .pt-final-player-name{
+ display:block;font-size:13px;font-weight:900;overflow-wrap:anywhere
+}
+body.pt-online-test #ptStageOverlay .pt-final-player-points{
+ display:block;color:#00eaf4;font-size:29px;margin:4px 0 9px
+}
+body.pt-online-test #ptStageOverlay .pt-final-player-stats{display:grid;gap:5px}
+body.pt-online-test #ptStageOverlay .pt-final-stat{
+ display:flex;justify-content:space-between;gap:9px;
+ font-size:12px;border-top:1px solid rgba(255,255,255,.07);
+ padding-top:5px
+}
+body.pt-online-test #ptStageOverlay .pt-final-stat span{color:#a1bfc3}
+body.pt-online-test #ptStageOverlay .pt-final-stat b{color:#f2f7f7}
+body.pt-online-test #ptStageOverlay .pt-final-breakdown h4{
+ color:#00eaf4;font-size:12px;letter-spacing:.1em;margin:0 0 9px
+}
+body.pt-online-test #ptStageOverlay .pt-final-table-scroll{
+ width:100%;overflow-x:auto;border:1px solid #2b454c;border-radius:11px
+}
+body.pt-online-test #ptStageOverlay .pt-final-table{
+ width:100%;border-collapse:collapse;font-size:12px;
+}
+body.pt-online-test #ptStageOverlay .pt-final-table th{
+ color:#9fbec2;font-size:10px;letter-spacing:.04em;text-align:left;
+ background:#11272b;padding:10px 9px
+}
+body.pt-online-test #ptStageOverlay .pt-final-table td{
+ padding:9px;border-top:1px solid rgba(255,255,255,.085);
+ vertical-align:middle
+}
+body.pt-online-test #ptStageOverlay .pt-final-table th:not(:first-child),
+body.pt-online-test #ptStageOverlay .pt-final-table td:not(:first-child){
+ text-align:center
+}
+body.pt-online-test #ptStageOverlay .pt-final-table .pt-final-high{
+ color:#00eaf4;font-weight:950
+}
+body.pt-online-test #ptStageOverlay .pt-final-stage-name strong{display:block}
+body.pt-online-test #ptStageOverlay .pt-final-stage-name small{
+ display:block;color:#8eadb3;font-size:10px;margin-top:2px
+}
+body.pt-online-test #ptStageOverlay .pt-final-total{
+ color:#f2f7f7;font-weight:950;background:rgba(0,234,244,.09)
+}
+body.pt-online-test #ptStageOverlay .pt-final-footnote{
+ color:#92aeb4;font-size:11px;line-height:1.45;margin:0
+}
+@media(max-width:600px){
+ body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])) .pt-stage-modal{padding:16px}
+ body.pt-online-test #ptStageOverlay .pt-final-players{gap:7px}
+ body.pt-online-test #ptStageOverlay .pt-final-player{padding:9px 8px}
+ body.pt-online-test #ptStageOverlay .pt-final-player-name{font-size:11px}
+ body.pt-online-test #ptStageOverlay .pt-final-player-points{font-size:23px}
+ body.pt-online-test #ptStageOverlay .pt-final-table{min-width:510px}
+}
