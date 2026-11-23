@@ -53,7 +53,7 @@ async function resumeAcceptedChallenge(challenge){
   if(challenge.status!=='accepted')return false;
   const key='dartarena-challenge-match:'+challengeId;
   const players=[challenge.challenger_id,challenge.challenged_id];
-  const validMatch=m=>m&&['playing','live'].includes(m.status)&&
+  const validMatch=m=>m&&['playing','live','finished'].includes(m.status)&&
     players.includes(m.player1_id)&&players.includes(m.player2_id)&&
     m.player1_id!==m.player2_id;
   let active=null;
@@ -69,6 +69,10 @@ async function resumeAcceptedChallenge(challenge){
         .select('id,player1_id,player2_id,status,game_variant,created_at')
         .eq('id',id).maybeSingle();
       if(!error&&validMatch(data)&&Date.parse(data.created_at)>=Date.parse(challenge.created_at)){
+        // A finished Pentathlon match has an immutable saved result. Reopen
+        // that result exactly like the regular X01 finished-match view.
+        // Do NOT attempt to resurrect its SFU camera or active match room.
+        if(data.status==='finished'&&data.game_variant!=='pentathlon')continue;
         active=data;break;
       }
       if(error)console.warn('[room resume] Match lookup failed',error.message);
@@ -96,6 +100,8 @@ async function resumeAcceptedChallenge(challenge){
   if(!active)return false;
   try{sessionStorage.setItem(key,active.id)}catch{}
   window.DartArenaMediaTrace?.mark('ROOM_RELOAD_REJOIN',{matchId:active.id.slice(0,8)});
+  if(active.game_variant==='pentathlon'&&active.status==='finished')
+    return {finishedPentathlonMatchId:active.id};
   if(active.game_variant==='pentathlon')return {pentathlonMatchId:active.id};
   location.replace(pageForVariant(active.game_variant)+'?id='+encodeURIComponent(active.id));
   return true;
@@ -107,6 +113,14 @@ $('legsModeBtn').onclick=()=>setMatchMode('legs');$('setsModeBtn').onclick=()=>s
 (async()=>{const{data:{session}}=await db.auth.getSession();if(!session||!challengeId)return location.replace('./');({data:profile}=await db.from('profiles').select('*').eq('id',session.user.id).single());const{data,error}=await db.from('challenges').select('*').eq('id',challengeId).single();c=data;if(error||!c||![c.challenger_id,c.challenged_id].includes(profile.id))return location.replace('./');if(c.status==='accepted'){
  const resumed=await resumeAcceptedChallenge(c);
  if(resumed===true)return;
+ if(resumed?.finishedPentathlonMatchId){
+   // The Pentathlon result presenter reuses the same stored seven-stage
+   // result rendering used after the last leg. No new match, no media startup.
+   window.DartArenaPentathlonFinishedMatchId=resumed.finishedPentathlonMatchId;
+   const finish=window.DartArenaPentathlonMatchTest;
+   if(finish?.showFinishedResult)finish.showFinishedResult(resumed.finishedPentathlonMatchId);
+   return;
+ }
  if(resumed?.pentathlonMatchId){
    window.DartArenaPentathlonResumeMatchId=resumed.pentathlonMatchId;
    // Pentathlon boot runs independently; deliver rejoin even if it booted first.
