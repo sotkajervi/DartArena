@@ -45,7 +45,7 @@
  }
  window.DartArenaChallengeSamePageHandoff={
    finishMediaHandoff,
-   async enter({liveMatchId,challengeId}={}){
+   async enter({liveMatchId,challengeId,resuming=false}={}){
      if(entering)return true;
      if(!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(liveMatchId||''))return false;
      const state=window.DartArenaChallengeRoomState;
@@ -53,10 +53,11 @@
      if(!client||!state?.user?.())return false;
      // Validate match membership before taking ownership of media.
      const {data:match,error}=await client.from('matches')
-       .select('id,player1_id,player2_id,status')
+       .select('id,player1_id,player2_id,status,game_variant')
        .eq('id',liveMatchId).maybeSingle();
      if(error||!match||!['playing','live'].includes(match.status)||
         ![match.player1_id,match.player2_id].includes(state.user()))return false;
+     const pentathlon=match.game_variant==='pentathlon';
      entering=true;
      window.DartArenaMediaTrace?.mark('HANDOFF_BEGIN',{kind:'challenge',liveMatchId:String(liveMatchId).slice(0,8)});
      let released=false;
@@ -70,6 +71,15 @@
        window.DartArenaMediaTrace?.mark('MATCH_SCENE_VISIBLE');
        document.body.classList.add('match-page');
        document.body.classList.remove('da-prematch-active');
+       // On refresh the original room channel may still be initializing camera.
+       // The standard X01 engine owns the tracks after capture transfer.
+       if(pentathlon){
+         const cameraDeadline=Date.now()+20000;
+         while(!state.stream()?.getVideoTracks?.().some(t=>t.readyState==='live')){
+           if(Date.now()>cameraDeadline)throw Error('Kamera fra venterommet ble ikke klart');
+           await new Promise(resolve=>setTimeout(resolve,250));
+         }
+       }
        // Stage the same local tracks while the waiting room remains connected.
        // Only the match engine may claim this capture.
        if(!window.DartArenaCaptureHandoff?.transfer?.(state.stream())){
@@ -80,10 +90,25 @@
        // The match page owns the new authenticated SFU session.
        await script('match-preferred-media.js?v=20261031-owner1');
        // Module scope isolates match.js declarations from classic room.js globals.
-       await script('match.js?v=20261121-score-sync1',{module:true});
+       await script('match.js?v=20261123-common-x01-bridge16',{module:true});
        if(typeof window.DartArenaBootLiveMatch!=='function')throw Error('Kampmotor mangler');
        await window.DartArenaBootLiveMatch(liveMatchId);
        window.DartArenaMediaTrace?.mark('MATCH_ENGINE_BOOTED');
+       // Pentathlon uses the same X01 match.js camera and media router, but
+       // does not load X01 scoring, statistics or checkout controllers.
+       if(pentathlon){
+         await script('match-media-router.js?v=20261104-preserve-challenge1');
+         const test=window.DartArenaPentathlonMatchTest;
+         if(typeof test?.enter!=='function')throw Error('Pentathlon-spillmotoren er ikke lastet');
+         await test.enter({matchId:liveMatchId,resuming,mediaManaged:true});
+         await finishMediaHandoff({
+           client,matchId:liveMatchId,me:state.user(),
+           opponent:match.player1_id===state.user()?match.player2_id:match.player1_id,
+           resuming
+         });
+         released=true;
+         return true;
+       }
        // Load the existing match modules only after the room is released and
        // scoring has an authenticated live-match ID. Reuse scripts already on
        // the tournament page instead of initializing duplicate media listeners.
@@ -137,6 +162,13 @@
      }catch(err){
        window.DartArenaMediaTrace?.mark('HANDOFF_FAILED',err?.message||String(err));
        console.error('[same-page match handoff]',err);
+       if(pentathlon){
+         // Never navigate a Pentathlon match to the X01 scoring page.
+         // Leave the match open for diagnostics instead of silently returning to lobby.
+         const message=document.getElementById('ptMessage')||document.getElementById('roomMessage');
+         if(message)message.textContent='Pentathlon-video: '+(err?.message||String(err));
+         return true;
+       }
        // Scoring may already have booted, so a clean navigation is safer
        // than trying to resume the old room with two engines active.
        if(!released)window.DartArenaCaptureHandoff?.discard?.();
