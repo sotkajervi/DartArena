@@ -304,31 +304,25 @@ body.pt-online-test #ptStageOverlay .pt-brand-heading span:first-child{color:var
 body.pt-online-test #ptStageOverlay .pt-brand-heading span:last-child{color:var(--text,#f2f7f7)}
 body.pt-online-test #ptThrowLog[hidden]{display:none!important}
 
-/* Shanghai: show the same S/D/T selection for both players.
-   When waiting for the opponent, inputs remain disabled by choice().
-   Scope strictly to Shanghai, without changing ordinary X01 turn layout. */
+/* Shanghai uses the standard Online X01 turn focus:
+   show the scoring dock ONLY for the current thrower.
+   The opponent sees the full-height camera, without scoring controls. */
 @media (min-width:801px){
- body.pt-online-test.pt-shanghai-active.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)){
+ body.pt-online-test.pt-shanghai-active.own-turn-focus.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)){
    --da-x01-input-reserve:180px!important;
  }
- body.pt-online-test.pt-shanghai-active.match-page.match-tv-layout.standard-tv-layout #videoGrid{
+ body.pt-online-test.pt-shanghai-active.own-turn-focus.match-page.match-tv-layout.standard-tv-layout #videoGrid{
    height:calc(var(--da-x01-frame-height) - var(--da-x01-input-reserve))!important;
    max-height:calc(var(--da-x01-frame-height) - var(--da-x01-input-reserve))!important;
    align-self:start!important;
  }
- body.pt-online-test.pt-shanghai-active.match-page.match-tv-layout.standard-tv-layout .focus-input-dock{
-   grid-area:video!important;
-   align-self:end!important;
-   z-index:5;
-   min-width:0;
-   margin:0!important;
- }
 }
-body.pt-online-test.pt-shanghai-active.match-page.match-tv-layout.standard-tv-layout.opponent-focus .focus-input-dock,
-body.pt-online-test.pt-shanghai-active.match-page.match-tv-layout.standard-tv-layout .focus-input-dock{
- display:block!important;
+/* Match the normal X01 hidden dock on every screen size, even with
+   Shanghai's active styling present. */
+body.pt-online-test.pt-shanghai-active.opponent-focus.match-page.match-tv-layout.standard-tv-layout .focus-input-dock{
+ display:none!important;
 }
-body.pt-online-test.pt-shanghai-active .focus-input-dock #ptSpecial{
+body.pt-online-test.pt-shanghai-active.own-turn-focus.match-page.match-tv-layout.standard-tv-layout .focus-input-dock #ptSpecial{
  display:grid!important;
 }
 body.pt-online-test.pt-shanghai-active .focus-input-dock .pt-choices{
@@ -337,13 +331,9 @@ body.pt-online-test.pt-shanghai-active .focus-input-dock .pt-choices{
 body.pt-online-test.pt-shanghai-active .focus-input-dock .pt-choices button{
  min-width:0;padding:9px 5px;font-size:12px;font-weight:900;
 }
-body.pt-online-test.pt-shanghai-active .focus-input-dock .pt-choices button:disabled{
- opacity:.55;cursor:not-allowed;
-}
 @media(max-width:800px){
- body.pt-online-test.pt-shanghai-active .focus-input-dock{display:block!important}
  body.pt-online-test.pt-shanghai-active .focus-input-dock .pt-choices{
-   grid-template-columns:repeat(2,minmax(0,1fr))
+   grid-template-columns:repeat(2,minmax(0,1fr));
  }
 }
 
