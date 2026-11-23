@@ -506,11 +506,12 @@ function renderFinalPentathlon(s){
    label.append(node('strong','',(i+1)+'. '+def.label));
    const details=[];
    if(item?.kind==='x01'){
-     const finished=item.winner;
-     if(finished===0||finished===1)details.push('Leg: '+s.players[finished]);
+     const winner=item.winner;
+     if(winner===0||winner===1)details.push('Leg: '+s.players[winner]);
    }else if(item?.kind==='shanghai')details.push('1–9 · S/D/T');
    else if(item?.kind==='clock')details.push('D1–D20');
    else if(item?.kind==='half')details.push('7 runder');
+   if(item?.used)details.push('Piler: '+item.used[0]+' / '+item.used[1]);
    if(details.length)label.append(node('small','',details.join(' · ')));
    tr.append(label);
    const a=Number(item?.pent?.[0]||0),b=Number(item?.pent?.[1]||0);
