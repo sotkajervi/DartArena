@@ -159,13 +159,13 @@ body.pt-online-test .pt-results-body .pt-log{display:grid;gap:5px;max-height:180
 }
 
 /* Stage-specific points explanation in the available match-status sidebar. */
-body.pt-online-test #ptPanel .pt-points-guide{margin:12px 0 0;padding:11px 0 4px;border-top:1px solid #2d535a}
-body.pt-online-test #ptPanel .pt-guide-heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px;font-size:11px;font-weight:900;letter-spacing:.06em;color:#00eaf4}
-body.pt-online-test #ptPanel .pt-guide-heading small{font-size:10px;font-weight:700;letter-spacing:0;color:#9fc0c5}
-body.pt-online-test #ptPanel .pt-guide-rows{display:grid;gap:0;margin-top:9px}
-body.pt-online-test #ptPanel .pt-guide-row{display:flex;align-items:baseline;justify-content:space-between;gap:9px;padding:6px 1px;border-bottom:1px solid rgba(66,119,127,.23);font-size:11px;color:#d5e6e8;line-height:1.25}
-body.pt-online-test #ptPanel .pt-guide-row strong{font-size:12px;font-weight:900;color:#00eaf4;white-space:nowrap}
-body.pt-online-test #ptPanel .pt-guide-note{font-size:10px;line-height:1.45;color:#9abdc2;margin:9px 1px 0}
+body.pt-online-test #ptPointsOverlay .pt-points-guide{margin:12px 0 0;padding:11px 0 4px;border-top:1px solid #2d535a}
+body.pt-online-test #ptPointsOverlay .pt-guide-heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px;font-size:11px;font-weight:900;letter-spacing:.06em;color:#00eaf4}
+body.pt-online-test #ptPointsOverlay .pt-guide-heading small{font-size:10px;font-weight:700;letter-spacing:0;color:#9fc0c5}
+body.pt-online-test #ptPointsOverlay .pt-guide-rows{display:grid;gap:0;margin-top:9px}
+body.pt-online-test #ptPointsOverlay .pt-guide-row{display:flex;align-items:baseline;justify-content:space-between;gap:9px;padding:6px 1px;border-bottom:1px solid rgba(66,119,127,.23);font-size:11px;color:#d5e6e8;line-height:1.25}
+body.pt-online-test #ptPointsOverlay .pt-guide-row strong{font-size:12px;font-weight:900;color:#00eaf4;white-space:nowrap}
+body.pt-online-test #ptPointsOverlay .pt-guide-note{font-size:10px;line-height:1.45;color:#9abdc2;margin:9px 1px 0}
 
 /* Pentathlon starter comes from the stored stage starter (not the current turn). */
 body.pt-online-test #ptPanel .pt-starter-info{
@@ -174,28 +174,28 @@ body.pt-online-test #ptPanel .pt-starter-info{
 }
 body.pt-online-test #ptPanel .pt-starter-info strong{color:#00eaf4;font-weight:900}
 /* Two short columns keep every X01 points rule in view without scrolling. */
-body.pt-online-test #ptPanel .pt-points-guide{
+body.pt-online-test #ptPointsOverlay .pt-points-guide{
  margin:7px 0 0;padding:7px 0 1px;min-width:0
 }
-body.pt-online-test #ptPanel .pt-guide-heading{font-size:10px}
-body.pt-online-test #ptPanel .pt-guide-rows{
+body.pt-online-test #ptPointsOverlay .pt-guide-heading{font-size:10px}
+body.pt-online-test #ptPointsOverlay .pt-guide-rows{
  display:grid;grid-template-columns:minmax(0,1fr);
  gap:8px;margin-top:5px;min-width:0
 }
-body.pt-online-test #ptPanel .pt-guide-rows.pt-guide-two-cols{
+body.pt-online-test #ptPointsOverlay .pt-guide-rows.pt-guide-two-cols{
  grid-template-columns:repeat(2,minmax(0,1fr));gap:9px
 }
-body.pt-online-test #ptPanel .pt-guide-group{min-width:0}
-body.pt-online-test #ptPanel .pt-guide-subhead{
+body.pt-online-test #ptPointsOverlay .pt-guide-group{min-width:0}
+body.pt-online-test #ptPointsOverlay .pt-guide-subhead{
  font-size:9px;color:#93bfc4;font-weight:900;
  letter-spacing:.04em;padding-bottom:3px
 }
-body.pt-online-test #ptPanel .pt-guide-row{
+body.pt-online-test #ptPointsOverlay .pt-guide-row{
  display:flex;align-items:center;justify-content:space-between;min-width:0;
  gap:3px;padding:3px 0;font-size:10px;line-height:1.2
 }
-body.pt-online-test #ptPanel .pt-guide-row strong{font-size:10px;white-space:nowrap}
-body.pt-online-test #ptPanel .pt-guide-note{
+body.pt-online-test #ptPointsOverlay .pt-guide-row strong{font-size:10px;white-space:nowrap}
+body.pt-online-test #ptPointsOverlay .pt-guide-note{
  font-size:9px;line-height:1.3;margin:5px 0 0
 }
 
@@ -243,3 +243,16 @@ body.pt-online-test #ptPanel #ptShowStageResult{width:100%;margin-top:8px}
 @media(max-width:420px){
  body.pt-online-test .pt-stage-modal #ptReviewDetails{grid-template-columns:1fr}
 }
+
+/* Rules use the same native dialog surface as the stage-result dialog. */
+body.pt-online-test #ptPointsOverlay[hidden]{display:none!important}
+body.pt-online-test #ptPointsOverlay{z-index:50001}
+body.pt-online-test #ptPointsOverlay .pt-points-modal{width:min(510px,94vw);max-height:85dvh;overflow:auto}
+body.pt-online-test #ptPointsOverlay .pt-points-guide{margin-top:12px}
+body.pt-online-test #ptPointsOverlay .pt-guide-heading{font-size:13px}
+body.pt-online-test #ptPointsOverlay .pt-guide-rows{margin-top:12px}
+body.pt-online-test #ptPointsOverlay .pt-guide-row{padding:7px 0;font-size:12px}
+body.pt-online-test #ptPointsOverlay .pt-guide-row strong{font-size:12px}
+body.pt-online-test #ptPointsOverlay .pt-guide-note{font-size:11px;margin-top:12px}
+body.pt-online-test #ptPointsButton{white-space:nowrap}
+@media(max-width:700px){body.pt-online-test #ptPointsButton{padding:7px 8px;font-size:11px}}
