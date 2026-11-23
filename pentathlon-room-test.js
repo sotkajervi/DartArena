@@ -12,7 +12,8 @@ let lastCompletionPopupKey=null;
 const copy=o=>JSON.parse(JSON.stringify(o));
 const clean=o=>{const a=copy(o);delete a.undo;return a};
 const game=()=>record?.state,stage=()=>game()?.current;
-const player=()=>uid===challenge?.challenger_id?0:1;
+let matchPlayerIds=null;
+const player=()=>matchPlayerIds?matchPlayerIds.indexOf(uid):(uid===challenge?.challenger_id?0:1);
 const mine=()=>game()?.status==='playing'&&stage()?.turn===player();
 const msg=(s,bad=false)=>{const el=$('ptMessage');if(el){el.textContent=s;el.classList.toggle('error',bad)}};
 function node(tag,cls,value){const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el}
@@ -422,18 +423,18 @@ async function enter({matchId,resuming=false,mediaManaged=false}={}){
  if(!mediaManaged||window.DartArenaMatchEngineState?.matchId?.()!==matchId)
    throw Error('Pentathlon må åpnes gjennom felles X01-kampmotor');
  entering=(async()=>{
-   if(!uid||!challenge){
-     for(let i=0;i<50&&(!uid||!challenge);i++)await new Promise(r=>setTimeout(r,100));
-     if(!uid||!challenge)throw Error('Venterommets sesjon er ikke klar');
-   }
+   await bootPromise;
+   if(!uid||!challenge)throw Error('Pentathlon-sesjonen er ikke klar');
    const {data:m,error}=await db.from('matches')
      .select('id,player1_id,player2_id,match_starter_id,status,game_variant')
      .eq('id',matchId).maybeSingle();
    if(error||!m||m.game_variant!=='pentathlon'||m.status!=='playing'||
       ![m.player1_id,m.player2_id].includes(uid)||
-      m.player1_id!==challenge.challenger_id||m.player2_id!==challenge.challenged_id){
+      ![challenge.challenger_id,challenge.challenged_id].includes(m.player1_id)||
+     ![challenge.challenger_id,challenge.challenged_id].includes(m.player2_id)){
      throw error||Error('Ugyldig Pentathlon-kamp');
    }
+   matchPlayerIds=[m.player1_id,m.player2_id];
    activeMatchId=m.id;
    try{
      sessionStorage.setItem('dartarena-challenge-match:'+challengeId,m.id);
@@ -454,7 +455,12 @@ async function enter({matchId,resuming=false,mediaManaged=false}={}){
    record=data;pending=[];
    await ensureScene();render();msg('Pentathlon Online · X01-kampmotor aktiv');
  })();
- try{await entering}finally{entering=null}
+ try{await entering}
+ catch(error){
+   console.error('[Pentathlon init failed]',error);
+   window.DartArenaMediaTrace?.mark('PENTATHLON_INIT_FAILED',error?.message||String(error));
+   throw error;
+ }finally{entering=null}
 }
 async function save(action,next){
  if(!record||saving)return;
@@ -522,9 +528,12 @@ function undo(){
 async function boot(){
  await setup();
  for(let i=0;i<100&&!R.user();i++)await new Promise(resolve=>setTimeout(resolve,100));
- uid=R.user();if(!uid)return;
+ uid=R.user();
+ if(!uid)throw Error('Pentathlon: spillerens innlogging ble ikke klar');
  const {data,error}=await db.from('challenges').select('id,challenger_id,challenged_id,status').eq('id',challengeId).maybeSingle();
- if(error||!data||!['room','accepted'].includes(data.status)||![data.challenger_id,data.challenged_id].includes(uid))return;
+ if(error)throw Error('Pentathlon: kunne ikke hente utfordring: '+error.message);
+ if(!data||!['room','accepted'].includes(data.status)||![data.challenger_id,data.challenged_id].includes(uid))
+   throw Error('Pentathlon: spiller eller utfordring er ikke gyldig');
  challenge=data;
  const {data:isOwner}=await db.rpc('is_owner');
  const option=document.querySelector('#roomGame option[value="pentathlon"]');
@@ -544,6 +553,13 @@ window.addEventListener('dartarena:pentathlon-resume',event=>{
  resumeMatchId=matchId;
  // The room launcher hands this ID to the X01 bridge; no separate media startup.
 });
-window.DartArenaPentathlonMatchTest=Object.freeze({enter});
-boot().catch(e=>console.warn('Pentathlon match test failed',e));
+const bootPromise=boot();
+window.DartArenaPentathlonMatchTest=Object.freeze({
+ enter,
+ ready:()=>bootPromise,
+});
+bootPromise.catch(e=>{
+ console.error('[Pentathlon boot]',e);
+ window.DartArenaMediaTrace?.mark('PENTATHLON_BOOT_FAILED',e?.message||String(e));
+});
 })();
