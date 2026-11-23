@@ -32,6 +32,11 @@ function setup(){
    }
  });
 }
+// Shared by scene setup and render: focus the action, never the dialog card.
+function focusStageAction(){
+ const action=$('ptReview')?.hidden ? $('ptCloseStageModal') : $('ptAdvance');
+ action?.focus({preventScroll:true});
+}
 async function ensureScene(){
  if(sceneReady)return;
  if(sceneLoading)return sceneLoading;
@@ -149,13 +154,6 @@ async function ensureScene(){
    // Attaching inside #matchView allowed match-room styles and layout
    // constraints to leak into the modal; dialogs belong under <body>.
    document.body.appendChild(stageOverlay);
-   // The card has tabindex=-1 for semantics; focusing the card itself draws
-   // a bright browser-default focus outline that is NOT DartArena's border.
-   // Move focus to the existing modal action instead, as standard dialogs do.
-   const focusStageAction=()=>{
-     const action=$('ptReview')?.hidden ? $('ptCloseStageModal') : $('ptAdvance');
-     action?.focus({preventScroll:true});
-   };
    const closeStage=()=>{
      stageOverlay.hidden=true;
      $('ptShowStageResult')?.focus();
