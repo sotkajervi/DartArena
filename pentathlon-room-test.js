@@ -762,10 +762,11 @@ async function showFinishedResult(matchId){
    document.title='DartArena • Pentathlon-resultat';
    let overlay=$('ptStageOverlay');
    if(!overlay){
-     overlay=node('div','da-dialog-layer');
+     // Finished games use the ORIGINAL X01 result overlay. The regular
+     // dialog backdrop would stack over .da-result-card and hide it.
+     overlay=node('div','da-result-overlay');
      overlay.id='ptStageOverlay';
-     overlay.innerHTML='<div class="da-dialog-backdrop"></div>'+
-       '<section class="da-result-card da-result-card--match pt-stage-modal" role="dialog" aria-modal="true" aria-labelledby="ptWinner">'+
+     overlay.innerHTML='<section class="da-result-card da-result-card--match pt-stage-modal" role="dialog" aria-modal="true" aria-labelledby="ptWinner">'+
        '<h2 class="da-result-kicker">PENTATHLON · KAMP FERDIG</h2>'+
        '<div id="ptFinished" class="pt-finished">'+
        '<small>ALLE SJU ØVELSER FULLFØRT</small>'+
