@@ -370,3 +370,51 @@ body.pt-online-test .focus-input-dock .pt-special-action-name{
 body.pt-online-test .focus-input-dock .pt-special-action-shortcut{
  display:block;color:#fff;font-size:14px;font-weight:900;
 }
+
+/* The same Shanghai two-line hit/shortcut styling covers BOM / 0. */
+
+/* On the turquoise primary action, black text has sufficient contrast.
+   Other outline actions keep turquoise name and white shortcut. */
+body.pt-online-test .focus-input-dock #ptSSubmit.pt-special-action-key .pt-special-action-name,
+body.pt-online-test .focus-input-dock #ptSSubmit.pt-special-action-key .pt-special-action-shortcut{
+ color:#051719!important;
+ opacity:1;
+}
+
+/* One continuous Pentathlon sidebar: the existing X01 score card and
+   match-status card share the border instead of appearing as two boxes.
+   Allow the LEFT COLUMN to scroll on shorter displays; never clip
+   the Owner-test text or media controls inside match-info. */
+body.pt-online-test.match-page.match-tv-layout.standard-tv-layout #ptPanel.match-grid{
+ overflow-y:auto!important;
+ overflow-x:hidden!important;
+ scrollbar-width:thin;
+ gap:0!important;
+ align-content:start!important;
+}
+body.pt-online-test.match-page.match-tv-layout.standard-tv-layout #ptPanel.match-grid>.score-card{
+ margin:0!important;
+ border-bottom:0!important;
+ border-bottom-left-radius:0!important;
+ border-bottom-right-radius:0!important;
+ flex:0 0 auto!important;
+}
+body.pt-online-test.match-page.match-tv-layout.standard-tv-layout #ptPanel.match-grid>.match-info{
+ margin:0!important;
+ border-top:1px solid rgba(0,234,244,.12)!important;
+ border-top-left-radius:0!important;
+ border-top-right-radius:0!important;
+ overflow:visible!important;
+ min-height:0!important;
+ height:auto!important;
+ flex:0 0 auto!important;
+ padding-bottom:12px!important;
+}
+body.pt-online-test #ptPanel .match-info .pt-note{
+ display:block;
+ white-space:normal;
+ overflow:visible;
+ margin:10px 0 0;
+ padding:0 0 4px;
+ line-height:1.45;
+}
