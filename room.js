@@ -57,13 +57,21 @@ async function resumeAcceptedChallenge(challenge){
     players.includes(m.player1_id)&&players.includes(m.player2_id)&&
     m.player1_id!==m.player2_id;
   let active=null;
+  // The match URL is the authoritative rejoin pointer for Pentathlon. It
+  // survives Ctrl+F5 even if Supabase Realtime has not rejoined yet.
+  const directId=new URLSearchParams(location.search).get('ptMatch');
+  const validId=id=>/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(id||'');
   try{
-    const savedId=sessionStorage.getItem(key);
-    if(savedId&&/^[0-9a-f-]{36}$/i.test(savedId)){
+    const storedId=sessionStorage.getItem(key);
+    for(const id of [directId,storedId]){
+      if(!validId(id))continue;
       const {data,error}=await db.from('matches')
         .select('id,player1_id,player2_id,status,game_variant,created_at')
-        .eq('id',savedId).maybeSingle();
-      if(!error&&validMatch(data)&&Date.parse(data.created_at)>=Date.parse(challenge.created_at))active=data;
+        .eq('id',id).maybeSingle();
+      if(!error&&validMatch(data)&&Date.parse(data.created_at)>=Date.parse(challenge.created_at)){
+        active=data;break;
+      }
+      if(error)console.warn('[room resume] Match lookup failed',error.message);
     }
   }catch(error){console.debug('[room resume] Stored match unavailable',error)}
   // Compatibility with matches already under way before the mapping was saved.
@@ -104,7 +112,13 @@ $('legsModeBtn').onclick=()=>setMatchMode('legs');$('setsModeBtn').onclick=()=>s
    // Pentathlon boot runs independently; deliver rejoin even if it booted first.
    window.dispatchEvent(new CustomEvent('dartarena:pentathlon-resume',{detail:{matchId:resumed.pentathlonMatchId}}));
  }
- else return location.replace('./');
+ else {
+   // Never send an accepted live challenge to lobby on a transient lookup miss.
+   // Leave the original room open and surface the problem for recovery.
+   console.warn('[room resume] Accepted challenge had no uniquely resolved live match');
+   const notice=document.getElementById('roomMessage');
+   if(notice)notice.textContent='Kunne ikke gjenfinne aktiv kamp. Prøv Oppdater. Kampen er ikke avsluttet.';
+ }
 }if(!['room','accepted'].includes(c.status))return location.replace('./');other=profile.id===c.challenger_id?c.challenged_id:c.challenger_id;const{data:p}=await db.from('profiles').select('id,username').in('id',[profile.id,other]);names=Object.fromEntries((p||[]).map(x=>[x.id,x.username]));$('roomTitle').textContent=`${names[profile.id]||'Spiller'} vs ${names[other]||'Spiller'}`;$('localVideoName').textContent=names[profile.id]||'Spiller';$('remoteVideoName').textContent=names[other]||'Spiller';setupChannel()})();
 function setupChannel(){channel=db.channel('room-'+challengeId).on('broadcast',{event:'ready'},async({payload})=>{if(payload.from!==other)return;remoteReady=true;await connectIfReady()}).on('broadcast',{event:'signal'},async({payload})=>{if(payload.from!==other)return;remoteReady=true;await handleSignal(payload)}).on('broadcast',{event:'proposal'},({payload})=>{if(payload.from!==profile.id)showProposal(payload)}).on('broadcast',{event:'proposal-rejected'},({payload})=>{if(payload.from!==profile.id)$('roomMessage').textContent='Motstanderen avslo kampforslaget.'}).on('broadcast',{event:'room-cancelled'},({payload})=>{if(payload.from!==profile.id)closeRoomTab('Motstanderen avsluttet venterommet.')}).on('broadcast',{event:'match-start'},({payload})=>{if(!payload.matchId)return;try{sessionStorage.setItem('dartarena-challenge-match:'+challengeId,payload.matchId)}catch{}window.DartArenaChallengeStart?.open?.(payload.matchId,payload.gameVariant,{startAt:payload.startAt})|| (location.href=`${pageForVariant(payload.gameVariant)}?id=${encodeURIComponent(payload.matchId)}`)}).subscribe(async s=>{if(s==='SUBSCRIBED'){await startCamera();startHandshake()}})}
 function startHandshake(){clearInterval(helloTimer);helloTimer=setInterval(async()=>{if(!localReady||leaving)return;await send('ready');if(remoteReady&&(!pc||['failed','closed'].includes(pc.connectionState)))await restartPeer()},1500)}
