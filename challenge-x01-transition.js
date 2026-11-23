@@ -26,6 +26,13 @@
      const {data:match,error}=await db.from('matches').select('id,game,current_leg,game_variant,game_config,player1_id,player2_id,status').eq('id',matchId).maybeSingle();
      if(error||!match||![match.player1_id,match.player2_id].includes(user))throw error||new Error('Match access denied');
      if(match.game_variant==='pentathlon'){
+       // X01 match.js identifies the same-document live-match boot by this flag.
+       // Keep this consistent even for challenges opened without the test URL.
+       if(new URLSearchParams(location.search).get('challengeSeamlessDev')!=='1'){
+         const url=new URL(location.href);
+         url.searchParams.set('challengeSeamlessDev','1');
+         history.replaceState(history.state,'',url.href);
+       }
        const bridge=window.DartArenaChallengeSamePageHandoff;
        if(typeof bridge?.enter!=='function')throw Error('Felles X01-kampovergang mangler');
        if(Number.isFinite(Number(startAt))&&Number(startAt)>Date.now()){
