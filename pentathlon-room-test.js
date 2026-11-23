@@ -237,7 +237,7 @@ function actions(){
  const c=stage(),kind=c.kind,host=$('ptChoices');host.replaceChildren();
  if(kind==='shanghai'){
    const n=E.currentTarget(game()).number;
-   choice('1','SINGLE · 1',{n,m:1});choice('2','DOUBLE · 2',{n,m:2});choice('3','TRIPLE · 3',{n,m:3});
+   choice('1','1 · SINGEL',{n,m:1});choice('2','2 · DOBBEL',{n,m:2});choice('3','3 · TRIPPEL',{n,m:3});
  }else if(kind==='clock'){
    let n=c.clockTarget[c.turn];for(const d of pending)if(d.n===n&&d.m===2)n++;
    if(n<=20)choice('2','TREFF D'+n+' · 2',{n,m:2});
@@ -361,6 +361,9 @@ function render(){
  document.body.classList.toggle('opponent-focus',live&&!mine());
  document.body.classList.toggle('own-turn-focus',live&&mine());
  document.body.classList.toggle('pt-special-turn',live&&mine()&&c.kind!=='x01');
+ // In Shanghai, show the ordinary Pentathlon hit controls to both players.
+ // The existing choice() function disables input for the opponent.
+ document.body.classList.toggle('pt-shanghai-active',live&&c.kind==='shanghai');
  const st=E.STAGES[s.stageIndex];
  renderPointsGuide(s);
  $('ptProgressTitle').textContent=finished?'PENTATHLON FULLFØRT':'ØVELSE '+(s.stageIndex+1)+' AV '+E.STAGES.length;
