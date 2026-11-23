@@ -97,10 +97,15 @@
        // Pentathlon uses the same X01 match.js camera and media router, but
        // does not load X01 scoring, statistics or checkout controllers.
        if(pentathlon){
+         // Load the EXACT X01 camera PiP and scoring-dock positioning module
+         // before Pentathlon adapts the scoring controls. Never build a second dock.
+         await script('opponent-focus.js?v=20261026-owncam-pip1');
          await script('match-media-router.js?v=20261104-preserve-challenge1');
          const test=window.DartArenaPentathlonMatchTest;
          if(typeof test?.enter!=='function')throw Error('Pentathlon-spillmotoren er ikke lastet');
          await test.enter({matchId:liveMatchId,resuming,mediaManaged:true});
+       // X01's existing fixed-height sidebar controller, not a Pentathlon clone.
+       await script('x01-stable-sidebar.js?v=20261104-measure1');
          await finishMediaHandoff({
            client,matchId:liveMatchId,me:state.user(),
            opponent:match.player1_id===state.user()?match.player2_id:match.player1_id,
