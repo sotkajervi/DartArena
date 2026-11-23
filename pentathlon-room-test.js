@@ -8,6 +8,7 @@ const $=id=>document.getElementById(id),db=R.client(),challengeId=R.challengeId(
 if(!challengeId)return;
 let uid=null,challenge=null,record=null,channel=null,poll=null,pending=[],saving=false,lastInputTurn=null,sceneReady=false,sceneConfigured=false,sceneLoading=null,activeMatchId=null,entering=null;
 let pentathlonMediaStream=null,pentathlonMediaStarting=null,bootReady=false,resumeMatchId=null;
+let lastCompletionPopupKey=null;
 const copy=o=>JSON.parse(JSON.stringify(o));
 const clean=o=>{const a=copy(o);delete a.undo;return a};
 const game=()=>record?.state,stage=()=>game()?.current;
@@ -101,6 +102,30 @@ async function ensureScene(){
    resultOverlay.id='ptResultsOverlay';resultOverlay.hidden=true;
    resultOverlay.innerHTML='<section class="pt-results-modal" role="dialog" aria-modal="true" aria-labelledby="ptResultsHeading" tabindex="-1"><div class="pt-results-header"><h2 id="ptResultsHeading">Resultatliste · 7 øvelser</h2><button id="ptCloseResults" type="button" class="outline" aria-label="Lukk resultatliste">Lukk ×</button></div><div class="pt-results-body"><div id="ptResultsTable"></div><small class="pt-side-label">SISTE REGISTRERINGER</small><div id="ptLog" class="pt-log"></div></div></section>';
    scene.append(resultOverlay);
+   // Reuse the exact existing results modal frame for stage completion.
+   // Move the existing result nodes out of the narrow match-status sidebar.
+   const stageOverlay=node('div','pt-results-overlay');
+   stageOverlay.id='ptStageOverlay';stageOverlay.hidden=true;
+   stageOverlay.innerHTML='<section class="pt-results-modal pt-stage-modal" role="dialog" aria-modal="true" aria-labelledby="ptStageModalHeading" tabindex="-1"><div class="pt-results-header"><h2 id="ptStageModalHeading">Øvelse fullført</h2><button id="ptCloseStageModal" type="button" class="outline" aria-label="Lukk øvelsesresultat">Lukk ×</button></div><div class="pt-stage-modal-body"></div></section>';
+   const modalBody=stageOverlay.querySelector('.pt-stage-modal-body');
+   modalBody.append($('ptReview'),$('ptFinished'));
+   scene.append(stageOverlay);
+   const closeStage=()=>{
+     stageOverlay.hidden=true;
+     $('ptShowStageResult')?.focus();
+   };
+   $('ptCloseStageModal').onclick=closeStage;
+   stageOverlay.addEventListener('click',e=>{if(e.target===stageOverlay)closeStage()});
+   document.addEventListener('keydown',e=>{
+     if(e.key==='Escape'&&!stageOverlay.hidden){e.preventDefault();closeStage()}
+   });
+   const showStageResult=node('button','outline','Se øvelsesresultat');
+   showStageResult.id='ptShowStageResult';showStageResult.type='button';showStageResult.hidden=true;
+   aside.append(showStageResult);
+   showStageResult.onclick=()=>{
+     stageOverlay.hidden=false;
+     stageOverlay.querySelector('.pt-stage-modal')?.focus();
+   };
    const closeResults=()=>{
      resultOverlay.hidden=true;resultButton.setAttribute('aria-expanded','false');resultButton.focus();
    };
@@ -256,6 +281,16 @@ function render(){
  $('ptSpecial').hidden=!live||c.kind==='x01';
  $('ptReview').hidden=!review;
  $('ptFinished').hidden=!finished;
+ $('ptShowStageResult').hidden=!(review||finished);
+ const completionKey=(review||finished)?s.stageIndex+':'+s.status:null;
+ if(completionKey!==lastCompletionPopupKey){
+   lastCompletionPopupKey=completionKey;
+   if(completionKey){
+     const overlay=$('ptStageOverlay');
+     overlay.hidden=false;
+     requestAnimationFrame(()=>overlay.querySelector('.pt-stage-modal')?.focus());
+   }else $('ptStageOverlay').hidden=true;
+ }
  const turnName=s.players[c.turn]||'Spiller';
  if(live&&c.kind==='x01'){
    $('ptTarget').textContent=E.currentTarget(s)?.label||'';
