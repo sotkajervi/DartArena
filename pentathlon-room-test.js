@@ -304,10 +304,11 @@ function renderPentathlonThrows(s,c){
  const entries=(c.entries||[]).map((entry,index)=>({...entry,id:index}));
  const own=entries.filter(t=>t.player===player());
  const other=entries.filter(t=>t.player!==player());
- const editable=new Set(c.kind==='x01'&&s.status==='playing'?
-   own.filter(t=>t.type==='visit'&&!t.checkout).slice(-3).map(t=>t.id):[]);
+ const editable=new Set(s.status==='playing'?
+   (c.kind==='x01'?own.filter(t=>t.type==='visit'&&!t.checkout):
+    c.kind==='shanghai'?own.filter(t=>t.type==='dart'):[]).slice(-3).map(t=>t.id):[]);
  const hint=box.querySelector('.throw-log-head small');
- if(hint)hint.textContent=c.kind==='x01'?'Trykk på et av dine siste kast for å korrigere':'Kastoversikt for denne øvelsen';
+ if(hint)hint.textContent=['x01','shanghai'].includes(c.kind)?'Trykk på et av dine siste kast for å korrigere':'Kastoversikt for denne øvelsen';
  const draw=(id,visits)=>{
    const dest=$(id);if(!dest)return;
    dest.replaceChildren();
@@ -322,12 +323,55 @@ function renderPentathlonThrows(s,c){
        b.type='button';b.title='Korriger '+label;
        b.setAttribute('aria-label','Korriger kast '+label);
        b.append(node('span','',label),node('span','throw-edit-icon','✎'));
-       b.onclick=()=>correctPentathlonVisit(t.id);
+       b.onclick=()=>c.kind==='shanghai'?correctPentathlonShanghaiDart(t.id):correctPentathlonVisit(t.id);
        dest.append(b);
      }else dest.append(node('span','throw-chip',label));
    }
  };
  draw('myThrowRows',own);draw('oppThrowRows',other);
+}
+async function correctPentathlonShanghaiDart(index){
+ if(saving||!record||game()?.status!=='playing'||stage()?.kind!=='shanghai')return;
+ const entry=stage().entries[index],me=player();
+ const own=stage().entries.map((e,i)=>e.player===me&&e.type==='dart'?i:-1).filter(i=>i>=0);
+ if(!entry||entry.player!==me||!own.slice(-3).includes(index)){
+   msg('Du kan bare korrigere dine tre siste Shanghai-piler.',true);return;
+ }
+ const ui=window.DartArenaDialog;
+ if(!ui?.prompt){msg('DartArena-dialogen er ikke tilgjengelig.',true);return}
+ const multiplier=entry.hit==='BOM'?0:({S:1,D:2,T:3})[entry.hit[0]];
+ const version=record.version,stageIndex=game().stageIndex;
+ const raw=await ui.prompt('Korriger '+entry.hit+' på '+entry.target+'. Velg riktig treff.',{
+   title:'Korriger Shanghai-kast',kicker:'DARTARENA · KAMPROM',
+   inputLabel:'0 BOM · 1 SINGEL · 2 DOBBEL · 3 TRIPPEL',
+   inputType:'text',inputMode:'numeric',value:String(multiplier),
+   confirmText:'Lagre endring',cancelText:'Avbryt'
+ });
+ if(raw===null)return;
+ if(!/^[0123]$/.test(String(raw).trim())){
+   msg('Velg 0, 1, 2 eller 3.',true);return;
+ }
+ const nextMultiplier=Number(raw);
+ if(nextMultiplier===multiplier)return;
+ if(!record||record.version!==version||game().stageIndex!==stageIndex){
+   msg('Kastloggen er endret. Kontroller siste kast og prøv igjen.',true);return;
+ }
+ // Use the same engine calculation as the local Pentathlon game before
+ // submitting. Supabase independently recalculates and authorizes the change.
+ try{E.correctShanghaiDart(game(),index,nextMultiplier,me)}
+ catch(error){msg(error?.message||String(error),true);return}
+ saving=true;render();
+ try{
+   const {data,error}=await db.rpc('correct_pentathlon_shanghai_dart',{
+     p_challenge_id:challengeId,p_expected_version:version,
+     p_entry_index:index,p_multiplier:nextMultiplier
+   });
+   if(error)throw error;
+   record=data;pending=[];render();msg('Shanghai-kast korrigert.');await broadcast();
+ }catch(error){
+   msg('Kunne ikke korrigere kastet: '+(error?.message||error),true);
+   await refresh();
+ }finally{saving=false;if(record)render()}
 }
 async function correctPentathlonVisit(index){
  if(saving||!record||game()?.status!=='playing'||stage()?.kind!=='x01')return;
