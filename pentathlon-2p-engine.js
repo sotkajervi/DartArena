@@ -284,6 +284,44 @@
     next.undo=[snapshot(state)];
     return next;
   }
+  // Clock correction replays all original dart hits through the same
+  // scoring engine, preserving each player's actual throw history. A corrected
+  // hit can change the target and points of following darts.
+  function correctClockDart(state, entryIndex, doubleHit, editor){
+    need(state?.status==='playing'&&state.current?.kind==='clock',
+      'Korrigering er bare tilgjengelig i aktiv Klokka rundt.');
+    const entries=state.current.entries,index=Number(entryIndex),m=Number(doubleHit),me=Number(editor);
+    need(Number.isInteger(index)&&index>=0&&index<entries.length,'Kastet finnes ikke.');
+    need((me===0||me===1)&&(m===0||m===2),'Velg 0 (BOM) eller 2 (dobbel).');
+    const own=entries.map((e,i)=>e.type==='dart'&&e.player===me?i:-1).filter(i=>i>=0);
+    need(own.slice(-3).includes(index),'Bare dine tre siste piler kan korrigeres.');
+    const target=Number(String(entries[index].target||'').replace(/^D/,''));
+    need(Number.isInteger(target)&&target>=1&&target<=20,'Ugyldig klokkekast.');
+    let next=snapshot(state);
+    next.current=stageStart(state.stageIndex,state.current.starter);
+    next.status='playing';next.undo=[];
+    for(let i=0;i<entries.length;i++){
+      const old=entries[i];
+      need(old.type==='dart'&&old.player===next.current.turn,
+        'Korrigeringen endrer turrekkefølgen.');
+      const value=i===index?(m?{n:target,m:2}:{n:0,m:0}):
+        old.hit==='BOM'?{n:0,m:0}:
+        /^D(?:[1-9]|1[0-9]|20)$/.test(old.hit)?
+          {n:Number(old.hit.slice(1)),m:2}:null;
+      need(isDart(value),'Ugyldig tidligere klokkekast.');
+      next=submitDart(next,value);
+      need(next.current.entries[i]?.player===old.player,
+        'Korrigeringen endrer turrekkefølgen.');
+      if(i<entries.length-1)need(next.status==='playing',
+        'Korrigeringen ville avsluttet øvelsen for tidlig.');
+    }
+    need(next.status==='playing'&&next.current.entries.length===entries.length
+      &&next.current.turn===state.current.turn
+      &&next.current.done.every((done,i)=>done===state.current.done[i]),
+      'Korrigeringen ville endret øvelsens avslutning.');
+    next.undo=[snapshot(state)];
+    return next;
+  }
   // Shanghai quick entry: only successful hits need manual registration.
   // Missing darts are committed as ordinary misses, preserving 3 darts
   // per turn, Shanghai bonuses, the log, undo and stage progression.
@@ -347,6 +385,6 @@
        !Array.isArray(value.summaries)||!value.current) return null;
     return value;
   }
-  return Object.freeze({STAGES,HALF,create,restore,currentTarget,submitX01,correctX01Visit,submitDart,correctShanghaiDart,submitShanghaiTurn,submitClockTurn,nextStage,undo,
+  return Object.freeze({STAGES,HALF,create,restore,currentTarget,submitX01,correctX01Visit,submitDart,correctShanghaiDart,correctClockDart,submitShanghaiTurn,submitClockTurn,nextStage,undo,
     isScore,isCheckout,isDart,pointsForVisit,finishBonus,labelDart});
 });
