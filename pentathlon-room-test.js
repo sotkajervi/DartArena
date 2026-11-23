@@ -231,10 +231,10 @@ function choice(key,label,dart){
  const b=node('button','outline',label);b.type='button';b.dataset.key=key;
  // Shanghai uses the original choice buttons with a two-line label.
  // Keep the same click and keyboard handlers; only change presentation.
- if(stage()?.kind==='shanghai' && ['1','2','3'].includes(key)){
+ if(stage()?.kind==='shanghai' && ['0','1','2','3'].includes(key)){
    b.classList.add('pt-shanghai-choice');
    b.replaceChildren(
-     node('span','pt-shanghai-choice-name',key==='1'?'SINGLE':key==='2'?'DOBBEL':'TRIPPEL'),
+     node('span','pt-shanghai-choice-name',key==='0'?'BOM':key==='1'?'SINGLE':key==='2'?'DOBBEL':'TRIPPEL'),
      node('span','pt-shanghai-choice-key',key)
    );
  }
