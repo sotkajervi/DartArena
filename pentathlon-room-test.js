@@ -57,7 +57,10 @@ async function ensureScene(){
      matchMessage:'ptMessage',matchStatus:'ptStatus',turnText:'ptTurn'
    };
    for(const [source,dest] of Object.entries(names)){
-     const element=panel.querySelector('#'+source);
+     // X01 opponent-focus moves matchScoreInput and matchScoreBtn out of
+     // .match-grid into the shared #focusInputDock. Look up the element in
+     // the complete ORIGINAL X01 match scene, never only the score sidebar.
+     const element=scene.querySelector('#'+source);
      if(!element)throw Error('X01-felt mangler: '+source);
      element.id=dest;
    }
