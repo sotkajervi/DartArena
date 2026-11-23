@@ -553,3 +553,40 @@ body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])) .pt-final-tab
    font-size:9px;
  }
 }
+
+/* Keep Pentathlon result identity identical to the standard X01 player cards. */
+body.pt-online-test #ptStageOverlay .pt-final-player.da-result-statcard{
+ border:1px solid rgba(0,234,244,.25);
+ border-radius:14px;background:rgba(4,17,20,.72);
+}
+body.pt-online-test #ptStageOverlay .pt-final-player.da-result-statcard.winner{
+ border-color:rgba(245,170,40,.8);
+ box-shadow:inset 3px 0 0 rgba(245,170,40,.95);
+ background:linear-gradient(135deg,rgba(245,170,40,.07),rgba(4,17,20,.78) 52%);
+}
+body.pt-online-test #ptStageOverlay .pt-final-player .da-result-playerhead{
+ display:flex;align-items:center;gap:9px;margin:0 0 3px;min-width:0;
+}
+body.pt-online-test #ptStageOverlay .pt-final-player .da-result-playericon{
+ width:35px;height:35px;flex:0 0 35px;font-size:18px;
+}
+body.pt-online-test #ptStageOverlay .pt-final-player .pt-final-player-identity{
+ flex:1;min-width:0;
+}
+body.pt-online-test #ptStageOverlay .pt-final-player .pt-final-player-name{
+ font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+body.pt-online-test #ptStageOverlay .pt-final-player .da-result-winner-badge{
+ font-size:8px;margin-top:1px;
+}
+body.pt-online-test #ptStageOverlay #ptWinner .pt-final-trophy{
+ display:inline-block;margin-right:9px;font-size:.75em;vertical-align:8%;
+}
+@media(max-width:600px){
+ body.pt-online-test #ptStageOverlay .pt-final-player .da-result-playericon{
+  width:27px;height:27px;flex-basis:27px;font-size:15px
+ }
+ body.pt-online-test #ptStageOverlay .pt-final-player .pt-final-player-name{
+  font-size:11px
+ }
+}
