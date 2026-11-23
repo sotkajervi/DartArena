@@ -41,7 +41,8 @@ async function ensureScene(){
    // Use the exact same stage/DOM transition as the existing X01 Online room.
    // The host moves existing video elements; no new media stream is created.
    await host.prepare();
-   const scene=document.getElementById('daMatchStage');
+   // X01 handoff may already have entered the stage and renamed it to matchView.
+   const scene=document.getElementById('daMatchStage')||document.getElementById('matchView');
    if(!sceneConfigured){
    const panel=scene?.querySelector('.match-grid');
    const score=panel?.querySelector('.score-card');
