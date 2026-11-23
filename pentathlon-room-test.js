@@ -231,11 +231,16 @@ function choice(key,label,dart){
  const b=node('button','outline',label);b.type='button';b.dataset.key=key;
  // Shanghai uses the original choice buttons with a two-line label.
  // Keep the same click and keyboard handlers; only change presentation.
- if(stage()?.kind==='shanghai' && ['0','1','2','3'].includes(key)){
-   b.classList.add('pt-shanghai-choice');
+ const kind=stage()?.kind;
+ if((kind==='shanghai'&&['0','1','2','3'].includes(key))||
+    (kind==='clock'&&['0','2'].includes(key))){
+   b.classList.add('pt-special-hit-choice');
+   const name=kind==='clock'?
+     (key==='0'?'BOM':'TREFF D'+dart.n):
+     (key==='0'?'BOM':key==='1'?'SINGLE':key==='2'?'DOBBEL':'TRIPPEL');
    b.replaceChildren(
-     node('span','pt-shanghai-choice-name',key==='0'?'BOM':key==='1'?'SINGLE':key==='2'?'DOBBEL':'TRIPPEL'),
-     node('span','pt-shanghai-choice-key',key)
+     node('span','pt-special-hit-name',name),
+     node('span','pt-special-hit-key',key)
    );
  }
  const c=stage();b.disabled=saving||!mine()||pending.length>=Math.min(3-c.pending.length,c.kind==='clock'?42-c.used[c.turn]:3);
