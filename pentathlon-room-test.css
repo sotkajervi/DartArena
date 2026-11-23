@@ -508,3 +508,48 @@ body.pt-online-test #ptStageOverlay .pt-final-footnote{
  body.pt-online-test #ptStageOverlay .pt-final-player-points{font-size:23px}
  body.pt-online-test #ptStageOverlay .pt-final-table{min-width:510px}
 }
+
+/* Full seven-stage result: one visible card, no inner or outer scroll.
+   X01-like fit-to-window is applied by fitPentathlonFinal(). */
+body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])){
+ padding:10px;overflow:hidden;
+}
+body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])) .pt-stage-modal{
+ max-height:none!important;overflow:visible!important;
+}
+body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])) .pt-final-details{
+ gap:10px;
+}
+body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])) .pt-final-player{
+ padding:10px 12px;
+}
+body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])) .pt-final-player-points{
+ margin:2px 0 5px;font-size:26px;
+}
+body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])) .pt-final-stat{
+ padding-top:3px;
+}
+body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])) #ptFinalScore{
+ margin:7px auto 10px;padding:6px 20px;
+}
+body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])) .pt-final-table td{
+ padding:6px 8px;
+}
+body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])) .pt-final-table th{
+ padding:8px;
+}
+body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])) .pt-final-table-scroll{
+ overflow:visible;
+}
+@media(max-width:600px){
+ body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])) .pt-final-table{
+   min-width:0;font-size:10px;
+ }
+ body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])) .pt-final-table th,
+ body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])) .pt-final-table td{
+   padding:5px 3px;
+ }
+ body.pt-online-test #ptStageOverlay:has(#ptFinished:not([hidden])) .pt-final-stage-name small{
+   font-size:9px;
+ }
+}
