@@ -296,7 +296,7 @@ body.pt-online-test #ptStageOverlay .pt-stage-modal .da-dialog-cancel{
 }
 
 /* Two-tone Pentathlon heading on the existing DartArena dialog. */
-body.pt-online-test #ptStageOverlay .pt-brand-heading{
+body.pt-online-test #ptStageOverlay .pt-stage-modal .da-dialog-title.pt-brand-heading{
  margin:0 0 6px;text-align:left;font-size:29px;line-height:1.15;
  font-weight:950;letter-spacing:.025em
 }
