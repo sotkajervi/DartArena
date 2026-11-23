@@ -9,6 +9,7 @@ let allMatches=[];
 let deletedMatches=[];
 let tournamentStatuses=new Map();
 let x01HistoryAverages=new Map();
+let pentathlonHistory=[];
 let activeFilter='all';
 let trashMode=false;
 let dialogPromise=null;
@@ -50,6 +51,7 @@ function gameLabel(m){
   if(v==='half_it')return halfItMode(m)==='standard'?'Half-It (Standard)':'Half-It (DartCounter)';
   if(v==='sixty_one')return'61';
   if(v==='jdc')return'JDC Challenge';
+  if(v==='pentathlon')return'Pentathlon';
   if(v==='x01')return String(m.game||501);
   return v;
 }
@@ -58,7 +60,7 @@ function hasHalfItLegResult(m){
 }
 function scorePair(m){
   const v=variantOf(m);
-  if(v==='jdc')return [Number(m.player1_score||0),Number(m.player2_score||0)];
+  if(v==='jdc'||v==='pentathlon')return [Number(m.player1_score||0),Number(m.player2_score||0)];
   if(v==='half_it'){
     if(hasHalfItLegResult(m))return [Number(m.player1_legs||0),Number(m.player2_legs||0)];
     return [Number(m.player1_score||0),Number(m.player2_score||0)];
@@ -70,6 +72,7 @@ function formatLabel(m){
   if(isChicago(m))return'301 DI/DO • Cricket • 501 DO • teller ikke i spillerstatistikk';
   const v=variantOf(m);
   if(v==='jdc')return'57 piler hver • offisiell online-score';
+  if(v==='pentathlon')return'7 øvelser • samlet poengsum';
   if(v==='half_it'){
     if(!hasHalfItLegResult(m))return'12 runder • eldre kampformat';
     return `Best of ${m.legs||1} legs • 12 runder/leg`;
@@ -86,12 +89,14 @@ function formatLabel(m){
 function extraLabel(m){
   const v=variantOf(m);
   if(v==='jdc')return'Poengsummen teller på JDC Top 10 og tier';
+  if(v==='pentathlon')return'Teller ikke i 501-statistikk eller X01-ranking';
   if(v==='half_it'&&hasHalfItLegResult(m))return `Siste leg ${Number(m.player1_score||0)}–${Number(m.player2_score||0)} poeng`;
   if(v==='sixty_one')return `Sluttmål ${Number(m.player1_score||0)}–${Number(m.player2_score||0)}`;
   if(v==='cricket'&&(Number(m.player1_score||0)||Number(m.player2_score||0)))return `Siste leg ${Number(m.player1_score||0)}–${Number(m.player2_score||0)} poeng`;
   return'';
 }
 function contextLabel(m){
+  if(variantOf(m)==='pentathlon')return'Pentathlon Online';
   if(m.is_warmup)return'Oppvarming';
   if(!m.tournament_id)return'Onlinekamp';
   const stage=m.tournament_stage==='group'?'Pulje':'Cup';
@@ -196,6 +201,26 @@ async function toggleTrash(){
   }
 }
 
+// Pentathlon results are stored as warmups to keep them out of X01 statistics.
+// Merge only fully completed matches into the normal online history.
+function mergePentathlonHistory(rows){
+  const byId=new Map();
+  for(const m of rows||[])if(variantOf(m)!=='pentathlon')byId.set(m.id,m);
+  for(const m of pentathlonHistory)byId.set(m.id,m);
+  return [...byId.values()].sort((a,b)=>
+    new Date(b.finished_at||b.created_at)-new Date(a.finished_at||a.created_at));
+}
+async function loadPentathlonHistory(){
+  const {data,error}=await db.rpc('get_pentathlon_match_history',{p_limit:300});
+  if(error)throw error;
+  pentathlonHistory=(data||[]).map(row=>({
+    ...row,game_variant:'pentathlon',game_config:{},
+    is_warmup:false, // display as ordinary history; DB warmup flag remains untouched
+    tournament_id:null,tournament_name:null,tournament_stage:null,
+    legs:1,player1_legs:0,player2_legs:0
+  }));
+  allMatches=mergePentathlonHistory(allMatches);
+}
 function x01AverageLabel(m,playerId){
   if(variantOf(m)!=='x01'||isChicago(m)||trashMode)return '';
   const value=x01HistoryAverages.get(m.id)?.get(playerId);
@@ -244,6 +269,8 @@ function render(){
     const draw=!m.winner_id&&a===b;
     const extra=extraLabel(m);
     const stats=!trashMode&&canOpenStats(m)?`<button class="small-btn" data-stats-id="${m.id}">Se statistikk</button>`:'';
+    const pentaResult=!trashMode&&variantOf(m)==='pentathlon'&&m.challenge_id&&(m.player1_id===me||m.player2_id===me)
+      ?`<button class="small-btn" data-pentathlon-id="${m.id}" data-challenge-id="${m.challenge_id}">Se resultat</button>`:'';
     // Tournament matches may be removed only after their tournament was cancelled.
     const canDelete=isAdmin&&(!m.tournament_id||tournamentStatuses.get(m.tournament_id)==='cancelled');
     const del=!trashMode&&canDelete?`<button class="small-btn danger" data-delete-id="${m.id}">Slett</button>`:'';
@@ -267,10 +294,17 @@ function render(){
           ${extra?`<span class="history-extra">${esc(extra)}</span>`:''}
         </div>
       </div>
-      <div class="history-actions">${stats}${del}${restore}</div>
+      <div class="history-actions">${stats}${pentaResult}${del}${restore}</div>
     </article>`;
   }).join('');
 
+  document.querySelectorAll('[data-pentathlon-id]').forEach(button=>button.onclick=()=>{
+    const url=new URL('room.html',location.href);
+    url.searchParams.set('id',button.dataset.challengeId);
+    url.searchParams.set('ptMatch',button.dataset.pentathlonId);
+    url.searchParams.set('challengeSeamlessDev','1');
+    window.open(url.href,'_blank','noopener');
+  });
   document.querySelectorAll('[data-stats-id]').forEach(button=>button.onclick=()=>{
     window.open(`match-stats.html?id=${encodeURIComponent(button.dataset.statsId)}`,`dartarena-match-stats-${button.dataset.statsId}`);
   });
@@ -307,6 +341,8 @@ async function boot(){
   const {data,error}=await db.rpc('get_global_match_history',{p_limit:300});
   if(error)throw error;
   allMatches=data||[];
+  try{await loadPentathlonHistory()}
+  catch(error){console.warn('Could not load Pentathlon match history',error)}
   try{await loadX01HistoryAverages(allMatches)}
   catch(error){console.warn('Could not load X01 match averages',error)}
   if(isAdmin){
