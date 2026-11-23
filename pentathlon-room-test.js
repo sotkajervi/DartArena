@@ -455,7 +455,12 @@ async function enter({matchId,resuming=false}={}){
      throw error||Error('Ugyldig Pentathlon-kamp');
    }
    activeMatchId=m.id;
-   try{sessionStorage.setItem('dartarena-challenge-match:'+challengeId,m.id)}catch{}
+   try{
+     sessionStorage.setItem('dartarena-challenge-match:'+challengeId,m.id);
+     const url=new URL(location.href);
+     url.searchParams.set('ptMatch',m.id);
+     history.replaceState(history.state,'',url.href);
+   }catch(error){console.debug('[Pentathlon rejoin URL]',error)}
    const {data:players,error:pe}=await db.from('profiles')
      .select('id,username').in('id',[m.player1_id,m.player2_id]);
    if(pe)throw pe;
@@ -551,7 +556,8 @@ async function boot(){
   .on('broadcast',{event:'changed'},()=>refresh())
   .subscribe();
  bootReady=true;
- const resume=resumeMatchId||window.DartArenaPentathlonResumeMatchId;
+ const resume=resumeMatchId||window.DartArenaPentathlonResumeMatchId||
+   new URLSearchParams(location.search).get('ptMatch');
  if(resume)enter({matchId:resume,resuming:true}).catch(e=>console.error('[Pentathlon resume]',e));
  poll=setInterval(()=>{if(activeMatchId&&!document.hidden)refresh()},6000);
 }
