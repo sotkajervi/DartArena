@@ -79,16 +79,18 @@ async function ensureScene(){
    score.insertAdjacentHTML('afterbegin',"<div class=\"pt-stage\"><small id=\"ptProgressTitle\">ØVELSE 1 AV 7</small><strong id=\"ptStage\">501 · Leg 1</strong><span id=\"ptDescription\">Dobbel ut</span></div><div id=\"ptCounter\" hidden></div><div id=\"ptProgress\" class=\"pt-progress\" aria-label=\"Pentathlon-øvelser\"></div><div id=\"ptStarterInfo\" class=\"pt-starter-info\" aria-live=\"off\">Starter øvelsen: <strong id=\"ptStarterName\">–</strong></div>");
    const target=node('div','pt-target');target.id='ptTarget';
    players.after(target);
-   const entry=score.querySelector('.score-entry');
+   // opponent-focus.js owns the standard X01 scoring dock and camera PiP.
+   // Its original score-entry has already moved out of score-card.
+   const entry=scene.querySelector('.score-entry');
    const message=score.querySelector('#ptMessage');
-   if(!entry||!message)throw Error('Det originale X01-scorefeltet mangler.');
+   const dock=scene.querySelector('#focusInputDock');
+   if(!entry||!message||!dock)throw Error('X01-scorefelt og videolayout er ikke klare.');
    entry.id='ptX01';
-   const dock=node('div','focus-input-dock');dock.id='focusInputDock';
    const turn=node('div','pt-x01-turn');turn.id='ptX01Turn';
-   dock.append(turn,entry);
+   dock.prepend(turn);
    dock.insertAdjacentHTML('beforeend',"<div id=\"ptSpecial\" class=\"pt-special\" hidden><div id=\"ptSpecialTurn\" class=\"pt-special-turn\"></div><div class=\"pt-special-target\"><small id=\"ptSpecialPhase\">SHANGHAI</small><strong id=\"ptSpecialTarget\">TALL 1</strong><span id=\"ptSpecialRemaining\">3 piler</span></div><div id=\"ptChoices\" class=\"pt-choices\"></div><div class=\"pt-pending\">Valgt: <b id=\"ptPending\">–</b></div><div class=\"pt-special-actions\"><button type=\"button\" id=\"ptRemove\" class=\"outline\">Fjern siste · Backspace</button><button type=\"button\" id=\"ptSSubmit\" class=\"primary\">Registrer · Enter</button></div></div>");
    dock.append(message);
-   scene.appendChild(dock);
+   // Keep the dock where the original X01 opponent-focus module put it.
    const cameraControl=aside.querySelector('#cameraBtn');
    if(cameraControl)cameraControl.hidden=true; // Keep the original X01 camera handler and DOM node.
    aside.insertAdjacentHTML('beforeend',"<div class=\"pt-tools\"><button type=\"button\" id=\"ptRefresh\" class=\"outline\">Oppdater</button><button type=\"button\" id=\"ptUndo\" class=\"outline\">↶ Angre</button></div><div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSE FULLFØRT</small><h3 id=\"ptReviewTitle\"></h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button type=\"button\" id=\"ptAdvance\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\"></h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong></div><section id=\"ptPointsGuide\" class=\"pt-points-guide\" aria-label=\"Poengregler for aktiv øvelse\"><div class=\"pt-guide-heading\">POENGOVERSIKT <small id=\"ptGuideStage\"></small></div><div id=\"ptGuideRows\" class=\"pt-guide-rows\"></div><p id=\"ptGuideNote\" class=\"pt-guide-note\"></p></section><p class=\"pt-note\">Owner-test · ikke ranket.</p>");
@@ -240,6 +242,9 @@ function render(){
  const panel=$('ptPanel'),s=game(),c=s.current;
  panel.hidden=false;
  const live=s.status==='playing',review=s.status==='review',finished=s.status==='finished';
+ // X01 opponent-focus watches this existing grid class to position own
+ // camera and the score input. Keep it in sync with Pentathlon turn state.
+ $('videoGrid')?.classList.toggle('opponent-throwing',live&&!mine());
  document.body.classList.toggle('opponent-focus',live&&!mine());
  document.body.classList.toggle('own-turn-focus',live&&mine());
  document.body.classList.toggle('pt-special-turn',live&&mine()&&c.kind!=='x01');
