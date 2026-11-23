@@ -187,15 +187,39 @@ async function ensureScene(){
    if(cancel){
      cancel.hidden=false;cancel.textContent='Avbryt kamp';
      cancel.onclick=async()=>{
-       if(!confirm('Vil du avbryte Pentathlon-kampen?'))return;
-       const {error}=await db.rpc('cancel_pentathlon_match_test',{p_match_id:activeMatchId});
-       if(error){alert('Kunne ikke avbryte: '+error.message);return}
-       location.replace('./');
+       if(cancel.disabled)return;
+       const dialog=window.DartArenaDialog;
+       if(!dialog?.confirm){msg('DartArena-dialogen er ikke klar. Prøv igjen.',true);return}
+       const confirmed=await dialog.confirm('Vil du avbryte Pentathlon-kampen?',{
+         title:'Avbryt kamp?',kicker:'DARTARENA · PENTATHLON',
+         tone:'danger',cancelText:'Tilbake',confirmText:'Avbryt kamp',
+         backdropCancel:false
+       });
+       if(!confirmed)return;
+       cancel.disabled=true;
+       try{
+         const {error}=await db.rpc('cancel_pentathlon_match_test',{p_match_id:activeMatchId});
+         if(error)throw error;
+         location.replace('./');
+       }catch(error){
+         cancel.disabled=false;
+         await dialog.alert('Kunne ikke avbryte kampen: '+(error?.message||String(error)),{
+           title:'Avbrytelse feilet',kicker:'DARTARENA · PENTATHLON',tone:'danger'
+         });
+       }
      };
    }
    const close=scene.querySelector('#closeMatchBtn');
-   if(close){close.textContent='Til hovedlobby';close.onclick=()=>{
-     if(record?.state?.status==='playing'&&!confirm('Pentathlon-kampen pågår. Gå til hovedlobbyen?'))return;
+   if(close){close.textContent='Til hovedlobby';close.onclick=async()=>{
+     if(record?.state?.status==='playing'){
+       const dialog=window.DartArenaDialog;
+       if(!dialog?.confirm){msg('DartArena-dialogen er ikke klar. Prøv igjen.',true);return}
+       const leave=await dialog.confirm('Pentathlon-kampen pågår. Gå til hovedlobbyen?',{
+         title:'Forlat kamprommet?',kicker:'DARTARENA · PENTATHLON',
+         cancelText:'Tilbake',confirmText:'Til hovedlobby',backdropCancel:false
+       });
+       if(!leave)return;
+     }
      location.replace('./');
    }}
    scene.querySelector('#matchFormat').textContent='PENTATHLON • 7 ØVELSER';
