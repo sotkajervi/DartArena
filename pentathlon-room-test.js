@@ -7,7 +7,7 @@ if(!R||!E)return;
 const $=id=>document.getElementById(id),db=R.client(),challengeId=R.challengeId();
 if(!challengeId)return;
 let uid=null,challenge=null,record=null,channel=null,poll=null,pending=[],saving=false,lastInputTurn=null,sceneReady=false,sceneConfigured=false,sceneLoading=null,activeMatchId=null,entering=null;
-let pentathlonMediaStream=null,pentathlonMediaStarting=null;
+let pentathlonMediaStream=null,pentathlonMediaStarting=null,bootReady=false,resumeMatchId=null;
 const copy=o=>JSON.parse(JSON.stringify(o));
 const clean=o=>{const a=copy(o);delete a.undo;return a};
 const game=()=>record?.state,stage=()=>game()?.current;
@@ -247,7 +247,6 @@ function render(){
  $('ptSpecial').hidden=!live||c.kind==='x01';
  $('ptReview').hidden=!review;
  $('ptFinished').hidden=!finished;
- if(review||finished)$('ptResultDetails').open=true;
  const turnName=s.players[c.turn]||'Spiller';
  if(live&&c.kind==='x01'){
    $('ptTarget').textContent=E.currentTarget(s)?.label||'';
@@ -338,52 +337,63 @@ async function broadcast(){
  await channel?.send({type:'broadcast',event:'changed',payload:{from:uid}}).catch(()=>{});
 }
 // Use the existing authenticated X01 MATCH SFU module, never its scoring engine.
-async function establishMatchVideo(matchId){
+async function establishMatchVideo(matchId,{resuming=false}={}){
  if(pentathlonMediaStarting)return pentathlonMediaStarting;
  pentathlonMediaStarting=(async()=>{
    const state=window.DartArenaChallengeRoomState;
-   const oldRoom=window.DartArenaRoomMedia;
-   const captured=state.stream();
-   if(!(captured instanceof MediaStream)||!captured.getTracks().some(t=>t.kind==='video'&&t.readyState==='live'))
-     throw Error('Kamera fra venterommet er ikke klart.');
-   if(window.DartArenaMatchEngineState)throw Error('Et annet X01-kamprom styrer allerede videoen.');
-   pentathlonMediaStream=captured;
-   // A media-only state adapter. The original X01 scoring controller is NOT loaded.
-   window.DartArenaMatchEngineState=Object.freeze({
-     client:()=>db,matchId:()=>matchId,stream:()=>pentathlonMediaStream,
-     mediaReady:()=>!!pentathlonMediaStream?.getTracks().some(t=>t.readyState==='live')
-   });
-   oldRoom?.beginHandoff?.(); // Freeze the unauthorized challenge SFU retries.
-   const source='match-sfu-media-secure.js?v=20261122-penta-mediaready1';
-   await new Promise((resolve,reject)=>{
-     const script=document.createElement('script');script.src=source;script.async=false;
-     script.onload=resolve;script.onerror=()=>reject(Error('X01-kampvideo kunne ikke lastes.'));
-     document.body.appendChild(script);
-   });
-   const started=Date.now();
-   while(!window.DartArenaMatchMedia?.readyForHandoff?.()){
-     if(Date.now()-started>20000)throw Error('X01-kampvideo ble ikke klar. Kontroller medieloggen.');
+   // The local camera may initialize AFTER the accepted-match lookup on reload.
+   let captured=null;
+   const captureDeadline=Date.now()+15000;
+   while(Date.now()<captureDeadline){
+     captured=state?.stream?.();
+     if(captured instanceof MediaStream&&captured.getTracks().some(t=>t.kind==='video'&&t.readyState==='live'))break;
      await new Promise(resolve=>setTimeout(resolve,250));
    }
-   window.DartArenaMediaTrace?.mark('PENTATHLON_MATCH_SFU_READY',{matchId:matchId.slice(0,8)});
+   if(!(captured instanceof MediaStream)||!captured.getTracks().some(t=>t.kind==='video'&&t.readyState==='live'))
+     throw Error('Kameraet ble ikke klart etter gjenåpning av kamp.');
+   if(window.DartArenaMatchEngineState?.matchId?.()!==undefined &&
+      window.DartArenaMatchEngineState.matchId()!==matchId)
+     throw Error('Et annet kamprom styrer videoen.');
+   pentathlonMediaStream=captured;
+   // Adapter only provides the match context; the unmodified shared X01 SFU
+   // transport owns publishing, subscribing and recovery. No X01 score engine.
+   if(!window.DartArenaMatchEngineState){
+     window.DartArenaMatchEngineState=Object.freeze({
+       client:()=>db,matchId:()=>activeMatchId,stream:()=>pentathlonMediaStream,
+       mediaReady:()=>!!pentathlonMediaStream?.getTracks().some(t=>t.readyState==='live')
+     });
+   }
+   window.DartArenaRoomMedia?.beginHandoff?.();
+   if(!window.DartArenaMatchMedia){
+     await new Promise((resolve,reject)=>{
+       const script=document.createElement('script');
+       script.src='match-sfu-media-secure.js?v=20261122-penta-mediaready1';
+       script.async=false;script.onload=resolve;
+       script.onerror=()=>reject(Error('X01-kampvideo kunne ikke lastes.'));
+       document.body.appendChild(script);
+     });
+   }
+   const handoff=window.DartArenaChallengeSamePageHandoff?.finishMediaHandoff;
+   if(!handoff)throw Error('Original X01-videoovergang er ikke tilgjengelig.');
    const opponent=uid===challenge.challenger_id?challenge.challenged_id:challenge.challenger_id;
-   if(!window.DartArenaHandoffBarrier?.wait)throw Error('Synkronisering mellom spillerne mangler.');
-   await window.DartArenaHandoffBarrier.wait({client:db,matchId,me:uid,opponent});
-   // Match SFU owns the same live capture tracks; close only old transport.
+   await handoff({client:db,matchId,me:uid,opponent,resuming});
    state.takeMediaOwnership?.();
-   state.releaseForHandoff?.();
-   window.DartArenaMediaTrace?.mark('PENTATHLON_MATCH_SFU_HANDOFF_COMPLETE');
+   window.DartArenaMediaTrace?.mark('PENTATHLON_X01_VIDEO_READY',{resuming,matchId:matchId.slice(0,8)});
  })();
  try{await pentathlonMediaStarting}
  catch(error){
-   window.DartArenaMediaTrace?.mark('PENTATHLON_MATCH_SFU_FAILED',String(error?.message||error));
+   pentathlonMediaStarting=null;
+   window.DartArenaMediaTrace?.mark('PENTATHLON_X01_VIDEO_FAILED',String(error?.message||error));
    throw error;
  }
 }
 
-async function enter({matchId}={}){
+async function enter({matchId,resuming=false}={}){
  if(entering)return entering;
- if(sceneReady&&activeMatchId===matchId)return;
+ if(sceneReady&&activeMatchId===matchId){
+   if(!window.DartArenaMatchMedia?.readyForHandoff?.())await establishMatchVideo(matchId,{resuming});
+   return;
+ }
  entering=(async()=>{
    if(!uid||!challenge){
      for(let i=0;i<50&&(!uid||!challenge);i++)await new Promise(r=>setTimeout(r,100));
@@ -411,7 +421,7 @@ async function enter({matchId}={}){
    if(initError||!data)throw initError||Error('Kunne ikke hente Pentathlon-kampen');
    record=data;pending=[];
    await ensureScene();render();msg('Kobler til X01-kampvideo…');
-   try{await establishMatchVideo(m.id);msg('Pentathlon Online · X01-kampvideo klar');}
+   try{await establishMatchVideo(m.id,{resuming});msg('Pentathlon Online · X01-kampvideo klar');}
    catch(videoError){msg('Video: '+(videoError.message||videoError)+'. Scoringen er fortsatt tilgjengelig.',true);console.warn('[Pentathlon match media]',videoError)}
  })();
  try{await entering}finally{entering=null}
@@ -493,11 +503,18 @@ async function boot(){
   .on('postgres_changes',{event:'*',schema:'public',table:'pentathlon_room_tests',filter:'challenge_id=eq.'+challengeId},()=>refresh())
   .on('broadcast',{event:'changed'},()=>refresh())
   .subscribe();
- const resume=window.DartArenaPentathlonResumeMatchId;
- if(resume)enter({matchId:resume}).catch(e=>console.error('[Pentathlon resume]',e));
+ bootReady=true;
+ const resume=resumeMatchId||window.DartArenaPentathlonResumeMatchId;
+ if(resume)enter({matchId:resume,resuming:true}).catch(e=>console.error('[Pentathlon resume]',e));
  poll=setInterval(()=>{if(activeMatchId&&!document.hidden)refresh()},6000);
 }
 window.addEventListener('pagehide',()=>{clearInterval(poll);if(channel)db.removeChannel(channel).catch(()=>{})},{once:true});
+window.addEventListener('dartarena:pentathlon-resume',event=>{
+ const matchId=event.detail?.matchId;
+ if(!matchId||!/^[-0-9a-f]{36}$/i.test(matchId))return;
+ resumeMatchId=matchId;
+ if(bootReady)enter({matchId,resuming:true}).catch(e=>console.error('[Pentathlon resume event]',e));
+});
 window.DartArenaPentathlonMatchTest=Object.freeze({enter});
 boot().catch(e=>console.warn('Pentathlon match test failed',e));
 })();
