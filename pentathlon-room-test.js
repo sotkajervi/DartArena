@@ -1,5 +1,5 @@
 
-/* Owner-only launch, both players can score. Uses existing room video unchanged. */
+/* Pentathlon Online: both participants use the existing X01 video handoff. */
 (()=>{
 'use strict';
 const R=window.DartArenaChallengeRoomState,E=window.DartArenaPentathlon;
@@ -110,7 +110,7 @@ async function ensureScene(){
    // Keep the existing X01 camera control visible and functional.
    // match-controls.js owns its actions; no Pentathlon-specific handlers.
    if(cameraControl)cameraControl.hidden=false;
-   aside.insertAdjacentHTML('beforeend',"<div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSE FULLFØRT</small><h3 id=\"ptReviewTitle\"></h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button type=\"button\" id=\"ptAdvance\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\"></h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong><div id=\"ptFinalDetails\" class=\"pt-final-details\"></div></div><section id=\"ptPointsGuide\" class=\"pt-points-guide\" aria-label=\"Poengregler for aktiv øvelse\"><div class=\"pt-guide-heading\">POENGOVERSIKT <small id=\"ptGuideStage\"></small></div><div id=\"ptGuideRows\" class=\"pt-guide-rows\"></div><p id=\"ptGuideNote\" class=\"pt-guide-note\"></p></section><p class=\"pt-note\">Owner-test · ikke ranket.</p>");
+   aside.insertAdjacentHTML('beforeend',"<div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSE FULLFØRT</small><h3 id=\"ptReviewTitle\"></h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button type=\"button\" id=\"ptAdvance\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\"></h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong><div id=\"ptFinalDetails\" class=\"pt-final-details\"></div></div><section id=\"ptPointsGuide\" class=\"pt-points-guide\" aria-label=\"Poengregler for aktiv øvelse\"><div class=\"pt-guide-heading\">POENGOVERSIKT <small id=\"ptGuideStage\"></small></div><div id=\"ptGuideRows\" class=\"pt-guide-rows\"></div><p id=\"ptGuideNote\" class=\"pt-guide-note\"></p></section><p class=\"pt-note\">Pentathlon · ikke ranket.</p>");
    // Result list lives in a top-right action and reuses the existing table/log renderers.
    const topActions=scene.querySelector('.match-head .top-actions');
    if(!topActions)throw Error('Kamprommets toppknapper mangler.');
@@ -185,9 +185,9 @@ async function ensureScene(){
    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!resultOverlay.hidden){e.preventDefault();closeResults()}});
    const cancel=scene.querySelector('#cancelMatchBtn');
    if(cancel){
-     cancel.hidden=false;cancel.textContent='Avbryt testkamp';
+     cancel.hidden=false;cancel.textContent='Avbryt kamp';
      cancel.onclick=async()=>{
-       if(!confirm('Vil du avbryte Pentathlon-testkampen?'))return;
+       if(!confirm('Vil du avbryte Pentathlon-kampen?'))return;
        const {error}=await db.rpc('cancel_pentathlon_match_test',{p_match_id:activeMatchId});
        if(error){alert('Kunne ikke avbryte: '+error.message);return}
        location.replace('./');
@@ -195,7 +195,7 @@ async function ensureScene(){
    }
    const close=scene.querySelector('#closeMatchBtn');
    if(close){close.textContent='Til hovedlobby';close.onclick=()=>{
-     if(record?.state?.status==='playing'&&!confirm('Pentathlon-testen pågår. Gå til hovedlobbyen?'))return;
+     if(record?.state?.status==='playing'&&!confirm('Pentathlon-kampen pågår. Gå til hovedlobbyen?'))return;
      location.replace('./');
    }}
    scene.querySelector('#matchFormat').textContent='PENTATHLON • 7 ØVELSER';
@@ -909,9 +909,6 @@ async function boot(){
  if(!data||!['room','accepted'].includes(data.status)||![data.challenger_id,data.challenged_id].includes(uid))
    throw Error('Pentathlon: spiller eller utfordring er ikke gyldig');
  challenge=data;
- const {data:isOwner}=await db.rpc('is_owner');
- const option=document.querySelector('#roomGame option[value="pentathlon"]');
- if(option)option.hidden=!isOwner;
  channel=db.channel('pentathlon-room-test-'+challengeId)
   .on('postgres_changes',{event:'*',schema:'public',table:'pentathlon_room_tests',filter:'challenge_id=eq.'+challengeId},()=>refresh())
   .on('broadcast',{event:'changed'},()=>refresh())
