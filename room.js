@@ -110,7 +110,7 @@ $('legsModeBtn').onclick=()=>setMatchMode('legs');$('setsModeBtn').onclick=()=>s
  if(resumed?.pentathlonMatchId){
    window.DartArenaPentathlonResumeMatchId=resumed.pentathlonMatchId;
    // Pentathlon boot runs independently; deliver rejoin even if it booted first.
-   window.dispatchEvent(new CustomEvent('dartarena:pentathlon-resume',{detail:{matchId:resumed.pentathlonMatchId}}));
+   window.DartArenaChallengeStart?.open?.(resumed.pentathlonMatchId,'pentathlon',{resuming:true});
  }
  else {
    // Never send an accepted live challenge to lobby on a transient lookup miss.
