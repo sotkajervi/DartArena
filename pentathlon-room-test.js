@@ -139,7 +139,7 @@ async function ensureScene(){
    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pointsOverlay.hidden){e.preventDefault();closePoints()}});
    const resultOverlay=node('div','pt-results-overlay');
    resultOverlay.id='ptResultsOverlay';resultOverlay.hidden=true;
-   resultOverlay.innerHTML='<section class="pt-results-modal" role="dialog" aria-modal="true" aria-labelledby="ptResultsHeading" tabindex="-1"><div class="pt-results-header"><h2 id="ptResultsHeading">Resultatliste · 7 øvelser</h2><button id="ptCloseResults" type="button" class="outline" aria-label="Lukk resultatliste">Lukk ×</button></div><div class="pt-results-body"><div id="ptResultsTable"></div><small class="pt-side-label">SISTE REGISTRERINGER</small><div id="ptLog" class="pt-log"></div></div></section>';
+   resultOverlay.innerHTML='<section class="pt-results-modal" role="dialog" aria-modal="true" aria-labelledby="ptResultsHeading" tabindex="-1"><div class="pt-results-header"><h2 id="ptResultsHeading">Resultatliste · 7 øvelser</h2><button id="ptCloseResults" type="button" class="outline" aria-label="Lukk resultatliste">Lukk ×</button></div><div class="pt-results-body"><div id="ptResultsTable"></div></div></section>';
    scene.append(resultOverlay);
    // Reuse the exact existing results modal frame for stage completion.
    // Move the existing result nodes out of the narrow match-status sidebar.
@@ -594,14 +594,7 @@ function render(){
  const total=node('tr');
  total.append(node('td','','TOTAL'),node('td','',s.total[0]+(live?c.pent[0]:0)),node('td','',s.total[1]+(live?c.pent[1]:0)));
  tbody.append(total);t.append(tbody);table.append(t);
- const log=$('ptLog');log.replaceChildren();
- const entries=c.entries.slice(-9).reverse();
- if(!entries.length)log.append(node('span','penta-hint','Ingen kast ennå.'));
- for(const entry of entries){
-   const info=entry.type==='visit'?(entry.bust?'BUST':entry.score)+' · +'+entry.bonus+' P':
-     entry.hit+' → '+entry.target+' · +'+entry.bonus+' P';
-   log.append(node('span','penta-recent-item',s.players[entry.player]+': '+info));
- }
+
 }
 async function refresh(){
  if(!uid||!challenge||!activeMatchId)return;
