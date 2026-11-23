@@ -278,15 +278,29 @@
     const winner=last.winnerId?(names[last.winnerId]||'Spiller'):'Uavgjort';
     return `<div class="da-result-leg-summary"><span>${esc(last.label)}: ${esc(last.score||'–')} · ${esc(winner)}</span><button id="daResultLegs" class="outline" type="button">Alle leg (${summary.length})</button></div>`;
   }
+  // Zoom changes layout dimensions; CSS transform only changes paint size,
+  // leaving the original tall grid item clipped at browser zoom >=125%.
+  // Fit after fonts/heatmap are ready and whenever viewport dimensions change.
   function fitMatchResult(overlay){
-    const card=overlay?.querySelector('.da-result-card--match');if(!card)return;
+    const card=overlay?.querySelector('.da-result-card--match');if(!card||!card.isConnected)return;
     card.style.transform='';
-    const size=card.getBoundingClientRect();
-    if(size.width<1||size.height<1)return;
-    const scale=Math.min(1,(innerHeight-16)/size.height,(innerWidth-16)/size.width);
-    card.style.transform=scale<.999?`scale(${scale})`:'';
+    card.style.zoom='1';
+    const rect=card.getBoundingClientRect();
+    const height=Math.max(card.scrollHeight,rect.height);
+    const width=Math.max(card.scrollWidth,rect.width);
+    if(width<1||height<1)return;
+    const scale=Math.min(1,(innerHeight-16)/height,(innerWidth-16)/width);
+    card.style.zoom=String(Math.max(.2,scale));
   }
-  window.addEventListener('resize',()=>fitMatchResult(document.getElementById('dartArenaResultOverlay')));
+  let resultFitFrame=0;
+  function scheduleResultFit(overlay){
+    if(resultFitFrame)cancelAnimationFrame(resultFitFrame);
+    resultFitFrame=requestAnimationFrame(()=>{
+      resultFitFrame=0;
+      fitMatchResult(overlay||document.getElementById('dartArenaResultOverlay'));
+    });
+  }
+  window.addEventListener('resize',()=>scheduleResultFit());
   function openLegHistory(overlay,summary,names,m){
     const layer=document.createElement('div');layer.className='da-result-history-mask';
     layer.innerHTML=`<section class="da-result-history-dialog" role="dialog" aria-modal="true" aria-label="Leg-oversikt"><div class="da-result-history-head"><strong>Alle leg</strong><button class="outline da-result-history-close" type="button">Lukk</button></div>${summaryHtml(summary,names,m)}</section>`;
@@ -350,8 +364,13 @@
     try{window.DartArenaOnlineHeatmap?.attachResult(overlay,m)}catch(error){console.warn('Heatmap result unavailable',error)}
     const legButton=overlay.querySelector('#daResultLegs');
     if(legButton)legButton.onclick=()=>openLegHistory(overlay,summary,names,m);
-    requestAnimationFrame(()=>fitMatchResult(overlay));
-    document.fonts?.ready?.then(()=>fitMatchResult(overlay));
+    // Heatmap elements can arrive after initial result rendering.
+    // Refit only when children are inserted/removed, not on style updates.
+    const observer=new MutationObserver(()=>scheduleResultFit(overlay));
+    observer.observe(overlay.querySelector('.da-result-card--match'),{childList:true,subtree:true});
+    overlay.addEventListener('load',()=>scheduleResultFit(overlay),true);
+    scheduleResultFit(overlay);
+    document.fonts?.ready?.then(()=>scheduleResultFit(overlay));
     const tournamentResult=!!resultTournamentMatchId;
     // One return action for Chicago, X01 and Cricket. Tournament results
     // retain their destination-specific label.
