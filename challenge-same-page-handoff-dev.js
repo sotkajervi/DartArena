@@ -71,6 +71,10 @@
        if(!host)throw Error('Kamp-scene er ikke lastet');
        await host.prepare();
        window.DartArenaMediaTrace?.mark('MATCH_SCENE_PREPARED');
+       // The imported X01 scene contains placeholder 501 scores. On
+       // Pentathlon refresh, keep only the SCOREBOARD hidden until its
+       // saved stage has been rendered, not the existing camera or media.
+       if(pentathlon)document.documentElement.classList.add('da-penta-score-loading');
        // No second document or iframe. The same video nodes are moved into place.
        await host.enter();
        window.DartArenaMediaTrace?.mark('MATCH_SCENE_VISIBLE');
@@ -112,6 +116,8 @@
          const test=window.DartArenaPentathlonMatchTest;
          if(typeof test?.enter!=='function')throw Error('Pentathlon-spillmotoren er ikke lastet');
          await test.enter({matchId:liveMatchId,resuming,mediaManaged:true});
+         // test.enter() awaits the Pentathlon state and runs render().
+         document.documentElement.classList.remove('da-penta-score-loading');
        // X01's existing fixed-height sidebar controller, not a Pentathlon clone.
        await script('x01-stable-sidebar.js?v=20261104-measure1');
          await finishMediaHandoff({
@@ -173,6 +179,7 @@
        window.DartArenaMediaTrace?.mark('HANDOFF_SUCCESS');
        return true;
      }catch(err){
+       document.documentElement.classList.remove('da-penta-score-loading');
        window.DartArenaMediaTrace?.mark('HANDOFF_FAILED',err?.message||String(err));
        console.error('[same-page match handoff]',err);
        if(pentathlon){
