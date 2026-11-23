@@ -232,7 +232,14 @@ function render(){
    const visits=Math.ceil(c.used[i]/3);
    const x01=c.kind==='x01';
    const avg=x01?(c.used[i]?scored*3/c.used[i]:0):(visits?c.pent[i]/visits:0);
-   $('ptName'+i).textContent=s.players[i];
+   const nameEl=$('ptName'+i);
+   nameEl.textContent=s.players[i];
+   if(c.starter===i){
+     const marker=node('span','pt-starter-marker','🎯 START');
+     marker.title='Starter denne øvelsen';
+     marker.setAttribute('aria-label','Starter denne øvelsen');
+     nameEl.append(marker);
+   }
    $('ptScore'+i).textContent=x01?c.remaining[i]:c.kind==='half'?c.halfScores[i]:c.pent[i];
    $('ptDarts'+i).textContent=c.used[i];
    $('ptAverage'+i).textContent=avg.toFixed(2);
