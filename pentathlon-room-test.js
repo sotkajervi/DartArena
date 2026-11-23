@@ -734,6 +734,63 @@ async function enter({matchId,resuming=false,mediaManaged=false}={}){
    throw error;
  }finally{entering=null}
 }
+// Completed Pentathlon matches follow the standard X01 read-only result
+// lifecycle: retrieve persisted match result, render it, never restart media.
+async function showFinishedResult(matchId){
+ try{
+   await bootPromise;
+   if(!uid||!challenge)throw Error('Innlogging er ikke klar.');
+   const {data:match,error:matchError}=await db.from('matches')
+      .select('id,status,game_variant,player1_id,player2_id')
+      .eq('id',matchId).maybeSingle();
+   if(matchError)throw matchError;
+   if(!match||match.status!=='finished'||match.game_variant!=='pentathlon'
+      ||![match.player1_id,match.player2_id].includes(uid))
+     throw Error('Dette er ikke en fullført Pentathlon-kamp du deltok i.');
+   const {data:archived,error}=await db.from('pentathlon_room_tests')
+     .select('state,player1_id,player2_id,match_id')
+     .eq('match_id',matchId).maybeSingle();
+   if(error)throw error;
+   if(!archived||archived.state?.status!=='finished'
+       ||archived.state?.summaries?.length!==E.STAGES.length
+       ||![archived.player1_id,archived.player2_id].includes(uid))
+     throw Error('Fullført Pentathlon-resultat mangler.');
+   const s=archived.state;
+   // Use EXACTLY the same final summary renderer and player stats as the
+   // live match's end-of-game popup, on X01's result-card surface.
+   document.body.classList.add('pt-online-test');
+   document.title='DartArena • Pentathlon-resultat';
+   let overlay=$('ptStageOverlay');
+   if(!overlay){
+     overlay=node('div','da-dialog-layer');
+     overlay.id='ptStageOverlay';
+     overlay.innerHTML='<div class="da-dialog-backdrop"></div>'+
+       '<section class="da-result-card da-result-card--match pt-stage-modal" role="dialog" aria-modal="true" aria-labelledby="ptWinner">'+
+       '<h2 class="da-result-kicker">PENTATHLON · KAMP FERDIG</h2>'+
+       '<div id="ptFinished" class="pt-finished">'+
+       '<small>ALLE SJU ØVELSER FULLFØRT</small>'+
+       '<h3 id="ptWinner"></h3><p id="ptFinalText">Endelig resultat etter sju øvelser</p>'+
+       '<strong id="ptFinalScore"></strong>'+
+       '<div id="ptFinalDetails" class="pt-final-details"></div></div>'+
+       '<div class="da-result-actions"><button id="ptFinishedLobby" type="button" class="primary">Til hovedlobby</button></div>'+
+       '</section>';
+     document.body.append(overlay);
+     $('ptFinishedLobby').onclick=()=>location.assign('./');
+   }
+   $('ptWinner').textContent=s.total[0]===s.total[1]?
+     'Uavgjort':s.players[s.total[0]>s.total[1]?0:1]+' vant';
+   $('ptFinalScore').textContent=s.total[0]+' – '+s.total[1];
+   renderFinalPentathlon(s);
+   document.documentElement.classList.remove('da-penta-rejoin');
+   overlay.hidden=false;
+   $('ptFinishedLobby')?.focus({preventScroll:true});
+ }catch(error){
+   document.documentElement.classList.remove('da-penta-rejoin');
+   const notice=$('roomMessage');
+   if(notice)notice.textContent='Kunne ikke vise lagret kampresultat: '+(error.message||error);
+   console.error('[Pentathlon finished result]',error);
+ }
+}
 async function save(action,next){
  if(!record||saving)return;
  saving=true;const version=record.version;render();
@@ -829,7 +886,11 @@ const bootPromise=boot();
 window.DartArenaPentathlonMatchTest=Object.freeze({
  enter,
  ready:()=>bootPromise,
+ showFinishedResult,
 });
+if(window.DartArenaPentathlonFinishedMatchId){
+ showFinishedResult(window.DartArenaPentathlonFinishedMatchId);
+}
 bootPromise.catch(e=>{
  console.error('[Pentathlon boot]',e);
  window.DartArenaMediaTrace?.mark('PENTATHLON_BOOT_FAILED',e?.message||String(e));
