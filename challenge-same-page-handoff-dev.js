@@ -105,7 +105,7 @@
          // Load the EXACT X01 camera PiP and scoring-dock positioning module
          // before Pentathlon adapts the scoring controls. Never build a second dock.
          await script('opponent-focus.js?v=20261026-owncam-pip1');
-         await script('match-controls.js?v=20261102-samepage-dev1');
+         await script('match-controls.js?v=20261123-action-label25');
          await script('match-media-router.js?v=20261104-preserve-challenge1');
          const test=window.DartArenaPentathlonMatchTest;
          if(typeof test?.enter!=='function')throw Error('Pentathlon-spillmotoren er ikke lastet');
@@ -130,7 +130,7 @@
          'online-heatmap-chart.js?v=20261023-shareheat1',
          'online-heatmap-result.js?v=20261104-shared-auth1',
          'match-media-router.js?v=20261104-preserve-challenge1',
-         'match-controls.js?v=20261102-samepage-dev1',
+         'match-controls.js?v=20261123-action-label25',
          'opponent-focus.js?v=20261026-owncam-pip1',
           'x01-stable-sidebar.js?v=20261104-measure1',
          'dartarena-dialog.js?v=20261027-correction2',
