@@ -104,11 +104,14 @@ async function ensureScene(){
    scene.append(resultOverlay);
    // Reuse the exact existing results modal frame for stage completion.
    // Move the existing result nodes out of the narrow match-status sidebar.
-   const stageOverlay=node('div','pt-results-overlay');
+   // Use the actual shared DartArena dialog components, not results-list styling.
+   const stageOverlay=node('div','da-dialog-layer');
    stageOverlay.id='ptStageOverlay';stageOverlay.hidden=true;
-   stageOverlay.innerHTML='<section class="pt-results-modal pt-stage-modal" role="dialog" aria-modal="true" aria-labelledby="ptStageModalHeading" tabindex="-1"><div class="pt-results-header"><h2 id="ptStageModalHeading">Øvelse fullført</h2><button id="ptCloseStageModal" type="button" class="outline" aria-label="Lukk øvelsesresultat">Lukk ×</button></div><div class="pt-stage-modal-body"></div></section>';
+   stageOverlay.innerHTML='<div class="da-dialog-backdrop"></div><section class="da-dialog-card pt-stage-modal" role="dialog" aria-modal="true" aria-labelledby="ptStageModalHeading" tabindex="-1"><span class="da-dialog-kicker">PENTATHLON</span><h2 id="ptStageModalHeading" class="da-dialog-title">Øvelse fullført</h2><div class="pt-stage-modal-body"></div><div class="da-dialog-actions"><button id="ptCloseStageModal" type="button" class="da-dialog-cancel" aria-label="Lukk øvelsesresultat">Lukk</button></div></section>';
    const modalBody=stageOverlay.querySelector('.pt-stage-modal-body');
    modalBody.append($('ptReview'),$('ptFinished'));
+   $('ptAdvance').classList.remove('primary');
+   $('ptAdvance').classList.add('da-dialog-confirm');
    scene.append(stageOverlay);
    const closeStage=()=>{
      stageOverlay.hidden=true;
