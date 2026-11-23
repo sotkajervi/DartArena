@@ -370,8 +370,8 @@ function render(){
  document.body.classList.toggle('opponent-focus',live&&!mine());
  document.body.classList.toggle('own-turn-focus',live&&mine());
  document.body.classList.toggle('pt-special-turn',live&&mine()&&c.kind!=='x01');
- // In Shanghai, show the ordinary Pentathlon hit controls to both players.
- // The existing choice() function disables input for the opponent.
+ // Shanghai keeps its own buttons but follows X01's standard turn-based
+ // scoring-dock visibility. No scoring panel on the opponent's turn.
  document.body.classList.toggle('pt-shanghai-active',live&&c.kind==='shanghai');
  const st=E.STAGES[s.stageIndex];
  renderPointsGuide(s);
