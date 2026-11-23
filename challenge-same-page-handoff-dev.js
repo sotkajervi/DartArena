@@ -62,6 +62,11 @@
      window.DartArenaMediaTrace?.mark('HANDOFF_BEGIN',{kind:'challenge',liveMatchId:String(liveMatchId).slice(0,8)});
      let released=false;
      try{
+       if(pentathlon){
+         const controller=window.DartArenaPentathlonMatchTest;
+         if(typeof controller?.ready!=='function')throw Error('Pentathlon-modulen er ikke lastet');
+         await controller.ready();
+       }
        const host=window.DartArenaMatchSceneHost;
        if(!host)throw Error('Kamp-scene er ikke lastet');
        await host.prepare();
@@ -169,10 +174,21 @@
        window.DartArenaMediaTrace?.mark('HANDOFF_FAILED',err?.message||String(err));
        console.error('[same-page match handoff]',err);
        if(pentathlon){
-         // Never navigate a Pentathlon match to the X01 scoring page.
-         // Leave the match open for diagnostics instead of silently returning to lobby.
-         const message=document.getElementById('ptMessage')||document.getElementById('roomMessage');
-         if(message)message.textContent='Pentathlon-video: '+(err?.message||String(err));
+         // Never leave a broken X01 scorecard presented as a Pentathlon match.
+         const message=String(err?.message||err);
+         window.DartArenaMediaTrace?.mark('PENTATHLON_HANDOFF_FAILED',message);
+         console.error('[Pentathlon shared X01 handoff]',err);
+         let overlay=document.getElementById('ptStartupError');
+         if(!overlay){
+           overlay=document.createElement('div');
+           overlay.id='ptStartupError';
+           overlay.className='da-dialog-layer';
+           overlay.innerHTML='<div class="da-dialog-backdrop"></div><section class="da-dialog-card" role="alertdialog" aria-modal="true" aria-labelledby="ptStartupErrorHeading"><span class="da-dialog-kicker">PENTATHLON</span><h2 id="ptStartupErrorHeading" class="da-dialog-title">Kamprommet kunne ikke åpnes</h2><p id="ptStartupErrorText" class="da-dialog-message"></p><div class="da-dialog-actions"><button id="ptStartupRetry" class="da-dialog-confirm" type="button">Prøv på nytt</button></div></section>';
+           document.body.appendChild(overlay);
+           overlay.querySelector('#ptStartupRetry').onclick=()=>location.reload();
+         }
+         overlay.querySelector('#ptStartupErrorText').textContent=message;
+         document.documentElement.classList.remove('da-penta-rejoin');
          return true;
        }
        // Scoring may already have booted, so a clean navigation is safer
