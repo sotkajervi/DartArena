@@ -145,7 +145,10 @@ async function ensureScene(){
    if(!advanceButton)throw Error('Pentathlon: Neste øvelse-knappen mangler i resultatpopupen');
    advanceButton.classList.remove('primary');
    advanceButton.classList.add('da-dialog-confirm');
-   scene.append(stageOverlay);
+   // Match the existing DartArenaDialog.show() mounting point exactly.
+   // Attaching inside #matchView allowed match-room styles and layout
+   // constraints to leak into the modal; dialogs belong under <body>.
+   document.body.appendChild(stageOverlay);
    const closeStage=()=>{
      stageOverlay.hidden=true;
      $('ptShowStageResult')?.focus();
