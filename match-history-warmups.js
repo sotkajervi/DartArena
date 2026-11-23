@@ -16,7 +16,12 @@
       const rpc=includeWarmups?'get_match_history_with_warmups':'get_global_match_history';
       const {data,error}=await db.rpc(rpc,{p_limit:300});
       if(error)throw error;
-      allMatches=data||[];
+      allMatches=typeof mergePentathlonHistory==='function'
+        ?mergePentathlonHistory(data||[]):(data||[]);
+      if(typeof loadX01HistoryAverages==='function'){
+        try{await loadX01HistoryAverages(allMatches)}
+        catch(avgError){console.warn('Could not refresh X01 averages',avgError)}
+      }
       render();
     }catch(error){
       console.error('Warmup history filter failed',error);
