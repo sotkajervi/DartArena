@@ -40,7 +40,7 @@
   if(!document.getElementById('micBtn')){
     const mic=document.createElement('button');
     mic.id='micBtn';mic.type='button';mic.className='outline';
-    mic.textContent='Mikrofon på';
+    mic.textContent='Mikrofon av';
     cards[0].appendChild(mic);
   }
   videoAnchor=document.createComment('Original tournament video position');
