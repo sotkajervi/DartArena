@@ -152,6 +152,47 @@
     }
     return remember(state,next);
   }
+  // Correct one of the player's three latest visits in the ACTIVE X01 leg.
+  // Rebuild every visit using the original X01 engine so busts, remaining
+  // scores, averages and Pentathlon bonus thresholds are recomputed together.
+  // Completed legs, checkout visits and other players' visits stay immutable.
+  function correctX01Visit(state, visitIndex, newScore, editor) {
+    need(state?.status==='playing' && state.current?.kind==='x01',
+      'Korrigering er bare tilgjengelig under aktiv X01-øvelse.');
+    const entries=state.current.entries;
+    const index=Number(visitIndex), score=Number(newScore), me=Number(editor);
+    need(Number.isInteger(index)&&index>=0&&index<entries.length,'Kastet finnes ikke.');
+    need(me===0||me===1,'Ugyldig spiller.');
+    const ownIndices=entries.map((t,i)=>t.type==='visit'&&t.player===me?i:-1).filter(i=>i>=0);
+    need(ownIndices.slice(-3).includes(index),'Bare dine tre siste kast kan korrigeres.');
+    need(!entries[index].checkout,'Checkout kan ikke korrigeres her.');
+    need(isScore(score),'Skriv en poengsum mellom 0 og 180.');
+    const original=snapshot(state);
+    let next=snapshot(state);
+    next.current=stageStart(state.stageIndex,state.current.starter);
+    next.status='playing';
+    next.undo=[];
+    for(let i=0;i<entries.length;i++){
+      const old=entries[i];
+      need(old.type==='visit'&&next.current.turn===old.player,
+        'Korrigeringen ville endret turrekkefølgen.');
+      next=submitX01(next,{
+        score:i===index?score:old.attempt,
+        darts:old.darts,
+        doubleConfirmed:!!old.checkout
+      });
+      const actual=next.current.entries[i];
+      need(actual && actual.checkout===old.checkout,
+        'Korrigeringen ville endret leggets avslutning.');
+      // An earlier visit must never change the leg's already-played turn order.
+      if(i<entries.length-1)need(next.status==='playing',
+        'Korrigeringen ville avsluttet øvelsen for tidlig.');
+    }
+    need(next.status==='playing' && next.current.entries.length===entries.length,
+      'Korrigeringen ville avsluttet øvelsen.');
+    next.undo=[original];
+    return next;
+  }
   function hitHalf(target, dart) {
     if(target.m===0)return dart.n===target.n ? {value:dart.n*dart.m,pent:dart.m} : {value:0,pent:0};
     if(target.m===2 && target.n===25)return dart.n===25&&dart.m===2 ? {value:50,pent:2} : {value:0,pent:0};
@@ -275,6 +316,6 @@
        !Array.isArray(value.summaries)||!value.current) return null;
     return value;
   }
-  return Object.freeze({STAGES,HALF,create,restore,currentTarget,submitX01,submitDart,submitShanghaiTurn,submitClockTurn,nextStage,undo,
+  return Object.freeze({STAGES,HALF,create,restore,currentTarget,submitX01,correctX01Visit,submitDart,submitShanghaiTurn,submitClockTurn,nextStage,undo,
     isScore,isCheckout,isDart,pointsForVisit,finishBonus,labelDart});
 });
