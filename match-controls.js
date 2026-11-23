@@ -38,7 +38,7 @@
       tracks.forEach(t=>t.enabled=micOn);
       if(mic){
         mic.disabled=!tracks.length;
-        mic.textContent=micOn?'Mikrofon på':'Mikrofon av';
+        mic.textContent=micOn?'Mikrofon av':'Mikrofon på';
         mic.classList.toggle('danger',!micOn);
       }
     }catch{if(mic)mic.disabled=true}
