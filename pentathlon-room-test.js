@@ -100,7 +100,7 @@ async function ensureScene(){
    // Keep the existing X01 camera control visible and functional.
    // match-controls.js owns its actions; no Pentathlon-specific handlers.
    if(cameraControl)cameraControl.hidden=false;
-   aside.insertAdjacentHTML('beforeend',"<div class=\"pt-tools\"><button type=\"button\" id=\"ptRefresh\" class=\"outline\">Oppdater</button><button type=\"button\" id=\"ptUndo\" class=\"outline\">↶ Angre</button></div><div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSE FULLFØRT</small><h3 id=\"ptReviewTitle\"></h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button type=\"button\" id=\"ptAdvance\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\"></h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong></div><section id=\"ptPointsGuide\" class=\"pt-points-guide\" aria-label=\"Poengregler for aktiv øvelse\"><div class=\"pt-guide-heading\">POENGOVERSIKT <small id=\"ptGuideStage\"></small></div><div id=\"ptGuideRows\" class=\"pt-guide-rows\"></div><p id=\"ptGuideNote\" class=\"pt-guide-note\"></p></section><p class=\"pt-note\">Owner-test · ikke ranket.</p>");
+   aside.insertAdjacentHTML('beforeend',"<div class=\"pt-tools\"><button type=\"button\" id=\"ptUndo\" class=\"outline\">↶ Angre</button></div><div id=\"ptReview\" class=\"pt-review\" hidden><small>ØVELSE FULLFØRT</small><h3 id=\"ptReviewTitle\"></h3><p id=\"ptReviewCaption\"></p><div id=\"ptReviewDetails\"></div><button type=\"button\" id=\"ptAdvance\" class=\"primary\">Neste øvelse →</button></div><div id=\"ptFinished\" class=\"pt-finished\" hidden><small>ALLE SJU ØVELSER FULLFØRT</small><h3 id=\"ptWinner\"></h3><p id=\"ptFinalText\"></p><strong id=\"ptFinalScore\"></strong></div><section id=\"ptPointsGuide\" class=\"pt-points-guide\" aria-label=\"Poengregler for aktiv øvelse\"><div class=\"pt-guide-heading\">POENGOVERSIKT <small id=\"ptGuideStage\"></small></div><div id=\"ptGuideRows\" class=\"pt-guide-rows\"></div><p id=\"ptGuideNote\" class=\"pt-guide-note\"></p></section><p class=\"pt-note\">Owner-test · ikke ranket.</p>");
    // Result list lives in a top-right action and reuses the existing table/log renderers.
    const topActions=scene.querySelector('.match-head .top-actions');
    if(!topActions)throw Error('Kamprommets toppknapper mangler.');
@@ -189,7 +189,7 @@ async function ensureScene(){
    // The X01 media engine bootstraps first. Detach only its score-entry
    // keyboard handler; Pentathlon owns score submission for its seven stages.
    $('ptInput').onkeydown=null;
-   $('ptRefresh').onclick=refresh;$('ptXSubmit').onclick=submitX01;$('ptSSubmit').onclick=submitSpecial;
+   $('ptXSubmit').onclick=submitX01;$('ptSSubmit').onclick=submitSpecial;
    $('ptRemove').onclick=()=>{pending.pop();render()};$('ptAdvance').onclick=advance;$('ptUndo').onclick=undo;
    $('ptInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();submitX01()}});
    sceneConfigured=true;
@@ -197,8 +197,17 @@ async function ensureScene(){
    await host.enter();
    const local=document.getElementById('localVideoCard');
    local?.classList.add('focus-local-pip');
+   // Keep X01's ORIGINAL microphone button and its match-controls.js
+   // handlers. Move that same DOM element beside the original camera button.
+   // Do not create a second control or a Pentathlon-specific media handler.
    const mic=local?.querySelector('#micBtn');
-   if(mic)mic.hidden=true; // Room media controls are owned by the existing waiting room.
+   const camera=scene.querySelector('#cameraBtn');
+   const controls=scene.querySelector('.match-info');
+   if(mic&&camera&&controls){
+     mic.hidden=false;
+     mic.classList.add('wide');
+     camera.after(mic);
+   }
    document.body.classList.add('pt-online-test');
    sceneReady=true;
  })();
