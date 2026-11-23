@@ -139,8 +139,10 @@ async function ensureScene(){
    stageOverlay.innerHTML='<div class="da-dialog-backdrop"></div><section class="da-dialog-card pt-stage-modal" role="dialog" aria-modal="true" aria-labelledby="ptStageModalHeading" tabindex="-1"><span class="da-dialog-kicker">PENTATHLON</span><h2 id="ptStageModalHeading" class="da-dialog-title">Øvelse fullført</h2><div class="pt-stage-modal-body"></div><div class="da-dialog-actions"><button id="ptCloseStageModal" type="button" class="da-dialog-cancel" aria-label="Lukk øvelsesresultat">Lukk</button></div></section>';
    const modalBody=stageOverlay.querySelector('.pt-stage-modal-body');
    modalBody.append($('ptReview'),$('ptFinished'));
-   const advanceButton=scene.querySelector('#ptAdvance');
-   if(!advanceButton)throw Error('Pentathlon: Neste øvelse-knappen mangler i X01-kamprommet');
+   // ptReview has just been moved into the detached modal. Query that
+   // modal directly; the button is no longer a child of the match scene.
+   const advanceButton=modalBody.querySelector('#ptAdvance');
+   if(!advanceButton)throw Error('Pentathlon: Neste øvelse-knappen mangler i resultatpopupen');
    advanceButton.classList.remove('primary');
    advanceButton.classList.add('da-dialog-confirm');
    scene.append(stageOverlay);
