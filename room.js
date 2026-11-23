@@ -161,7 +161,7 @@ function showProposal(p){
   pendingProposal={...p,isChicago:chicago,gameVariant:variant,mode:special?'legs':p.mode||'legs',sets:special?1:Number(p.sets)||1,legs:chicago?3:jdc?1:half?1:Number(p.legs)||1,durationMinutes,isWarmup:!!p.isWarmup};
   const who=p.starter==='random'?'Tilfeldig':p.starter===profile.id?'Du starter':`${names[other]} starter`;
   const label=chicago?'Chicago Style':variant==='pentathlon'?'Pentathlon':jdc?'JDC Challenge':sixty?'61':half?'Half-It':variant==='cricket'?'Cricket':p.game;
-  const format=variant==='pentathlon'?`${label} • 7 øvelser • Owner-test`:chicago?`${label} • 301 DI/DO → Cricket → 501 DO`:jdc?`${label} • 57 piler hver`:half?`${label} • 12 runder`:sixty?`${label} • Best of ${pendingProposal.legs} legs • ${durationMinutes} min/leg`:pendingProposal.mode==='sets'?`${label} • Best of ${pendingProposal.sets} sets • Best of ${pendingProposal.legs} legs`:`${label} • Best of ${pendingProposal.legs} legs`;
+  const format=variant==='pentathlon'?`${label} • 7 øvelser • ikke ranket`:chicago?`${label} • 301 DI/DO → Cricket → 501 DO`:jdc?`${label} • 57 piler hver`:half?`${label} • 12 runder`:sixty?`${label} • Best of ${pendingProposal.legs} legs • ${durationMinutes} min/leg`:pendingProposal.mode==='sets'?`${label} • Best of ${pendingProposal.sets} sets • Best of ${pendingProposal.legs} legs`:`${label} • Best of ${pendingProposal.legs} legs`;
   $('proposalTitle').textContent=(pendingProposal.isWarmup?'OPPVARMING • ':'')+format;
   $('proposalText').textContent=pendingProposal.isWarmup?`${who}. Oppvarmingskampen teller ikke på AVG, form, historikk, Top 10 eller ranking. Godta for å starte.`:`${who}. Godta for å starte kampen.`;
   $('proposalActions').classList.remove('hidden')
