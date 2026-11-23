@@ -229,6 +229,15 @@ async function ensureScene(){
 
 function choice(key,label,dart){
  const b=node('button','outline',label);b.type='button';b.dataset.key=key;
+ // Shanghai uses the original choice buttons with a two-line label.
+ // Keep the same click and keyboard handlers; only change presentation.
+ if(stage()?.kind==='shanghai' && ['1','2','3'].includes(key)){
+   b.classList.add('pt-shanghai-choice');
+   b.replaceChildren(
+     node('span','pt-shanghai-choice-name',key==='1'?'SINGLE':key==='2'?'DOBBEL':'TRIPPEL'),
+     node('span','pt-shanghai-choice-key',key)
+   );
+ }
  const c=stage();b.disabled=saving||!mine()||pending.length>=Math.min(3-c.pending.length,c.kind==='clock'?42-c.used[c.turn]:3);
  b.onclick=()=>{if(b.disabled)return;pending.push(dart);render()};
  $('ptChoices').append(b);
