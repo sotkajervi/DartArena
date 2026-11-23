@@ -258,3 +258,39 @@ body.pt-online-test #ptPointsButton{white-space:nowrap}
 
 /* Reuse the existing X01 media buttons in the sidebar; no new media UI. */
 body.pt-online-test #ptPanel .match-info > #micBtn{display:block;width:100%;margin-top:6px}
+
+/* Stage completion: match the existing .da-dialog-card exactly.
+   The match-room/global section rules otherwise override its border. */
+body.pt-online-test #ptStageOverlay > section.da-dialog-card.pt-stage-modal{
+ border:1px solid #285054;
+ border-radius:20px;
+ background:linear-gradient(145deg,#0d191c,#081315);
+ box-shadow:0 28px 100px rgba(0,0,0,.78),inset 0 1px 0 rgba(255,255,255,.035);
+ padding:24px;
+ color:var(--text,#f2f7f7);
+}
+body.pt-online-test #ptStageOverlay .pt-stage-modal .da-dialog-title{
+ font-size:24px;line-height:1.15;margin:0;text-align:left;
+}
+body.pt-online-test #ptStageOverlay .pt-stage-modal .da-dialog-kicker{
+ font-size:11px;letter-spacing:.15em;color:var(--cyan,#00eaf4);text-align:left
+}
+body.pt-online-test #ptStageOverlay .pt-stage-modal .pt-review,
+body.pt-online-test #ptStageOverlay .pt-stage-modal .pt-finished{
+ border:0;background:transparent;box-shadow:none;padding:14px 0 0
+}
+body.pt-online-test #ptStageOverlay .pt-stage-modal #ptReviewDetails>div{
+ background:#101d20;border:1px solid var(--line,#203438);border-radius:11px
+}
+body.pt-online-test #ptStageOverlay .pt-stage-modal .da-dialog-actions{
+ display:flex;justify-content:flex-end;gap:9px;margin-top:20px
+}
+body.pt-online-test #ptStageOverlay .pt-stage-modal .da-dialog-cancel{
+ background:#101d20;border:1px solid var(--line,#203438);
+ border-radius:10px;color:#dce8e9;padding:11px 15px
+}
+@media(max-width:520px){
+ body.pt-online-test #ptStageOverlay > section.da-dialog-card.pt-stage-modal{
+  border-radius:17px;padding:20px
+ }
+}
