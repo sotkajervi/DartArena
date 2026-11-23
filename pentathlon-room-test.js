@@ -73,7 +73,8 @@ async function ensureScene(){
      const avg=node('div','live-avg');
      avg.innerHTML='<span id="ptAverageLabel'+i+'">AVG</span><b id="ptAverage'+i+'">0.00</b>';
      card.append(darts,avg);
-     const detail=$('ptDetail'+i);
+     const detail=scene.querySelector('#ptDetail'+i);
+     if(!detail)throw Error('Pentathlon: X01-poenglinje mangler for spiller '+(i+1));
      detail.classList.add('pt-live-points');
      detail.innerHTML='<span class="pt-points-pair"><span>ØVELSE</span><b id="ptStagePoints'+i+'">0 P</b></span><span class="pt-points-divider" aria-hidden="true"></span><span class="pt-points-pair"><span>TOTALT</span><b id="ptTotalPoints'+i+'">0 P</b></span>';
    }
@@ -138,8 +139,10 @@ async function ensureScene(){
    stageOverlay.innerHTML='<div class="da-dialog-backdrop"></div><section class="da-dialog-card pt-stage-modal" role="dialog" aria-modal="true" aria-labelledby="ptStageModalHeading" tabindex="-1"><span class="da-dialog-kicker">PENTATHLON</span><h2 id="ptStageModalHeading" class="da-dialog-title">Øvelse fullført</h2><div class="pt-stage-modal-body"></div><div class="da-dialog-actions"><button id="ptCloseStageModal" type="button" class="da-dialog-cancel" aria-label="Lukk øvelsesresultat">Lukk</button></div></section>';
    const modalBody=stageOverlay.querySelector('.pt-stage-modal-body');
    modalBody.append($('ptReview'),$('ptFinished'));
-   $('ptAdvance').classList.remove('primary');
-   $('ptAdvance').classList.add('da-dialog-confirm');
+   const advanceButton=scene.querySelector('#ptAdvance');
+   if(!advanceButton)throw Error('Pentathlon: Neste øvelse-knappen mangler i X01-kamprommet');
+   advanceButton.classList.remove('primary');
+   advanceButton.classList.add('da-dialog-confirm');
    scene.append(stageOverlay);
    const closeStage=()=>{
      stageOverlay.hidden=true;
@@ -310,7 +313,9 @@ function render(){
    $('ptAverageLabel'+i).textContent=x01?'AVG':'P/R';
    $('ptStagePoints'+i).textContent=c.pent[i]+' P';
    $('ptTotalPoints'+i).textContent=(s.total[i]+(live?c.pent[i]:0))+' P';
-   $('ptCard'+i).classList.toggle('active',live&&c.turn===i);
+   const scoreCard=panel.querySelector('#ptCard'+i);
+   if(!scoreCard)throw Error('Pentathlon: spillerkort '+(i+1)+' mangler');
+   scoreCard.classList.toggle('active',live&&c.turn===i);
  }
  // Keep original X01 scorecards visible through the result screen.
  $('ptTarget').hidden=!live||c.kind==='x01';
