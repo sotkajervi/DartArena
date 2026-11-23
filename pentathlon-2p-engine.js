@@ -253,6 +253,37 @@
     }
     return remember(state,next);
   }
+  // Rebuild a Shanghai stage from its individual dart entries. This keeps
+  // the Shanghai 1+2+3 bonus consistent when an earlier dart is corrected.
+  function correctShanghaiDart(state, entryIndex, multiplier, editor) {
+    need(state?.status==='playing'&&state.current?.kind==='shanghai',
+      'Bare kast i aktiv Shanghai-øvelse kan korrigeres.');
+    const entries=state.current.entries, index=Number(entryIndex),m=Number(multiplier),me=Number(editor);
+    need(Number.isInteger(index)&&index>=0&&index<entries.length,'Kastet finnes ikke.');
+    need((me===0||me===1)&&Number.isInteger(m)&&m>=0&&m<=3,'Ugyldig korrigering.');
+    const own=entries.map((e,i)=>e.player===me&&e.type==='dart'?i:-1).filter(i=>i>=0);
+    need(own.slice(-3).includes(index),'Bare dine tre siste piler kan korrigeres.');
+    let next=snapshot(state);
+    next.current=stageStart(state.stageIndex,state.current.starter);
+    next.status='playing';next.undo=[];
+    for(let i=0;i<entries.length;i++){
+      const old=entries[i];
+      need(old.type==='dart'&&old.player===next.current.turn,'Uventet turrekkefølge.');
+      const expected=Number(String(old.target||'').replace(/^TALL /,''));
+      const target=currentTarget(next);
+      need(expected===target.number,'Uventet Shanghai-mål.');
+      const hit=i===index?(m?{n:target.number,m}:{n:0,m:0}):
+        old.hit==='BOM'?{n:0,m:0}:
+        {n:Number(String(old.hit).slice(1)),m:({S:1,D:2,T:3})[String(old.hit)[0]]};
+      need(isDart(hit),'Ugyldig tidligere registrering.');
+      next=submitDart(next,hit);
+      need(next.current.entries[i]?.player===old.player,'Turrekkefølgen kan ikke endres.');
+    }
+    need(next.status==='playing'&&next.current.entries.length===entries.length,
+      'Øvelsen kan ikke avsluttes ved korrigering.');
+    next.undo=[snapshot(state)];
+    return next;
+  }
   // Shanghai quick entry: only successful hits need manual registration.
   // Missing darts are committed as ordinary misses, preserving 3 darts
   // per turn, Shanghai bonuses, the log, undo and stage progression.
@@ -316,6 +347,6 @@
        !Array.isArray(value.summaries)||!value.current) return null;
     return value;
   }
-  return Object.freeze({STAGES,HALF,create,restore,currentTarget,submitX01,correctX01Visit,submitDart,submitShanghaiTurn,submitClockTurn,nextStage,undo,
+  return Object.freeze({STAGES,HALF,create,restore,currentTarget,submitX01,correctX01Visit,submitDart,correctShanghaiDart,submitShanghaiTurn,submitClockTurn,nextStage,undo,
     isScore,isCheckout,isDart,pointsForVisit,finishBonus,labelDart});
 });
