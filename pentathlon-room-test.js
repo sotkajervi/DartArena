@@ -154,6 +154,9 @@ async function ensureScene(){
    }}
    scene.querySelector('#matchFormat').textContent='PENTATHLON • 7 ØVELSER';
    scene.querySelector('#matchTitle').textContent='Pentathlon Online';
+   // The X01 media engine bootstraps first. Detach only its score-entry
+   // keyboard handler; Pentathlon owns score submission for its seven stages.
+   $('ptInput').onkeydown=null;
    $('ptRefresh').onclick=refresh;$('ptXSubmit').onclick=submitX01;$('ptSSubmit').onclick=submitSpecial;
    $('ptRemove').onclick=()=>{pending.pop();render()};$('ptAdvance').onclick=advance;$('ptUndo').onclick=undo;
    $('ptInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();submitX01()}});
