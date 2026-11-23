@@ -14,7 +14,7 @@
   if(!dialog?.confirm){console.error('DartArena dialog not loaded');return}
   const ok=await dialog.confirm(
    'Fjerne '+Number(row.best_score)+' poeng for '+(row.username||'spilleren')+
-   ' fra Pentathlon Top 10?\\n\\nDette fjerner bare dette topplisteresultatet, ikke selve kampen. Har spilleren et annet gyldig resultat, rykker det opp.',
+   ' fra Pentathlon Top 10?\n\nDette fjerner bare dette topplisteresultatet, ikke selve kampen. Har spilleren et annet gyldig resultat, rykker det opp.',
    {title:'Slett Pentathlon-resultat',kicker:'DARTARENA · TOPP 10',
     cancelText:'Tilbake',confirmText:'Slett resultat',tone:'danger'}
   );
