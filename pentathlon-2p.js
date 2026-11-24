@@ -516,7 +516,8 @@
       $('pentaH2HDarts'+p).textContent=c.used[p];
       $('pentaH2HScore'+p).textContent=c.remaining[p];
       $('pentaH2HAverage'+p).textContent=c.used[p]?x01Average(c.entries,p,c.used[p]).replace(',','.'):'–';
-      $('pentaH2HLegs'+p).textContent=c.win===p?'1':'0';
+      $('pentaH2HStagePoints'+p).textContent=c.pent[p]+' P';
+      $('pentaH2HTotalPoints'+p).textContent=liveTotal(p)+' P';
       $('pentaH2HStarterMarker'+p).hidden=c.starter!==p;
     }
     $('pentaX01Turn').textContent=state.players[c.turn]+' kaster · '+c.remaining[c.turn]+' igjen';
