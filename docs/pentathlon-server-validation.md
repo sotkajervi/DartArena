@@ -1,0 +1,4 @@
+# Pentathlon online integrity candidate
+No production change. Isolated PostgreSQL 16 workflow uses no production credentials, no app deployment and no external services other than the local job's database container.
+Replay each exercise from recorded raw visits/darts, verify derived score, totals, order, summaries and legal checkout against current engine. Database trigger additionally verifies append-only turns, previous-state undo, advance and corrections.
+Before rollout: inspect test result, add independent correction and adverse transition fixtures, confirm no online Pentathlon active, compare existing DB schema, snapshot current function definitions/trigger list, assess execution time and review rollback. Rollback removes only the new trigger and new private functions/schema if unused. Existing completed matches are not retroactively validated or edited. No proof of actual physical throws.

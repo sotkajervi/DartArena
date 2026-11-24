@@ -1,0 +1,40 @@
+name: Isolated Pentathlon server validation
+on:
+  push:
+    branches: ['test/pentathlon-server-validation-20261124']
+permissions:
+  contents: read
+jobs:
+  parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: isolated-only
+          POSTGRES_DB: pentathlon_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGDATABASE: pentathlon_test
+      PGUSER: postgres
+      PGPASSWORD: isolated-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare isolated PostgreSQL
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f tests/pentathlon-server-test-schema.sql
+          psql -X -v ON_ERROR_STOP=1 -f db/pentathlon-server-validation-candidate.sql
+      - name: Compare server validation to existing engine
+        run: node tests/pentathlon-server-validation.cjs
