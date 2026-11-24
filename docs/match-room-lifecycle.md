@@ -1,0 +1,2 @@
+# Match room lifecycle integrity
+Read-only audit confirms protected challenge transitions and scoring tables. Candidate enforces phase for tournament match start, validates linked room identity, blocks resetting completed rooms, preserves existing completed fixture on duplicate finish, retains recovery of already cancelled rooms. Does not change media, spectator reads, or frontend. Tests isolated. No live play or concurrent load test. Full authorization and scoring correction audit remains separate.

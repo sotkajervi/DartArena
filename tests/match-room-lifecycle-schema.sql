@@ -1,0 +1,11 @@
+create role anon;
+create role authenticated;
+create role service_role;
+create schema auth;
+create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('test.actor',true),'')::uuid$$;
+grant usage on schema auth to authenticated;
+create table public.profiles(id uuid primary key,status text,last_seen timestamptz);
+create table public.tournaments(id uuid primary key,status text,game int,cup_game int,game_variant text,cup_game_variant text);
+create table public.matches(id uuid primary key default gen_random_uuid(),player1_id uuid,player2_id uuid,game int,game_variant text,legs int,status text,turn_player_id uuid,player1_score int,player2_score int,match_mode text,best_of_sets int,player1_sets int,player2_sets int,match_starter_id uuid,current_set int,current_leg int,game_config jsonb,player1_legs int,player2_legs int,winner_id uuid,deleted_at timestamptz,finished_at timestamptz,updated_at timestamptz);
+create table public.tournament_matches(id uuid primary key,tournament_id uuid,stage text,best_of int,player1_id uuid,player2_id uuid,status text,live_match_id uuid,player1_legs int,player2_legs int,winner_id uuid,is_wo boolean default false,updated_at timestamptz);
+grant select on public.matches,public.tournament_matches to authenticated;
