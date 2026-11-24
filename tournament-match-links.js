@@ -61,9 +61,24 @@ async function openTournamentMatch(row){
     let destination=null;
     if(['finished','wo'].includes(match.status))destination=`tournament-match-stats.html?id=${encodeURIComponent(id)}`;
     else if(match.status==='live'){
-      destination=isPlayer&&match.live_match_id
-        ?`match.html?id=${encodeURIComponent(match.live_match_id)}&tournamentMatch=${encodeURIComponent(id)}`
-        :`tournament-match-viewer.html?id=${encodeURIComponent(id)}`;
+      if(isPlayer&&match.live_match_id){
+        destination=`match.html?id=${encodeURIComponent(match.live_match_id)}&tournamentMatch=${encodeURIComponent(id)}`;
+      }else{
+        // Reuse the actual ordinary Spectate page for X01 tournament matches.
+        // Chicago/Cricket need their dedicated board and stage logic for now.
+        destination=`tournament-match-viewer.html?id=${encodeURIComponent(id)}`;
+        if(match.live_match_id){
+          const {data:live,error:liveError}=await tournamentLinkDb.from('matches')
+            .select('game_variant,game_config').eq('id',match.live_match_id).maybeSingle();
+          if(liveError)console.warn('Spectate game format check failed; using tournament viewer',liveError);
+          const chicago=String(live?.game_config?.chicago??'false').toLowerCase()==='true';
+          if(!liveError&&live?.game_variant==='x01'&&!chicago){
+            const tournamentId=new URLSearchParams(location.search).get('id');
+            destination=`spectate.html?id=${encodeURIComponent(match.live_match_id)}`
+              +(tournamentId?`&tournament=${encodeURIComponent(tournamentId)}`:'');
+          }
+        }
+      }
     }else if(match.status==='pending'&&isPlayer&&match.player1_id&&match.player2_id)
       destination=`tournament-match-room.html?id=${encodeURIComponent(id)}`;
     else if(match.status==='pending')
