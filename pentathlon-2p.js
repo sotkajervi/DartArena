@@ -541,6 +541,21 @@
       line.appendChild(chips);throws.appendChild(line);
     }
   }
+  // Reuse the original three-dart X01 starter marker in every Pentathlon stage.
+  function stagePlayerHeading(player,starter){
+    const heading=create('h2','local-match-name');
+    heading.appendChild(create('span','',state.players[player]));
+    if(player===starter){
+      const source=$('pentaH2HStarterMarker0');
+      const marker=source?.cloneNode(true);
+      if(marker){
+        marker.removeAttribute('id');
+        marker.hidden=false;
+        heading.appendChild(marker);
+      }
+    }
+    return heading;
+  }
   function renderShanghai(){
     const c=state.current,host=$('pentaShanghaiPlayers');
     host.replaceChildren();
@@ -561,7 +576,7 @@
       const average=create('div','local-avg');
       average.append(create('b','',avg),create('span','','P/R'));
       band.append(darts,score,average);
-      card.append(top,create('h2','',state.players[p]),band,create('div','local-leg-label','PENTATHLON-POENG'));
+      card.append(top,stagePlayerHeading(p,c.starter),band,create('div','local-leg-label','PENTATHLON-POENG'));
       host.appendChild(card);
     }
     const n=E.currentTarget(state)?.number||1;
@@ -627,7 +642,7 @@
       const visits=Math.ceil(c.used[p]/3);
       stats.append(create('b','',visits?(c.pent[p]/visits).toFixed(2):'0.00'),create('span','','P/R'));
       band.append(darts,score,stats);
-      card.append(top,create('h2','',state.players[p]),band,create('div','local-leg-label','PENTATHLON-POENG'));
+      card.append(top,stagePlayerHeading(p,c.starter),band,create('div','local-leg-label','PENTATHLON-POENG'));
       host.appendChild(card);
     }
     const p=c.turn,n=clockPreviewTarget(),completed=n>20;
@@ -683,7 +698,7 @@
       const completedRounds=Math.ceil(c.used[p]/3);
       average.append(create('b','',completedRounds?(c.halfScores[p]/completedRounds).toFixed(2):'0.00'),create('span','','P/R'));
       band.append(used,score,average);
-      card.append(head,create('h2','',state.players[p]),band,create('div','local-leg-label',c.pent[p]+' PENTATHLON-POENG'));
+      card.append(head,stagePlayerHeading(p,c.starter),band,create('div','local-leg-label',c.pent[p]+' PENTATHLON-POENG'));
       host.appendChild(card);
     }
     const p=c.turn,round=Math.min(6,Math.floor(c.used[p]/3)),target=HALF_TARGETS[round];
