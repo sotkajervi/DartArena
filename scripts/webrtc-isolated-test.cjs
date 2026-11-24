@@ -6,7 +6,7 @@ const fs = require('node:fs/promises');
 const assert = require('node:assert/strict');
 
 const pairs = Number(process.argv[2] || 1);
-if (!Number.isInteger(pairs) || pairs < 1 || pairs > 5) throw Error('Maximum five pairs per run');
+if (!Number.isInteger(pairs) || pairs < 1 || pairs > 25) throw Error('Maximum 25 pairs per run');
 const durationMs = 15000;
 const delay = ms => new Promise(r => setTimeout(r, ms));
 const server = http.createServer((req,res)=>{
@@ -101,7 +101,11 @@ async function main(){
     await sleep(durationMs);
     const after=await Promise.all(active.flatMap(({a,b})=>[stats(a),stats(b)]));
     const peers=after.map((p,i)=>({...p,player:i+1,videoBytes:p.videoBytes-before[i].videoBytes,audioBytes:p.audioBytes-before[i].audioBytes,framesDecoded:p.framesDecoded-before[i].framesDecoded,packetsLost:p.packetsLost-before[i].packetsLost,packetsReceived:p.packetsReceived-before[i].packetsReceived}));
-    return {test:'isolated-local-browser-p2p',pairs,players:pairs*2,setupMs,durationMs,peers,pass:peers.every(p=>p.state==='connected'&&p.videoBytes>0&&p.audioBytes>0&&p.framesDecoded>=30)};
+    const fps=peers.map(p=>p.framesDecoded/(durationMs/1000));
+    const minFps=Math.min(...fps),meanFps=fps.reduce((a,b)=>a+b,0)/fps.length;
+    const received=peers.reduce((n,p)=>n+p.packetsReceived,0),lost=peers.reduce((n,p)=>n+Math.max(0,p.packetsLost),0);
+    const lossPercent=received+lost?100*lost/(received+lost):null;
+    return {test:'isolated-local-browser-p2p',pairs,players:pairs*2,setupMs,durationMs,minFps,meanFps,lossPercent,peers,pass:peers.every(p=>p.state==='connected'&&p.videoBytes>0&&p.audioBytes>0)&&minFps>=12&&lossPercent!==null&&lossPercent<=1};
    }finally{
     for(const {a,b} of active){a.close();b.close()}
     for(const close of resources){try{close()}catch{}}
