@@ -1,0 +1,2 @@
+# Tournament leader integrity
+Remove only the authenticated role's direct UPDATE access to tournaments.owner_id; retain all current other column permissions and existing INSERT rights. Existing transfer RPC and RLS remain unchanged. The privileged service role remains available for maintenance. Tests use the real transfer function and synthetic schema, not production. Other tournament metadata and phase integrity are outside this narrow patch. No frontend or video changes.
