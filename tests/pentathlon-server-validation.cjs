@@ -33,7 +33,7 @@ function shadow(s,slot,advance,requestedAction){
  if(action==='undo'){
   assert.equal(s.undo.length,0);
   assert.equal(a.undo.length,1);
-  assert.deepEqual(clean(s),a.undo[0],'Undo must restore the previous snapshot');
+  assert.deepEqual(clean(s),clean(a.undo[0]),'Undo must restore the previous snapshot');
  } else if(action==='correct'){
   if(['clock','shanghai'].includes(a.current.kind)){
    const idx=before.findIndex((e,i)=>e.hit!==after[i].hit);
@@ -42,7 +42,10 @@ function shadow(s,slot,advance,requestedAction){
    r=rpc(slot,a.current.kind==='clock'?'correct_pentathlon_clock_dart':'correct_pentathlon_shanghai_dart',base+','+idx+','+m);
   }
  }
- if(!r)r=rpc(slot,'apply_pentathlon_room_test',base+",'"+action+"',"+q(s));
+ if(!r){
+  try{r=rpc(slot,'apply_pentathlon_room_test',base+",'"+action+"',"+q(s));}
+  catch(e){console.error('RPC context:',JSON.stringify({action,slot,version:rpcVersion,stage:a.stageIndex,entries:before.length,nextEntries:after.length}));throw e;}
+ }
  assert.deepEqual(r.state,s,'RPC state mismatch in '+a.current.kind+' '+action);
  assert.equal(Number(r.version),Number(rpcVersion)+1);
  rpcState=s;rpcVersion=r.version;rpcCount++;
