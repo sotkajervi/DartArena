@@ -6,6 +6,8 @@ const q=v=>"'"+JSON.stringify(v).replaceAll("'","''")+"'::jsonb";
 const clean=s=>{const x=JSON.parse(JSON.stringify(s));delete x.undo;return x};
 const slim=(s,old)=>({...clean(s),undo:old?[clean(old)]:[]});
 let count=0, rejected=0;
+let rpcCount=0,rpcVersion=1,rpcState;
+const challenge='00000000-0000-0000-0000-000000000010',match='00000000-0000-0000-0000-000000000011';
 const cases=[];
 function run(sql){return execFileSync('psql',['-X','-v','ON_ERROR_STOP=1','-q','-At'],{input:sql,encoding:'utf8',stdio:['pipe','pipe','pipe']})}
 function verify(s){run('select dartarena_internal.pentathlon_validate('+q(s)+');');count++}
@@ -13,7 +15,37 @@ function reject(s){try{verify(s)}catch(e){if(!String(e.stderr).includes('PENTATH
 const players=['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002'];
 function actor(slot){return "select set_config('test.actor','"+players[slot]+"',false);"}
 function insert(s){run(actor(s.firstStarter)+" insert into public.pentathlon_room_tests(id,player1_id,player2_id,state,version) values (1,'"+players[0]+"','"+players[1]+"',"+q(s)+",1);")}
-function transition(s,slot,advance=false){run(actor(slot)+" update public.pentathlon_room_tests set state="+q(s)+",version=version+1,last_actor="+(advance?'null':"'"+players[slot]+"'")+" where id=1;");count++}
+function rpc(slot,fn,args){
+ const out=run(actor(slot)+" set role authenticated; select public."+fn+"("+args+");").trim().split('\n').at(-1);
+ return JSON.parse(out);
+}
+function startRPC(s){
+ run("insert into public.challenges values ('"+challenge+"','accepted','"+players[0]+"','"+players[1]+"',now()-interval '1 minute');"+
+ "insert into public.matches(id,game_variant,status,player1_id,player2_id,match_starter_id,created_at) values ('"+match+"','pentathlon','playing','"+players[0]+"','"+players[1]+"','"+players[s.firstStarter]+"',now());"+
+ "insert into public.profiles values ('"+players[0]+"','playing'),('"+players[1]+"','playing');");
+ const r=rpc(s.firstStarter,'start_pentathlon_match_test',"'"+match+"','"+challenge+"',"+q(s));
+ assert.deepEqual(r.state,s);rpcState=s;rpcVersion=r.version;rpcCount++;
+}
+function shadow(s,slot,advance){
+ const a=rpcState, before=a.current.entries, after=s.current.entries;
+ let r,action=advance?'advance':'turn';
+ const base="'"+challenge+"',"+rpcVersion;
+ if(!advance&&s.undo.length===0&&a.undo.length===1&&require('node:util').isDeepStrictEqual(clean(s),a.undo[0]))action='undo';
+ else if(!advance&&before.length===after.length){
+  action='correct';
+  if(['clock','shanghai'].includes(a.current.kind)){
+   const idx=before.findIndex((e,i)=>e.hit!==after[i].hit);
+   assert.ok(idx>=0);
+   const m=after[idx].hit==='BOM'?0:({S:1,D:2,T:3})[after[idx].hit[0]];
+   r=rpc(slot,a.current.kind==='clock'?'correct_pentathlon_clock_dart':'correct_pentathlon_shanghai_dart',base+','+idx+','+m);
+  }
+ }
+ if(!r)r=rpc(slot,'apply_pentathlon_room_test',base+",'"+action+"',"+q(s));
+ assert.deepEqual(r.state,s,'RPC state mismatch in '+a.current.kind+' '+action);
+ assert.equal(Number(r.version),Number(rpcVersion)+1);
+ rpcState=s;rpcVersion=r.version;rpcCount++;
+}
+function transition(s,slot,advance=false){run(actor(slot)+" update public.pentathlon_room_tests set state="+q(s)+",version=version+1,last_actor="+(advance?'null':"'"+players[slot]+"'")+" where id=1;");count++;shadow(s,slot,advance)}
 function denied(s,slot){try{transition(s,slot)}catch(e){if(!String(e.stderr).includes('PENTATHLON_'))throw e;rejected++;return}throw Error('Tampered transition accepted')}
 function expectDenied(label,sql,code){
  try{run(sql)}catch(e){assert.ok(String(e.stderr).includes(code),label+': '+String(e.stderr));rejected++;cases.push(label);return}
@@ -23,7 +55,7 @@ function rawUpdate(state,slot,extra='version=version+1',actorSql=actor(slot)){
  return actorSql+" update public.pentathlon_room_tests set state="+q(state)+",last_actor='"+players[slot]+"',"+extra+" where id=1;";
 }
 function mutate(s,f){const x=JSON.parse(JSON.stringify(s));f(x);return x}
-let s=E.create({name1:'A',name2:'B',starter:0});insert(s);verify(s);
+let s=E.create({name1:'A',name2:'B',starter:0});insert(s);startRPC(s);verify(s);
 let next=slim(E.submitX01(s,{score:180}),s);
 denied(mutate(next,x=>x.current.pent[0]+=100),0);
 denied(mutate(next,x=>x.undo[0].total[0]=1000),0);
@@ -89,6 +121,8 @@ while(s.status!=='finished'&&step++<400){
  }
 }
 assert.equal(s.status,'finished');assert.equal(s.summaries.length,7);verify(s);
+assert.equal(run("select status from public.matches where id='"+match+"';").trim(),'finished');
+assert.equal(run("select winner_id from public.matches where id='"+match+"';").trim(),players[s.total[0]>s.total[1]?0:1]);
 reject(mutate(s,x=>x.total[0]+=1000));
 reject(mutate(s,x=>x.summaries[0].pent[0]+=1000));
 reject(mutate(s,x=>x.summaries[4].entries[0].bonus+=1000));
@@ -146,4 +180,4 @@ do $penttest$ declare v jsonb:=${q(s)}; t timestamptz; begin
  end loop;
 end $penttest$;
 select json_build_object('samples',count(*),'meanMs',round(avg(ms)::numeric,3),'p95Ms',round(percentile_cont(0.95) within group(order by ms)::numeric,3),'maxMs',round(max(ms)::numeric,3)) from validation_timings;`).trim();
-console.log(JSON.stringify({validChecks:count,rejected,checkoutParity:Number(parity),checkoutCases,correctedStages:[...correctedStages],cases,performance:JSON.parse(timings),final:s.total,stages:s.summaries.map(x=>x.id)}));
+console.log(JSON.stringify({validChecks:count,rpcChecks:rpcCount,rejected,checkoutParity:Number(parity),checkoutCases,correctedStages:[...correctedStages],cases,performance:JSON.parse(timings),final:s.total,stages:s.summaries.map(x=>x.id)}));
