@@ -566,7 +566,7 @@
       const best=turns.length?Math.max(...turns.map(v=>v.reduce((sum,row)=>sum+Number(row.bonus||0),0))):0;
       const avg=turns.length?(c.pent[p]/turns.length).toFixed(2):'0.00';
       const card=create('article','local-player'+(c.turn===p?' active':''));
-      card.style.order=p===c.starter?'0':'1';
+
       const top=create('div','local-player-top');
       top.append(create('small','','SPILLER '+(p+1)),create('span','local-current-marker','Kaster nå'));
       const band=create('div','local-score-band');
@@ -631,7 +631,7 @@
     host.replaceChildren();
     for(let p=0;p<2;p++){
       const card=create('article','local-player'+(c.turn===p?' active':''));
-      card.style.order=p===c.starter?'0':'1';
+
       const top=create('div','local-player-top');
       top.append(create('small','','SPILLER '+(p+1)),create('span','local-current-marker','Kaster nå'));
       const band=create('div','local-score-band');
@@ -687,7 +687,7 @@
     const c=state.current,host=$('pentaHalfPlayers');host.replaceChildren();
     for(let p=0;p<2;p++){
       const card=create('article','local-player'+(c.turn===p?' active':''));
-      card.style.order=p===c.starter?'0':'1';
+
       const head=create('div','local-player-top');
       head.append(create('small','','SPILLER '+(p+1)),create('span','local-current-marker','Kaster nå'));
       const band=create('div','local-score-band');
