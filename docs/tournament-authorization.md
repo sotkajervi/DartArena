@@ -1,0 +1,2 @@
+# Tournament authorization candidate
+Direct inserts restricted to setup stages, legitimate pending fixtures and first-round BYE. No linked scoring rooms or prefilled results. Direct best-of changes restricted to genuine pending cup final. Preserve actual deferred final-flag sync and existing privileged RPC scoring. Existing legacy rows unchanged. Tests isolate PostgreSQL and do not touch production. Full tournament lifecycle/participant qualification validation and leader metadata grants remain separate tasks.
