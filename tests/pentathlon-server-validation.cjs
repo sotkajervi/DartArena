@@ -120,7 +120,7 @@ for(let rest=2;rest<=170;rest++){
 }
 const parity=run(`create temporary table checkout_cases(payload jsonb);
 insert into checkout_cases select value from jsonb_array_elements(${q(sqlTests)});
-do $ declare r record; accepted boolean; begin
+do $penttest$ declare r record; accepted boolean; begin
  for r in select payload as p from checkout_cases loop
   accepted:=true;
   begin
@@ -133,17 +133,17 @@ do $ declare r record; accepted boolean; begin
    raise exception 'checkout parity mismatch: % points / % darts',r.p->>'rest',r.p->>'darts';
   end if;
  end loop;
-end $;
+end $penttest$;
 select count(*) from checkout_cases;`).trim();
 assert.equal(Number(parity),507);
 // Single-process DB timings; excludes client/network cost and is not a live load test.
 const timings=run(`create temporary table validation_timings(ms double precision);
-do $ declare v jsonb:=${q(s)}; t timestamptz; begin
+do $penttest$ declare v jsonb:=${q(s)}; t timestamptz; begin
  for i in 1..100 loop
   t:=clock_timestamp();
   perform dartarena_internal.pentathlon_validate(v);
   insert into validation_timings values (extract(epoch from clock_timestamp()-t)*1000);
  end loop;
-end $;
+end $penttest$;
 select json_build_object('samples',count(*),'meanMs',round(avg(ms)::numeric,3),'p95Ms',round(percentile_cont(0.95) within group(order by ms)::numeric,3),'maxMs',round(max(ms)::numeric,3)) from validation_timings;`).trim();
 console.log(JSON.stringify({validChecks:count,rejected,checkoutParity:Number(parity),checkoutCases,correctedStages:[...correctedStages],cases,performance:JSON.parse(timings),final:s.total,stages:s.summaries.map(x=>x.id)}));
