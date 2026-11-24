@@ -26,13 +26,15 @@ function startRPC(s){
  const r=rpc(s.firstStarter,'start_pentathlon_match_test',"'"+match+"','"+challenge+"',"+q(s));
  assert.deepEqual(r.state,s);rpcState=s;rpcVersion=r.version;rpcCount++;
 }
-function shadow(s,slot,advance){
+function shadow(s,slot,advance,requestedAction){
  const a=rpcState, before=a.current.entries, after=s.current.entries;
- let r,action=advance?'advance':'turn';
+ let r,action=requestedAction||(advance?'advance':'turn');
  const base="'"+challenge+"',"+rpcVersion;
- if(!advance&&s.undo.length===0&&a.undo.length===1&&require('node:util').isDeepStrictEqual(clean(s),a.undo[0]))action='undo';
- else if(!advance&&before.length===after.length){
-  action='correct';
+ if(action==='undo'){
+  assert.equal(s.undo.length,0);
+  assert.equal(a.undo.length,1);
+  assert.deepEqual(clean(s),a.undo[0],'Undo must restore the previous snapshot');
+ } else if(action==='correct'){
   if(['clock','shanghai'].includes(a.current.kind)){
    const idx=before.findIndex((e,i)=>e.hit!==after[i].hit);
    assert.ok(idx>=0);
@@ -45,8 +47,8 @@ function shadow(s,slot,advance){
  assert.equal(Number(r.version),Number(rpcVersion)+1);
  rpcState=s;rpcVersion=r.version;rpcCount++;
 }
-function transition(s,slot,advance=false){run(actor(slot)+" update public.pentathlon_room_tests set state="+q(s)+",version=version+1,last_actor="+(advance?'null':"'"+players[slot]+"'")+" where id=1;");count++;shadow(s,slot,advance)}
-function denied(s,slot){try{transition(s,slot)}catch(e){if(!String(e.stderr).includes('PENTATHLON_'))throw e;rejected++;return}throw Error('Tampered transition accepted')}
+function transition(s,slot,advance=false,action){run(actor(slot)+" update public.pentathlon_room_tests set state="+q(s)+",version=version+1,last_actor="+(advance?'null':"'"+players[slot]+"'")+" where id=1;");count++;shadow(s,slot,advance,action)}
+function denied(s,slot){try{run(rawUpdate(s,slot))}catch(e){if(!String(e.stderr).includes('PENTATHLON_'))throw e;rejected++;return}throw Error('Tampered transition accepted')}
 function expectDenied(label,sql,code){
  try{run(sql)}catch(e){assert.ok(String(e.stderr).includes(code),label+': '+String(e.stderr));rejected++;cases.push(label);return}
  throw Error(label+': unexpected acceptance');
@@ -65,13 +67,13 @@ expectDenied('missing actor',rawUpdate(next,0,'version=version+1',"select set_co
 expectDenied('stale version',rawUpdate(next,0,'version=version'),'PENTATHLON_INVALID_TRANSITION');
 expectDenied('wrong last actor',rawUpdate(next,0).replace("last_actor='"+players[0]+"'","last_actor='"+players[1]+"'"),'PENTATHLON_INVALID_TRANSITION');
 transition(next,0);s=next;
-let u=slim(E.undo(s));transition(u,0);s=u;
+let u=slim(E.undo(s));transition(u,0,false,'undo');s=u;
 next=slim(E.submitX01(s,{score:180}),s);transition(next,0);s=next;
 next=slim(E.submitX01(s,{score:60}),s);transition(next,1);s=next;
-const corr=E.correctX01Visit(s,0,140,0);denied(corr,1);transition(corr,0);s=corr;
+const corr=E.correctX01Visit(s,0,140,0);denied(corr,1);transition(corr,0,false,'correct');s=corr;
 // A legal replay from the engine must not permit the other player to undo a correction.
-const undoCorrection=slim(E.undo(s));denied(undoCorrection,1);transition(undoCorrection,0);s=undoCorrection;
-const recorrect=E.correctX01Visit(s,0,140,0);transition(recorrect,0);s=recorrect;
+const undoCorrection=slim(E.undo(s));denied(undoCorrection,1);transition(undoCorrection,0,false,'undo');s=undoCorrection;
+const recorrect=E.correctX01Visit(s,0,140,0);transition(recorrect,0,false,'correct');s=recorrect;
 const correctedStages=new Set();let checkoutCases=0;
 let step=0;
 while(s.status!=='finished'&&step++<400){
@@ -114,9 +116,9 @@ while(s.status!=='finished'&&step++<400){
    const idx=s.current.entries.findIndex(e=>e.player===editor&&e.hit!=='BOM');
    const correct=kind==='shanghai'?E.correctShanghaiDart:E.correctClockDart;
    const changed=correct(s,idx,0,editor);
-   denied(changed,1-editor);transition(changed,editor);s=changed;
-   const undone=slim(E.undo(s));denied(undone,1-editor);transition(undone,editor);s=undone;
-   const again=correct(s,idx,0,editor);transition(again,editor);s=again;
+   denied(changed,1-editor);transition(changed,editor,false,'correct');s=changed;
+   const undone=slim(E.undo(s));denied(undone,1-editor);transition(undone,editor,false,'undo');s=undone;
+   const again=correct(s,idx,0,editor);transition(again,editor,false,'correct');s=again;
    correctedStages.add(kind);
  }
 }
