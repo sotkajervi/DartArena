@@ -119,7 +119,7 @@ if (!sdk) {
     event.preventDefault();
     if (!recoveryUserId || saving) return;
     const password = element<HTMLInputElement>('newPassword').value;
-    if (password.length < 12) return say('Bruk minst 12 tegn i det nye passordet.', true);
+    if (password.length < 8) return say('Bruk minst 8 tegn i det nye passordet.', true);
     if (password !== element<HTMLInputElement>('confirmPassword').value)
       return say('Passordene er ikke like.', true);
     saving = true;

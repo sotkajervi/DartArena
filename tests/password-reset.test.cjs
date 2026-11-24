@@ -52,11 +52,11 @@ test('invalid recovery stays blocked and offers another email', async () => {
 test('recovery checks identity, validates passwords and updates existing user only', async () => {
   const s = await setup(recovery); await s.emit('PASSWORD_RECOVERY');
   assert.equal(s.nodes.passwordForm.hidden, false);
-  s.nodes.newPassword.value = 'short'; await s.submit('passwordForm'); assert.equal(s.calls.update.length, 0);
-  s.nodes.newPassword.value = 'a-long-unique-password'; s.nodes.confirmPassword.value = 'different';
+  s.nodes.newPassword.value = s.nodes.confirmPassword.value = '1234567'; await s.submit('passwordForm'); assert.equal(s.calls.update.length, 0); assert.match(s.nodes.resetMessage.textContent, /8 tegn/);
+  s.nodes.newPassword.value = 'abcdefgh'; s.nodes.confirmPassword.value = 'different';
   await s.submit('passwordForm'); assert.equal(s.calls.update.length, 0);
   s.nodes.confirmPassword.value = s.nodes.newPassword.value; await s.submit('passwordForm');
-  assert.equal(s.calls.update.length, 1); assert.equal(s.calls.signout[0].scope, 'local');
+  assert.equal(s.calls.update.length, 1); assert.equal(s.calls.update[0].password, 'abcdefgh'); assert.equal(s.calls.signout[0].scope, 'local');
   assert.equal(s.nodes.newPassword.value, ''); assert.equal(s.nodes.passwordForm.hidden, true);
   assert.match(s.nodes.resetMessage.textContent, /Passordet er oppdatert/);
   await s.submit('passwordForm'); assert.equal(s.calls.update.length, 1);
@@ -75,4 +75,11 @@ test('lobby entry forwards recovery and expired links, scrubs old URL, ignores r
     if (hash === recovery || hash.includes('error=')) { assert.equal(calls[0], 'scrub'); assert.ok(calls[1].startsWith('https://sotkajervi.github.io/DartArena/password-reset.html?recovery=1#')); }
     else assert.equal(calls.length, 0);
   }
+});
+
+test('password reset HTML uses the same eight-character policy', () => {
+  const html = fs.readFileSync('password-reset.html', 'utf8');
+  for (const id of ['newPassword', 'confirmPassword']) assert.match(html, new RegExp('id="'+id+'"[^>]*minlength="8"'));
+  assert.match(html, /Bruk minst 8 tegn/);
+  assert.match(html, /password-reset\.js\?v=20261124-auth-password2/);
 });
