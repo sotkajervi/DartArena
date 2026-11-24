@@ -1,0 +1,10 @@
+create role anon;
+create role authenticated;
+create role service_role;
+create table public.profiles(id uuid primary key, username text, created_at timestamptz default now());
+create table public.tournaments(id uuid primary key,status text,stats_enabled boolean,game integer,game_variant text,cup_game integer,cup_game_variant text,finished_at timestamptz,updated_at timestamptz,starts_at timestamptz,created_at timestamptz default now());
+create table public.matches(id uuid primary key,player1_id uuid,player2_id uuid,status text,game int,game_variant text,game_config jsonb default '{}',is_warmup boolean default false,deleted_at timestamptz,winner_id uuid,player1_legs int,player2_legs int);
+create table public.tournament_matches(id uuid primary key,tournament_id uuid,live_match_id uuid,player1_id uuid,player2_id uuid,status text,stage text,winner_id uuid,player1_legs int,player2_legs int);
+create table public.match_throws(id bigint generated always as identity primary key,match_id uuid,player_id uuid,set_no int,leg_no int,visit_no int,score int,darts_used int,is_checkout boolean,created_at timestamptz default now());
+create table public.cricket_visits(match_id uuid,player_id uuid,darts jsonb);
+grant select on all tables in schema public to authenticated;
