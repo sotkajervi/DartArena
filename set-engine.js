@@ -18,6 +18,8 @@ function boot(state){
  const revision=m=>m?.updated_at||null;
  const message=t=>{const e=$('matchMessage');if(e)e.textContent=t};
  let busy=false,closed=false,fetching=null,entryRevision=revision(current()),uncertain=null,logSeen=new Map();
+ let refreshFailures=0,nextRefreshAt=0,lastRefreshError=null;
+ const offline=()=>navigator.onLine===false;
  // Place the blinking caret in X01 as each turn becomes playable.
  // Never open the mobile soft keyboard or steal focus from other text fields.
  let focusedTurn=null,initialFocusTimer=null;
@@ -75,7 +77,7 @@ function boot(state){
        ?'CHICAGO STYLE • GAME '+stage+'/3 • '+(stage===1?'301 DOUBLE IN / DOUBLE OUT':stage===3?'501 DOUBLE OUT':'CRICKET')
        :setMode?m.game+' • BEST OF '+m.best_of_sets+' SETS • BEST OF '+m.legs+' LEGS':m.game+' • BEST OF '+m.legs+' LEGS';
    }
-   input.disabled=btn.disabled=busy||!mine(m);
+   input.disabled=btn.disabled=busy||!mine(m)||!!(uncertain&&!uncertain.verified);
  }
  function reconcile(){
    const m=current();if(!m)return;
@@ -91,30 +93,61 @@ function boot(state){
    draw();
    focusForNewTurn();
  }
- async function bounded(make){
-   const controller=new AbortController();
-   const timer=setTimeout(()=>controller.abort(),10000);
-   try{return await make(controller.signal)}finally{clearTimeout(timer)}
+ async function bounded(make,timeoutMs){
+   const controller=new AbortController();let timedOut=false;
+   const timer=setTimeout(()=>{timedOut=true;controller.abort()},timeoutMs);
+   try{
+     const result=await make(controller.signal);
+     if(timedOut&&result?.error)throw Error('Request timeout ('+timeoutMs/1000+' s)');
+     return result;
+   }catch(e){if(timedOut)throw Error('Request timeout ('+timeoutMs/1000+' s)');throw e}
+   finally{clearTimeout(timer)}
  }
- async function refresh(){
-   if(closed)return false;
-   if(fetching)return fetching;
-   fetching=(async()=>{
+ async function refresh({force=false}={}){
+   if(closed||offline())return false;
+   // A forced post-submit read must be issued AFTER any existing poll.
+   if(fetching){
+     if(!force)return fetching;
+     await fetching;
+     if(closed||offline())return false;
+     if(fetching)return refresh({force:true});
+   }
+   if(!force&&Date.now()<nextRefreshAt)return false;
+   const task=(async()=>{
      try{
-       const {data,error}=await bounded(signal=>db.from('matches').select('*').eq('id',matchId).abortSignal(signal).single());
+       const {data,error}=await bounded(signal=>db.from('matches').select('*').eq('id',matchId).abortSignal(signal).single(),15000);
        if(error||!data)throw error||Error('Kampstatus mangler');
        if(closed)return false;
        state.applyScoreState(data);
-       reconcile();
-       return true;
-     }catch(e){log('refresh_failed',e);return false}
+       refreshFailures=0;nextRefreshAt=0;lastRefreshError=null;
+       if(uncertain){
+         if(revision(current())!==uncertain.revision){
+           input.value='';uncertain=null;
+           message('Kampstatus er endret. Kontroller kastloggen. Ikke registrer samme kast på nytt.');
+         }else{
+           uncertain.verified=true;
+           if(!busy)message('Kampstatus er bekreftet. Kontroller kastloggen før du eventuelt registrerer på nytt.');
+         }
+       }
+       reconcile();return true;
+     }catch(e){
+       if(closed)return false;
+       refreshFailures++;
+       nextRefreshAt=Date.now()+Math.min(60000,15000*Math.pow(2,Math.min(refreshFailures-1,2)));
+       const detail=String(e?.message||e);
+       if(refreshFailures===1||detail!==lastRefreshError||refreshFailures%5===0)log('refresh_failed',e);
+       lastRefreshError=detail;return false;
+     }
    })();
-   try{return await fetching}finally{fetching=null}
+   fetching=task;
+   try{return await task}finally{if(fetching===task)fetching=null}
  }
  async function submit(){
    if(closed||busy)return;
+   if(offline()){message('Ingen nettforbindelse. Vent til forbindelsen er tilbake.');return}
+   if(uncertain&&!uncertain.verified){message('Venter på bekreftet kampstatus. Kastet sendes ikke på nytt.');return}
    const raw=String(input.value??'').trim(),n=Number(raw);
-   if(!raw||!Number.isInteger(n)||n<0||n>180){message('Skriv en gyldig score fra 0 til 180.');log('invalid_score');return}
+   if(!raw||!Number.isInteger(n)||n<0||n>180){message('Skriv en gyldig score fra 0 til 180.');return}
    const before=current(),expected=revision(before);
    if(!expected){message('Kampstatus mangler. Prøv igjen.');log('no_revision');return}
    if(entryRevision!==expected){
@@ -128,12 +161,12 @@ function boot(state){
      if(!mine(before)){
        message('Det er ikke din tur. Kampstatus oppdateres.');
        log('turn_not_current');
-       await refresh();
+       await refresh({force:true});
        return;
      }
      const m=before,remaining=Number(me===m.player1_id?m.player1_score:m.player2_score);
      if(n===remaining){
-       if(!window.DartArenaCheckout.possibleDarts(n).length){message(n+' kan ikke avsluttes på tre piler.');log('invalid_checkout');return}
+       if(!window.DartArenaCheckout.possibleDarts(n).length){message(n+' kan ikke avsluttes på tre piler.');return}
        message('');
        darts=await window.DartArenaCheckout.askDarts(n);
        if(!darts){message('Checkout avbrutt.');return}
@@ -145,7 +178,7 @@ function boot(state){
      sent=true;
      const {data,error}=await bounded(signal=>db.rpc('submit_x01_checked',{
        p_match_id:matchId,p_score:n,p_expected_at:expected,p_darts:darts
-     }).abortSignal(signal));
+     }).abortSignal(signal),20000);
      if(error||!data)throw error||Error('Mangler svar fra serveren');
      const next=data.match||data;
      if(!next?.id||next.id!==matchId)throw Error('Ugyldig svar fra serveren');
@@ -161,23 +194,25 @@ function boot(state){
      if(rejected){
        // The guarded RPC has definitely rejected this throw: never replay
        // it automatically and never leave a pending input from an old turn.
-       const refreshed=await refresh();
+       const refreshed=await refresh({force:true});
        input.value='';uncertain=null;
        message(refreshed
          ?'Kampstatus ble endret. Kastet er ikke registrert herfra. Kontroller hvem som kaster før du prøver igjen.'
          :'Kampstatus er endret. Kunne ikke hente siste stilling. Kontroller kampen før du prøver igjen.');
      }else if(sent){
-       uncertain={revision:expected};
-       const refreshed=await refresh();
+       uncertain={revision:expected,verified:false};
+       const refreshed=await refresh({force:true});
        if(refreshed&&revision(current())!==expected){
          input.value='';uncertain=null;message('Kampstatus er endret. Kontroller kastloggen. Ikke registrer samme kast på nytt.');
+       }else if(refreshed&&revision(current())===expected){
+         message('Kastet er ikke bekreftet, men kampstatus er uendret. Kontroller kastloggen før du eventuelt registrerer på nytt.');
        }else{
-         message('Kastet er ikke bekreftet. Prøv igjen når forbindelsen er tilbake – samme kampstatus kontrolleres på serveren.');
+         message('Kastet er ikke bekreftet. Vent på bekreftet kampstatus. Kastet sendes ikke automatisk på nytt.');
        }
      }else message('Registreringen ble avbrutt. Prøv igjen.');
    }finally{
      busy=false;
-     if(revision(current())!==expected&&input.value.trim()!=='')input.value='';
+     if(revision(current())!==expected){input.value='';uncertain=null;}
      entryRevision=revision(current());
      reconcile();
      if(!input.disabled)focusScoreWhenReady(true);
@@ -187,13 +222,14 @@ function boot(state){
  function click(e){e.preventDefault();e.stopImmediatePropagation();submit()}
  function key(e){if(e.key==='Enter'&&!e.repeat&&!e.isComposing){e.preventDefault();e.stopImmediatePropagation();submit()}}
  function wake(){if(!closed&&!document.hidden&&!busy&&current()?.status==='playing'){focusScoreWhenReady();refresh()}}
+ function reconnect(){if(!closed&&!document.hidden&&!busy&&current()?.status==='playing'){nextRefreshAt=0;refresh({force:true})}}
  input.addEventListener('input',onInput);
  btn.addEventListener('click',click,true);
  input.addEventListener('keydown',key,true);
  // Remove old direct-write handlers. Both ordinary score and checkout use submit().
  btn.onclick=null;input.onkeydown=null;
  window.addEventListener('dartarena:score-state',reconcile);
- window.addEventListener('online',wake);
+ window.addEventListener('online',reconnect);
  window.addEventListener('focus',focusScoreWhenReady);
  document.addEventListener('visibilitychange',wake);
  const timer=setInterval(wake,15000);
@@ -202,7 +238,7 @@ function boot(state){
  window.addEventListener('pagehide',()=>{
    closed=true;clearInterval(timer);clearTimeout(initialFocusTimer);
    window.removeEventListener('dartarena:score-state',reconcile);
-   window.removeEventListener('online',wake);
+   window.removeEventListener('online',reconnect);
    window.removeEventListener('focus',focusScoreWhenReady);
    document.removeEventListener('visibilitychange',wake);
  },{once:true});
