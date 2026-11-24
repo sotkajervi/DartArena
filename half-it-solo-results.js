@@ -11,6 +11,7 @@
       title,
       subtitle:'12 runder',
       score,
+      trainingLog:history.map(h=>({...h,darts:h.darts.map(d=>({...d}))})),
       playerName:'Resultat',
       stats:[
         {label:'TREFFRUNDER',value:ok},

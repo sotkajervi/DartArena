@@ -21,6 +21,7 @@
       title:'61',
       subtitle:`${selectedMinutes} minutter`,
       score:target,
+      trainingLog:history.map(h=>({...h})),
       playerName:'Treningsøkt',
       stats:[
         {label:'HØYESTE UT',value:high},

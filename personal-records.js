@@ -51,7 +51,7 @@ async function update(opts){
   const before=data||[];
   prior=before.reduce((m,r)=>Math.max(m,number(r.score)),Number.NEGATIVE_INFINITY);
   if(!Number.isFinite(prior))prior=null;
-  const detail=t.game==='61'?{end_target:number(opts.score),duration_minutes:Number(variant)}:{rounds:12};
+  const detail=t.game==='61'?{end_target:number(opts.score),duration_minutes:Number(variant),attempts:opts.trainingLog}:{rounds:12,history:opts.trainingLog};
   const saved=await db.from('personal_training_results').insert({user_id:user.id,game:t.game,variant,score:value,details:detail});
   if(saved.error)throw saved.error;
   after=[{score:value,created_at:new Date().toISOString()},...before];

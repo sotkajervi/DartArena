@@ -1,0 +1,34 @@
+name: Training record validation test
+on:
+  push:
+    branches: [test/training-record-validation-20261124]
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: isolated
+          POSTGRES_DB: training_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: isolated
+      PGDATABASE: training_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: psql -X -v ON_ERROR_STOP=1 -f tests/training-record-schema.sql -f db/training-record-validation-candidate.sql
+      - run: node tests/training-record-validation.cjs
