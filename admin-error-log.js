@@ -22,7 +22,7 @@
     const {data:{session}}=await db.auth.getSession();if(!session?.user)return;
     const {data:isAdmin}=await db.rpc('is_admin');if(!isAdmin)return;
     const host=document.getElementById('lobbyStatsActions');if(!host)return;
-    const btn=document.createElement('button');btn.id='adminErrorLogBtn';btn.className='small-btn lobby-utility-btn';btn.textContent='Feillogg';btn.onclick=()=>{modal().classList.remove('hidden');load()};host.appendChild(btn);
+    const btn=document.createElement('button');btn.id='adminErrorLogBtn';btn.className='small-btn lobby-utility-btn';btn.innerHTML='<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="17" height="17" style="vertical-align:-3px;margin-right:5px;fill:none;stroke:#00eaf4;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8ZM14 2v6h6M12 11v4M12 18h.01"/></svg><span>Feillogg</span>';btn.onclick=()=>{modal().classList.remove('hidden');load()};host.appendChild(btn);
   }
   boot().catch(()=>{});
 })();
