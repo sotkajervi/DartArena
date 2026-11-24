@@ -1,0 +1,17 @@
+create role anon;
+create role authenticated;
+create role service_role;
+create schema auth;
+create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('test.actor',true),'')::uuid$$;
+grant usage on schema auth to authenticated;
+grant execute on function auth.uid() to authenticated;
+create table public.tournaments(id uuid primary key,owner_id uuid,status text,tournament_type text,game int,game_variant text);
+create table public.tournament_groups(id uuid primary key,tournament_id uuid,best_of int);
+create table public.tournament_group_players(tournament_id uuid,group_id uuid,user_id uuid);
+create table public.tournament_ai_rivals(tournament_id uuid primary key,group_id uuid,model_player_id uuid);
+create table public.tournament_ai_group_matches(id uuid primary key default gen_random_uuid(),tournament_id uuid not null references public.tournament_ai_rivals,group_id uuid not null references public.tournament_groups,human_id uuid not null,round_no int not null check(round_no>0),match_no int not null check(match_no>0),ai_as_player1 boolean not null default false,best_of int not null check(best_of between 3 and 21 and mod(best_of,2)=1),human_legs int,ai_legs int,status text not null default 'pending' check(status in ('pending','finished')),winner_is_ai boolean,finished_at timestamptz,created_at timestamptz not null default now(),unique(tournament_id,human_id));
+alter table public.tournament_ai_group_matches enable row level security;
+grant select on public.tournaments,public.tournament_groups,public.tournament_group_players,public.tournament_ai_rivals to authenticated;
+grant select,insert on public.tournament_ai_group_matches to authenticated;
+create policy "AI tournament fixtures readable" on public.tournament_ai_group_matches for select to authenticated using(true);
+create policy "AI tournament fixtures leader inserts" on public.tournament_ai_group_matches for insert to authenticated with check(exists(select 1 from public.tournaments t join public.tournament_ai_rivals a on a.tournament_id=t.id join public.tournament_group_players gp on gp.tournament_id=t.id where t.id=tournament_ai_group_matches.tournament_id and t.owner_id=auth.uid() and t.status='groups_setup' and t.tournament_type='groups_cup' and gp.user_id=tournament_ai_group_matches.human_id and gp.group_id=tournament_ai_group_matches.group_id));
