@@ -42,7 +42,7 @@
     const {data:isAdmin,error}=await db.rpc('is_admin');if(error||!isAdmin)return;
     const host=document.getElementById('lobbyStatsActions')||document.querySelector('#lobbyView .top-actions');if(!host)return;
     if(document.getElementById('adminCleanupBtn'))return;
-    const btn=document.createElement('button');btn.id='adminCleanupBtn';btn.type='button';btn.className=host.id==='lobbyStatsActions'?'small-btn lobby-utility-btn':'outline';btn.textContent='Rydd aktive kamper';btn.onclick=()=>{ensureModal().classList.remove('hidden');load()};host.appendChild(btn);
+    const btn=document.createElement('button');btn.id='adminCleanupBtn';btn.type='button';btn.className=host.id==='lobbyStatsActions'?'small-btn lobby-utility-btn':'outline';btn.innerHTML='<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="17" height="17" style="vertical-align:-3px;margin-right:5px;fill:none;stroke:#00eaf4;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round"><path d="M3 21h18M7 21l-2-7 7-3 5 5-3 5M11 12l7-9 3 2-7 9M7 17l2 4M11 16l2 5"/></svg><span>Rydd aktive kamper</span>';btn.onclick=()=>{ensureModal().classList.remove('hidden');load()};host.appendChild(btn);
   }
   boot().catch(console.warn);
 })();
