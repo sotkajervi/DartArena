@@ -157,7 +157,7 @@ begin
  then raise exception 'PENTATHLON_INVALID_TRANSITION';end if;
  old_log:=a->'current'->'entries';new_log:=b->'current'->'entries';old_n:=jsonb_array_length(old_log);new_n:=jsonb_array_length(new_log);
  if new_n>old_n then
-  if a->'current'->'turn' is distinct from to_jsonb(slot) or new_n-old_n>case when a->'current'->>'kind'='x01' then 1 else 3 end
+  if a->'current'->'turn' is distinct from to_jsonb(slot) or new_n-old_n>(case when a->'current'->>'kind'='x01' then 1 else 3 end)
   or b->'current'->'pending' is distinct from '[]'::jsonb then raise exception 'PENTATHLON_INVALID_TURN';end if;
   for i in 0..new_n-1 loop
    if i<old_n then
