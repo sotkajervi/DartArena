@@ -51,7 +51,7 @@ async function remove(row,button){
  if(!['jdc','pentathlon'].includes(category))return;
  const dialog=window.DartArenaDialog;
  if(!dialog?.confirm){alert('Bekreftelsesvinduet er ikke tilgjengelig.');return}
- const ok=await dialog.confirm('Fjerne '+displayNumber(row)+' for '+(row.username||'spilleren')+' fra topplisten?\\n\\nEt annet gyldig resultat kan rykke opp.',{title:'Slett Top 10-resultat',tone:'danger',confirmText:'Slett resultat'});
+ const ok=await dialog.confirm('Fjerne '+displayNumber(row)+' for '+(row.username||'spilleren')+' fra topplisten?\n\nEt annet gyldig resultat kan rykke opp.',{title:'Slett Top 10-resultat',tone:'danger',confirmText:'Slett resultat'});
  if(!ok)return;
  button.disabled=true;
  const result=category==='jdc'
