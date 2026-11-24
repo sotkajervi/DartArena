@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="./local-special.css?v=20261026-cricketmarks1">
 <link rel="stylesheet" href="./pentathlon-2p.css?v=20261124-stage-points1">
 </head>
-<body class="da-penta local-h2h-page"><style>#pentaRivalOpponent[hidden],#pentaHumanOpponent[hidden],#pentaRivalInfo[hidden]{display:none!important}.penta-ai-wait{opacity:.65;cursor:wait}</style>
+<body class="da-penta local-h2h-page"><style>#pentaRivalOpponent[hidden],#pentaHumanOpponent[hidden],#pentaRivalInfo[hidden],#pentaGhostOpponent[hidden],#pentaGhostInfo[hidden],#pentaGhostProgress[hidden],.penta-setup-starter[hidden],#pentaHistoryModal[hidden]{display:none!important}.penta-history-stages{display:grid;gap:6px;margin-top:10px}#pentaHistoryList{display:grid;gap:8px;overflow:auto;max-height:60vh}#pentaHistoryList summary{cursor:pointer}#pentaGhostProgress{color:#00eaf4;margin:8px 0;font-size:12px;font-weight:700}.penta-ai-wait{opacity:.65;cursor:wait}</style>
 <header><div class="brand"><a href="./scoringarena.html" aria-label="Til ScoringArena"><img class="brand-logo" src="./assets/dartarena-logo.jpg" alt="DartArena" width="420" height="116"></a></div><div class="live"><i></i> PENTATHLON · 2P</div></header>
 <main class="penta-shell">
   <div class="penta-intro"><div><small>SCORINGARENA / LOKAL PENTATHLON</small><h1>PENTA<span>THLON</span></h1><p>To spillere · NDF-inspirert poengregning · 2 × 501, 1001, 2001, Shanghai, Klokka og Half-It. Alle Pentathlon-poeng summeres automatisk.</p></div><a class="outline" href="./scoringarena.html">← ScoringArena</a></div>
@@ -27,7 +27,7 @@
         <input id="pentaName0" maxlength="32" placeholder="Navn spiller 1" value="Spiller 1" autocomplete="off">
       </label>
       <label class="field">Motstander
-        <select id="pentaOpponent"><option value="human">Spiller 2</option><option value="rival">AI Rival (beta)</option></select>
+        <select id="pentaOpponent"><option value="human">Spiller 2</option><option value="rival">AI Rival (beta)</option><option value="ghost">Personal Best Ghost</option></select>
       </label>
       <label class="field" id="pentaHumanOpponent">Spiller 2
         <input id="pentaName1" maxlength="32" placeholder="Navn spiller 2" value="Spiller 2" autocomplete="off">
@@ -36,6 +36,8 @@
         <select id="pentaRivalProfile" disabled><option value="">Velg AI Rival først</option></select>
       </label>
       <p id="pentaRivalInfo" class="muted compact" hidden>Alle sju øvelser. Dobler og spesialmål estimeres fra 501-historikken. Kun lokal trening.</p>
+      <label class="field" id="pentaGhostOpponent" hidden>Velg rekordopptak<select id="pentaGhostProfile"></select></label>
+      <p id="pentaGhostInfo" class="muted compact" hidden>Bruk samme spillernavn som tidligere. Beste fullførte kamp velges først. Ghost spiller faktiske kast med samme startrekkefølge; ufullførte X01-opptak stopper uten ekstra kast.</p>
       <label class="field penta-setup-starter">Hvem starter første øvelse?
         <select id="pentaStarter"><option value="random" selected>Myntkast</option><option value="0">Spiller 1</option><option value="1">Spiller 2</option></select>
       </label>
@@ -47,6 +49,7 @@
     <p class="muted compact penta-setup-note">Resultatet lagres kun i denne nettleseren og påvirker ikke online-statistikk eller ranking.</p>
     <p id="pentaSetupError" class="penta-error" role="alert"></p>
     <div class="penta-setup-actions local-setup-submit">
+      <button class="outline" id="pentaHistoryOpen" type="button">Lokal historikk</button>
       <button class="outline" id="pentaResume" type="button" hidden>Gjenoppta forrige</button>
       <button class="primary" type="button" id="pentaStart">Start Pentathlon</button>
     </div>
@@ -54,6 +57,7 @@
   <section id="pentaGame" hidden>
     <div id="pentaStatsBackdrop" class="penta-stats-backdrop" hidden></div>
     <div class="penta-top-bar"><div id="pentaStatus">ØVELSE 1 AV 7</div><div class="penta-top-actions"><button id="pentaStatsOpen" class="outline" type="button" aria-expanded="false" aria-controls="pentaX01StatsPanel">Statistikk</button><button id="pentaUndo" class="outline" type="button">↶ Angre</button><button id="pentaReset" class="outline" type="button">Ny kamp</button></div></div>
+    <p id="pentaGhostProgress" hidden aria-live="polite"></p>
     <div id="pentaProgress" class="penta-progress" aria-label="Fullførte øvelser"></div>
     <div class="penta-layout">
       <div class="penta-primary">
@@ -243,6 +247,7 @@
                 <button id="pentaExportCsv" type="button">CSV <small>Regneark</small></button>
               </div>
             </div>
+            <button type="button" id="pentaHistoryFinished" class="outline">Lokal historikk</button>
             <a class="outline penta-finish-back" href="./scoringarena.html">Til ScoringArena</a>
           </div>
           <div class="penta-finish-footer">DARTARENA · LOKAL PENTATHLON</div>
@@ -255,6 +260,7 @@
     </div>
   </section>
 </main>
+<div id="pentaHistoryModal" class="local-modal" hidden role="dialog" aria-modal="true" aria-labelledby="pentaHistoryTitle"><div class="local-modal-backdrop"></div><section class="card local-modal-card" style="width:min(720px,94vw)"><small>SCORINGARENA · LOKALT</small><h2 id="pentaHistoryTitle">Pentathlon-historikk</h2><p class="muted compact">Fullførte kamper på denne enheten. Trykk på en øvelse for detaljert statistikk.</p><div id="pentaHistoryList"></div><button class="outline" type="button" id="pentaHistoryClose">Lukk</button></section></div>
 <div id="pentaCorrectionModal" class="local-modal" hidden role="dialog" aria-modal="true" aria-labelledby="pentaCorrectionTitle">
   <div class="local-modal-backdrop"></div>
   <form id="pentaCorrectionForm" class="card local-modal-card">
@@ -294,5 +300,6 @@
 <script src="./local-h2h-engine.js?v=20261011-online-parity1"></script>
 <script src="./ai-rival-model.js?v=20261022-x01modes1"></script>
 <script src="./pentathlon-rival.js?v=20261124-rival1"></script>
-<script src="./pentathlon-2p.js?v=20261124-fixed-player-columns1"></script>
+<script src="./pentathlon-ghost.js?v=20261124-ghost1"></script>
+<script src="./pentathlon-2p.js?v=20261124-ghost1"></script>
 <script src="./dartarena-i18n.js?v=20261119-svgflags1"></script></body></html>

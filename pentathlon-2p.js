@@ -6,10 +6,14 @@
   const $=id=>document.getElementById(id);
   const STORE='dartarena-pentathlon-local-2p-v1';
   let state=null,mult=1,feedback='Klar for første kast.';
-  const RIVAL_STORE=STORE+':rival',RIVAL_ROWS=RIVAL_STORE+':model';
+  const RIVAL_STORE=STORE+':rival',RIVAL_ROWS=RIVAL_STORE+':model',GHOST_STORE=STORE+':ghost';
+  const G=window.DartArenaPentathlonGhost;
+  let ghostMode=false,ghostProfile=null,archiveWarning='';
   let rivalMode=false,rivalProfile=null,rivalDb=null,rivalPlayers=[],rivalLoading=false,rivalTimer=null;
-  const rivalTurn=()=>!!(state?.rival&&state.status==='playing'&&state.current.turn===1);
-  const activeStore=()=>rivalMode?RIVAL_STORE:STORE;
+  const automated=s=>!!(s?.rival||s?.ghost);
+  const rivalTurn=()=>!!(automated(state)&&state.status==='playing'&&state.current.turn===1);
+  const modeSuffix=()=>ghostMode?':ghost':rivalMode?':rival':'';
+  const activeStore=()=>ghostMode?GHOST_STORE:rivalMode?RIVAL_STORE:STORE;
   function stopRival(){if(rivalTimer!==null){clearTimeout(rivalTimer);rivalTimer=null}}
   function getRivalDb(){
     if(!window.supabase?.createClient)throw Error('Kunne ikke koble til AI-profiler.');
@@ -40,6 +44,10 @@
     return {rows,profile:window.DartArenaPentathlonRival.build(rows)};
   }
   function restoreRival(saved){
+    if(saved.ghost){
+      try{ghostProfile=G.profile(localStorage,saved.ghost.id);if(!ghostProfile||ghostProfile.total!==saved.ghost.total)throw Error('Rekordopptaket mangler eller er endret.');return true}
+      catch(e){$('pentaSetupError').textContent='Kunne ikke gjenoppta Ghost: '+e.message;return false}
+    }
     if(!saved.rival)return true;
     if(saved.status==='finished')return true;
     try{
@@ -49,26 +57,50 @@
     }catch(e){$('pentaSetupError').textContent='Kunne ikke gjenoppta AI-kampen: '+e.message;return false}
   }
   function modeChanged(){
-    rivalMode=$('pentaOpponent').value==='rival';
-    $('pentaHumanOpponent').hidden=rivalMode;$('pentaRivalOpponent').hidden=!rivalMode;$('pentaRivalInfo').hidden=!rivalMode;
-    $('pentaSetupError').textContent='';showResume();if(rivalMode)loadRivalPlayers();
+    rivalMode=$('pentaOpponent').value==='rival';ghostMode=$('pentaOpponent').value==='ghost';
+    $('pentaHumanOpponent').hidden=rivalMode||ghostMode;$('pentaRivalOpponent').hidden=!rivalMode;$('pentaRivalInfo').hidden=!rivalMode;
+    $('pentaGhostOpponent').hidden=!ghostMode;$('pentaGhostInfo').hidden=!ghostMode;
+    $('pentaStarter').closest('label').hidden=ghostMode;
+    $('pentaSetupError').textContent='';showResume();if(rivalMode)loadRivalPlayers();if(ghostMode)refreshGhostChoices();
+
+  }
+  function refreshGhostChoices(){
+    const sel=$('pentaGhostProfile'),previous=sel.value;
+    try{
+      const rows=G.candidates(localStorage,$('pentaName0').value);
+      sel.replaceChildren(...(rows.length?rows.map((r,i)=>new Option((i===0?'PERSONLIG BESTE · ':'')+r.total+' P · '+new Date(r.record.createdAt).toLocaleDateString('nb-NO')+' · '+({human:'1v1',rival:'AI Rival',ghost:'Ghost'}[r.record.mode]),r.id)):[new Option('Ingen fullførte kamper for dette navnet','')]));
+      if(rows.some(r=>r.id===previous))sel.value=previous;
+      sel.disabled=!rows.length;
+    }catch(e){sel.replaceChildren(new Option('Lokal historikk utilgjengelig',''));sel.disabled=true}
+  }
+  function archiveLocal(s){
+    if(!s||s.status!=='finished')return;
+    try{G.archive(localStorage,s);archiveWarning=''}
+    catch(e){archiveWarning='Kunne ikke arkivere kampen: nettleserens lokale lagring er full eller utilgjengelig.'}
+  }
+  function ghostProgress(){
+    const el=$('pentaGhostProgress');el.hidden=!state?.ghost;
+    if(el.hidden||!ghostProfile)return;
+    const c=G.comparison(state,ghostProfile);
+    el.textContent='PERSONLIG REKORD '+c.target+' P · '+(c.completed===0?'Ingen øvelser fullført':('Etter '+c.completed+'/7: '+(c.difference===0?'likt med opptaket':Math.abs(c.difference)+' P '+(c.difference>0?'foran':'bak')+' opptaket')));
+    if(state.status==='finished'&&state.total[0]>c.target)el.textContent+=' · NY REKORD MOT OPPTAKET!';
   }
   function rivalControls(){
     const lock=rivalTurn();
     for(const el of [$('pentaX01Controls'),$('pentaDartControls'),...['pentaShanghaiGame','pentaClockGame','pentaHalfGame'].map(id=>$(id)?.querySelector('.local-entry-card'))]){
       if(el){el.inert=lock;el.classList.toggle('penta-ai-wait',lock)}
     }
-    $('pentaH2HOpponentCardLabel').textContent=state?.rival?'AI RIVAL':'SPILLER 2';
+    $('pentaH2HOpponentCardLabel').textContent=state?.ghost?'GHOST':state?.rival?'AI RIVAL':'SPILLER 2';
     if(lock)$('pentaFeedback').textContent=state.players[1]+' kaster automatisk…';
   }
   function queueRival(){
-    stopRival();if(!rivalTurn()||!rivalProfile)return;
+    stopRival();if(!rivalTurn()||!(state.ghost?ghostProfile:rivalProfile))return;
     const expected=state;
     rivalTimer=setTimeout(()=>{
       rivalTimer=null;if(state!==expected||!rivalTurn())return;
       try{
         const pos=state.current.entries.length;
-        state=window.DartArenaPentathlonRival.step(state,rivalProfile,E);
+        state=state.ghost?G.step(state,ghostProfile,E):window.DartArenaPentathlonRival.step(state,rivalProfile,E);
         feedback=state.players[1]+': '+state.current.entries.slice(pos).map(e=>e.type==='visit'?(e.checkout?'CHECKOUT '+e.score:e.bust?'BUST':e.score):e.hit).join(' · ');
         persist();render();
         if(state.status==='playing'&&!rivalTurn())focusX01Score();
@@ -77,7 +109,7 @@
     },650);
   }
   function rivalUndoIndex(){
-    if(!state?.rival||!state.undo?.length)return -1;
+    if(!automated(state)||!state.undo?.length)return -1;
     for(let i=state.undo.length-1;i>=0;i--){
       const s=state.undo[i];if(s.stageIndex!==state.stageIndex)break;
       if(s.status==='playing'&&s.current.turn===0&&!s.current.pending.length)return i;
@@ -94,17 +126,17 @@
   function saveShanghaiQueue(){
     try{
       const signature=queueIdentity();
-      if(signature&&shanghaiQueue.length)localStorage.setItem(SHANGHAI_QUEUE_KEY+(rivalMode?':rival':''),JSON.stringify({signature,darts:shanghaiQueue}));
-      else localStorage.removeItem(SHANGHAI_QUEUE_KEY+(rivalMode?':rival':''));
+      if(signature&&shanghaiQueue.length)localStorage.setItem(SHANGHAI_QUEUE_KEY+modeSuffix(),JSON.stringify({signature,darts:shanghaiQueue}));
+      else localStorage.removeItem(SHANGHAI_QUEUE_KEY+modeSuffix());
     }catch(_){}
   }
   function restoreShanghaiQueue(){
     shanghaiQueue=[];
     try{
-      const data=JSON.parse(localStorage.getItem(SHANGHAI_QUEUE_KEY+(rivalMode?':rival':''))||'null');
+      const data=JSON.parse(localStorage.getItem(SHANGHAI_QUEUE_KEY+modeSuffix())||'null');
       if(queueIdentity()&&data?.signature===queueIdentity()&&Array.isArray(data.darts)&&data.darts.length<=3&&data.darts.every(E.isDart)){
         shanghaiQueue=data.darts;
-      }else localStorage.removeItem(SHANGHAI_QUEUE_KEY+(rivalMode?':rival':''));
+      }else localStorage.removeItem(SHANGHAI_QUEUE_KEY+modeSuffix());
     }catch(_){}
   }
   function shanghaiQueueHit(n,m){
@@ -150,17 +182,17 @@
   function saveClockQueue(){
     try{
       const signature=clockIdentity();
-      if(signature&&clockQueue.length)localStorage.setItem(CLOCK_QUEUE_KEY+(rivalMode?':rival':''),JSON.stringify({signature,darts:clockQueue}));
-      else localStorage.removeItem(CLOCK_QUEUE_KEY+(rivalMode?':rival':''));
+      if(signature&&clockQueue.length)localStorage.setItem(CLOCK_QUEUE_KEY+modeSuffix(),JSON.stringify({signature,darts:clockQueue}));
+      else localStorage.removeItem(CLOCK_QUEUE_KEY+modeSuffix());
     }catch(_){}
   }
   function restoreClockQueue(){
     clockQueue=[];
     try{
-      const data=JSON.parse(localStorage.getItem(CLOCK_QUEUE_KEY+(rivalMode?':rival':''))||'null');
+      const data=JSON.parse(localStorage.getItem(CLOCK_QUEUE_KEY+modeSuffix())||'null');
       if(clockIdentity()&&data?.signature===clockIdentity()&&Array.isArray(data.darts)&&data.darts.length<=3&&data.darts.every(E.isDart)){
         clockQueue=data.darts;
-      }else localStorage.removeItem(CLOCK_QUEUE_KEY+(rivalMode?':rival':''));
+      }else localStorage.removeItem(CLOCK_QUEUE_KEY+modeSuffix());
     }catch(_){}
   }
   function clockPreviewTarget(){
@@ -216,17 +248,17 @@
   function saveHalfQueue(){
     try{
       const signature=halfIdentity();
-      if(signature&&halfQueue.length)localStorage.setItem(HALF_QUEUE_KEY+(rivalMode?':rival':''),JSON.stringify({signature,darts:halfQueue}));
-      else localStorage.removeItem(HALF_QUEUE_KEY+(rivalMode?':rival':''));
+      if(signature&&halfQueue.length)localStorage.setItem(HALF_QUEUE_KEY+modeSuffix(),JSON.stringify({signature,darts:halfQueue}));
+      else localStorage.removeItem(HALF_QUEUE_KEY+modeSuffix());
     }catch(_){}
   }
   function restoreHalfQueue(){
     halfQueue=[];
     try{
-      const data=JSON.parse(localStorage.getItem(HALF_QUEUE_KEY+(rivalMode?':rival':''))||'null');
+      const data=JSON.parse(localStorage.getItem(HALF_QUEUE_KEY+modeSuffix())||'null');
       if(halfIdentity()&&data?.signature===halfIdentity()&&Array.isArray(data.darts)&&
         data.darts.length<=3&&data.darts.every(E.isDart))halfQueue=data.darts;
-      else localStorage.removeItem(HALF_QUEUE_KEY+(rivalMode?':rival':''));
+      else localStorage.removeItem(HALF_QUEUE_KEY+modeSuffix());
     }catch(_){}
   }
   function halfAdd(n,m){
@@ -278,6 +310,7 @@
   function persist(){
     if(!state)return;
     state.lastSavedAt=Date.now();
+    archiveLocal(state);
     try{localStorage.setItem(activeStore(),JSON.stringify(state))}catch(error){
       feedback='Kunne ikke lagre automatisk på denne enheten. Sjekk ledig lagringsplass.';
     }
@@ -456,7 +489,7 @@
     target.hidden=false;
   }
   function openCorrection(index){
-    if(rivalTurn()||state?.rival&&state.current.entries[index]?.player===1)return;
+    if(rivalTurn()||automated(state)&&state.current.entries[index]?.player===1)return;
     if(state?.status!=='playing'||state.current.kind!=='x01')return;
     const entry=state.current.entries[index];
     if(!entry||entry.type!=='visit')return;
@@ -475,7 +508,7 @@
   }
   function saveCorrection(event){
     event.preventDefault();
-    if(correctionIndex<0||!state||state.status!=='playing'||rivalTurn()||state.rival&&state.current.entries[correctionIndex]?.player===1)return;
+    if(correctionIndex<0||!state||state.status!=='playing'||rivalTurn()||automated(state)&&state.current.entries[correctionIndex]?.player===1)return;
     const raw=$('pentaCorrectionScore').value.trim(),replacement=Number(raw);
     const error=$('pentaCorrectionError');
     if(!raw||!E.isScore(replacement)){error.textContent='Ugyldig X01-score.';error.hidden=false;return}
@@ -534,7 +567,7 @@
         const entry=item.entry;
         const chip=create('button','local-throw-chip editable',entry.bust?'BUST':entry.score);
         chip.type='button';chip.title='Korriger dette kastet';
-        if(state.rival&&p===1){chip.disabled=true;chip.title='AI Rival-kast'}else chip.addEventListener('click',()=>openCorrection(item.index));
+        if(automated(state)&&p===1){chip.disabled=true;chip.title=state.ghost?'Ghost-kast':'AI Rival-kast'}else chip.addEventListener('click',()=>openCorrection(item.index));
         chips.appendChild(chip);
       }
       if(!visits.length)chips.appendChild(create('span','local-throw-chip','Ingen kast ennå'));
@@ -856,7 +889,7 @@
     $('pentaReviewTitle').textContent=summary.label+' · Resultat';
     const leading=summary.pent[0]===summary.pent[1]?'Uavgjort i denne øvelsen.':
       state.players[summary.pent[0]>summary.pent[1]?0:1]+' fikk flest Pentathlon-poeng i denne øvelsen.';
-    $('pentaReviewCaption').textContent=leading+' Poengene er lagt til den samlede stillingen.';
+    $('pentaReviewCaption').textContent=summary.ghostCutoff?'Ghost-opptaket er slutt. Kun faktisk registrerte kast og poeng teller.':leading+' Poengene er lagt til den samlede stillingen.';
     const wrap=$('pentaReviewDetails');wrap.className='penta-review-details';wrap.replaceChildren();
     for(let p=0;p<2;p++){
       const card=create('div');card.appendChild(create('h3','',state.players[p]));
@@ -949,21 +982,21 @@
       (entry.halved?' · HALVERT':'')+
       (entry.finishBonus!==undefined?' · fullført':'');
   }
-  function openStageStats(index){
-    if(state?.status!=='finished'||!Number.isInteger(index)||index<0)return;
-    const summary=state.summaries[index];
+  function openStageStats(index,result=state){
+    if(!result||!Number.isInteger(index)||index<0)return;
+    const summary=result.summaries[index];
     if(!summary||!window.DartArenaLocalResults?.showReadOnlyStats)return;
     const winner=summary.pent[0]===summary.pent[1]?null:(summary.pent[0]>summary.pent[1]?0:1);
     window.DartArenaLocalResults.showReadOnlyStats({
       kicker:'PENTATHLON · ØVELSE '+(index+1)+' AV '+E.STAGES.length,
       title:summary.label,
       subtitle:'Fullført øvelse · Pentathlon-poeng',
-      players:state.players,
+      players:result.players,
       winner,
       scores:summary.pent,
       stats:[0,1].map(p=>stageStatValues(summary,p).map(([label,value])=>({label,value}))),
       throws:(summary.entries||[]).map(entry=>({
-        player:state.players[entry.player],
+        player:result.players[entry.player],
         label:stageThrowText(summary,entry),
         points:String(entry.bonus||0)+' P'
       }))
@@ -977,6 +1010,7 @@
     $('pentaFinishDescription').textContent=tied
       ?'Begge spillere endte med like mange Pentathlon-poeng.'
       :'Seier med '+Math.abs(a-b)+' poeng etter sju øvelser.';
+    if(archiveWarning)$('pentaFinishDescription').textContent+=' '+archiveWarning;
     const score=$('pentaFinishScore');score.replaceChildren();
     score.append(create('strong','',state.total[order[0]]),create('span','','–'),
       create('strong','',state.total[order[1]]),create('small','','PENTATHLON-POENG'));
@@ -1024,7 +1058,7 @@
     $('pentaSetup').hidden=true;$('pentaGame').hidden=false;
     $('pentaStatus').textContent=state.status==='finished'?'PENTATHLON FULLFØRT':
       'ØVELSE '+(state.stageIndex+1)+' AV '+E.STAGES.length;
-    $('pentaUndo').disabled=state.rival?rivalUndoIndex()<0&&!shanghaiQueue.length&&!clockQueue.length&&!halfQueue.length:!state.undo?.length;
+    $('pentaUndo').disabled=automated(state)?rivalUndoIndex()<0&&!shanghaiQueue.length&&!clockQueue.length&&!halfQueue.length:!state.undo?.length;
     if(state.status!=='playing'||state.current.kind!=='x01')setStatsOpen(false);
     const progress=$('pentaProgress');progress.replaceChildren();
     E.STAGES.forEach((stage,i)=>{
@@ -1051,7 +1085,7 @@
     if(state.status==='playing'){
       recent();$('pentaFeedback').textContent=feedback;
     }
-    rivalControls();queueRival();
+    ghostProgress();rivalControls();queueRival();
   }
   function report(error){
     feedback=error.message||String(error);
@@ -1091,16 +1125,21 @@
     button.disabled=true;
     resumeButton.disabled=true;$('pentaOpponent').disabled=true;$('pentaRivalProfile').disabled=true;
     try{
-      const random=$('pentaStarter').value==='random';
-      const starter=random?Math.floor(Math.random()*2):Number($('pentaStarter').value);
+      const ghostChoice=ghostMode?G.profile(localStorage,$('pentaGhostProfile').value):null;
+      if(ghostMode&&(!ghostChoice||!G.candidates(localStorage,$('pentaName0').value).some(x=>x.id===ghostChoice.id)))throw Error('Velg et fullført opptak for navnet ditt.');
+      const random=!ghostMode&&$('pentaStarter').value==='random';
+      const starter=ghostChoice?G.starter(ghostChoice):random?Math.floor(Math.random()*2):Number($('pentaStarter').value);
       // Validate names and starter before animation; store only after the coin lands.
       const selected=rivalMode?rivalPlayers.find(p=>p.id===$('pentaRivalProfile').value):null;
       if(rivalMode&&!selected)throw Error('Velg en AI-spillerprofil.');
       let trained=null;
       if(selected){$('pentaSetupError').textContent='Bygger AI-profil fra 501-historikken…';trained=await trainRival(selected.id)}
-      const next=E.create({name1:$('pentaName0').value,name2:selected?'AI · '+selected.username:$('pentaName1').value,starter});
+      const next=E.create({name1:$('pentaName0').value,name2:ghostChoice?'Ghost · '+ghostChoice.record.players[ghostChoice.player]:selected?'AI · '+selected.username:$('pentaName1').value,starter});
       if(selected){next.rival={playerId:selected.id,username:selected.username};rivalProfile=trained.profile;localStorage.setItem(RIVAL_ROWS,JSON.stringify({createdAt:next.createdAt,playerId:selected.id,rows:trained.rows}))}
       else rivalProfile=null;
+      ghostProfile=ghostChoice;
+      if(ghostChoice)next.ghost={id:ghostChoice.id,total:ghostChoice.total};
+      archiveLocal(stored());
       $('pentaSetupError').textContent='';
       if(random){
         if(typeof window.DartArenaCoinFlip?.play!=='function'){
@@ -1142,7 +1181,7 @@
       if(state.status==='playing'&&state.current.kind==='shanghai'&&shanghaiQueue.length){
         shanghaiRemoveHit();return;
       }
-      if(state.rival){
+      if(automated(state)){
         const i=rivalUndoIndex();if(i<0)return;stopRival();const history=state.undo.slice(0,i);state=JSON.parse(JSON.stringify(state.undo[i]));state.undo=history;
       }else if(['shanghai','clock','half'].includes(state.current.kind)&&state.current.entries.length){
         // A JDC turn is confirmed as one action. Undo all committed darts
@@ -1159,10 +1198,11 @@
     catch(error){report(error)}
   }
   function reset(){
-    if(state&&!window.confirm('Starte en ny Pentathlon? Nåværende resultat og angrehistorikk overskrives.'))return;
-    stopRival();state=null;rivalProfile=null;shanghaiQueue=[];clockQueue=[];halfQueue=[];
+    if(state&&!window.confirm(state.status==='finished'?'Starte en ny Pentathlon? Fullførte resultater beholdes i lokal historikk.':'Starte en ny Pentathlon? Nåværende ufullførte kamp og angrehistorikk overskrives.'))return;
+    archiveLocal(state);if(archiveWarning&&state?.status==='finished'){window.alert(archiveWarning);return}
+    stopRival();state=null;rivalProfile=null;ghostProfile=null;shanghaiQueue=[];clockQueue=[];halfQueue=[];
     document.body.classList.remove('penta-finished');
-    try{localStorage.removeItem(activeStore());if(rivalMode)localStorage.removeItem(RIVAL_ROWS);localStorage.removeItem(SHANGHAI_QUEUE_KEY+(rivalMode?':rival':''));localStorage.removeItem(CLOCK_QUEUE_KEY+(rivalMode?':rival':''));localStorage.removeItem(HALF_QUEUE_KEY+(rivalMode?':rival':''))}catch(_){}
+    try{localStorage.removeItem(activeStore());if(rivalMode)localStorage.removeItem(RIVAL_ROWS);localStorage.removeItem(SHANGHAI_QUEUE_KEY+modeSuffix());localStorage.removeItem(CLOCK_QUEUE_KEY+modeSuffix());localStorage.removeItem(HALF_QUEUE_KEY+modeSuffix())}catch(_){}
     $('pentaGame').hidden=true;$('pentaSetup').hidden=false;modeChanged();
     $('pentaSetup').scrollIntoView({block:'start',behavior:'smooth'});
   }
@@ -1351,6 +1391,32 @@
     if(event.key==='Enter'){event.preventDefault();shanghaiSubmitTurn()}
     else if(event.key==='Backspace'){event.preventDefault();shanghaiRemoveHit()}
   });
+  function showHistory(){
+    const modal=$('pentaHistoryModal'),list=$('pentaHistoryList');list.replaceChildren();
+    try{
+      const rows=G.list(localStorage);
+      if(!rows.length)list.append(create('p','muted','Ingen fullførte lokale Pentathlon-kamper er arkivert ennå.'));
+      for(const r of rows){
+        const details=create('details','card');
+        const label=({human:'Lokal 1v1',rival:'AI Rival',ghost:'Ghost'}[r.mode]||'Lokal');
+        details.append(create('summary','',new Date(r.createdAt).toLocaleDateString('nb-NO')+' · '+label+' · '+r.players.join(' – ')+' · '+r.total.join(' – ')+' P'));
+        const body=create('div','penta-history-stages');
+        r.summaries.forEach((x,i)=>{
+          const button=create('button','outline',x.label+' · '+x.pent.join(' – ')+' P');
+          button.type='button';button.addEventListener('click',()=>{modal.hidden=true;openStageStats(i,r)});
+          body.append(button);
+        });
+        details.append(body);list.append(details);
+      }
+    }catch(e){list.append(create('p','muted','Kunne ikke lese lokal historikk.'))}
+    modal.hidden=false;$('pentaHistoryClose').focus();
+  }
+  $('pentaHistoryOpen').addEventListener('click',showHistory);
+  $('pentaHistoryFinished').addEventListener('click',showHistory);
+  $('pentaHistoryClose').addEventListener('click',()=>{$('pentaHistoryModal').hidden=true});
+  $('pentaHistoryModal').querySelector('.local-modal-backdrop').addEventListener('click',()=>{$('pentaHistoryModal').hidden=true});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('pentaHistoryModal').hidden){event.preventDefault();$('pentaHistoryModal').hidden=true}});
+  $('pentaName0').addEventListener('input',()=>{if(ghostMode)refreshGhostChoices()});
   $('pentaOpponent').addEventListener('change',modeChanged);
   $('pentaStart').addEventListener('click',start);
   $('pentaResume').addEventListener('click',resume);
@@ -1414,9 +1480,11 @@
   });
   course();makeNumberGrid();renderMultiplier();
   // Opening or refreshing an unfinished game must resume without revisiting setup.
-  const humanSave=stored();rivalMode=true;const aiSave=stored();
-  rivalMode=!!aiSave&&(!humanSave||Number(aiSave.lastSavedAt||aiSave.createdAt)>Number(humanSave.lastSavedAt||humanSave.createdAt));
-  $('pentaOpponent').value=rivalMode?'rival':'human';
+  const humanSave=stored();rivalMode=true;const aiSave=stored();rivalMode=false;ghostMode=true;const ghostSave=stored();ghostMode=false;
+  for(const saved of [humanSave,aiSave,ghostSave])archiveLocal(saved);
+  const latest=[['human',humanSave],['rival',aiSave],['ghost',ghostSave]].filter(x=>x[1]).sort((a,b)=>Number(b[1].lastSavedAt||b[1].createdAt)-Number(a[1].lastSavedAt||a[1].createdAt))[0];
+  rivalMode=latest?.[0]==='rival';ghostMode=latest?.[0]==='ghost';
+  $('pentaOpponent').value=latest?.[0]||'human';
   const saved=stored();
   if(saved&&restoreRival(saved)){
     state=saved;
@@ -1427,6 +1495,6 @@
     render();
     focusX01Score();
   }else{
-    const error=$('pentaSetupError').textContent;modeChanged();if(error)$('pentaSetupError').textContent=error;
+    const error=$('pentaSetupError').textContent||archiveWarning;modeChanged();if(error)$('pentaSetupError').textContent=error;
   }
 })();
