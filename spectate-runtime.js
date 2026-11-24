@@ -17,6 +17,17 @@
 
     const db=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
     const matchId=new URLSearchParams(location.search).get('id');
+    // A tournament's live X01 match uses this same Spectate page.
+    // Only the close action changes, so its layout, media and FX stay identical.
+    const tournamentId=new URLSearchParams(location.search).get('tournament');
+    if(tournamentId&&/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(tournamentId)){
+      const close=document.getElementById('spectateCloseBtn');
+      if(close){
+        close.textContent='Til turnering';
+        close.onclick=()=>location.assign('tournament.html?id='+encodeURIComponent(tournamentId));
+      }
+    }
+
     let match=null,names={},fxVisits=null,timer=null,channel=null,fxTimer=null,fxPolling=false,fxStarted=false,leaving=false,clients=new Map(),publications=new Map();
     if(title)title.textContent='Kobler til kamp…';
 
