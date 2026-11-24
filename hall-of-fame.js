@@ -5,7 +5,7 @@ const db=window.DartArenaSupabaseClient||(window.DartArenaSupabaseClient=window.
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const categories=[
- {id:'501',name:'501',metrics:[['180','Flest 180'],['fast_leg','Raskeste leg'],['checkout','Høyeste utgang'],['avg','Høyeste AVG'],['140','Flest 140+'],['100','Flest 100+']]},
+ {id:'501',name:'501',metrics:[['180','Flest 180'],['140','Flest 140+'],['100','Flest 100+'],['fast_leg','Raskeste leg'],['checkout','Høyeste utgang'],['avg','Høyeste AVG']]},
  {id:'half_standard',name:'Half-It Standard',metrics:[['score','Høyeste poengsum']]},
  {id:'half_dartcounter',name:'Half-It DartCounter',metrics:[['score','Høyeste poengsum']]},
  {id:'jdc',name:'JDC Challenge',metrics:[['score','Høyeste poengsum']]},
