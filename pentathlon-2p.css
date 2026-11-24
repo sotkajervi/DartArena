@@ -108,6 +108,24 @@
 @media(max-width:1100px){.penta-layout{grid-template-columns:1fr}.penta-side{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){.penta-shell{width:95vw;margin:16px auto 40px}.penta-intro{align-items:flex-start;flex-direction:column}.penta-card{padding:15px}.penta-fields,.penta-side{grid-template-columns:1fr}.penta-progress{gap:3px}.penta-progress>div{font-size:9px;padding:8px 2px}.penta-player-card{padding:10px;align-items:flex-start;flex-direction:column}.penta-player-card h3{font-size:16px}.penta-total{font-size:26px}.penta-stage-players{gap:7px}.penta-stage-player{padding:10px}.penta-stage-player .penta-number{font-size:21px}.penta-review-details{grid-template-columns:1fr}.penta-top-bar{align-items:flex-start}.penta-top-actions{flex-shrink:0}}
 
+/* Same Pentathlon points line used by the existing online 1v1 scene. */
+.da-penta #pentaLocalBoard .penta-live-points{
+ display:flex;align-items:center;justify-content:center;gap:10px;
+ min-height:23px;margin:1px 0 0;padding:0 3px;line-height:1;white-space:nowrap;
+}
+.da-penta #pentaLocalBoard .penta-live-points .pt-points-pair{
+ display:inline-flex;align-items:center;gap:4px;white-space:nowrap;
+}
+.da-penta #pentaLocalBoard .penta-live-points .pt-points-pair span{
+ font-size:9px;font-weight:800;color:#9bbbc1;
+}
+.da-penta #pentaLocalBoard .penta-live-points .pt-points-pair b{
+ font-size:12px;font-weight:900;color:#00eaf4;
+}
+.da-penta #pentaLocalBoard .penta-live-points .pt-points-divider{
+ width:1px;height:13px;flex:none;background:#31535a;
+}
+
 /* Local Pentathlon X01: match-card metrics, kept separate from Pentathlon points. */
 .penta-x01-live-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px;padding-top:11px;border-top:1px solid #31545d}
 .penta-x01-stat{display:flex;flex-direction:column;gap:3px;min-width:0}
