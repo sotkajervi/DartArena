@@ -1,0 +1,38 @@
+name: Isolated WebRTC media test
+on:
+  push:
+    branches:
+      - 'test/webrtc-isolated-20261124'
+    paths:
+      - '.github/workflows/webrtc-isolated-test.yml'
+      - 'scripts/webrtc-isolated-test.cjs'
+permissions:
+  contents: read
+concurrency:
+  group: webrtc-isolated-test
+  cancel-in-progress: true
+jobs:
+  local-media:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser runner
+        run: |
+          npm install --no-save --package-lock=false --ignore-scripts playwright@1.51.1
+          npx playwright install --with-deps chromium
+      - name: Two players (smoke test)
+        run: timeout 60s node scripts/webrtc-isolated-test.cjs 1
+      - name: Ten players (only if smoke test passed)
+        run: timeout 90s node scripts/webrtc-isolated-test.cjs 5
+      - name: Store media measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isolated-webrtc-report
+          path: webrtc-report-*.json
+          if-no-files-found: ignore
+          retention-days: 3
