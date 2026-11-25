@@ -1,0 +1,17 @@
+name: Persistent heatmaps isolated tests
+on:
+  push:
+    branches: ['test/persistent-heatmaps-20261125']
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          for f in heatmap-storage.js online-heatmap-result.js online-heatmap-chart.js premium-heatmap-view.js premium-match-stats.js personal-heatmap.js; do node --check "$f"; done
+          node --test tests/persistent-heatmaps.test.cjs

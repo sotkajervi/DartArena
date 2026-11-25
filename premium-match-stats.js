@@ -302,6 +302,8 @@
     configureBack();
     const ctx=await loadContext();
     await render(ctx);
+    const match=ctx.match;
+    if(match?.status==='finished'&&(match.game_variant||'x01')==='x01'&&String(match.game_config?.chicago??'false').toLowerCase()!=='true')window.DartArenaPremiumHeatmap?.mount(match.id,db);
   }
   boot().catch(error=>{
     console.error('Premium match stats failed',error);

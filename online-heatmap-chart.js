@@ -5,15 +5,15 @@ const board=new Image();
 let ready=false;
 board.onload=()=>{
  ready=true;
- document.querySelectorAll('.da-result-hm-player canvas, .premium-hm-player canvas').forEach(canvas=>draw(canvas,canvas.__heatmapPoints||[]));
+ document.querySelectorAll('.da-result-hm-player canvas, .premium-hm-player canvas, #personalHeatmap canvas').forEach(canvas=>draw(canvas,canvas.__heatmapPoints||[],canvas.__heatmapWeighted===true));
 };
 board.onerror=()=>console.warn('DartArena: original heatmap image did not load');
 board.src='./assets/dartarena-heatmap-board.png?v=20261023-heatmap3';
-function draw(canvas,rows=[]){
+function draw(canvas,rows=[],weighted=false){
  if(!canvas?.getContext)return;
  const ctx=canvas.getContext('2d',{willReadFrequently:true});if(!ctx)return;
  const W=canvas.width||340,H=canvas.height||W;
- canvas.__heatmapPoints=rows;
+ canvas.__heatmapPoints=rows;canvas.__heatmapWeighted=weighted;
  ctx.clearRect(0,0,W,H);
  if(!ready){ctx.fillStyle='#071012';ctx.fillRect(0,0,W,H);return}
  // Keep the supplied dartboard photo intact; only replace its outer white
@@ -41,7 +41,8 @@ function draw(canvas,rows=[]){
  ctx.putImageData(base,0,0);
  // The calibrated camera radius maps to the outer double ring on this image.
  const x0=W*.496,y0=H*.493,R=Math.min(W,H)*.362;
- const points=(Array.isArray(rows)?rows:[]).filter(p=>Number.isFinite(p?.u)&&Number.isFinite(p?.v)&&Math.hypot(p.u,p.v)<=1.55).slice(-600);
+ const valid=(Array.isArray(rows)?rows:[]).filter(p=>Number.isFinite(p?.u)&&Number.isFinite(p?.v)&&Math.hypot(p.u,p.v)<=1.55);
+ const points=weighted?valid.slice(0,4096):valid.slice(-600);
  if(!points.length)return;
  const field=new Float32Array(W*H),radius=Math.max(14,Math.round(R*.205));
  const spread=Math.pow(radius*.45,2)*2;
@@ -51,7 +52,7 @@ function draw(canvas,rows=[]){
    const y2=(y-cy)*(y-cy);
    for(let x=Math.max(0,Math.floor(cx-radius));x<=Math.min(W-1,Math.ceil(cx+radius));x++){
     const d2=(x-cx)*(x-cx)+y2;if(d2>radius*radius)continue;
-    field[y*W+x]+=Math.exp(-d2/spread);
+    field[y*W+x]+=Math.exp(-d2/spread)*(weighted?Math.max(1,Number(p.weight)||1):1);
    }
   }
  }

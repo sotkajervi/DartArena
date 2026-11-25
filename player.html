@@ -53,6 +53,10 @@
       </div>
     </section>
 
+    <section class="card premium-hm-player" id="personalHeatmap" hidden style="margin:0 0 16px;text-align:center">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Mitt heatmap · 501</h2><select aria-label="Periode"><option value="30">Siste 30 dager</option><option value="90">Siste 90 dager</option><option value="all">Alle kamper</option></select></div>
+      <canvas width="340" height="340" aria-label="Personlig heatmap" style="display:block;width:min(100%,340px);height:auto;margin:12px auto"></canvas><p class="muted compact">Laster…</p><small class="muted">Kameraestimater, ikke poengfasit. Kun fullførte ordinære 501-kamper.</small>
+    </section>
     <section class="card history-card">
       <div class="history-toolbar"><div><small>KAMPHISTORIKK</small><h2 style="margin:2px 0 0">Alle kamper</h2></div><div class="history-filters" id="profileFilters"><button class="outline history-filter active" data-filter="all">Alle</button><button class="outline history-filter" data-filter="x01">X01</button><button class="outline history-filter" data-filter="cricket">Cricket</button><button class="outline history-filter" data-filter="chicago">Chicago</button><button class="outline history-filter" data-filter="tournament">Turnering</button><button class="outline history-filter" data-filter="online">Vanlig online</button></div><label class="history-sort" for="historySort">Sorter etter<select id="historySort"><option value="newest">Nyeste først</option><option value="oldest">Eldste først</option><option value="avg_desc">Høyeste 501-AVG</option><option value="avg_asc">Laveste 501-AVG</option></select></label></div>
       <div id="matchCount" class="muted compact" style="margin-bottom:10px">Laster…</div>
@@ -61,6 +65,9 @@
   </div></main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
   <script src="player-profile.js?v=20261112-history-avg-sort1"></script>
+  <script src="online-heatmap-chart.js?v=20261125-weighted1"></script>
+  <script src="heatmap-storage.js?v=20261125-persistent1"></script>
+  <script src="personal-heatmap.js?v=20261125-persistent1"></script>
   <script src="role-visuals.js?v=20261004-players1"></script>
   <script src="brand-home.js?v=20261006-authsmooth3"></script>
   <script src="./dartarena-i18n.js?v=20261119-svgflags1"></script>

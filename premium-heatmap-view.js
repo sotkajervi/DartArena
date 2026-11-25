@@ -3,14 +3,14 @@
    This module never modifies scores or the original photographed dartboard. */
 (()=>{
   'use strict';
-  if(document.body.dataset.statsSource!=='match')return;
+  if(!['match','tournament'].includes(document.body.dataset.statsSource))return;
   const Chart=window.DartArenaHeatmapChart;
-  const matchId=new URLSearchParams(location.search).get('id');
-  if(!Chart||!matchId)return;
+  const S=window.DartArenaHeatmapStorage;
+  if(!Chart||!S)return;
   const view=document.getElementById('statsView');
   if(!view)return;
-  const cacheKey='dartarena-x01-heatmap-result-v1:'+matchId;
-  let playerIds=[],cards=[],lastSnapshot='',refreshTimer=null;
+  let cacheKey='',playerIds=[],cards=[],lastSnapshot='',refreshTimer=null,cloud={},matchId=null,db=null,loading=false,failed=false;
+  async function loadCloud(){if(!db||loading)return;loading=true;try{cloud=await S.read(db,matchId);failed=false}catch(e){failed=true;console.warn('Heatmap history unavailable',e?.message||e)}finally{loading=false;updateHeatmaps()}}
 
   const style=document.createElement('style');
   style.textContent=`
@@ -37,7 +37,7 @@
       }
     }catch{}
     try{stores.push(window.sessionStorage)}catch{}
-    const result={};
+    const result={...cloud};
     for(const store of stores){
       let obj;
       try{obj=JSON.parse(store.getItem(cacheKey)||'{}')}catch{continue}
@@ -45,7 +45,7 @@
       for(const id of playerIds){
         const rows=Array.isArray(obj[id])?obj[id]:[];
         const valid=rows.slice(-600).filter(p=>Number.isFinite(p?.u)&&Number.isFinite(p?.v)&&Math.hypot(p.u,p.v)<=1.55);
-        if(valid.length>(result[id]?.length||0))result[id]=valid;
+        result[id]=S.merge(result[id],valid);
       }
     }
     return result;
@@ -54,7 +54,7 @@
   function updateHeatmaps(){
     if(!cards.length)return;
     const data=rowsForMatch();
-    const signature=JSON.stringify(playerIds.map(id=>data[id]||[]));
+    const signature=JSON.stringify([failed,playerIds.map(id=>data[id]||[])]);
     if(signature===lastSnapshot)return;
     lastSnapshot=signature;
     for(const entry of cards){
@@ -62,19 +62,20 @@
       Chart.draw(entry.canvas,points);
       entry.caption.textContent=points.length
         ?points.length+' registrert'+(points.length===1?'':'e')+' treff'
-        :'Ingen heatmap-data tilgjengelig fra denne økten.';
+        :failed?'Kunne ikke hente lagrede heatmap-data.':'Ingen registrerte heatmap-data for denne kampen.';
     }
   }
 
-  function mount(){
-    if(cards.length)return;
+  function mount(id,client){
+    if(cards.length||!id||!client)return;
+    matchId=id;db=client;cacheKey='dartarena-x01-heatmap-result-v1:'+id;
     // Only the completed X01 view has exactly these two player cards.
     const players=[...view.querySelectorAll('.premium-player-grid .premium-player-card[data-player-id]')];
     const grid=view.querySelector('.premium-player-grid');
     if(!grid||players.length!==2)return;
     const resultCard=view.querySelector('.premium-result-card');
     if(!resultCard)return;
-    if((resultCard.querySelector('.premium-result-sub')?.textContent||'').includes('Chicago Style')){observer.disconnect();return}
+    if((resultCard.querySelector('.premium-result-sub')?.textContent||'').includes('Chicago Style')){return}
     playerIds=players.map(player=>player.dataset.playerId);
     const section=document.createElement('section');
     section.className='premium-hm-section';
@@ -99,26 +100,17 @@
     }
     const note=document.createElement('p');
     note.className='premium-hm-note';
-    note.textContent='Kameraestimater, ikke poengfasit. Heatmap-data er foreløpig tilgjengelig bare fra den aktive kampøkten.';
+    note.textContent='Kameraestimater, ikke poengfasit. Lagrede treffposisjoner vises når kalibrert kamera har registrert dem.';
     section.append(heading,maps,note);
     grid.insertAdjacentElement('afterend',section);
-    observer.disconnect();
-    updateHeatmaps();
-    // The other player's points may arrive shortly after the match ends.
-    let ticks=0;
-    refreshTimer=setInterval(()=>{
-      updateHeatmaps();
-      if(++ticks>=24){clearInterval(refreshTimer);refreshTimer=null}
-    },2500);
-    window.addEventListener('focus',updateHeatmaps);
+    updateHeatmaps();loadCloud();
+    // One bounded retry catches delayed writes from a match just completed.
+    refreshTimer=setTimeout(loadCloud,12000);
+    window.addEventListener('focus',loadCloud);
   }
-
-  const observer=new MutationObserver(mount);
-  observer.observe(view,{childList:true,subtree:true});
-  mount();
+  window.DartArenaPremiumHeatmap={mount};
   window.addEventListener('pagehide',()=>{
-    observer.disconnect();
-    if(refreshTimer)clearInterval(refreshTimer);
-    window.removeEventListener('focus',updateHeatmaps);
+    if(refreshTimer)clearTimeout(refreshTimer);
+    window.removeEventListener('focus',loadCloud);
   },{once:true});
 })();

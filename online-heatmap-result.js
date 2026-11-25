@@ -6,10 +6,9 @@
 (()=>{
 'use strict';
 const G=window.DartArenaAutoZoom,H=window.DartArenaHeatmapMath,Chart=window.DartArenaHeatmapChart;
-const Z=window.DartArenaZoomCam;
+const Z=window.DartArenaZoomCam,S=window.DartArenaHeatmapStorage;
 const matchId=(window.DartArenaMatchEngineState?.matchId?.()||new URLSearchParams(location.search).get('id'));
-if(!G||!H||!Chart||!Z||!matchId||!window.supabase||
-   new URLSearchParams(location.search).has('tournamentMatch'))return;
+if(!G||!H||!Chart||!Z||!S||!matchId||!window.supabase)return;
 const db=(window.DartArenaSupabaseClient||window.supabase.createClient(
  'https://jqpxlbhwvskhjbqrbidk.supabase.co',
  'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
@@ -21,7 +20,9 @@ const data={};
 let userId=null,m=null,channel=null,connected=false,video=null,ownsVideo=false,sourceTrack=null,sourceKey='',cal=null;
 let reference=null,previous=null,still=0,motion=null,gate=null,turnActive=null,turnHits=0,turnAt=0;
 let sampling=null,replay=null,lastStatus='',frameW=0,frameH=0,remoteUpdatedAt=0;
-let overlay=null,playerIds=[];
+let overlay=null,playerIds=[],flush=null,saveTimer=null,cloudWarning=false;
+function saveCloud(){if(!flush||m?.status==='cancelled')return;return flush().catch(e=>{if(!cloudWarning){cloudWarning=true;console.warn('Heatmap storage unavailable',e?.message||e)}})}
+async function loadCloud(){try{const rows=await S.read(db,matchId);for(const id of playerIds)data[id]=S.merge(data[id],rows[id]);persist();refreshResult()}catch(e){console.warn('Heatmap history unavailable',e?.message||e)}}
 const analysis=document.createElement('canvas');
 const ctx=analysis.getContext('2d',{willReadFrequently:true});
 function valid(row){
@@ -171,7 +172,7 @@ function receive(payload){
  // Identical-player snapshots are authoritative only for the other player's
  // camera; save the latest one received (including their empty baseline).
  if(cleanRows.length<(data[payload.from]||[]).length)return;
- data[payload.from]=cleanRows;remoteUpdatedAt=Date.now();persist();refreshResult();
+ data[payload.from]=S.merge(data[payload.from],cleanRows);remoteUpdatedAt=Date.now();persist();refreshResult();
 }
 function resultDraw(card,id){
  const canvas=card.querySelector('canvas'),label=card.querySelector('.da-hm-caption');
@@ -217,9 +218,11 @@ function attachResult(result,mrow){
    card.append(heading,canvas,caption);grid.appendChild(card);
  }
  stats.insertAdjacentElement('afterend',section);
- refreshResult();sendPoints();requestPoints();
+ refreshResult();sendPoints();requestPoints();saveCloud();loadCloud();
 }
 function stop(){
+ if(saveTimer){clearInterval(saveTimer);saveTimer=null}
+ saveCloud();
  if(sampling){clearInterval(sampling);sampling=null}
  if(replay){clearInterval(replay);replay=null}
  if(channel){try{db.removeChannel(channel)}catch{}channel=null;connected=false}
@@ -235,6 +238,11 @@ async function start(){
  if(String(row?.game_config?.chicago||'false')==='true')return;
  m=row;playerIds=[row.player1_id,row.player2_id];refreshResult();
  for(const p of playerIds)if(!data[p])data[p]=[];
+ flush=S.writer(db,matchId,()=>data[userId]);
+ await loadCloud();
+ if(row.status==='cancelled')return;
+ saveCloud();
+ saveTimer=setInterval(saveCloud,10000);
  const live=db.channel('x01-heatmap-'+matchId,{config:{broadcast:{self:false}}});
  channel=live;
  live.on('broadcast',{event:'heatmap-v1'},({payload})=>receive(payload))
@@ -244,7 +252,7 @@ async function start(){
    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:'id=eq.'+matchId},({new:updated})=>{
       if(!updated)return;
       m.status=updated.status;
-      if(updated.status==='finished'){sendPoints();requestPoints();refreshResult()}
+      if(updated.status==='finished'){sendPoints();requestPoints();refreshResult();saveCloud();loadCloud()}
    })
    .subscribe(state=>{
      connected=state==='SUBSCRIBED';
@@ -263,5 +271,6 @@ async function start(){
 }
 window.DartArenaOnlineHeatmap={attachResult,refreshResult};
 window.addEventListener('pagehide',stop,{once:true});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)saveCloud()});
 start().catch(e=>console.warn('Online heatmap beta unavailable',e?.message||e));
 })();
