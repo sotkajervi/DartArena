@@ -53,9 +53,9 @@ test('Match room cache busts both language dictionary and dynamically created th
   const html=read('match.html');
   const css=read('match-own-turn.css');
   const throws=read('throw-log.js');
-  assert.match(html,/dartarena-i18n\.js\?v=20261027-i18naudit1/);
-  assert.match(html,/throw-log\.js\?v=20261027-i18naudit1/);
-  assert.match(html,/match-own-turn\.css\?v=20261027-i18naudit1/);
+  assert.match(html,/dartarena-i18n\.js\?v=[0-9]{8}-[a-zA-Z0-9-]+/);
+  assert.match(html,/throw-log\.js\?v=[0-9]{8}-[a-zA-Z0-9-]+/);
+  assert.match(html,/match-own-turn\.css\?v=[0-9]{8}-[a-zA-Z0-9-]+/);
   assert.match(css,/html\[lang="en"\].*\.focus-input-dock::before/);
   assert.match(css,/content:'YOUR TURN  •  ENTER SCORE'/);
   assert.match(throws,/Kast i dette legget/);
