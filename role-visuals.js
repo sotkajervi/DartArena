@@ -71,10 +71,7 @@
 
   function roleFor(text){
     const clean=String(text||'').trim();
-    for(const [name,role] of roleByName){
-      if(clean===name||clean.includes(name))return role;
-    }
-    return null;
+    return roleByName.get(clean.replace(/^(Hei,|Hi,)\s*/i,''))||null;
   }
 
   function syncPlayerBadge(el,role){

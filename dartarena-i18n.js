@@ -6,6 +6,19 @@
   if(window.DartArenaI18n)return;
   const KEY='dartarena-language';
   const translations=Object.freeze({
+  "Velg kallenavn": "Choose nickname",
+  "Bruk 2–24 tegn: bokstaver, tall, punktum, bindestrek eller understrek.": "Use 2–24 letters, numbers, periods, hyphens or underscores.",
+  "Kallenavnet blir navnet ditt i DartArena. Du kan endre det én gang hver 30. dag.": "Your nickname is your DartArena display name. You can change it once every 30 days.",
+  "Fullt navn (valgfritt)": "Full name (optional)",
+  "Kallenavnet er allerede i bruk.": "This nickname is already taken.",
+  "Du kan endre kallenavn én gang hver 30. dag.": "You can change your nickname once every 30 days.",
+  "Velg profilbilde": "Choose profile picture",
+  "Fjern profilbilde": "Remove profile picture",
+  "Fjerne profilbildet?": "Remove the profile picture?",
+  "Profilbilde lagret.": "Profile picture saved.",
+  "Profilbilde fjernet.": "Profile picture removed.",
+  "Kunne ikke lagre profilbildet.": "Could not save the profile picture.",
+  "Kunne ikke fjerne profilbildet.": "Could not remove the profile picture.",
   "Min profil": "My profile",
   "Spillerinformasjon": "Player information",
   "Rediger profil": "Edit profile",
