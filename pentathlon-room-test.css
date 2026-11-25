@@ -634,3 +634,6 @@ body.pt-online-test #ptReviewDetails .pt-stage-point-empty{padding:6px 2px;text-
 #ptStageOverlay #ptCloseStageModal[hidden]{display:none!important}
 #ptStageOverlay #ptReview:has(#ptAdvance:disabled) #ptAdvance{cursor:default;opacity:.72}
 #ptStageOverlay #ptReviewCaption{min-height:2.5em}
+
+/* Cancellation supersedes a pending exercise review, on the shared DA modal. */
+body.pt-online-test #cancelledMatchModal{z-index:50002}

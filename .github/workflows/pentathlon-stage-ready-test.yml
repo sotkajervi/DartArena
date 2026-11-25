@@ -33,7 +33,7 @@ jobs:
         with:
           node-version: '22'
       - run: node --check pentathlon-room-test.js
-      - run: node --test tests/pentathlon-stage-points.test.cjs tests/pentathlon-2p.test.cjs tests/pentathlon-room-test.test.cjs
+      - run: node --test tests/pentathlon-stage-points.test.cjs tests/pentathlon-2p.test.cjs tests/pentathlon-room-test.test.cjs tests/pentathlon-cancellation.test.cjs
       - name: Set up isolated PostgreSQL
         run: |
           psql -X -v ON_ERROR_STOP=1 -f tests/pentathlon-server-test-schema.sql

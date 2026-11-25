@@ -8,21 +8,34 @@ const $=id=>document.getElementById(id),db=R.client(),challengeId=R.challengeId(
 if(!challengeId)return;
 let uid=null,challenge=null,record=null,channel=null,poll=null,pending=[],saving=false,lastInputTurn=null,sceneReady=false,sceneConfigured=false,sceneLoading=null,activeMatchId=null,entering=null;
 let bootReady=false,resumeMatchId=null;
-let lastCompletionPopupKey=null,stageReadyError='';
+let lastCompletionPopupKey=null,stageReadyError='',cancelled=false;
 const copy=o=>JSON.parse(JSON.stringify(o));
 const clean=o=>{const a=copy(o);delete a.undo;return a};
 const game=()=>record?.state,stage=()=>game()?.current;
 let matchPlayerIds=null;
 const player=()=>matchPlayerIds?matchPlayerIds.indexOf(uid):(uid===challenge?.challenger_id?0:1);
-const mine=()=>game()?.status==='playing'&&stage()?.turn===player();
+const isCancelled=()=>cancelled||(!!activeMatchId&&window.DartArenaMatchEngineState?.match?.()?.id===activeMatchId&&window.DartArenaMatchEngineState.match().status==='cancelled');
+const mine=()=>!isCancelled()&&game()?.status==='playing'&&stage()?.turn===player();
 const readyMask=()=>Number(record?.stage_ready_mask||0);
 const ownReady=()=>player()>=0&&!!(readyMask() & (1 << player()));
 const msg=(s,bad=false)=>{const el=$('ptMessage');if(el){el.textContent=s;el.classList.toggle('error',bad)}};
 function node(tag,cls,value){const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el}
 
+function presentCancellation(){
+ if(cancelled)return;
+ cancelled=true;pending=[];
+ for(const id of ['ptStageOverlay','ptResultsOverlay','ptPointsOverlay']){
+   const el=$(id);if(el)el.hidden=true;
+ }
+ for(const id of ['ptInput','ptXSubmit','ptSSubmit','ptAdvance','cancelMatchBtn']){
+   const el=$(id);if(el)el.disabled=true;
+ }
+ const status=$('ptStatus');if(status)status.textContent='Avbrutt';
+ window.DartArenaCancelledMatchModal?.show?.();
+}
 function setup(){
  document.addEventListener('keydown',e=>{
-   if(!sceneReady||!record||saving||e.repeat||e.isComposing||e.ctrlKey||e.metaKey||e.altKey)return;
+   if(!sceneReady||!record||isCancelled()||saving||e.repeat||e.isComposing||e.ctrlKey||e.metaKey||e.altKey)return;
    if(['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName)||e.target?.isContentEditable)return;
    if(e.key==='Enter'){
      if(game().status==='review'){e.preventDefault();advance()}
@@ -200,12 +213,17 @@ async function ensureScene(){
        });
        if(!confirmed)return;
        cancel.disabled=true;
+       window.__dartArenaOwnCancel=true;
        try{
-         const {error}=await db.rpc('cancel_pentathlon_match_test',{p_match_id:activeMatchId});
+         const {data,error}=await db.rpc('cancel_pentathlon_match_test',{p_match_id:activeMatchId});
          if(error)throw error;
+         if(data!==true)throw Error('Kampen er ikke lenger aktiv.');
+         await broadcast();
          location.replace('./');
        }catch(error){
+         window.__dartArenaOwnCancel=false;
          cancel.disabled=false;
+         await refresh();
          await dialog.alert('Kunne ikke avbryte kampen: '+(error?.message||String(error)),{
            title:'Avbrytelse feilet',kicker:'DARTARENA · PENTATHLON',tone:'danger'
          });
@@ -660,6 +678,7 @@ function renderFinalPentathlon(s){
 function render(){
  if(!record)return;
  if(!sceneReady)return;
+ if(isCancelled()){presentCancellation();return}
  const panel=$('ptPanel'),s=game(),c=s.current;
  panel.hidden=false;
  const live=s.status==='playing',review=s.status==='review',finished=s.status==='finished';
@@ -810,9 +829,13 @@ function render(){
 
 }
 async function refresh(){
- if(!uid||!challenge||!activeMatchId)return;
- const {data,error}=await db.from('pentathlon_room_tests').select('*').eq('match_id',activeMatchId).maybeSingle();
+ if(!uid||!challenge||!activeMatchId||cancelled)return;
+ if(isCancelled()){presentCancellation();return}
+ // Use the existing refresh request to read the authoritative match status.
+ // A cancellation changes matches, not the Pentathlon scoring row/version.
+ const {data,error}=await db.from('pentathlon_room_tests').select('*,match_status:matches!pentathlon_room_tests_match_id_fkey(status)').eq('match_id',activeMatchId).maybeSingle();
  if(error){msg('Synkronisering feilet: '+error.message,true);return}
+ if(data?.match_status?.status==='cancelled'||isCancelled()){presentCancellation();return}
  if(data&&(!record||data.version>record.version)){record=data;pending=[];render()}
 }
 async function broadcast(){
@@ -928,7 +951,7 @@ async function showFinishedResult(matchId){
  }
 }
 async function save(action,next){
- if(!record||saving)return;
+ if(!record||saving||isCancelled())return;
  saving=true;const version=record.version;render();
  try{
    const {data,error}=await db.rpc('apply_pentathlon_room_test',{
@@ -981,7 +1004,7 @@ function submitSpecial(){
  }catch(e){msg(e.message||String(e),true)}
 }
 function advance(){
- if(game()?.status!=='review'||saving||ownReady())return;
+ if(game()?.status!=='review'||saving||ownReady()||isCancelled())return;
  stageReadyError='';
  try{const n=clean(E.nextStage(game()));n.undo=[];save('advance',n)}
  catch(e){msg(e.message||String(e),true)}

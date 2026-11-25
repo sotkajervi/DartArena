@@ -111,6 +111,7 @@
          await script('opponent-focus.js?v=20261026-owncam-pip1');
          await script('match-controls.js?v=20261123-action-label25');
          await script('dartarena-dialog.js?v=20261027-correction2');
+         await script('cancelled-match-modal.js?v=20261103-tournament-return3');
          await script('throw-log.js?v=20261125-score-roll1');
          await script('match-media-router.js?v=20261104-preserve-challenge1');
          const test=window.DartArenaPentathlonMatchTest;
