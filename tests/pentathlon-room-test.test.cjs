@@ -29,7 +29,10 @@ test('X01 scoreboard inherited, no custom video grid or sidebar result scroll',(
  a.ok(js.includes("const avg=node('div','live-avg')"));
  a.ok(js.includes("sets.classList.add('hidden')"));
  a.ok(js.includes('ptResultsTable'));a.ok(js.includes('scene.append(resultOverlay)'));a.ok(js.includes('document.body.appendChild(stageOverlay)'));a.ok(css.includes('.pt-results-modal'));
- a.doesNotMatch(css,/#ptPanel \.match-score\{|#ptPanel \.match-player\{|#videoGrid\s*\{|#matchView\s*\{/);
+ // Existing Shanghai-only sizing reserves space for the shared X01 input dock.
+ const sharedShanghaiRule='body.pt-online-test.pt-shanghai-active.own-turn-focus.match-page.match-tv-layout.standard-tv-layout #videoGrid{\n   height:calc(var(--da-x01-frame-height) - var(--da-x01-input-reserve))!important;\n   max-height:calc(var(--da-x01-frame-height) - var(--da-x01-input-reserve))!important;\n   align-self:start!important;\n }';
+ a.ok(css.includes(sharedShanghaiRule));
+ a.doesNotMatch(css.replace(sharedShanghaiRule,''),/#ptPanel \.match-score\{|#ptPanel \.match-player\{|#videoGrid\s*\{|#matchView\s*\{/);
  a.ok(js.includes("classList.toggle('own-turn-focus',live&&mine())"));
 });
 test('Server match starter and identity are used; F5 resumes by match ID',()=>{
