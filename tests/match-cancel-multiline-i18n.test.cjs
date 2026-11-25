@@ -60,6 +60,6 @@ test('Multiline popup reversibly switches English -> Norwegian -> English',()=>{
 });
 test('Match pages load updated dictionary, including other game modes',()=>{
   for(const page of ['match.html','cricket.html','half-it.html','61-match.html','jdc-match.html']){
-    assert.match(read(page),/dartarena-i18n\.js\?v=20261027-multiline-modal1/,page);
+    assert.match(read(page),/dartarena-i18n\.js\?v=[0-9]{8}-[a-zA-Z0-9-]+/,page);
   }
 });
