@@ -1,0 +1,16 @@
+name: Half-It shared room layout test
+on:
+  push:
+    branches: ['test/half-it-pentathlon-layout-20261125']
+permissions:
+  contents: read
+jobs:
+  layout:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check half-it-online-layout.js
+      - run: node --test tests/half-it-online-layout.test.cjs

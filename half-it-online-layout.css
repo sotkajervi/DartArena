@@ -1,0 +1,91 @@
+/* Half-It Standard and DartCounter use the established X01/Pentathlon
+   match-grid, player cards, opponent-focus PiP and focusInputDock.
+   Only Half-It-specific content and variable-height scoring are styled here. */
+body.half-it-page.match-tv-layout .half-grid{margin:0!important;gap:0}
+body.half-it-page.match-tv-layout .half-player-line{display:contents}
+body.half-it-page.match-tv-layout .half-scoreboard{margin:0 0 8px}
+body.half-it-page.match-tv-layout .half-player{align-items:center;text-align:center;min-width:0}
+body.half-it-page.match-tv-layout .half-player-name{width:100%;overflow:hidden;text-overflow:ellipsis}
+body.half-it-page.match-tv-layout .half-round{white-space:normal;text-align:center}
+body.half-it-page.match-tv-layout .half-score{color:var(--text)}
+body.half-it-page.match-tv-layout .half-target-card{margin:6px 0 0;padding:7px 9px;text-align:center}
+body.half-it-page.match-tv-layout .half-target-card h2{font-size:clamp(20px,2.3vw,29px);color:#00eaf4;line-height:1.15;overflow-wrap:anywhere}
+body.half-it-page.match-tv-layout .half-target-card p{font-size:11px;line-height:1.3}
+body.half-it-page.match-tv-layout .half-next-target{min-height:0;padding:6px 2px;font-size:11px}
+body.half-it-page.match-tv-layout .half-status-list{gap:3px;margin-top:4px}
+body.half-it-page.match-tv-layout .half-status-row{padding:4px 0;font-size:11px}
+body.half-it-page.match-tv-layout .match-info{overflow:auto}
+body.half-it-page.match-tv-layout #matchMessage{font-size:11px;overflow-wrap:anywhere}
+body.half-it-page.match-tv-layout.standard-tv-layout.own-turn-focus .focus-input-dock .score-entry.half-dock-content{
+ display:block!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important
+}
+body.half-it-page.match-tv-layout .focus-input-dock .half-entry{
+ display:grid;gap:5px;padding:7px 10px;border:1px solid rgba(0,234,244,.28);
+ border-radius:12px;background:rgba(8,22,26,.96);min-width:0
+}
+body.half-it-page.match-tv-layout .focus-input-dock .half-darts{margin:0;gap:5px}
+body.half-it-page.match-tv-layout .focus-input-dock .half-dart{min-height:30px;font-size:13px}
+body.half-it-page.match-tv-layout .focus-input-dock .half-quick,
+body.half-it-page.match-tv-layout .focus-input-dock .half-multiplier,
+body.half-it-page.match-tv-layout .focus-input-dock .half-exact-options{grid-auto-columns:minmax(0,1fr);grid-auto-flow:column;grid-template-columns:none;gap:5px;margin:0}
+body.half-it-page.match-tv-layout .focus-input-dock .half-number-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:5px 0 0}
+body.half-it-page.match-tv-layout .focus-input-dock .half-actions{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:0}
+body.half-it-page.match-tv-layout .focus-input-dock .half-actions.hidden{display:none!important}
+body.half-it-page.match-tv-layout.standard-tv-layout.own-turn-focus .focus-input-dock .half-entry button{
+ display:flex!important;flex-direction:column;align-items:center;justify-content:center;
+ min-width:0;min-height:37px;padding:5px 4px!important;font-size:12px!important;line-height:1.15;
+ white-space:normal!important;border-radius:9px!important
+}
+body.half-it-page.match-tv-layout .focus-input-dock :is(.half-quick,.half-multiplier,.half-exact-options) button{color:#00eaf4}
+body.half-it-page.match-tv-layout .focus-input-dock .half-entry button .da-key{display:block;margin:3px 0 0;font-size:10px;color:inherit}
+body.half-it-page.match-tv-layout .focus-input-dock :is(.half-quick,.half-multiplier,.half-exact-options) button .da-key{color:#dce8e9}
+body.half-it-page.match-tv-layout .focus-input-dock .half-entry button.active .da-key{color:#041010}
+body.half-it-page.match-tv-layout .focus-input-dock .half-number-grid button{min-height:30px}
+body.half-it-page.match-tv-layout .focus-input-dock .half-exact-choice{padding:0;gap:4px}
+body.half-it-page.match-tv-layout .focus-input-dock .half-exact-round-miss{margin:0}
+body.half-it-page.match-tv-layout .focus-input-dock .half-exact-selected{padding:4px 7px;margin:0 0 4px}
+body.half-it-page.match-tv-layout .focus-input-dock .half-standard-41-actions{gap:6px}
+body.half-it-page.match-tv-layout .focus-input-dock #halfSubmitBtn{grid-column:auto}
+body.half-it-page.match-tv-layout #halfResultsDialog{
+ width:min(620px,94vw);max-height:85dvh;overflow:auto;margin:auto;padding:16px;
+ background:#071b20;border:1px solid #00dce9;border-radius:13px;color:#e5f8f9;
+ box-shadow:0 18px 60px rgba(0,0,0,.65)
+}
+body.half-it-page #halfResultsDialog:not([open]){display:none!important}
+body.half-it-page #halfResultsDialog::backdrop{background:rgba(0,10,13,.78)}
+body.half-it-page #halfResultsClose{float:right;margin-left:8px}
+body.half-it-page #halfResultsTitle{font-size:18px;color:#00eaf4}
+@media(min-width:801px){
+ /* The number of keypad rows varies (20 doubles/trebles, exact choice etc.).
+    The shared X01 frame is preserved, and the measured dock reserves room. */
+ body.half-it-page.match-page.match-tv-layout.standard-tv-layout{
+   --da-x01-input-reserve:var(--half-dock-height,210px);
+ }
+ body.half-it-page.match-page.match-tv-layout.standard-tv-layout.own-turn-focus{
+   --da-x01-frame-height:max(calc(100dvh - 154px),calc(var(--da-x01-input-reserve) + 230px));
+ }
+ body.half-it-page.match-tv-layout .focus-input-dock{max-width:100%}
+ body.half-it-page.match-tv-layout .half-grid>.match-info{min-height:90px!important}
+ body.half-it-page.match-tv-layout .half-grid{overflow:auto!important}
+}
+@media(min-width:801px) and (max-height:820px){
+ body.half-it-page.match-page.match-tv-layout.standard-tv-layout.own-turn-focus{
+  --da-x01-frame-height:max(calc(100dvh - 144px),calc(var(--da-x01-input-reserve) + 230px))
+ }
+}
+@media(max-width:800px){
+ body.half-it-page.match-page.match-tv-layout #matchView{
+   grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto auto;
+   grid-template-areas:"head" "score" "video" "input";gap:7px
+ }
+ body.half-it-page.match-page.match-tv-layout .match-grid{max-height:none!important;overflow:visible!important}
+ body.half-it-page.match-page.match-tv-layout .match-players{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+ body.half-it-page.match-page.match-tv-layout .match-player{padding:7px!important;min-height:0!important}
+ body.half-it-page.match-page.match-tv-layout .match-score{font-size:clamp(40px,10vw,62px)!important;margin:5px 0!important}
+ body.half-it-page.match-page.match-tv-layout #videoGrid{height:clamp(150px,27dvh,260px)!important;max-height:none!important}
+ body.half-it-page.match-tv-layout .half-target-card h2{font-size:22px}
+ body.half-it-page.match-tv-layout .focus-input-dock .half-number-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+ body.half-it-page.match-tv-layout .focus-input-dock .half-entry button{min-height:42px!important}
+ body.half-it-page.match-tv-layout .match-info{margin:4px 0 0!important;padding:6px!important}
+ body.half-it-page.match-tv-layout .half-status-list{margin:0}
+}
