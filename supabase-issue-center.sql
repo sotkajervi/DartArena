@@ -45,7 +45,5 @@ revoke all on function dartarena_issue_private.limit_reports() from public, anon
 create trigger issue_report_rate_limit before insert on public.issue_reports
 for each row execute function dartarena_issue_private.limit_reports();
 commit;
--- Before public rollout: enable pg_cron if necessary and schedule the following daily
--- as an administrator, after verifying the extension and existing jobs.
--- select cron.schedule('dartarena-issue-log-retention','17 3 * * *',
--- $$update public.issue_reports set diagnostics=null where diagnostics is not null and created_at<now()-interval '30 days'$$);
+-- Retention is installed separately by supabase-issue-center-retention.sql.
+-- Enable and verify the scheduled job only at the authorized release step.

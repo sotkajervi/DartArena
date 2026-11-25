@@ -3,7 +3,7 @@ on:
   pull_request:
     paths:
       - 'issue-center.js'
-      - 'supabase-issue-center.sql'
+      - 'supabase-issue-center*.sql'
       - 'tests/issue-center*'
       - '.github/workflows/issue-center-test.yml'
   workflow_dispatch:
@@ -34,6 +34,10 @@ jobs:
           node-version: '22'
       - run: node --check issue-center.js && node --test tests/issue-center.test.cjs
       - run: psql -h localhost -U postgres -d issue_test -f tests/issue-center-db.sql
+        env:
+          PGPASSWORD: test
+      - name: Verify 30-day diagnostics expiry, preservation and access control
+        run: psql -h localhost -U postgres -d issue_test -f tests/issue-center-retention-db.sql
         env:
           PGPASSWORD: test
       - name: Verify media runtime unchanged and updated SFU regression
