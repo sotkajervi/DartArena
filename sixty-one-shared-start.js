@@ -24,6 +24,7 @@ async function boot(){
  };
  tickClock=function(){
    if(!state||!m)return;
+   syncClockNote();
    if(m.status!=='playing'){return}
    if(state.sudden_death){$('clock').textContent='SUDDEN DEATH';$('clock').classList.remove('done');return}
    if(!state.game_started_at){$('clock').textContent=fmt(Number(state.leg_duration_seconds||600)*1000);$('clock').classList.remove('done');return}
@@ -38,9 +39,24 @@ async function boot(){
    b.disabled=!playing||!state||starting||started;
    b.textContent=starting?'Starter…':'▶ START TID';
    document.body.classList.toggle('sixty-one-not-started',!playing||!started);
-   if(!playing)note.textContent='';
-   else if(state?.sudden_death)note.textContent=`SUDDEN DEATH • ${state.sudden_death_target} • begge får ett forsøk`;
-   else note.textContent=started?'Felles servertid aktiv':'Begge klare? Start tiden';
+   syncClockNote();
+ }
+ function syncClockNote(){
+   const playing=m?.status==='playing',started=!!state?.game_started_at;
+   const expired=playing&&started&&!state.is_paused&&!state.sudden_death&&Date.now()>=sharedEnd();
+   let message='';
+   if(playing){
+     if(state?.sudden_death)message=`SUDDEN DEATH • ${state.sudden_death_target} • begge får ett forsøk`;
+     else if(expired){
+       const p1=Number(state.player1_attempts||0),p2=Number(state.player2_attempts||0),remaining=Math.abs(p1-p2);
+       const lastId=p1<p2?m.player1_id:m.player2_id;
+       if(!remaining)message='Tiden ute · avgjør leg…';
+       else if(remaining===1)message=lastId===profile?.id?'Tiden ute · ditt siste forsøk':'Tiden ute · motstanderens siste forsøk';
+       else message=lastId===profile?.id?`Tiden ute · du har ${remaining} forsøk igjen`:`Tiden ute · motstander har ${remaining} forsøk igjen`;
+     }else message=started?'Felles servertid aktiv':'Begge klare? Start tiden';
+   }
+   if(note.textContent!==message)note.textContent=message;
+   note.classList.toggle('time-up',!!expired);
  }
  const baseRender=render;
  render=function(...args){const value=baseRender.apply(this,args);syncStartUI();return value};

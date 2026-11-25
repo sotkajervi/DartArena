@@ -16,11 +16,11 @@
   }
 
   document.addEventListener('keydown',event=>{
-    if(event.repeat||event.ctrlKey||event.metaKey||event.altKey||isTypingTarget(event.target))return;
+    if(event.repeat||event.ctrlKey||event.metaKey||event.altKey||isTypingTarget(event.target)||document.querySelector('dialog[open]'))return;
 
     let button=null;
-    if(event.code==='Enter'||event.code==='NumpadEnter')button=hit;
-    else if(event.code==='Backspace')button=miss;
+    if(['Enter','NumpadEnter','Digit2','Numpad2'].includes(event.code))button=hit;
+    else if(['Backspace','Digit0','Numpad0'].includes(event.code))button=miss;
     else if(event.code==='KeyP')button=pause;
     else if(event.code==='KeyZ')button=undo;
     else return;
