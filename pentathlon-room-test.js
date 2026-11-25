@@ -433,9 +433,9 @@ function renderPentathlonThrows(s,c){
  const other=entries.filter(t=>t.player!==player());
  const editable=new Set(s.status==='playing'?
    (c.kind==='x01'?own.filter(t=>t.type==='visit'&&!t.checkout):
-    ['shanghai','clock'].includes(c.kind)?own.filter(t=>t.type==='dart'):[]).slice(-3).map(t=>t.id):[]);
+    ['shanghai','clock','half'].includes(c.kind)?own.filter(t=>t.type==='dart'):[]).slice(-3).map(t=>t.id):[]);
  const hint=box.querySelector('.throw-log-head small');
- if(hint)hint.textContent=['x01','shanghai','clock'].includes(c.kind)?'Trykk på et av dine siste kast for å korrigere':'Kastoversikt for denne øvelsen';
+ if(hint)hint.textContent=['x01','shanghai','clock','half'].includes(c.kind)?'Trykk på et av dine siste kast for å korrigere':'Kastoversikt for denne øvelsen';
  const draw=(id,visits)=>{
    const dest=$(id);if(!dest)return;
    dest.replaceChildren();
@@ -451,7 +451,7 @@ function renderPentathlonThrows(s,c){
        b.setAttribute('aria-label','Korriger kast '+label);
        b.append(node('span','',label),node('span','throw-edit-icon','✎'));
        b.onclick=()=>c.kind==='shanghai'?correctPentathlonShanghaiDart(t.id):
-         c.kind==='clock'?correctPentathlonClockDart(t.id):correctPentathlonVisit(t.id);
+         c.kind==='clock'?correctPentathlonClockDart(t.id):c.kind==='half'?correctPentathlonHalfDart(t.id):correctPentathlonVisit(t.id);
        dest.append(b);
      }else dest.append(node('span','throw-chip',label));
    }
@@ -541,6 +541,29 @@ async function correctPentathlonShanghaiDart(index){
    msg('Kunne ikke korrigere kastet: '+(error?.message||error),true);
    await refresh();
  }finally{saving=false;if(record)render()}
+}
+async function correctPentathlonHalfDart(index){
+ if(saving||!record||isCancelled()||game()?.status!=='playing'||stage()?.kind!=='half')return;
+ const entry=stage().entries[index],me=player(),version=record.version;
+ const own=stage().entries.map((e,i)=>e.player===me&&e.type==='dart'?i:-1).filter(i=>i>=0);
+ if(!entry||!own.slice(-3).includes(index))return;
+ const fixed=['D7','T10','BULL 50'].includes(entry.target);
+ const key=entry.hit==='BOM'?0:fixed?2:({S:1,D:2,T:3})[entry.hit[0]];
+ const dialog=window.DartArenaDialog;if(!dialog?.prompt)return;
+ const raw=await dialog.prompt('Korriger '+entry.hit+' på '+entry.target+'.',{title:'Korriger Half-It-pil',kicker:'DARTARENA · KAMPROM',inputLabel:fixed?'0 BOM · 2 TREFF':'0 BOM · 1 SINGLE · 2 DOBBEL · 3 TRIPPEL',inputType:'text',inputMode:'numeric',value:String(key),confirmText:'Lagre endring',cancelText:'Avbryt'});
+ if(raw===null)return;
+ const value=String(raw).trim();if(!(fixed?/^[02]$/:/^[0123]$/).test(value)){msg('Ugyldig treffvalg.',true);return}
+ if(Number(value)===key)return;
+ if(!record||record.version!==version||isCancelled()){msg('Kampstatus er endret. Prøv igjen.',true);return}
+ let next;try{next=E.correctHalfDart(game(),index,Number(value),me)}catch(e){msg(e.message,true);return}
+ saving=true;render();
+ try{
+   const {data,error}=await db.rpc('correct_pentathlon_half_dart',{p_challenge_id:challengeId,p_expected_version:version,p_next:next});
+   if(error)throw error;
+   if(!record||data.version>=record.version)record=data;
+   pending=[];render();msg('Half-It-pil korrigert.');await broadcast();
+ }catch(e){msg('Kunne ikke korrigere: '+(e?.message||e),true);await refresh()}
+ finally{saving=false;if(record)render()}
 }
 async function correctPentathlonVisit(index){
  if(saving||!record||game()?.status!=='playing'||stage()?.kind!=='x01')return;

@@ -193,6 +193,31 @@
     next.undo=[original];
     return next;
   }
+  // Reuse the same dart engine; preserve all recorded hits except the chosen dart.
+  function correctHalfDart(state, index, key, editor) {
+    need(state?.status==='playing'&&state.current.kind==='half','Half-It er ikke aktiv.');
+    const entries=state.current.entries, me=Number(editor);
+    need(Number.isInteger(index)&&(me===0||me===1)&&Number.isInteger(key)&&key>=0&&key<=3,'Ugyldig korrigering.');
+    const own=entries.map((e,i)=>e.player===me&&e.type==='dart'?i:-1).filter(i=>i>=0);
+    need(own.slice(-3).includes(index),'Bare dine tre siste piler kan korrigeres.');
+    let next=snapshot(state);next.current=stageStart(state.stageIndex,state.current.starter);next.undo=[];
+    for(let i=0;i<entries.length;i++){
+      const old=entries[i],t=currentTarget(next);
+      need(next.current.turn===old.player&&t?.label===old.target,'Turrekkefølgen kan ikke endres.');
+      let d;
+      if(i===index){
+        need(!t.mult||key===0||key===2,'Velg 2 (treff) eller 0 (bom).');
+        d=key?{n:t.number,m:t.mult||key}:{n:0,m:0};
+      }else if(old.hit==='BOM')d={n:0,m:0};
+      else if(old.hit==='BULL 50')d={n:25,m:2};
+      else if(old.hit==='BULL 25')d={n:25,m:1};
+      else d={n:Number(old.hit.slice(1)),m:({S:1,D:2,T:3})[old.hit[0]]};
+      next=submitDart(next,d);
+      need(next.status==='playing','Øvelsen er avsluttet.');
+    }
+    need(next.current.turn===state.current.turn&&next.current.done.every((v,i)=>v===state.current.done[i]),'Turrekkefølgen kan ikke endres.');
+    next.undo=[snapshot(state)];return next;
+  }
   function hitHalf(target, dart) {
     if(target.m===0)return dart.n===target.n ? {value:dart.n*dart.m,pent:dart.m} : {value:0,pent:0};
     if(target.m===2 && target.n===25)return dart.n===25&&dart.m===2 ? {value:50,pent:2} : {value:0,pent:0};
@@ -385,6 +410,6 @@
        !Array.isArray(value.summaries)||!value.current) return null;
     return value;
   }
-  return Object.freeze({STAGES,HALF,create,restore,currentTarget,submitX01,correctX01Visit,submitDart,correctShanghaiDart,correctClockDart,submitShanghaiTurn,submitClockTurn,nextStage,undo,
+  return Object.freeze({STAGES,HALF,create,restore,currentTarget,submitX01,correctX01Visit,submitDart,correctShanghaiDart,correctClockDart,correctHalfDart,submitShanghaiTurn,submitClockTurn,nextStage,undo,
     isScore,isCheckout,isDart,pointsForVisit,finishBonus,labelDart});
 });

@@ -1,0 +1,38 @@
+name: Pentathlon Half-It correction isolated test
+on:
+  push:
+    branches: ['test/pentathlon-half-correction-20261125']
+permissions:
+  contents: read
+jobs:
+  isolated:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: isolated-only
+          POSTGRES_DB: pentathlon_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: pentathlon_test
+      PGUSER: postgres
+      PGPASSWORD: isolated-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check pentathlon-room-test.js && node --check pentathlon-2p-engine.js
+      - run: node --test tests/pentathlon-2p.test.cjs tests/pentathlon-room-test.test.cjs tests/pentathlon-special-buttons.test.cjs tests/pentathlon-stage-points.test.cjs tests/pentathlon-final-lobby.test.cjs
+      - run: psql -X -v ON_ERROR_STOP=1 -f tests/pentathlon-server-test-schema.sql -f tests/fixtures/pentathlon-server-validation.sql -f db/pentathlon-stage-ready-candidate.sql -f db/pentathlon-half-correction-candidate.sql
+      - run: node tests/pentathlon-half-correction.cjs
+      - run: psql -X -v ON_ERROR_STOP=1 -f db/pentathlon-half-correction-rollback.sql
