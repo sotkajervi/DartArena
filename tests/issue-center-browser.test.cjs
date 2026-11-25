@@ -52,6 +52,8 @@ test('report opt-in, opt-out, retry, staff access, download and status in Chromi
  await modal.getByRole('button',{name:'Close'}).click();
  assert.equal(await page.locator('#daIssueAdminBtn').count(),0);
  await page.evaluate(()=>{mock.admin=true;mock.listener()});
+ await page.locator('#daIssueAdminBtn svg').waitFor({state:'visible'});
+ assert.equal(await page.locator('#daIssueAdminBtn svg').getAttribute('aria-hidden'),'true');
  await page.locator('#daIssueAdminBtn').click();
  const row=modal.locator('.da-issue-row').filter({hasText:'Opt-in report'});
  await row.getByRole('button',{name:'Open'}).click();
@@ -65,6 +67,8 @@ test('report opt-in, opt-out, retry, staff access, download and status in Chromi
  assert.equal(await page.evaluate(()=>mock.rows[1].internal_note),'Verified');
  await modal.getByRole('button',{name:'Close'}).click();
  await page.evaluate(()=>{localStorage.setItem('dartarena-language','no');window.dispatchEvent(new Event('storage'))});
+ await page.locator('#daIssueAdminLabel').getByText('Rapportsenter',{exact:true}).waitFor();
+ assert.equal(await page.locator('#daIssueAdminBtn svg').count(),1);
  await launch.click();
  await modal.getByRole('heading',{name:'Rapporter et problem'}).waitFor();
  assert.deepEqual(errors,[]);

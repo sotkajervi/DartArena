@@ -148,15 +148,25 @@
     }
     const launcher=btn(tr('Rapporter feil','Report issue'),openReport,'da-issue-button da-issue-launch');launcher.id='daIssueReportBtn';
     d.body.append(launcher);
+    function addAdminIcon(b){
+      const ns='http://www.w3.org/2000/svg',svg=d.createElementNS(ns,'svg');
+      for(const [key,value] of Object.entries({'aria-hidden':'true',focusable:'false',viewBox:'0 0 24 24',width:'17',height:'17',style:'vertical-align:-3px;margin-right:5px;fill:none;stroke:#00eaf4;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round'}))svg.setAttribute(key,value);
+      const path=d.createElementNS(ns,'path');
+      path.setAttribute('d','M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3M9 3h6v4H9zM8 12h2m3 0h3M8 17h2m3 0h3');
+      svg.append(path);
+      const label=el('span',tr('Rapportsenter','Issue Center'));label.id='daIssueAdminLabel';
+      b.replaceChildren(svg,label);
+    }
+    const refreshAdminLabel=()=>{const label=d.getElementById('daIssueAdminLabel');if(label)label.textContent=tr('Rapportsenter','Issue Center')};
     const host=d.getElementById('lobbyStatsActions');
     if(host){
       const c=client();
-      const refresh=async()=>{try{const {data}=await c.auth.getSession();const {data:admin}=data?.session?await c.rpc('is_admin'):{data:false};const old=d.getElementById('daIssueAdminBtn');if(!admin){old?.remove();return}if(!old){const b=btn(tr('Rapportsenter','Issue Center'),openAdmin,'small-btn lobby-utility-btn');b.id='daIssueAdminBtn';host.append(b)}}catch{}};
+      const refresh=async()=>{try{const {data}=await c.auth.getSession();const {data:admin}=data?.session?await c.rpc('is_admin'):{data:false};const old=d.getElementById('daIssueAdminBtn');if(!admin){old?.remove();return}if(!old){const b=btn(tr('Rapportsenter','Issue Center'),openAdmin,'small-btn lobby-utility-btn');b.id='daIssueAdminBtn';addAdminIcon(b);host.append(b)}}catch{}};
       if(c){refresh();c.auth.onAuthStateChange(()=>setTimeout(refresh,0))}
     }
-    w.addEventListener('storage',()=>{launcher.textContent=tr('Rapporter feil','Report issue');const b=d.getElementById('daIssueAdminBtn');if(b)b.textContent=tr('Rapportsenter','Issue Center')});
+    w.addEventListener('storage',()=>{launcher.textContent=tr('Rapporter feil','Report issue');refreshAdminLabel()});
     // Same-tab language changes also update the two dynamic labels.
-    d.addEventListener('click',e=>{if(e.target.closest?.('[data-language]'))setTimeout(()=>{launcher.textContent=tr('Rapporter feil','Report issue');const b=d.getElementById('daIssueAdminBtn');if(b)b.textContent=tr('Rapportsenter','Issue Center')},0)});
+    d.addEventListener('click',e=>{if(e.target.closest?.('[data-language]'))setTimeout(()=>{launcher.textContent=tr('Rapporter feil','Report issue');refreshAdminLabel()},0)});
   }
   return {sanitizeEvent,diagnostics,contextFor,browserInfo,boot};
 });

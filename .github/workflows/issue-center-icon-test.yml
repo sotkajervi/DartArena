@@ -1,0 +1,18 @@
+name: Issue Center shortcut icon validation
+on:
+  push:
+    branches: ['test/issue-center-icon-20261126']
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check issue-center.js && node --test tests/issue-center.test.cjs
+      - run: npm install --prefix "$RUNNER_TEMP/issue-browser" --no-save --ignore-scripts playwright@1.58.2
+      - run: '"$RUNNER_TEMP/issue-browser/node_modules/.bin/playwright" install --with-deps chromium'
+      - run: NODE_PATH="$RUNNER_TEMP/issue-browser/node_modules" node --test tests/issue-center-browser.test.cjs
