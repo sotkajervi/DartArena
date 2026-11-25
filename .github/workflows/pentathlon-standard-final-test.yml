@@ -1,0 +1,18 @@
+name: Pentathlon standard final screen regression
+on:
+  push:
+    branches: ['test/pentathlon-standard-final-20261125']
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.58.2
+      - run: npx playwright install --with-deps chromium
+      - run: node --check pentathlon-room-test.js
+      - run: node --test tests/pentathlon-standard-final.test.cjs tests/pentathlon-final-lobby.test.cjs tests/pentathlon-stage-points.test.cjs tests/pentathlon-2p.test.cjs tests/pentathlon-viewer-count.test.cjs

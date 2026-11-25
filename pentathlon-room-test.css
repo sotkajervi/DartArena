@@ -656,3 +656,31 @@ body.pt-online-test #ptReviewDetails .pt-stage-point-empty{padding:6px 2px;text-
 
 /* Cancellation supersedes a pending exercise review, on the shared DA modal. */
 body.pt-online-test #cancelledMatchModal{z-index:50002}
+
+/* Final only: use the same compact X01 surface in live and archived matches.
+   The seven-exercise detail stays visible, with no result-card scrolling. */
+body.pt-online-test #ptStageOverlay.pt-standard-final{padding:8px;overflow:hidden;background:transparent}
+body.pt-online-test #ptStageOverlay.pt-standard-final>.da-dialog-backdrop,
+body.pt-online-test #ptStageOverlay.pt-standard-final .pt-brand-heading,
+body.pt-online-test #ptStageOverlay.pt-standard-final>.pt-stage-modal>.da-result-kicker{display:none!important}
+body.pt-online-test #ptStageOverlay.pt-standard-final .pt-stage-modal{width:min(790px,calc(100vw - 16px));padding:12px 16px 10px;max-height:none!important;overflow:visible!important;box-sizing:border-box}
+body.pt-online-test #ptStageOverlay.pt-standard-final #ptFinished{padding:0;text-align:center}
+body.pt-online-test #ptStageOverlay.pt-standard-final #ptFinished>#ptWinner{font-size:clamp(21px,3vw,32px);color:var(--text,#f2f7f7);margin:2px 0;text-align:center}
+body.pt-online-test #ptStageOverlay.pt-standard-final #ptWinner .da-result-winner-name{color:var(--amber,#f5aa28)}
+body.pt-online-test #ptStageOverlay.pt-standard-final #ptFinalText{font-size:11px;margin:2px 0}
+body.pt-online-test #ptStageOverlay.pt-standard-final #ptFinalScore{font-size:clamp(27px,4vw,38px);margin:5px auto 7px;padding:5px 17px}
+body.pt-online-test #ptStageOverlay.pt-standard-final .pt-final-players{gap:8px}
+body.pt-online-test #ptStageOverlay.pt-standard-final .pt-final-player{padding:7px 10px}
+body.pt-online-test #ptStageOverlay.pt-standard-final .da-result-playerhead{gap:7px;margin-bottom:4px}
+body.pt-online-test #ptStageOverlay.pt-standard-final .da-result-playericon{width:30px;height:30px;flex:0 0 30px;font-size:14px}
+body.pt-online-test #ptStageOverlay.pt-standard-final .pt-final-player-name.da-result-stat-name{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+body.pt-online-test #ptStageOverlay.pt-standard-final .pt-final-player-stats{gap:0}
+body.pt-online-test #ptStageOverlay.pt-standard-final .pt-final-stat{padding:3px 0;align-items:center}
+body.pt-online-test #ptStageOverlay.pt-standard-final .pt-final-breakdown h4{text-align:center;font-size:10px;margin:0 0 5px}
+body.pt-online-test #ptStageOverlay.pt-standard-final .da-result-actions{display:grid;grid-template-columns:1fr;margin-top:7px}
+body.pt-online-test #ptStageOverlay.pt-standard-final .da-result-actions button{width:100%;min-height:34px;padding:6px}
+@media(max-width:640px){
+ body.pt-online-test #ptStageOverlay.pt-standard-final .pt-stage-modal{padding:9px}
+ body.pt-online-test #ptStageOverlay.pt-standard-final .pt-final-player{padding:5px}
+ body.pt-online-test #ptStageOverlay.pt-standard-final .pt-final-table{table-layout:fixed;width:100%;overflow-wrap:anywhere}
+}

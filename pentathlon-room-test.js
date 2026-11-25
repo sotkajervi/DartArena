@@ -611,21 +611,39 @@ function fitPentathlonFinal(){
  card.style.zoom=String(Math.max(.2,factor));
 }
 window.addEventListener('resize',()=>requestAnimationFrame(fitPentathlonFinal));
+// The existing live stage dialog and archived result share the X01 final surface.
+function preparePentathlonFinalSurface(){
+ const overlay=$('ptStageOverlay'),card=overlay?.querySelector('.pt-stage-modal'),finished=$('ptFinished');
+ if(!overlay||!card||!finished)return;
+ overlay.classList.add('da-result-overlay','pt-standard-final');
+ overlay.classList.remove('da-dialog-layer');
+ card.classList.add('da-result-card','da-result-card--match');
+ card.classList.remove('da-dialog-card');
+ card.setAttribute('aria-labelledby','ptWinner');
+ document.body.classList.add('da-result-open');
+ const kicker=finished.querySelector(':scope > small');
+ if(kicker){kicker.textContent='KAMP FERDIG';kicker.classList.add('da-result-kicker')}
+ $('ptWinner').classList.add('da-result-title');
+ $('ptFinalText').classList.add('da-result-sub');
+ $('ptFinalScore').classList.add('da-result-scorebox');
+ const action=$('ptFinishedLobby')||$('ptCloseStageModal');
+ if(action){action.classList.remove('da-dialog-cancel');action.classList.add('primary');action.parentElement.classList.add('da-result-actions');action.textContent='Til hovedlobby'}
+}
+function pentathlonResultOrder(s){return s.total[1]>s.total[0]?[1,0]:[0,1]}
+function renderPentathlonFinalScore(s){
+ const order=pentathlonResultOrder(s);
+ $('ptFinalScore').replaceChildren(document.createTextNode(String(s.total[order[0]])),node('span','','–'),document.createTextNode(String(s.total[order[1]])));
+}
 // Present the winner identically in live and archived result screens.
 function renderPentathlonWinner(label,hasWinner){
  const heading=$('ptWinner');
  if(!heading)return;
  heading.replaceChildren();
  if(hasWinner){
-   const trophy=node('span','pt-final-trophy','🏆');
-   trophy.setAttribute('aria-hidden','true');
-   heading.append(trophy);
- }
- if(hasWinner){
    // Existing role-visuals.js adds OWNER/ADMIN immediately after this
    // exact player-name element, as in Online X01.
    const name=String(label).replace(/ vant$/,'');
-   heading.append(node('span','da-result-winner-name',name),node('span','',' vant'));
+   heading.append(node('span','da-result-winner-name',name),node('span','',' vant!'));
  }else heading.append(node('span','',label));
  window.DartArenaRoleVisuals?.scan?.(heading);
 }
@@ -649,23 +667,25 @@ function renderFinalPentathlon(s){
      }
    }
  }
- const names=node('div','pt-final-players da-result-stats');
- for(let p=0;p<2;p++){
+ const names=node('div','pt-final-players da-result-stats'),order=pentathlonResultOrder(s);
+ for(const p of order){
    const isWinner=s.total[0]!==s.total[1]&&s.total[p]>s.total[1-p];
    const card=node('article','pt-final-player da-result-statcard');
    if(isWinner)card.classList.add('winner');
-   // Reuse the actual global OWNER/ADMIN badge mechanism; no invented
-   // initial avatar, crown or "VINNER" tag in the player-name row.
-   const header=node('div','da-result-playerhead');
-   header.append(node('span','pt-final-player-name da-result-stat-name',s.players[p]));
-   card.append(header,node('strong','pt-final-player-points',s.total[p]+' P'));
-   const stats=node('div','pt-final-player-stats');
+   const header=node('div','da-result-playerhead'),identity=node('div','pt-final-player-identity');
+   const badge=node('span','da-result-winner-badge','VINNER');
+   if(!isWinner){badge.style.visibility='hidden';badge.setAttribute('aria-hidden','true')}
+   identity.append(node('div','pt-final-player-name da-result-stat-name',s.players[p]),badge);
+   header.append(node('div','da-result-playericon',isWinner?'♛':String(s.players[p]||'?').trim().slice(0,1).toUpperCase()),identity);
+   card.append(header);
+   const stats=node('div','pt-final-player-stats da-result-statlist');
    for(const [label,value] of [
+     ['TOTALPOENG',String(s.total[p])],
      ['Vunne øvelser',String(totalWins[p])],
      ['X01-snitt',xDarts[p]?(xScored[p]*3/xDarts[p]).toFixed(2):'–'],
      ['X01-kast 100+',String(tons[p])]
    ]){
-     const line=node('div','pt-final-stat');
+     const line=node('div','pt-final-stat da-result-statrow');
      line.append(node('span','',label),node('b','',value));
      stats.append(line);
    }
@@ -680,8 +700,8 @@ function renderFinalPentathlon(s){
  section.append(node('h4','','RESULTAT PER ØVELSE'));
  const scroll=node('div','pt-final-table-scroll'),table=node('table','pt-final-table');
  const thead=node('thead'),head=node('tr');
- head.append(node('th','','ØVELSE'),node('th','',s.players[0]),
-   node('th','',s.players[1]),node('th','','BEST'));
+ head.append(node('th','','ØVELSE'),node('th','',s.players[order[0]]),
+   node('th','',s.players[order[1]]),node('th','','BEST'));
  thead.append(head);table.append(thead);
  const tbody=node('tbody');
  E.STAGES.forEach((def,i)=>{
@@ -699,14 +719,13 @@ function renderFinalPentathlon(s){
    if(details.length)label.append(node('small','',details.join(' · ')));
    tr.append(label);
    const a=Number(item?.pent?.[0]||0),b=Number(item?.pent?.[1]||0);
-   tr.append(node('td',a>b?'pt-final-high':'',item?a+' P':'–'));
-   tr.append(node('td',b>a?'pt-final-high':'',item?b+' P':'–'));
+   for(const p of order)tr.append(node('td',item&&item.pent[p]>item.pent[1-p]?'pt-final-high':'',item?Number(item.pent[p]||0)+' P':'–'));
    tr.append(node('td','pt-final-stage-winner',item?(a===b?'Lik':a>b?s.players[0]:s.players[1]):'–'));
    tbody.append(tr);
  });
  const footer=node('tr','pt-final-total');
- footer.append(node('td','','TOTALT'),node('td','',s.total[0]+' P'),
-   node('td','',s.total[1]+' P'),
+ footer.append(node('td','','TOTALT'),node('td','',s.total[order[0]]+' P'),
+   node('td','',s.total[order[1]]+' P'),
    node('td','',s.total[0]===s.total[1]?'Uavgjort':s.players[s.total[0]>s.total[1]?0:1]));
  tbody.append(footer);table.append(tbody);scroll.append(table);section.append(scroll);
  root.append(section);
@@ -850,7 +869,8 @@ function render(){
    const victor=s.total[0]===s.total[1]?'Uavgjort':s.players[s.total[0]>s.total[1]?0:1]+' vant';
    renderPentathlonWinner(victor,s.total[0]!==s.total[1]);
    $('ptFinalText').textContent='Endelig resultat etter sju øvelser';
-   $('ptFinalScore').textContent=s.total[0]+' – '+s.total[1];
+   preparePentathlonFinalSurface();
+   renderPentathlonFinalScore(s);
    renderFinalPentathlon(s);
    requestAnimationFrame(fitPentathlonFinal);
  }
@@ -978,7 +998,8 @@ async function showFinishedResult(matchId){
    renderPentathlonWinner(s.total[0]===s.total[1]?
      'Uavgjort':s.players[s.total[0]>s.total[1]?0:1]+' vant',
      s.total[0]!==s.total[1]);
-   $('ptFinalScore').textContent=s.total[0]+' – '+s.total[1];
+   preparePentathlonFinalSurface();
+   renderPentathlonFinalScore(s);
    renderFinalPentathlon(s);
    document.documentElement.classList.remove('da-penta-rejoin');
    overlay.hidden=false;
