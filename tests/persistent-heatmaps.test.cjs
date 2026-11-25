@@ -13,8 +13,15 @@ test('Personal density counts more than 600 darts and does not distort relative 
  const rows=[{points:Array.from({length:600},(_,i)=>point(i))},{points:Array.from({length:500},(_,i)=>point(i+1000))}];const result=S.aggregate(rows);a.equal(result.count,1100);a.equal(result.points.reduce((n,p)=>n+p.weight,0),1100);a.equal(result.points.length,1);
 });
 test('Tournament and normal history use the real live match ID and same read-only viewer',()=>{
- for(const p of ['match-stats.html','tournament-match-stats.html']){const html=fs.readFileSync(p,'utf8');a.match(html,/heatmap-storage\.js\?v=20261125-persistent1/);a.ok(html.indexOf('premium-heatmap-view.js')<html.indexOf('premium-match-stats.js'))}
+ for(const p of ['match-stats.html','tournament-match-stats.html']){const html=fs.readFileSync(p,'utf8');a.match(html,/heatmap-storage\.js\?v=20261125-persistent2/);a.ok(html.indexOf('premium-heatmap-view.js')<html.indexOf('premium-match-stats.js'))}
  const c=fs.readFileSync('online-heatmap-result.js','utf8');a.doesNotMatch(c,/\.has\('tournamentMatch'\)/);a.match(c,/S.writer\(db,matchId,\(\)=>data\[userId\]\)/);a.match(c,/setInterval\(saveCloud,10000\)/);a.doesNotMatch(c,/getUserMedia|\.rpc\(|\.insert\(|\.update\(/);
  a.match(fs.readFileSync('premium-match-stats.js','utf8'),/DartArenaPremiumHeatmap\?\.mount\(match.id,db\)/);
  const sql=fs.readFileSync('supabase-match-heatmaps.sql','utf8');a.match(sql,/enable row level security/);a.match(sql,/security invoker/);a.match(sql,/values\(p_match_id,auth.uid\(\),p_points\)/);a.doesNotMatch(sql,/security definer/i);
+});
+
+test('A flush requested while an upload is pending saves newly added points too',async()=>{
+ let rows=[point(1)],calls=[],release;const db={rpc(name,args){calls.push(args.p_points);return calls.length===1?new Promise(resolve=>release=()=>resolve({error:null})):Promise.resolve({error:null})}};
+ const flush=S.writer(db,'match-a',()=>rows);
+ const first=flush();rows.push(point(2));const second=flush();release();await Promise.all([first,second]);
+ a.equal(calls.length,2);a.equal(calls[1].length,2);
 });

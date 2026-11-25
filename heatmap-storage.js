@@ -18,7 +18,7 @@ async function read(db,id){
 function writer(db,id,readOwn){
  let saved='',busy=null;
  return async function flush(){
-  if(busy)return busy;
+  if(busy){await busy;return flush()}
   const points=clean(readOwn()),sig=JSON.stringify(points);
   if(!points.length||sig===saved)return;
   busy=(async()=>{const {error}=await db.rpc('save_match_heatmap',{p_match_id:id,p_points:points});if(error)throw error;saved=sig})();

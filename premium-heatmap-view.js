@@ -10,7 +10,7 @@
   const view=document.getElementById('statsView');
   if(!view)return;
   let cacheKey='',playerIds=[],cards=[],lastSnapshot='',refreshTimer=null,cloud={},matchId=null,db=null,loading=false,failed=false;
-  async function loadCloud(){if(!db||loading)return;loading=true;try{cloud=await S.read(db,matchId);failed=false}catch(e){failed=true;console.warn('Heatmap history unavailable',e?.message||e)}finally{loading=false;updateHeatmaps()}}
+  async function loadCloud(){if(!db||loading)return;loading=true;updateHeatmaps();try{cloud=await S.read(db,matchId);failed=false}catch(e){failed=true;console.warn('Heatmap history unavailable',e?.message||e)}finally{loading=false;updateHeatmaps()}}
 
   const style=document.createElement('style');
   style.textContent=`
@@ -54,7 +54,7 @@
   function updateHeatmaps(){
     if(!cards.length)return;
     const data=rowsForMatch();
-    const signature=JSON.stringify([failed,playerIds.map(id=>data[id]||[])]);
+    const signature=JSON.stringify([failed,loading,playerIds.map(id=>data[id]||[])]);
     if(signature===lastSnapshot)return;
     lastSnapshot=signature;
     for(const entry of cards){
@@ -62,7 +62,7 @@
       Chart.draw(entry.canvas,points);
       entry.caption.textContent=points.length
         ?points.length+' registrert'+(points.length===1?'':'e')+' treff'
-        :failed?'Kunne ikke hente lagrede heatmap-data.':'Ingen registrerte heatmap-data for denne kampen.';
+        :loading?'Laster lagrede treff…':failed?'Kunne ikke hente lagrede heatmap-data.':'Ingen registrerte heatmap-data for denne kampen.';
     }
   }
 

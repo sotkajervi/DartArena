@@ -169,9 +169,8 @@ function receive(payload){
  if(payload?.matchId!==matchId||!playerIds.includes(payload.from)||payload.from===userId)return;
  if(!Array.isArray(payload.points)||payload.points.length>MAX)return;
  const cleanRows=clean(payload.points);
- // Identical-player snapshots are authoritative only for the other player's
- // camera; save the latest one received (including their empty baseline).
- if(cleanRows.length<(data[payload.from]||[]).length)return;
+ // Merge reconnecting peer snapshots as well as their latest batch.
+ // Broadcast estimates are never uploaded on the peer's behalf.
  data[payload.from]=S.merge(data[payload.from],cleanRows);remoteUpdatedAt=Date.now();persist();refreshResult();
 }
 function resultDraw(card,id){

@@ -12,6 +12,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.58.2
+      - run: npx playwright install --with-deps chromium
       - run: |
           for f in heatmap-storage.js online-heatmap-result.js online-heatmap-chart.js premium-heatmap-view.js premium-match-stats.js personal-heatmap.js; do node --check "$f"; done
-          node --test tests/persistent-heatmaps.test.cjs
+          node --test tests/persistent-heatmaps.test.cjs tests/persistent-heatmap-browser.test.cjs
