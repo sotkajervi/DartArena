@@ -83,7 +83,28 @@
     return render(countKind(Math.max(0, Math.min(3, Number(value) || 0))));
   }
 
-  const api = Object.freeze({ kind, display, basic, render });
+  // Serialize log reads: a newer request can never be overwritten by an
+  // older response. Coalesce bursts of match/visit Realtime notifications.
+  function createVisitLoader(fetchVisits, applyVisits) {
+    let running = null, requested = false;
+    return function reload() {
+      requested = true;
+      if (!running) {
+        running = Promise.resolve().then(async () => {
+          while (requested) {
+            requested = false;
+            const rows = await fetchVisits();
+            // Another notification arrived during the read: discard the
+            // potentially outdated result and read the latest committed log.
+            if (!requested && Array.isArray(rows)) applyVisits(rows);
+          }
+        }).finally(() => { running = null; });
+      }
+      return running;
+    };
+  }
+
+  const api = Object.freeze({ kind, display, basic, render, createVisitLoader });
   root.DartArenaCricketMarkHistory = api;
   if (typeof module === 'object' && module.exports) module.exports = api;
 })(typeof window === 'undefined' ? globalThis : window);

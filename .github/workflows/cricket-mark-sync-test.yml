@@ -1,0 +1,21 @@
+name: Cricket mark synchronization test
+on:
+  push:
+    branches: ['test/cricket-mark-sync-20261125']
+permissions:
+  contents: read
+jobs:
+  marks:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check cricket-mark-history.js
+          node --check cricket.js
+          node --check cricket-keyboard-log.js
+          node --check cricket-seamless-bundle.js
+          node --check cricket-seamless-handoff.js
+      - run: node --test tests/cricket-mark-history.test.cjs tests/spectator-scorecard-parity.test.cjs

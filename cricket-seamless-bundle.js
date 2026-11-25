@@ -167,14 +167,16 @@ window.addEventListener('beforeunload',cleanup);
     if($('cricketEntryTitle'))$('cricketEntryTitle').textContent=editingVisitId!==null?'KORRIGER KAST':'DITT KAST';
   };
 
-  async function loadVisits(){
-    if(!m?.id)return;
+  const loadVisits=window.DartArenaCricketMarkHistory.createVisitLoader(async()=>{
+    if(!m?.id)return null;
     const{data,error}=await db.from('cricket_visits').select('id,match_id,player_id,leg_no,visit_no,darts,points_scored,created_at,corrected_at').eq('match_id',m.id).order('id',{ascending:true});
-    if(error){console.warn('Cricket visit log:',error.message);return}
-    visits=data||[];
-    // Refresh symbols after the async log query (including corrected visits).
+    if(error){console.warn('Cricket visit log:',error.message);return null}
+    return data||[];
+  },rows=>{
+    visits=rows;
     if(typeof renderBoard==='function')renderBoard();
-  }
+  });
+  window.DartArenaCricketRefreshVisitHistory=loadVisits;
   function canCorrect(v){
     if(isChicago()||m?.status!=='playing'||v?.player_id!==profile?.id||Number(v?.leg_no)!==Number(m.current_leg))return false;
     const mine=visits.filter(x=>x.player_id===profile.id&&Number(x.leg_no)===Number(m.current_leg));
@@ -201,7 +203,7 @@ window.addEventListener('beforeunload',cleanup);
   function cancelCorrection(){editingVisitId=null;selectedDarts=[];$('matchMessage').textContent='Korrigering avbrutt.';renderEntry();renderLog()}
 
   const baseRefresh=refreshGame;
-  refreshGame=async function(){await baseRefresh();await loadVisits();renderLog()};
+  refreshGame=async function(){await loadVisits();await baseRefresh();renderLog()};
   render=function(){baseRender();renderLog()};
 
   submitVisit=async function({emptyAsMisses=false}={}){
@@ -253,9 +255,8 @@ window.addEventListener('beforeunload',cleanup);
     ready=true;await loadVisits();renderLog();renderEntry();
     if(isChicago()){const help=document.querySelector('.cricket-history-head span');if(help)help.textContent='Chicago Style • kastlogg vises, men teller ikke i spillerstatistikk';}
     logChannel=db.channel('cricket-log-'+m.id)
-      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${m.id}`},async()=>{await loadVisits();renderLog();renderEntry()})
       .on('postgres_changes',{event:'*',schema:'public',table:'cricket_visits',filter:`match_id=eq.${m.id}`},async()=>{await loadVisits();renderLog();renderEntry()})
-      .subscribe();
+      .subscribe(async status=>{if(status==='SUBSCRIBED'){await loadVisits();renderLog();renderEntry()}});
   }
   const wait=setInterval(()=>{if(m?.id&&profile?.id){clearInterval(wait);start()}},100);
   window.addEventListener('pagehide',()=>{try{if(logChannel)db.removeChannel(logChannel)}catch{}});
@@ -291,7 +292,7 @@ window.DartArenaMatchEngineState=Object.freeze({match:()=>m,matchId:()=>matchId,
 setupChannel=function(){
   channel=db.channel('match-'+m.id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:'id=eq.'+m.id},async ({new:row})=>{
     const oldLeg=m?.current_leg;m=row;if(oldLeg!==m.current_leg)selectedDarts=[];
-    try{await loadState()}catch(error){console.warn('[CRICKET] state',error)}
+    try{await loadState();await window.DartArenaCricketRefreshVisitHistory?.()}catch(error){console.warn('[CRICKET] state',error)}
     render();
     if(m.status==='cancelled')window.DartArenaCancelledMatchModal?.show?.();
     if(m.status!=='playing')await setPlayersUnavailable();
