@@ -31,6 +31,9 @@ jobs:
       - run: psql -h localhost -U postgres -d profile_test -f tests/player-identity-db.sql
         env:
           PGPASSWORD: test
+      - run: |
+          PGPASSWORD=test createdb -h localhost -U postgres form_test
+          PGPASSWORD=test psql -h localhost -U postgres -d form_test -f tests/lobby-form-avg-db.sql
       - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.58.2
       - run: npx playwright install --with-deps chromium
       - run: node --test tests/player-details-browser.test.cjs

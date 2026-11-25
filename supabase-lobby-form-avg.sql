@@ -1,4 +1,4 @@
--- Read-only lobby form: weighted 3-dart average of the latest 20 completed 501 matches with >=6 played legs.
+-- Read-only lobby form: weighted 3-dart average of the latest 20 completed 501 matches in leg format, Best of 5 or longer.
 begin;
 create or replace function public.get_lobby_form_avg(p_player_ids uuid[])
 returns table(player_id uuid, form_avg numeric, matches_count bigint)
@@ -21,7 +21,9 @@ as $$
         or (case when tx.stage='cup' then coalesce(t.cup_game,t.game) else t.game end) is distinct from 501
         or lower(coalesce(case when tx.stage='cup' then coalesce(t.cup_game_variant,t.game_variant) else t.game_variant end,'x01'))<>'x01')
     )
-    and (select count(distinct (coalesce(v.set_no,1),coalesce(v.leg_no,1))) from public.match_throws v where v.match_id=m.id and v.is_checkout and v.player_id in(m.player1_id,m.player2_id))>=6
+    and coalesce(m.match_mode,'legs')='legs' and m.legs>=5
+    and not exists (select 1 from public.tournament_matches tx where tx.live_match_id=m.id and coalesce(tx.best_of,m.legs)<5)
+    and exists (select 1 from public.match_throws v where v.match_id=m.id and v.is_checkout and v.player_id in(m.player1_id,m.player2_id))
     and exists(select 1 from public.match_throws v where v.match_id=m.id and v.player_id=r.uid)
  ), ranked as (
   select *,row_number() over(partition by uid order by finished_at desc nulls last,id desc) rn from candidate

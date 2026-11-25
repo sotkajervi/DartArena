@@ -18,7 +18,7 @@
     if(missing.length&&!formRequest){formRequest=(async()=>{try{const {data,error}=await context.db.rpc('get_lobby_form_avg',{p_player_ids:missing});if(error)throw error;const rows=new Map((data||[]).map(r=>[r.player_id,r]));for(const id of missing)formCache.set(id,{row:rows.get(id)||null,at:Date.now()})}catch{for(const id of missing)formCache.set(id,{row:null,at:Date.now()})}finally{formRequest=null}})();}
     if(formRequest)await formRequest;
     if(token!==state.token||context.profileId!==state.lastContext?.profileId)return;
-    for(const el of target.querySelectorAll('[data-form-player]')){const row=formCache.get(el.dataset.formPlayer)?.row;const count=Number(row?.matches_count||0),avg=Number(row?.form_avg);el.textContent=count&&Number.isFinite(avg)?'AVG '+avg.toFixed(2):'AVG –';el.title=count?('501 • '+count+'/20 • 6+ legs'):'501 • 0/20 • 6+ legs';}
+    for(const el of target.querySelectorAll('[data-form-player]')){const row=formCache.get(el.dataset.formPlayer)?.row;const count=Number(row?.matches_count||0),avg=Number(row?.form_avg);el.textContent=count&&Number.isFinite(avg)?'AVG '+avg.toFixed(2):'AVG –';el.title=count?('501 • '+count+'/20 • Bo5+'):'501 • 0/20 • Bo5+';}
   }
   const ONLINE_MS=5*60*1000;
   const hiddenIds=new Set(['d32a4234-68fa-4c94-a0b0-2aff4831344a','049fdb78-ee46-41cb-a25f-a48d90a028e5']);
@@ -189,7 +189,7 @@
       const action=can?'Utfordre':inGame?'I kamp':'Ikke ledig';
       return '<div class="player-row da-social-player" data-player-status="'+esc(p.status)+'">'+
         '<div class="player-main"><div class="avatar" data-avatar-id="'+esc(p.id)+'">'+escapeName((p.username||'?').slice(0,1).toUpperCase())+'</div>'+
-        '<div><a class="player-name da-player-profile-link" href="player.html?id='+encodeURIComponent(p.id)+'" target="_blank" rel="noopener" title="Se spillerprofil">'+escapeName(p.username||'Spiller')+'</a> <span class="da-lobby-form-avg" data-form-player="'+esc(p.id)+'" title="501 • 20 • 6+ legs">AVG –</span>'+
+        '<div><a class="player-name da-player-profile-link" href="player.html?id='+encodeURIComponent(p.id)+'" target="_blank" rel="noopener" title="Se spillerprofil">'+escapeName(p.username||'Spiller')+'</a> <span class="da-lobby-form-avg" data-form-player="'+esc(p.id)+'" title="501 • 20 • Bo5+">AVG –</span>'+
         '<div class="status"><span class="dot '+esc(p.status)+'"></span>'+rawStatus+'</div></div></div>'+
         '<button type="button" class="small-btn challenge-btn" data-id="'+esc(p.id)+'" '+(can?'':'disabled')+'>'+action+'</button></div>';
     }).join(''):'<p class="muted">Ingen spillere passer dette søket eller filteret.</p>';
