@@ -1,0 +1,17 @@
+name: Half-It result camera label regression
+on:
+  push:
+    branches: ['test/half-it-result-labels-20261125']
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.58.2
+      - run: npx playwright install --with-deps chromium
+      - run: node --test tests/half-it-result-labels.test.cjs tests/half-it-leg-break.test.cjs tests/half-it-leg-scores.test.cjs tests/half-it-single-result.test.cjs

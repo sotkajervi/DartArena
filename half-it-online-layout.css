@@ -190,3 +190,8 @@ body.half-it-page .half-leg-break-player strong{font-size:32px;font-variant-nume
 body.half-it-page #halfLegBreakStanding{font-size:18px;font-weight:850;text-align:center;margin:12px 0 4px}
 body.half-it-page #halfLegBreakNext{font-size:13px;color:var(--muted);text-align:center;margin:0}
 body.half-it-page #halfLegBreakContinue{width:100%}
+
+/* Stable live-camera labels explicitly override inherited visibility. Hide only
+   those labels while the shared match result is displayed. */
+body.match-page.half-it-page.da-result-open .video-card .video-name,
+body.match-page.half-it-page.da-result-open .video-card .video-slot-label{display:none!important;visibility:hidden!important}
