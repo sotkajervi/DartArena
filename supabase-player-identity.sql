@@ -19,7 +19,7 @@ create or replace function dartarena_identity_private.guard_name() returns trigg
 begin
  if new.username is distinct from old.username then
    if not dartarena_identity_private.valid_nick(new.username) then raise exception 'invalid_nickname' using errcode='22023';end if;
-   if old.nickname_changed_at is not null and old.nickname_changed_at>now()-interval '30 days' then raise exception 'nickname_cooldown' using errcode='22023';end if;
+   if old.nickname_changed_at is not null and old.nickname_changed_at>now()-interval '30 days' and not (select public.is_admin()) then raise exception 'nickname_cooldown' using errcode='22023';end if;
    new.nickname_changed_at=now();
  end if;
  return new;
@@ -62,10 +62,109 @@ begin
 end$$;
 revoke all on function public.save_player_identity(text,text,text,text,text,text) from public,anon;
 grant execute on function public.save_player_identity(text,text,text,text,text,text) to authenticated;
--- Private JPEG-only bucket. A signed-in user can view images; owners control uploads.
+-- Narrow privileged edit path for staff. No broad UPDATE policy on profiles.
+create table dartarena_identity_private.staff_profile_edits(
+ id bigint generated always as identity primary key,
+ actor_id uuid not null,target_id uuid not null,edited_at timestamptz not null default now(),
+ action text not null check(action in ('profile','avatar'))
+);
+revoke all on dartarena_identity_private.staff_profile_edits from public,anon,authenticated;
+create or replace function dartarena_identity_private.staff_save(p_user_id uuid,p_nickname text,p_country text,p_club text,p_equipment text,p_bio text,p_full_name text)
+returns text language plpgsql security definer set search_path='' as $
+declare actor uuid:=auth.uid(); n text:=btrim(coalesce(p_nickname,'')); shown text; changed timestamptz;
+begin
+ if actor is null or not (select public.is_admin()) then raise exception 'staff_required' using errcode='42501';end if;
+ select username,nickname_changed_at into shown,changed from public.profiles where id=p_user_id for update;
+ if not found then raise exception 'profile_not_found';end if;
+ if n='' and changed is not null then n:=shown;end if;
+ if n<>'' and n is distinct from shown then update public.profiles set username=n where id=p_user_id returning username into shown;end if;
+ insert into public.player_details(user_id,nickname,country,club,equipment,bio,full_name)
+ values(p_user_id,n,btrim(coalesce(p_country,'')),btrim(coalesce(p_club,'')),btrim(coalesce(p_equipment,'')),btrim(coalesce(p_bio,'')),btrim(coalesce(p_full_name,'')))
+ on conflict(user_id) do update set nickname=excluded.nickname,country=excluded.country,club=excluded.club,equipment=excluded.equipment,bio=excluded.bio,full_name=excluded.full_name;
+ insert into dartarena_identity_private.staff_profile_edits(actor_id,target_id,action) values(actor,p_user_id,'profile');
+ return shown;
+end$;
+revoke all on function dartarena_identity_private.staff_save(uuid,text,text,text,text,text,text) from public,anon,authenticated;
+grant execute on function dartarena_identity_private.staff_save(uuid,text,text,text,text,text,text) to authenticated;
+create or replace function public.staff_save_player_identity(p_user_id uuid,p_nickname text,p_country text,p_club text,p_equipment text,p_bio text,p_full_name text)
+returns text language sql security invoker set search_path='' as $
+ select dartarena_identity_private.staff_save(p_user_id,p_nickname,p_country,p_club,p_equipment,p_bio,p_full_name)
+$;
+revoke all on function public.staff_save_player_identity(uuid,text,text,text,text,text,text) from public,anon;
+grant execute on function public.staff_save_player_identity(uuid,text,text,text,text,text,text) to authenticated;
+-- Private JPEG-only bucket. Owners and staff can upload and remove profile images.
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types) values('player-avatars','player-avatars',false,102400,array['image/jpeg']) on conflict(id) do nothing;
 create policy da_avatar_read on storage.objects for select to authenticated using(bucket_id='player-avatars' and (select auth.uid()) is not null);
-create policy da_avatar_insert on storage.objects for insert to authenticated with check(bucket_id='player-avatars' and name=(select auth.uid())::text||'/avatar.jpg');
+create policy da_avatar_insert on storage.objects for insert to authenticated with check(bucket_id='player-avatars' and (name=(select auth.uid())::text||'/avatar.jpg' or ((select public.is_admin()) and name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/avatar[.]jpg on storage.objects for update to authenticated using(bucket_id='player-avatars' and (name=(select auth.uid())::text||'/avatar.jpg' or ((select public.is_admin()) and name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/avatar[.]jpg
+create policy da_avatar_delete on storage.objects for delete to authenticated using(bucket_id='player-avatars' and (name=(select auth.uid())::text||'/avatar.jpg' or (select public.is_admin())));
+create table public.player_avatars(user_id uuid primary key references public.profiles(id) on delete cascade,updated_at timestamptz not null default now());
+alter table public.player_avatars enable row level security;
+revoke all on public.player_avatars from public,anon,authenticated;
+grant select,insert,update,delete on public.player_avatars to authenticated;
+create policy avatar_meta_read on public.player_avatars for select to authenticated using((select auth.uid()) is not null);
+create policy avatar_meta_insert on public.player_avatars for insert to authenticated with check(user_id=(select auth.uid()) or (select public.is_admin()));
+create policy avatar_meta_update on public.player_avatars for update to authenticated using(user_id=(select auth.uid()) or (select public.is_admin())) with check(user_id=(select auth.uid()) or (select public.is_admin()));
+create policy avatar_meta_delete on public.player_avatars for delete to authenticated using(user_id=(select auth.uid()) or (select public.is_admin()));
+-- Record staff avatar metadata changes, without copying images or personal profile text.
+create or replace function dartarena_identity_private.log_avatar_edit() returns trigger language plpgsql security definer set search_path='' as $
+declare actor uuid:=auth.uid(); target uuid;
+begin
+ if tg_op='DELETE' then target:=old.user_id;else target:=new.user_id;end if;
+ if actor is not null and actor<>target and (select public.is_admin()) then
+  insert into dartarena_identity_private.staff_profile_edits(actor_id,target_id,action) values(actor,target,'avatar');
+ end if;
+ if tg_op='DELETE' then return old;end if;return new;
+end$;
+revoke all on function dartarena_identity_private.log_avatar_edit() from public,anon,authenticated;
+create trigger da_log_staff_avatar after insert or update or delete on public.player_avatars for each row execute function dartarena_identity_private.log_avatar_edit();
+commit;
+)));
+create policy da_avatar_update on storage.objects for update to authenticated using(bucket_id='player-avatars' and name=(select auth.uid())::text||'/avatar.jpg') with check(bucket_id='player-avatars' and name=(select auth.uid())::text||'/avatar.jpg');
+create policy da_avatar_delete on storage.objects for delete to authenticated using(bucket_id='player-avatars' and (name=(select auth.uid())::text||'/avatar.jpg' or (select public.is_admin())));
+create table public.player_avatars(user_id uuid primary key references public.profiles(id) on delete cascade,updated_at timestamptz not null default now());
+alter table public.player_avatars enable row level security;
+revoke all on public.player_avatars from public,anon,authenticated;
+grant select,insert,update,delete on public.player_avatars to authenticated;
+create policy avatar_meta_read on public.player_avatars for select to authenticated using((select auth.uid()) is not null);
+create policy avatar_meta_insert on public.player_avatars for insert to authenticated with check(user_id=(select auth.uid()));
+create policy avatar_meta_update on public.player_avatars for update to authenticated using(user_id=(select auth.uid())) with check(user_id=(select auth.uid()));
+create policy avatar_meta_delete on public.player_avatars for delete to authenticated using(user_id=(select auth.uid()) or (select public.is_admin()));
+commit;
+))) with check(bucket_id='player-avatars' and (name=(select auth.uid())::text||'/avatar.jpg' or ((select public.is_admin()) and name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/avatar[.]jpg
+create policy da_avatar_delete on storage.objects for delete to authenticated using(bucket_id='player-avatars' and (name=(select auth.uid())::text||'/avatar.jpg' or (select public.is_admin())));
+create table public.player_avatars(user_id uuid primary key references public.profiles(id) on delete cascade,updated_at timestamptz not null default now());
+alter table public.player_avatars enable row level security;
+revoke all on public.player_avatars from public,anon,authenticated;
+grant select,insert,update,delete on public.player_avatars to authenticated;
+create policy avatar_meta_read on public.player_avatars for select to authenticated using((select auth.uid()) is not null);
+create policy avatar_meta_insert on public.player_avatars for insert to authenticated with check(user_id=(select auth.uid()));
+create policy avatar_meta_update on public.player_avatars for update to authenticated using(user_id=(select auth.uid())) with check(user_id=(select auth.uid()));
+create policy avatar_meta_delete on public.player_avatars for delete to authenticated using(user_id=(select auth.uid()) or (select public.is_admin()));
+commit;
+)));
+create policy da_avatar_update on storage.objects for update to authenticated using(bucket_id='player-avatars' and name=(select auth.uid())::text||'/avatar.jpg') with check(bucket_id='player-avatars' and name=(select auth.uid())::text||'/avatar.jpg');
+create policy da_avatar_delete on storage.objects for delete to authenticated using(bucket_id='player-avatars' and (name=(select auth.uid())::text||'/avatar.jpg' or (select public.is_admin())));
+create table public.player_avatars(user_id uuid primary key references public.profiles(id) on delete cascade,updated_at timestamptz not null default now());
+alter table public.player_avatars enable row level security;
+revoke all on public.player_avatars from public,anon,authenticated;
+grant select,insert,update,delete on public.player_avatars to authenticated;
+create policy avatar_meta_read on public.player_avatars for select to authenticated using((select auth.uid()) is not null);
+create policy avatar_meta_insert on public.player_avatars for insert to authenticated with check(user_id=(select auth.uid()));
+create policy avatar_meta_update on public.player_avatars for update to authenticated using(user_id=(select auth.uid())) with check(user_id=(select auth.uid()));
+create policy avatar_meta_delete on public.player_avatars for delete to authenticated using(user_id=(select auth.uid()) or (select public.is_admin()));
+commit;
+)));
+create policy da_avatar_delete on storage.objects for delete to authenticated using(bucket_id='player-avatars' and (name=(select auth.uid())::text||'/avatar.jpg' or (select public.is_admin())));
+create table public.player_avatars(user_id uuid primary key references public.profiles(id) on delete cascade,updated_at timestamptz not null default now());
+alter table public.player_avatars enable row level security;
+revoke all on public.player_avatars from public,anon,authenticated;
+grant select,insert,update,delete on public.player_avatars to authenticated;
+create policy avatar_meta_read on public.player_avatars for select to authenticated using((select auth.uid()) is not null);
+create policy avatar_meta_insert on public.player_avatars for insert to authenticated with check(user_id=(select auth.uid()));
+create policy avatar_meta_update on public.player_avatars for update to authenticated using(user_id=(select auth.uid())) with check(user_id=(select auth.uid()));
+create policy avatar_meta_delete on public.player_avatars for delete to authenticated using(user_id=(select auth.uid()) or (select public.is_admin()));
+commit;
+)));
 create policy da_avatar_update on storage.objects for update to authenticated using(bucket_id='player-avatars' and name=(select auth.uid())::text||'/avatar.jpg') with check(bucket_id='player-avatars' and name=(select auth.uid())::text||'/avatar.jpg');
 create policy da_avatar_delete on storage.objects for delete to authenticated using(bucket_id='player-avatars' and (name=(select auth.uid())::text||'/avatar.jpg' or (select public.is_admin())));
 create table public.player_avatars(user_id uuid primary key references public.profiles(id) on delete cascade,updated_at timestamptz not null default now());

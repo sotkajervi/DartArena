@@ -6,16 +6,16 @@ test('Empty own profile, save, fresh read, other profile read-only and literal u
  try{
  const p=await browser.newPage({viewport:{width:390,height:844}});
  await p.route('https://profile.invalid/**',r=>r.fulfill({contentType:'text/html',body:html}));
- async function setup(id,record){
+ async function setup(id,record,staff=false){
   await p.goto('https://profile.invalid/player.html?id='+id);
-  await p.evaluate(record=>{
+  await p.evaluate(({record,staff})=>{
    document.getElementById('playerName').textContent='Åse';
    window.record=record;window.writes=[];
    window.DartArenaSupabaseClient={
     auth:{getSession:async()=>({data:{session:{user:{id:'own'}}}})},
-    from:table=>({select(){return this},eq(){return this},async maybeSingle(){return{data:table==='profiles'?{username:window.record?.nickname||'Åse',nickname_changed_at:window.record?'2026-11-25':null}:window.record}}}),rpc:async(name,args)=>{if(name==='is_admin')return{data:false};const row=Object.fromEntries(Object.entries(args).map(([k,v])=>[k.slice(2),v]));row.user_id='own';writes.push(row);window.record=row;return{data:row.nickname}}
+    from:table=>({select(){return this},eq(){return this},async maybeSingle(){return{data:table==='profiles'?{username:window.record?.nickname||'Åse',nickname_changed_at:window.record?'2026-11-25':null}:window.record}}}),rpc:async(name,args)=>{if(name==='is_admin')return{data:staff};const row=Object.fromEntries(Object.entries(args).map(([k,v])=>[k.slice(2),v]));row.user_id=args.p_user_id||'own';writes.push(row);window.record=row;return{data:row.nickname}}
    };
-  },record);
+  },{record,staff});
   await p.addScriptTag({content:avatarSource});
   await p.addScriptTag({content:source});
   await p.locator('#playerDetails').waitFor({state:'visible'});
@@ -36,5 +36,9 @@ test('Empty own profile, save, fresh read, other profile read-only and literal u
  await setup('other',row);a.equal(await p.locator('#editPlayerDetails').isVisible(),false);
  a.equal(await p.evaluate(()=>writes.length),0);
  a.equal(await p.locator('#playerBio').textContent(),row.bio);
+ await setup('other',row,true);a.equal(await p.locator('#editPlayerDetails').isVisible(),true);
+ await p.locator('#editPlayerDetails').click();await p.locator('input[name=nickname]').fill('StaffFixed');p.once('dialog',dlg=>dlg.accept());
+ await p.locator('#savePlayerDetails').click();await p.waitForFunction(()=>writes.length===1&&!document.getElementById('playerDetailsDialog').open);
+ a.equal(await p.evaluate(()=>writes[0].user_id),'other');a.equal(await p.locator('#playerName').textContent(),'StaffFixed');
  }finally{await browser.close()}
 });

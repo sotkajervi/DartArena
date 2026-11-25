@@ -3,3 +3,5 @@ test('Nickname format and reserved words',()=>{for(const n of ['WillTiltU','Åse
 test('Registration chooses nickname without copying full name',()=>{const s=fs.readFileSync('app.js','utf8');a.match(s,/nickname_signup:true/);a.doesNotMatch(s,/full_name:username/)});
 test('Avatar upload is bounded, cropped and JPEG; no public bucket',()=>{const s=fs.readFileSync('profile-avatars.js','utf8'),q=fs.readFileSync('supabase-player-identity.sql','utf8');a.match(s,/c.width=c.height=256/);a.match(s,/MAX=102400/);a.match(s,/createSignedUrls/);a.match(q,/'player-avatars','player-avatars',false,102400/);a.match(q,/security invoker/);a.match(q,/interval '30 days'/);});
 test('Role display does not match nicknames by substring',()=>{a.doesNotMatch(fs.readFileSync('role-visuals.js','utf8'),/clean.includes\(name\)/)});
+
+test('Staff edits use a checked narrow RPC and audit log rather than broad profile update',()=>{const s=fs.readFileSync('supabase-player-identity.sql','utf8');a.match(s,/staff_required/);a.match(s,/staff_profile_edits/);a.match(s,/public.staff_save_player_identity/);a.match(s,/returns text language sql security invoker/)});

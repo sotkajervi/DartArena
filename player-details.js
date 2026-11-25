@@ -19,29 +19,31 @@ function boot(w){
   if(record.equipment){const label=d.createElement('span');label.textContent=t('Piler / utstyr');const value=d.createElement('strong');value.setAttribute('data-no-i18n','');value.textContent=record.equipment;equipment.append(label,value)}
   equipment.hidden=!record.equipment;
   $('playerDetailsStatus').textContent=Object.values(record).some(Boolean)?'':t(own?'Fyll ut profilen din hvis du ønsker.':'Ingen ekstra spilleropplysninger ennå.');
-  edit.hidden=!own||!loaded;
+  edit.hidden=(!own&&!staff)||!loaded;
+  edit.textContent=t(own?'Rediger profil':'Rediger profil (Admin/Owner)');
   $('avatarControls').hidden=!own&&!staff;
-  $('avatarFile').parentElement.hidden=!own;
+  $('avatarFile').parentElement.hidden=!own&&!staff;
   void drawAvatar();
  }
- edit.onclick=()=>{if(!own||!loaded)return;for(const k of Object.keys(fields))form.elements[k].value=record[k];form.elements.nickname.value=changedAt?displayName:record.nickname;status.textContent='';dialog.showModal()};
+ edit.onclick=()=>{if((!own&&!staff)||!loaded)return;for(const k of Object.keys(fields))form.elements[k].value=record[k];form.elements.nickname.value=changedAt?displayName:record.nickname;status.textContent='';$('playerDetailsEditTitle').textContent=t(own?'Rediger profil':'Rediger profil (Admin/Owner)');dialog.showModal()};
  $('closePlayerDetails').onclick=()=>dialog.close();
  form.addEventListener('submit',async e=>{
-  e.preventDefault();if(!own||!loaded||save.disabled)return;
+  e.preventDefault();if((!own&&!staff)||!loaded||save.disabled)return;
   const payload=clean(Object.fromEntries(Object.keys(fields).map(k=>[k,form.elements[k].value])));
   if(payload.nickname&&payload.nickname!==displayName&&!avatars?.validNick(payload.nickname)){status.textContent=t('Bruk 2–24 tegn: bokstaver, tall, punktum, bindestrek eller understrek.');return}
+  if(!own&&staff&&!w.confirm(t('Lagre endringer på denne spillerens profil?')))return;
   save.disabled=true;status.textContent=t('Lagrer…');
-  try{const {data,error}=await client.rpc('save_player_identity',Object.fromEntries(Object.entries(payload).map(([k,v])=>['p_'+k,v])));if(error)throw error;const old=displayName;displayName=data||displayName;record=payload;if(old!==displayName){changedAt=new Date().toISOString();$('playerName').textContent=displayName;d.title='DartArena • '+displayName}render();dialog.close();$('playerDetailsStatus').textContent=t('Profil lagret.')}
+  try{const {data,error}=await client.rpc(own?'save_player_identity':'staff_save_player_identity',{...Object.fromEntries(Object.entries(payload).map(([k,v])=>['p_'+k,v])),...(!own?{p_user_id:uid}:{})});if(error)throw error;const old=displayName;displayName=data||displayName;record=payload;if(old!==displayName){changedAt=new Date().toISOString();$('playerName').textContent=displayName;d.title='DartArena • '+displayName}render();dialog.close();$('playerDetailsStatus').textContent=t('Profil lagret.')}
   catch(e){status.textContent=t(e?.code==='23505'?'Kallenavnet er allerede i bruk.':String(e?.message).includes('nickname_cooldown')?'Du kan endre kallenavn én gang hver 30. dag.':'Kunne ikke lagre profilen. Prøv igjen.')}finally{save.disabled=false}
  });
  async function load(){
   const {data:{session}}=await client.auth.getSession();if(!session)return;
   own=session.user.id===uid;
-  const [details,identity,admin]=await Promise.all([client.from('player_details').select('nickname,country,club,equipment,bio,full_name').eq('user_id',uid).maybeSingle(),client.from('profiles').select('username,nickname_changed_at').eq('id',uid).maybeSingle(),own?Promise.resolve({data:false}):client.rpc('is_admin')]);
+  const [details,identity,admin]=await Promise.all([client.from('player_details').select('nickname,country,club,equipment,bio,full_name').eq('user_id',uid).maybeSingle(),client.from('profiles').select('username,nickname_changed_at').eq('id',uid).maybeSingle(),client.rpc('is_admin')]);
   if(details.error||identity.error||!identity.data)throw details.error||identity.error||Error('profile_not_found');record=clean(details.data);displayName=identity.data.username;changedAt=identity.data.nickname_changed_at;staff=admin.data===true;loaded=true;host.hidden=false;render();
  }
  const upload=$('avatarFile'),remove=$('removeAvatar'),avatarStatus=$('avatarStatus');
- upload.onchange=async()=>{const file=upload.files?.[0];if(!own||!file||!avatars)return;upload.disabled=true;remove.disabled=true;avatarStatus.textContent=t('Lagrer…');try{await avatars.upload(client,uid,file);await drawAvatar();avatarStatus.textContent=t('Profilbilde lagret.')}catch{avatarStatus.textContent=t('Kunne ikke lagre profilbildet.')}finally{upload.value='';upload.disabled=false;remove.disabled=false}};
+ upload.onchange=async()=>{const file=upload.files?.[0];if((!own&&!staff)||!file||!avatars)return;if(!own&&!w.confirm(t('Erstatte denne spillerens profilbilde?'))){upload.value='';return;}upload.disabled=true;remove.disabled=true;avatarStatus.textContent=t('Lagrer…');try{await avatars.upload(client,uid,file);await drawAvatar();avatarStatus.textContent=t('Profilbilde lagret.')}catch{avatarStatus.textContent=t('Kunne ikke lagre profilbildet.')}finally{upload.value='';upload.disabled=false;remove.disabled=false}};
  remove.onclick=async()=>{if((!own&&!staff)||!avatars||!w.confirm(t('Fjerne profilbildet?')))return;remove.disabled=true;try{await avatars.remove(client,uid);await drawAvatar();avatarStatus.textContent=t('Profilbilde fjernet.')}catch{avatarStatus.textContent=t('Kunne ikke fjerne profilbildet.')}finally{remove.disabled=false}};
  load().catch(()=>{host.hidden=false;edit.hidden=true;$('playerDetailsStatus').textContent=t('Kunne ikke laste spilleropplysninger.')});
 }

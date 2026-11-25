@@ -6,6 +6,9 @@
   if(window.DartArenaI18n)return;
   const KEY='dartarena-language';
   const translations=Object.freeze({
+  "Rediger profil (Admin/Owner)": "Edit profile (Admin/Owner)",
+  "Lagre endringer på denne spillerens profil?": "Save changes to this player's profile?",
+  "Erstatte denne spillerens profilbilde?": "Replace this player's profile picture?",
   "Velg kallenavn": "Choose nickname",
   "Bruk 2–24 tegn: bokstaver, tall, punktum, bindestrek eller understrek.": "Use 2–24 letters, numbers, periods, hyphens or underscores.",
   "Kallenavnet blir navnet ditt i DartArena. Du kan endre det én gang hver 30. dag.": "Your nickname is your DartArena display name. You can change it once every 30 days.",
