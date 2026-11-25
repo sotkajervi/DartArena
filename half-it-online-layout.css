@@ -172,3 +172,7 @@ body.half-it-page #halfCorrectionFields label{display:flex;gap:8px;align-items:c
 body.half-it-page #halfCorrectionFields select{max-width:65%;min-width:130px;background:#091719;color:var(--text);padding:8px;border:1px solid var(--line);border-radius:8px}
 body.half-it-page .half-correction-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 body.half-it-page #halfCorrectionError{font-size:12px;color:#ffadb3;min-height:1.4em}
+
+body.half-it-page #halfCorrectionFields .half-correction-score-field{display:grid;gap:6px;justify-content:stretch;text-align:center}
+body.half-it-page #halfCorrectionFields .half-correction-score-field input{box-sizing:border-box;width:100%;min-width:0;height:72px;background:#091719;color:var(--text);border:1px solid #28777a;border-radius:12px;text-align:center;font-size:38px;font-weight:850;font-variant-numeric:tabular-nums}
+body.half-it-page #halfCorrectionFields .half-correction-score-hint{color:var(--muted);text-align:center;font-size:12px}
