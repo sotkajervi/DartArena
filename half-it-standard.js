@@ -28,7 +28,7 @@ const dartValue=d=>d.n===25?25*d.mult:d.n*d.mult;
 const dartLabel=d=>!d||d.n===0?'MISS':d.n===25?(d.mult===1?'25':'50'):`${d.mult===1?'S':d.mult===2?'D':'T'}${d.n}`;
 function addDart(n,mult){if(!canThrow()||selectedDarts.length>=3)return;if(n===25&&mult===3)return;selectedDarts.push({n:Number(n),mult:Number(mult)});renderEntry()}
 function buildPad(){const host=$('halfPad');if(!host)return;const r=currentRound(),enabled=canThrow()&&selectedDarts.length<3;if(!r||m?.status!=='playing'){host.innerHTML='';return}
-  if(r.type==='number')host.innerHTML=`<div class="half-quick"><button class="outline half-hit" data-n="${r.target}" data-mult="1">S${r.target}</button><button class="outline half-hit" data-n="${r.target}" data-mult="2">D${r.target}</button><button class="outline half-hit" data-n="${r.target}" data-mult="3">T${r.target}</button></div>`;
+  if(r.type==='number')host.innerHTML=`<div class="half-quick"><button class="outline half-hit" data-n="${r.target}" data-mult="1"><span class="half-control-label">SINGLE</span></button><button class="outline half-hit" data-n="${r.target}" data-mult="2"><span class="half-control-label">DOBBEL</span></button><button class="outline half-hit" data-n="${r.target}" data-mult="3"><span class="half-control-label">TRIPPEL</span></button></div>`;
   else if(r.type==='bull')host.innerHTML='<div class="half-quick"><button class="outline half-hit" data-n="25" data-mult="1">25</button><button class="outline half-hit" data-n="25" data-mult="2">50</button></div>';
   else if(r.type==='double'||r.type==='treble'){
     const mult=r.type==='double'?2:3,nums=Array.from({length:20},(_,i)=>i+1),bull=r.type==='double'?'<button class="outline half-hit" data-n="25" data-mult="2">DB</button>':'';

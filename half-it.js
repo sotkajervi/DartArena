@@ -30,7 +30,7 @@ function currentRound(){return ROUNDS[currentRoundNo()-1]||ROUNDS[11]}
 function roundDisplay(roundNo){const r=ROUNDS[roundNo-1];if(!r)return'';if(r.type==='exact'&&state?.exact_target)return`Eksakt ${state.exact_target}`;return r.history}
 function buildPad(){const host=$('halfPad');if(!host)return;const r=currentRound(),enabled=canThrow()&&selectedDarts.length<3;if(!r||m?.status!=='playing'){host.innerHTML='';return}
   if(r.type==='number'){
-    host.innerHTML=`<div class="half-quick"><button class="outline half-hit" data-n="${r.target}" data-mult="1">S${r.target}</button><button class="outline half-hit" data-n="${r.target}" data-mult="2">D${r.target}</button><button class="outline half-hit" data-n="${r.target}" data-mult="3">T${r.target}</button></div>`;
+    host.innerHTML=`<div class="half-quick"><button class="outline half-hit" data-n="${r.target}" data-mult="1"><span class="half-control-label">SINGLE</span></button><button class="outline half-hit" data-n="${r.target}" data-mult="2"><span class="half-control-label">DOBBEL</span></button><button class="outline half-hit" data-n="${r.target}" data-mult="3"><span class="half-control-label">TRIPPEL</span></button></div>`;
   }else if(r.type==='bull'){
     host.innerHTML='<div class="half-quick"><button class="outline half-hit" data-n="25" data-mult="1">25</button><button class="outline half-hit" data-n="25" data-mult="2">50</button></div>';
   }else if(r.type==='double'||r.type==='treble'){

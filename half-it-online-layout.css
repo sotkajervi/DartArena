@@ -92,3 +92,59 @@ body.half-it-page #halfResultsTitle{font-size:18px;color:#00eaf4}
 
 /* Match the shared X01 starter icon and keep names centered. */
 body.half-it-page.match-tv-layout .half-player-name.match-name{justify-content:center;gap:6px;min-width:0}
+
+/* Distinct camera and scoring tracks, never overlapping grid items.
+   Scope only to Half-It; do not touch shared video transport or camera code. */
+body.half-it-page.match-tv-layout #videoGrid{isolation:isolate;z-index:0}
+body.half-it-page.match-tv-layout #focusInputDock{position:relative;isolation:isolate;z-index:7!important}
+@media(min-width:801px){
+ body.half-it-page.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #matchView{
+   grid-template-areas:"head head" "score video" "score input"!important;
+   grid-template-rows:auto minmax(230px,calc(var(--da-x01-frame-height) - var(--da-x01-input-reserve))) auto!important;
+ }
+ body.half-it-page.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #videoGrid{
+   grid-area:video!important;height:100%!important;max-height:100%!important;
+   min-height:0!important;align-self:stretch!important;overflow:hidden!important;transition:none!important;
+ }
+ body.half-it-page.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #focusInputDock{
+   grid-area:input!important;align-self:start!important;margin:0!important;
+ }
+}
+/* Same two-line special-game button hierarchy as Pentathlon.
+   Standard/Bull quick choices put BOM beside the hit buttons, not below. */
+body.half-it-page.match-tv-layout .focus-input-dock .half-entry:has(.half-quick){
+ grid-template-columns:repeat(12,minmax(0,1fr));gap:5px;
+}
+body.half-it-page.match-tv-layout .half-entry:has(.half-quick) #halfDarts{grid-column:1/-1;grid-row:1}
+body.half-it-page.match-tv-layout .half-entry:has(.half-quick) #halfPad{grid-column:1/9;grid-row:2;min-width:0}
+body.half-it-page.match-tv-layout .half-entry:has(.half-quick button:nth-child(3)) #halfPad{grid-column:1/10}
+body.half-it-page.match-tv-layout .half-entry:has(.half-quick) .half-actions:not(.hidden){display:contents!important}
+body.half-it-page.match-tv-layout .half-entry:has(.half-quick) #halfMissBtn{grid-column:9/-1;grid-row:2}
+body.half-it-page.match-tv-layout .half-entry:has(.half-quick button:nth-child(3)) #halfMissBtn{grid-column:10/-1}
+body.half-it-page.match-tv-layout .half-entry:has(.half-quick) #halfUndoBtn{grid-column:1/7;grid-row:3}
+body.half-it-page.match-tv-layout .half-entry:has(.half-quick) #halfSubmitBtn{grid-column:7/-1;grid-row:3}
+body.half-it-page.match-tv-layout.standard-tv-layout.own-turn-focus .focus-input-dock .half-entry :is(.half-quick button,.half-multiplier button,.half-exact-options button,.half-actions button,.half-standard-41-actions button){
+ min-height:60px!important;gap:4px;font-size:12px!important;font-weight:950;
+}
+body.half-it-page.match-tv-layout .focus-input-dock .half-entry .half-control-label{
+ display:block;color:#00eaf4;font-size:12px;font-weight:950;letter-spacing:.055em
+}
+body.half-it-page.match-tv-layout .focus-input-dock .half-entry button .da-key{
+ display:block;margin:0!important;padding:0!important;border:0!important;background:none!important;
+ color:#fff!important;font-size:17px;font-weight:900;line-height:1.15;box-shadow:none!important
+}
+body.half-it-page.match-tv-layout .focus-input-dock :is(#halfUndoBtn,#halfSubmitBtn) .da-key{font-size:14px}
+body.half-it-page.match-tv-layout .focus-input-dock :is(#halfMissBtn,#halfUndoBtn){
+ background:linear-gradient(180deg,#0f1d20,#0a1517)!important;
+ border-color:var(--da-btn-border)!important;
+ box-shadow:inset 0 0 18px var(--da-btn-cyan-glow)!important
+}
+body.half-it-page.match-tv-layout .focus-input-dock #halfSubmitBtn :is(.half-control-label,.da-key),
+body.half-it-page.match-tv-layout .focus-input-dock .half-multiplier button.active .da-key{color:#051719!important}
+body.half-it-page.match-tv-layout .focus-input-dock .half-entry .half-multiplier button:not(.active),
+body.half-it-page.match-tv-layout .focus-input-dock .half-entry .half-exact-options button,
+body.half-it-page.match-tv-layout .focus-input-dock .half-entry .half-quick button{color:#00eaf4!important}
+@media(max-width:480px){
+ body.half-it-page.match-tv-layout .focus-input-dock .half-entry .half-control-label{font-size:10px;letter-spacing:0}
+ body.half-it-page.match-tv-layout .focus-input-dock .half-entry button .da-key{font-size:14px}
+}

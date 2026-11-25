@@ -1,0 +1,21 @@
+name: Half-It camera and button parity test
+on:
+  push:
+    branches: ['test/half-it-dock-parity-20261125']
+permissions:
+  contents: read
+jobs:
+  layout:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check half-it-standard.js
+          node --check half-it.js
+          node --test tests/half-it-online-layout.test.cjs tests/half-it-starter-41.test.cjs tests/half-it-viewer-count.test.cjs tests/pentathlon-viewer-count.test.cjs tests/x01-leg-starter-marker.test.cjs
+      - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.58.2
+      - run: npx playwright install --with-deps chromium
+      - run: node --test tests/half-it-dock-browser.test.cjs

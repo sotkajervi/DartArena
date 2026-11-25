@@ -37,6 +37,6 @@ test('Both engines and multileg render path use shared starter UI with fresh ass
  const h=read('half-it.html'),b=read('half-it-bootstrap.js');
  a.ok(h.indexOf('src="x01-leg-starter-marker.js')<h.indexOf('src="half-it-online-layout.js'));
  for(const p of ['half-it-standard.js','half-it.js','half-it-multileg.js']){
-   a.match(read(p),/DartArenaHalfItStarter\?\.render\(m\)/);a.ok(b.includes(p+'?v=20261125-starter41'));
+   a.match(read(p),/DartArenaHalfItStarter\?\.render\(m\)/);a.ok(b.includes(p+'?v='+(p==='half-it-multileg.js'?'20261125-starter41':'20261125-dockparity1')));
  }
 });
