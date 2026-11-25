@@ -1,5 +1,5 @@
 \set ON_ERROR_STOP on
-do $begin if not exists(select 1 from pg_roles where rolname='anon') then create role anon;end if;if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated;end if;end$;
+do $roles$begin if not exists(select 1 from pg_roles where rolname='anon') then create role anon;end if;if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated;end if;end$roles$;
 create schema auth;create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
 grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;
 create table public.matches(id uuid primary key,player1_id uuid,player2_id uuid,finished_at timestamptz,status text,deleted_at timestamptz,is_warmup boolean,game integer,game_variant text,game_config jsonb,match_mode text,legs integer);
