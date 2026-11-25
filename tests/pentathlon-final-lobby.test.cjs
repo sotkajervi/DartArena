@@ -22,5 +22,5 @@ test('Exercise review cannot be dismissed before both players confirm',()=>{
 test('Ordinary popup dismissal is unchanged; archived final result still returns to lobby',()=>{
  a.deepEqual(close('playing'),{nav:[],hidden:true,focus:1});
  a.match(src,/ptFinishedLobby'\)\.onclick=\(\)=>location\.assign\('\.\/'\)/);
- a.match(fs.readFileSync('room.html','utf8'),/pentathlon-room-test\.js\?v=20261125-final-lobby1/);
+ a.match(fs.readFileSync('room.html','utf8'),/pentathlon-room-test\.js\?v=20261125-half-correct1/);
 });
