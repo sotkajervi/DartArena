@@ -1,0 +1,18 @@
+name: New games language regression
+on:
+  push:
+    branches: ['i18n-new-games-20261125', 'main']
+  pull_request:
+    branches: ['main']
+permissions:
+  contents: read
+jobs:
+  language:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check dartarena-i18n.js
+      - run: node --test tests/new-games-i18n.test.cjs tests/match-room-i18n.test.cjs tests/match-cancel-multiline-i18n.test.cjs
