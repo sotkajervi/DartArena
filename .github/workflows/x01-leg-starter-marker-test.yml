@@ -1,0 +1,16 @@
+name: X01 leg starter marker test
+on:
+  push:
+    branches: [test/x01-leg-starter-20261125]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check x01-leg-starter-marker.js
+      - run: node tests/x01-leg-starter-marker.test.cjs

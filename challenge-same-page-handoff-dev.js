@@ -145,7 +145,7 @@
          'cancelled-match-modal.js?v=20261103-tournament-return3',
          'throw-log.js?v=20261104-shared-auth1',
          'set-engine.js?v=20261124-score-recovery1',
-         'x01-leg-starter-marker.js?v=20261104-shared-auth1',
+         'x01-leg-starter-marker.js?v=20261125-live-starter1',
          'checkout-engine.js?v=20261121-score-sync1',
          'secure-match-cancel.js?v=20261104-shared-auth1',
          'x01-stats.js?v=20260929-first9a',

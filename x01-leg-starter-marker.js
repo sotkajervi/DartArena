@@ -1,7 +1,7 @@
 (()=>{
   if(window.__dartArenaLegStarterMarker)return;
 
-  const matchId=(window.DartArenaMatchEngineState?.matchId?.()||new URLSearchParams(location.search).get('id'));
+  window.__dartArenaLegStarterMarker=true;
   const style=document.createElement('style');
   style.textContent=`
     .match-name{display:inline-flex;align-items:center;gap:8px;max-width:100%}
@@ -31,8 +31,6 @@
   document.head.appendChild(style);
 
   let match=null;
-  let channel=null;
-  let retryTimers=[];
 
   function otherPlayer(id){
     if(id===match?.player1_id)return match.player2_id;
@@ -76,14 +74,6 @@
   // Public presentation shared by every online mode. Only the X01 match
   // binding and alternating-leg logic below are X01-specific.
   window.DartArenaLegStarterMarkerUI=Object.freeze({create:marker});
-  if(!matchId||!window.supabase||
-     (/\/room(?:\.html)?$/.test(location.pathname)&&!window.DartArenaMatchEngineState?.matchId?.()))return;
-  window.__dartArenaLegStarterMarker=true;
-  const db=(window.DartArenaSupabaseClient||window.supabase.createClient(
-    'https://jqpxlbhwvskhjbqrbidk.supabase.co',
-    'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'
-  ));
-
   function orderMatchStarterFirst(){
     const p1=document.getElementById('matchP1');
     const p2=document.getElementById('matchP2');
@@ -100,46 +90,30 @@
     if(!name1||!name2||!match)return false;
 
     orderMatchStarterFirst();
-    name1.querySelector('.da-leg-starter-dart')?.remove();
-    name2.querySelector('.da-leg-starter-dart')?.remove();
 
-    if(match.status!=='playing')return true;
-    const starter=legStarter();
-    if(!starter)return true;
-
+    const starter=match.status==='playing'?legStarter():null;
     const host=starter===match.player1_id?name1:starter===match.player2_id?name2:null;
-    if(host)host.appendChild(marker());
+    for(const name of [name1,name2]){
+      const existing=name.querySelector('.da-leg-starter-dart');
+      if(name!==host)existing?.remove();
+      else if(!existing)name.appendChild(marker());
+    }
     return true;
   }
 
-  function scheduleStableRender(){
-    retryTimers.forEach(clearTimeout);
-    retryTimers=[];
-    [0,150,500,1200].forEach(delay=>retryTimers.push(setTimeout(render,delay)));
+  // The room already loads the shared marker before the live match exists.
+  // Bind to the authoritative scoring state at each render, not the room ID.
+  // This also avoids an extra database request and Realtime channel.
+  function sync(){
+    const engine=window.DartArenaMatchEngineState;
+    const next=engine?.match?.();
+    if(!next||next.id!==engine.matchId?.()||
+      !['x01','chicago'].includes(next.game_variant||'x01'))return;
+    match=next;
+    render();
   }
 
-  async function boot(){
-    const {data,error}=await db.from('matches')
-      .select('id,player1_id,player2_id,status,match_starter_id,current_set,current_leg,turn_player_id')
-      .eq('id',matchId)
-      .maybeSingle();
-    if(error||!data)return;
-    match=data;
-    scheduleStableRender();
-
-    channel=db.channel(`x01-leg-starter-${matchId}`)
-      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:`id=eq.${matchId}`},payload=>{
-        match={...match,...payload.new};
-        scheduleStableRender();
-      })
-      .subscribe();
-  }
-
-  window.addEventListener('pagehide',()=>{
-    retryTimers.forEach(clearTimeout);
-    retryTimers=[];
-    if(channel)db.removeChannel(channel);
-  });
-
-  boot().catch(error=>console.warn('Leg starter marker failed',error));
+  window.addEventListener('dartarena:score-state',sync);
+  window.addEventListener('pagehide',()=>window.removeEventListener('dartarena:score-state',sync),{once:true});
+  sync();
 })();
