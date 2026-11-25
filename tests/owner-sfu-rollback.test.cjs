@@ -69,7 +69,12 @@ test('main pages load shared server-side config before their media routers and k
    assert.ok(html.includes('sfu-client.js?'),page+' missing legacy client');
    assert.ok(html.includes('sfu-client-secure.js?'),page+' missing secure client');
  }
- assert.match(read('index.html'),/owner-media-switch\.js\?v=[\w-]+/);
+ // The owner transport switch was deliberately removed from the live lobby
+ // when video was frozen. Keep its authorization checks above, but do not
+ // reintroduce it merely to satisfy the previous UI assertion.
+ const lobby=read('index.html');
+ assert.doesNotMatch(lobby,/<script[^>]+src=["'][^"']*owner-media-switch\.js/);
+ assert.match(lobby,/<script[^>]+src=["'][^"']*owner-ui-gates\.js\?v=[\w-]+/);
 });
 test('legacy fallback scripts are retained and new modules are opt-in',()=>{
  const waiting=read('room-media-router.js'),match=read('match-media-router.js');
