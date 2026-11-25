@@ -3,7 +3,7 @@ const a=require('node:assert/strict'),fs=require('node:fs'),p=require('node:path
 const read=f=>fs.readFileSync(p.join(__dirname,'..',f),'utf8');
 test('Pentathlon chosen in waiting room; server receives configured starter and variant',()=>{
  const room=read('room.html'),js=read('room.js'),proposal=read('room-secure-create.js'),router=read('game-router.js');
- a.match(room,/value="pentathlon" hidden/);a.match(room,/id="roomStarter"/);
+ a.match(room,/<option value="pentathlon">Pentathlon<\/option>/);a.match(room,/id="roomStarter"/);
  a.match(router,/pentathlon:\{variant:'pentathlon'/);
  a.match(proposal,/p_game_variant:variant/);
  a.ok(proposal.includes("starterChoice==='me'?profile.id:starterChoice==='opponent'?other:null"));
@@ -14,11 +14,12 @@ test('Existing coinflip, acceptance and match scene, no waiting-room scoring but
  const js=read('pentathlon-room-test.js'),s=read('challenge-x01-transition.js');
  a.ok(read('room-secure-create.js').includes("accept_challenge_match_proposal"));
  a.ok(read('room-coin-flip-sync.js').includes("DartArenaCoinFlip?.play"));
- a.ok(s.includes("await test.enter({matchId,challengeId:"));
- a.ok(js.includes("window.DartArenaPentathlonMatchTest=Object.freeze({enter})"));
+ a.ok(s.includes("await bridge.enter({liveMatchId:matchId,challengeId:"));
+ a.ok(read('challenge-same-page-handoff-dev.js').includes("await test.enter({matchId:liveMatchId,resuming,mediaManaged:true})"));
+ a.match(js,/window\.DartArenaPentathlonMatchTest=Object\.freeze\(\{\s*enter,\s*ready:/);
  a.ok(js.includes("await host.prepare()"));a.ok(js.includes("await host.enter()"));
  a.ok(read('match-scene-host.js').includes("stage.querySelector('#daMatchVideoSlot').replaceWith(video)"));
- a.ok(js.includes("scene.appendChild(dock)"));a.ok(js.includes("const dock=node('div','focus-input-dock')"));
+ a.ok(js.includes("const dock=scene.querySelector('#focusInputDock')"));a.ok(js.includes("dock.append(message)"));a.ok(!js.includes("scene.appendChild(dock)"));
  a.ok(!js.includes('onclick=startGame'));a.ok(!js.includes('Math.random()'));
  a.ok(!js.includes('getUserMedia('));a.ok(!js.includes('RTCPeerConnection('));
 });
@@ -27,7 +28,7 @@ test('X01 scoreboard inherited, no custom video grid or sidebar result scroll',(
  a.ok(js.includes("const darts=node('div','live-darts')"));
  a.ok(js.includes("const avg=node('div','live-avg')"));
  a.ok(js.includes("sets.classList.add('hidden')"));
- a.ok(js.includes('ptResultDetails'));a.ok(css.includes('.pt-details'));
+ a.ok(js.includes('ptResultsTable'));a.ok(js.includes('scene.append(resultOverlay)'));a.ok(js.includes('document.body.appendChild(stageOverlay)'));a.ok(css.includes('.pt-results-modal'));
  a.doesNotMatch(css,/#ptPanel \.match-score\{|#ptPanel \.match-player\{|#videoGrid\s*\{|#matchView\s*\{/);
  a.ok(js.includes("classList.toggle('own-turn-focus',live&&mine())"));
 });
