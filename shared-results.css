@@ -39,3 +39,16 @@
    Leave the result card's own names and all live/inter-leg screens alone. */
 body.da-result-open :is(#localVideoName,#remoteVideoName,.video-name,.video-slot-label,.jdc-video-slot-label),
 body.pt-online-test:has(#ptStageOverlay:not([hidden]) #ptFinished:not([hidden])) :is(#localVideoName,#remoteVideoName,.video-name,.video-slot-label,.jdc-video-slot-label){display:none!important;visibility:hidden!important}
+
+/* Final overlays are mounted outside the live scene. Hide the complete
+   scene as a composited layer: children with visibility:visible!important
+   (stable player names, turn messages, role badges) cannot leak through.
+   Keep its geometry intact so media/layout observers are unaffected. */
+body.da-result-open:has(> #dartArenaResultOverlay) > :is(main,footer),
+body.da-result-open.pt-online-test:has(> #ptStageOverlay:not([hidden]) #ptFinished:not([hidden])) > :is(main,footer){
+  opacity:0!important;pointer-events:none!important
+}
+/* Explicitly neutralize stable text rules even in legacy nested rooms. */
+body.da-result-open :is(.match-name,.cricket-player-name,.half-player-name,.sixty-one-player-name,.turn-text):not(:is(#dartArenaResultOverlay *,#ptStageOverlay *)){
+  visibility:hidden!important;opacity:0!important
+}

@@ -33,5 +33,11 @@ test('61 keeps X01 layout, camera PiP, timers and original scoring controls with
  }
  await p.keyboard.press('Enter');await p.keyboard.press('2');await p.keyboard.press('Numpad2');await p.keyboard.press('0');await p.keyboard.press('Numpad0');await p.keyboard.press('Backspace');a.equal(await p.evaluate(()=>hits),3);a.equal(await p.evaluate(()=>misses),3);
  await p.locator('#sixtyOneHistoryButton').click();await p.keyboard.press('Enter');a.ok(await p.locator('#sixtyOneHistoryDialog').evaluate(e=>e.open));await p.keyboard.press('2');await p.keyboard.press('0');a.equal(await p.evaluate(()=>hits),3);a.equal(await p.evaluate(()=>misses),3);await p.keyboard.press('Escape');a.equal(await p.locator('#sixtyOneHistoryDialog').evaluate(e=>e.open),false);
+ // Use actual 61 HTML and all linked styles: no live text may remain
+ // visible in the composited background after the final overlay mounts.
+ await p.setViewportSize({width:1640,height:819});
+ await p.evaluate(()=>{document.body.classList.add('da-result-open');const overlay=document.createElement('div');overlay.id='dartArenaResultOverlay';overlay.className='da-result-overlay';overlay.innerHTML='<section class="da-result-card"><span class="da-result-stat-name">Winner</span></section>';document.body.append(overlay)});
+ const final=await p.evaluate(()=>({main:getComputedStyle(document.querySelector('main')).opacity,live:['name1','name2','turnText'].map(id=>getComputedStyle(document.getElementById(id)).visibility),result:getComputedStyle(document.querySelector('.da-result-stat-name')).visibility}));
+ a.equal(final.main,'0');a.ok(final.live.every(v=>v==='hidden'));a.equal(final.result,'visible');
  }finally{await browser.close()}
 });

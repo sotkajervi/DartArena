@@ -2,7 +2,7 @@ const {test}=require('node:test'),a=require('node:assert/strict'),fs=require('no
 const {chromium}=require('playwright');
 const routes=['match.html','cricket.html','half-it.html','61-match.html','jdc-match.html','room.html'];
 test('All online entry points, including same-page Cricket and Pentathlon room, load fresh shared CSS',()=>{
- for(const p of routes)a.match(fs.readFileSync(p,'utf8'),/shared-results\.css\?v=20261125-online-result-labels1/,p);
+ for(const p of routes)a.match(fs.readFileSync(p,'utf8'),/shared-results\.css\?v=20261125-final-surface1/,p);
 });
 test('Live camera name labels are hidden on every online final screen, but not live or between legs',async()=>{
  const browser=await chromium.launch({headless:true});
@@ -32,5 +32,21 @@ test('Live camera name labels are hidden on every online final screen, but not l
   await p.evaluate(()=>{document.body.classList.remove('da-result-open');document.getElementById('ptStageOverlay').hidden=true;document.getElementById('ptFinished').hidden=true});
   a.ok((await states()).every(x=>x.display!=='none'&&x.visible==='visible'),name);
  }
+ }finally{await browser.close()}
+});
+
+test('Final overlay hides all live scoreboard text even when late stable name CSS forces visibility',async()=>{
+ const browser=await chromium.launch({headless:true});try{
+  const p=await browser.newPage();
+  for(const pentathlon of [false,true]){
+   await p.setContent('<body class="match-page sixty-one-match-page own-turn-focus '+(pentathlon?'pt-online-test':'')+'"><main><section id="matchView"><span class="match-name">Player A</span><span class="sixty-one-player-name">Player B</span><span class="turn-text">A vant kampen</span><span id="extraLive">Other live text</span></section></main><div id="'+(pentathlon?'ptStageOverlay':'dartArenaResultOverlay')+'"><section id="ptFinished"><span class="match-name da-result-stat-name">Result name</span></section></div></body>');
+   for(const f of ['shared-results.css','stable-player-names.css','stable-video-labels.css'])await p.addStyleTag({content:fs.readFileSync(f,'utf8')});
+   await p.addStyleTag({content:'#extraLive{visibility:visible!important;opacity:1!important}'});
+   const measure=()=>p.evaluate(()=>({main:getComputedStyle(document.querySelector('main')).opacity,live:[...document.querySelectorAll('main .match-name,main .sixty-one-player-name,main .turn-text')].map(e=>getComputedStyle(e).visibility),result:getComputedStyle(document.querySelector('.da-result-stat-name')).visibility,resultOpacity:getComputedStyle(document.querySelector('.da-result-stat-name')).opacity}));
+   const live=await measure();a.equal(live.main,'1');a.ok(live.live.every(x=>x==='visible'));
+   await p.evaluate(()=>document.body.classList.add('da-result-open'));
+   const final=await measure();a.equal(final.main,'0');a.ok(final.live.every(x=>x==='hidden'));a.equal(final.result,'visible');a.equal(final.resultOpacity,'1');
+   await p.evaluate(()=>document.body.classList.remove('da-result-open'));a.deepEqual(await measure(),live);
+  }
  }finally{await browser.close()}
 });
