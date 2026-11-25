@@ -50,16 +50,16 @@ body.sixty-one-match-page.da-result-open .match-grid{display:none!important}
  body.sixty-one-match-page.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #videoGrid{grid-area:video!important;height:100%!important;max-height:100%!important;min-height:0!important;align-self:stretch!important;transition:none!important}
  body.sixty-one-match-page.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #focusInputDock{grid-area:input!important;align-self:start!important;margin:0!important}
  body.sixty-one-match-page.match-page.match-tv-layout.standard-tv-layout .match-grid{overflow:auto!important}
- body.sixty-one-match-page.match-page.match-tv-layout.standard-tv-layout .match-grid>.match-info{min-height:0!important;flex:1 0 auto!important}
- body.sixty-one-match-page.match-page.match-tv-layout .match-player{min-height:0!important;padding:8px!important}
- body.sixty-one-match-page.match-page.match-tv-layout .match-score{font-size:clamp(44px,7dvh,72px)!important;margin:5px 0!important}
+ body.sixty-one-match-page.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)) .match-grid>.match-info{min-height:0!important;flex:1 0 auto!important}
+ body.sixty-one-match-page.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-player{min-height:0!important;padding:8px!important}
+ body.sixty-one-match-page.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-score{font-size:clamp(44px,7dvh,72px)!important;margin:5px 0!important}
 }
 @media(max-width:800px){
  body.sixty-one-match-page.match-page.match-tv-layout #matchView{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto auto;grid-template-areas:"head" "score" "video" "input";gap:7px}
  body.sixty-one-match-page.match-page.match-tv-layout .match-grid{max-height:none!important;overflow:visible!important}
- body.sixty-one-match-page.match-page.match-tv-layout .match-players{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
- body.sixty-one-match-page.match-page.match-tv-layout .match-player{padding:7px!important;min-height:0!important}
- body.sixty-one-match-page.match-page.match-tv-layout .match-score{font-size:clamp(38px,10vw,58px)!important;margin:4px 0!important}
+ body.sixty-one-match-page.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-players{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+ body.sixty-one-match-page.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-player{padding:7px!important;min-height:0!important}
+ body.sixty-one-match-page.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-score{font-size:clamp(38px,10vw,58px)!important;margin:4px 0!important}
  body.sixty-one-match-page.match-page.match-tv-layout #videoGrid{height:clamp(150px,26dvh,260px)!important;max-height:none!important}
  body.sixty-one-match-page.match-tv-layout .match-info{margin:4px 0 0!important;padding:6px!important}
  body.sixty-one-match-page.match-tv-layout .sixty-one-status-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
@@ -73,7 +73,7 @@ body.sixty-one-match-page.da-result-open .match-grid{display:none!important}
 /* Keep every timer control inside the existing desktop X01 sidebar.
    Compact the layout instead of masking an overflowing scrollbar. */
 @media(min-width:801px){
- body.sixty-one-match-page.match-page.match-tv-layout.standard-tv-layout .match-grid>.sixty-one-timer-card{
+ body.sixty-one-match-page.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)) .match-grid>.sixty-one-timer-card{
    display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
    grid-template-rows:auto auto auto auto auto auto auto;
    align-content:start;align-items:center;gap:3px 6px;padding:7px 9px!important;
@@ -95,11 +95,15 @@ body.sixty-one-match-page.da-result-open .match-grid{display:none!important}
 }
 @media(min-width:801px) and (max-height:760px){
  body.sixty-one-match-page.match-page.match-tv-layout .match-grid>.score-card{padding:6px!important}
- body.sixty-one-match-page.match-page.match-tv-layout .match-player{padding:6px!important}
- body.sixty-one-match-page.match-page.match-tv-layout .match-score{font-size:clamp(36px,6.6dvh,54px)!important;margin:3px 0!important}
+ body.sixty-one-match-page.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-player{padding:6px!important}
+ body.sixty-one-match-page.match-page.match-tv-layout:not(:has(#cricketBoard)) .match-score{font-size:clamp(36px,6.6dvh,54px)!important;margin:3px 0!important}
  body.sixty-one-match-page.match-tv-layout .sixty-one-scoreboard{gap:4px!important}
  body.sixty-one-match-page.match-tv-layout .sixty-one-highout{margin-top:2px}
  body.sixty-one-match-page.match-tv-layout .sixty-one-highout b{font-size:12px}
  body.sixty-one-match-page.match-tv-layout #turnText{margin:2px 0!important}
  body.sixty-one-match-page.match-tv-layout .sixty-one-control-card{margin-top:2px}
+}
+
+@media(min-width:801px){
+ body.sixty-one-match-page.match-page.match-tv-layout.standard-tv-layout:not(:has(#cricketBoard)) .match-grid>.sixty-one-timer-card{flex:1 0 auto!important;justify-content:stretch!important;}
 }

@@ -17,8 +17,8 @@ test('61 keeps X01 layout, camera PiP, timers and original scoring controls with
   if(width>800){
    for(const started of [false,true]){
     await p.evaluate(started=>document.getElementById('startTimeBtn').classList.toggle('hidden',started),started);
-    const fit=await p.evaluate(()=>{const timer=document.querySelector('.sixty-one-timer-card'),side=document.querySelector('.match-grid'),cam=document.getElementById('cameraBtn').getBoundingClientRect();return {timer:timer.scrollHeight-timer.clientHeight,sidebar:side.scrollHeight-side.clientHeight,camera:cam.bottom,sideBottom:side.getBoundingClientRect().bottom}});
-    a.ok(fit.timer<=1&&fit.sidebar<=1&&fit.camera<=fit.sideBottom+1,JSON.stringify({width,height,started,fit}));
+    const fit=await p.evaluate(()=>{const timer=document.querySelector('.sixty-one-timer-card'),side=document.querySelector('.match-grid'),cam=document.getElementById('cameraBtn').getBoundingClientRect();return {display:getComputedStyle(timer).display,timer:timer.scrollHeight-timer.clientHeight,sidebar:side.scrollHeight-side.clientHeight,camera:cam.bottom,sideBottom:side.getBoundingClientRect().bottom}});
+    a.ok(fit.display==='grid'&&fit.timer<=1&&fit.sidebar<=1&&fit.camera<=fit.sideBottom+1,JSON.stringify({width,height,started,fit}));
    }
    await p.evaluate(()=>document.getElementById('startTimeBtn').classList.remove('hidden'));
   }
