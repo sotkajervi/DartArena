@@ -2,11 +2,10 @@
 const $=id=>document.getElementById(id),matchId=new URLSearchParams(location.search).get('id');
 const wait=setInterval(()=>{if(!window.supabase||!$('p1Card')||!$('p2Card')||typeof canAct!=='function'||typeof tickClock!=='function'||typeof tryFinalize!=='function')return;clearInterval(wait);boot()},100);
 async function boot(){
- const db2=window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK');
  const mk=(card,id)=>{if($(id))return;const e=document.createElement('div');e.id=id;e.className='sixty-one-highout';e.innerHTML='<span>HØYESTE I LEGET</span><b>—</b>';card.appendChild(e)};mk($('p1Card'),'highOut1');mk($('p2Card'),'highOut2');
  const timerCard=document.querySelector('.sixty-one-timer-card');let b=$('startTimeBtn');if(!b){b=document.createElement('button');b.id='startTimeBtn';b.className='primary wide sixty-one-start-btn';b.textContent='▶ START TID';timerCard.insertBefore(b,$('pauseBtn'))}
  let note=$('sharedStartNote');if(!note){note=document.createElement('div');note.id='sharedStartNote';note.className='sixty-one-start-note';note.textContent='Venter på felles start';timerCard.insertBefore(note,b)}
- let sharedState=null;
+ let starting=false;
  const sharedEnd=()=>state?.game_started_at?new Date(state.game_started_at).getTime()+Number(state.leg_duration_seconds||600)*1000:null;
  const originalCanAct=canAct;
  canAct=function(){
@@ -31,15 +30,34 @@ async function boot(){
    if(state.is_paused)return;
    const left=sharedEnd()-Date.now();$('clock').textContent=fmt(left);$('clock').classList.toggle('done',left<=0);if(left<=0)tryFinalize();
  };
- async function load(){
-   const{data,error}=await db2.from('sixty_one_match_state').select('game_started_at,player1_high_checkout,player2_high_checkout,leg_duration_seconds,sudden_death,sudden_death_target,sudden_death_first_result,is_paused').eq('match_id',matchId).single();if(error)return;sharedState=data;
-   const started=!!data.game_started_at;b.classList.toggle('hidden',started);document.body.classList.toggle('sixty-one-not-started',!started);
-   if(data.sudden_death)note.textContent=`SUDDEN DEATH • ${data.sudden_death_target} • begge får ett forsøk`;
+ // The authoritative state is already refreshed by the match engine's
+ // existing realtime channel. Never maintain a second start-status snapshot.
+ function syncStartUI(){
+   const playing=m?.status==='playing',started=!!state?.game_started_at;
+   b.classList.toggle('hidden',!playing||started);
+   b.disabled=!playing||!state||starting||started;
+   b.textContent=starting?'Starter…':'▶ START TID';
+   document.body.classList.toggle('sixty-one-not-started',!playing||!started);
+   if(!playing)note.textContent='';
+   else if(state?.sudden_death)note.textContent=`SUDDEN DEATH • ${state.sudden_death_target} • begge får ett forsøk`;
    else note.textContent=started?'Felles servertid aktiv':'Begge klare? Start tiden';
-   tickClock();
  }
- b.onclick=async()=>{b.disabled=true;b.textContent='Starter…';const{error}=await db2.rpc('start_sixty_one_match',{p_match_id:matchId});if(error){b.disabled=false;b.textContent='▶ START TID';alert(error.message);return}await load();try{await refreshGame()}catch{}};
- db2.channel('61-shared-start-'+matchId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'sixty_one_match_state',filter:`match_id=eq.${matchId}`},load).subscribe();await load();
+ const baseRender=render;
+ render=function(...args){const value=baseRender.apply(this,args);syncStartUI();return value};
+ syncStartUI();
+ if(m&&state&&profile)render();
+ b.onclick=async()=>{
+   if(starting||!m||m.status!=='playing'||!state||state.game_started_at)return;
+   starting=true;syncStartUI();
+   try{
+     const{error}=await db.rpc('start_sixty_one_match',{p_match_id:matchId});
+     if(error)throw error;
+     await refreshGame();
+   }catch(error){
+     try{await refreshGame()}catch{}
+     if(!state?.game_started_at)alert(error?.message||String(error));
+   }finally{starting=false;syncStartUI()}
+ };
  let tries=0;const adopt=()=>{tries++;if(typeof clockTimer!=='undefined'&&clockTimer){clearInterval(clockTimer);clockTimer=setInterval(tickClock,250);return}if(tries<80)setTimeout(adopt,250)};adopt();
 }
 })();
