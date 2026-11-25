@@ -127,6 +127,10 @@
            resuming
          });
          released=true;
+         // The common match header already contains the viewer pill.
+         // Start its existing Presence module only after successful handoff.
+         // An optional viewer counter must never block a playable match.
+         await script('spectator-presence.js?v=20261104-shared-auth1').catch(error=>console.warn('[Pentathlon viewer count]',error));
          return true;
        }
        // Load the existing match modules only after the room is released and

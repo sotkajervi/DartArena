@@ -5,7 +5,7 @@ test('Pentathlon loads the same cancellation dialog before entering the scene',(
  const branch=handoff.slice(handoff.indexOf('// Pentathlon uses the same X01 match.js'),handoff.indexOf('// Load the existing match modules'));
  a.ok(branch.indexOf("await script('cancelled-match-modal.js")>=0);
  a.ok(branch.indexOf("await script('cancelled-match-modal.js")<branch.indexOf('await test.enter('));
- a.match(fs.readFileSync('room.html','utf8'),/challenge-same-page-handoff-dev\.js\?v=20261125-penta-cancel1/);
+ a.match(fs.readFileSync('room.html','utf8'),/challenge-same-page-handoff-dev\.js\?v=20261125-viewer-count1/);
 });
 test('Cancellation replaces a review popup and blocks further score actions',()=>{
  const ids=['ptStageOverlay','ptResultsOverlay','ptPointsOverlay','ptInput','ptXSubmit','ptSSubmit','ptAdvance','cancelMatchBtn','ptStatus'];

@@ -5,7 +5,6 @@ body.pt-online-test #cancelMatchBtn[hidden],
 body.pt-online-test #ptPanel [hidden],
 body.pt-online-test .focus-input-dock #ptX01[hidden],
 body.pt-online-test .focus-input-dock #ptSpecial[hidden]{display:none!important}
-body.pt-online-test #viewerCount{display:none!important}
 /* On completed/review stages there is no active throw: don't create an empty grid row. */
 body.pt-online-test:not(.own-turn-focus) .focus-input-dock{display:none!important}
 body.pt-online-test .pt-stage{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:5px;

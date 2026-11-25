@@ -41,5 +41,5 @@ test('All exercises share existing two-line colors and equal-width layout',()=>{
  a.match(css,/\[data-layout="four"\]\{\s*grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
  const html=fs.readFileSync('room.html','utf8');
  a.match(html,/pentathlon-room-test\.js\?v=20261125-special-buttons1/);
- a.match(html,/pentathlon-room-test\.css\?v=20261125-special-buttons1/);
+ a.match(html,/pentathlon-room-test\.css\?v=20261125-viewer-count1/);
 });
