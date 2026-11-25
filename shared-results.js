@@ -357,7 +357,7 @@
     const names=await namesFor(m),provider=window.DartArenaResults.getProvider(providerKey(m));
     let payload;try{payload=await provider(m,resultDb)}catch(e){console.warn('Result provider failed',providerKey(m),e);payload=await buildGeneric(m)}
     const stats=payload?.stats||{},summary=payload?.summary||[],winnerName=m.winner_id?names[m.winner_id]||'Vinner':'Kampen';
-    const score=scoreInfo(m),ordered=orderedScore(m,score),label=payload?.label||gameLabel(m),format=payload?.format||formatLabel(m);
+    const score=payload?.score||scoreInfo(m),ordered=orderedScore(m,score),label=payload?.label||gameLabel(m),format=payload?.format||formatLabel(m);
     const[leftId,rightId]=displayOrder(m),leftName=names[leftId]||'Spiller 1',rightName=names[rightId]||'Spiller 2';
     const overlay=mountOverlay(`<section class="da-result-card da-result-card--match" role="dialog" aria-modal="true" aria-label="Kampresultat"><div class="da-result-kicker">KAMP FERDIG</div><h1 class="da-result-title"><span class="da-result-winner-name">${esc(winnerName)}</span>${m.winner_id?' vant!':' er ferdig'}</h1><div class="da-result-sub">${esc(label)} • ${esc(format)}</div><div class="da-result-scorebox">${ordered.left}<span>–</span>${ordered.right}</div><div class="da-result-stats">${playerCardHtml(leftId,leftName,m,stats[leftId])}${playerCardHtml(rightId,rightName,m,stats[rightId])}</div>${compactSummaryHtml(summary,names)}<div class="da-result-actions" style="grid-template-columns:1fr"><button id="daResultLobby" class="primary" type="button">Til hovedlobby</button></div><p class="da-result-note">DartArena • resultatet er lagret i kamphistorikken</p></section>`);
     // Append optional per-player heatmaps without changing scoring statistics.

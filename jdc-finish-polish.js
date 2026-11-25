@@ -64,14 +64,9 @@
 
   function polishSharedOverlay(){
     const overlay=document.getElementById('dartArenaResultOverlay');
-    const d=currentData();
-    if(!overlay||!d)return false;
-
-    const title=overlay.querySelector('.da-result-title');
-    if(title)title.innerHTML=`<span class="da-result-winner-name">${d.winnerName}</span> slo ${d.loserName}`;
-
-    const scoreBox=overlay.querySelector('.da-result-scorebox');
-    if(scoreBox)scoreBox.innerHTML=`${d.winnerScore}<span>–</span>${d.loserScore}`;
+    if(!overlay)return false;
+    // Shared result owns the title, winner order, score and navigation.
+    // Only add JDC-specific tier information.
 
     overlay.querySelectorAll('.da-result-statrow').forEach(row=>{
       const label=row.querySelector('span')?.textContent?.trim();
@@ -104,10 +99,6 @@
       else overlay.querySelector('.da-result-card')?.appendChild(grid);
     }
 
-    const lobbyBtn=overlay.querySelector('#daResultLobby');
-    if(lobbyBtn)lobbyBtn.remove();
-    const closeBtn=overlay.querySelector('#daResultClose');
-    if(closeBtn){closeBtn.textContent='Lukk kampfane';closeBtn.classList.remove('outline');closeBtn.classList.add('primary')}
     return true;
   }
 

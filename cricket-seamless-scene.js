@@ -16,7 +16,7 @@
   'score-meta.css?v=20261004-legdarts1',
   'fx-live.css?v=20261023-sweep2',
   'online-heatmap-result.css?v=20261023-heatmap4',
-  'shared-results.css?v=20261104-cricket-clean-result-labels1',
+  'shared-results.css?v=20261125-online-result-labels1',
   'stable-video-labels.css?v=20260930-label1'
  ];
  function loadMatchStyles(){

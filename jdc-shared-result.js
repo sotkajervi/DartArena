@@ -22,14 +22,8 @@
       ];
     };
 
-    // Shared-results uses legs in its main score box. JDC uses the official point score,
-    // so replace only that value after the shared overlay has mounted.
-    setTimeout(()=>{
-      const box=document.querySelector('#dartArenaResultOverlay .da-result-scorebox');
-      if(box)box.innerHTML=`${Number(m.player1_score||0)}<span>–</span>${Number(m.player2_score||0)}`;
-    },0);
-
     return{
+      score:{a:out[m.player1_id].score,b:out[m.player2_id].score,label:'POENG'},
       label:'JDC Challenge',
       format:'57 piler hver • Online-verifisert',
       stats:{[m.player1_id]:mk(m.player1_id),[m.player2_id]:mk(m.player2_id)},

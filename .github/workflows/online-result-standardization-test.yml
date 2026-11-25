@@ -1,0 +1,17 @@
+name: Online result standardization regression
+on:
+  push:
+    branches: ['test/online-results-standardization-20261125']
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          for f in shared-results.js jdc-shared-result.js jdc-finish-polish.js cricket-seamless-scene.js; do node --check "$f"; done
+          node --test tests/online-result-standardization.test.cjs tests/result-stat-row-align.test.cjs tests/half-it-leg-scores.test.cjs tests/half-it-single-result.test.cjs tests/pentathlon-final-lobby.test.cjs
