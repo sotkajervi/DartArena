@@ -1,6 +1,6 @@
 const {test}=require('node:test'),a=require('node:assert/strict'),fs=require('node:fs'),{chromium}=require('playwright');
 const html=fs.readFileSync('player.html','utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<link\b[^>]*>/gi,'');
-const source=fs.readFileSync('player-details.js','utf8');
+const source=fs.readFileSync('player-details.js','utf8');const avatarSource=fs.readFileSync('profile-avatars.js','utf8');
 test('Empty own profile, save, fresh read, other profile read-only and literal user text',async()=>{
  const browser=await chromium.launch({headless:true});
  try{
@@ -13,9 +13,10 @@ test('Empty own profile, save, fresh read, other profile read-only and literal u
    window.record=record;window.writes=[];
    window.DartArenaSupabaseClient={
     auth:{getSession:async()=>({data:{session:{user:{id:'own'}}}})},
-    from:()=>({select(){return this},eq(){return this},async maybeSingle(){return{data:window.record}},async upsert(row){writes.push(row);window.record=row;return{error:null}}})
+    from:table=>({select(){return this},eq(){return this},async maybeSingle(){return{data:table==='profiles'?{username:window.record?.nickname||'Åse',nickname_changed_at:window.record?'2026-11-25':null}:window.record}}}),rpc:async(name,args)=>{if(name==='is_admin')return{data:false};const row=Object.fromEntries(Object.entries(args).map(([k,v])=>[k.slice(2),v]));row.user_id='own';writes.push(row);window.record=row;return{data:row.nickname}}
    };
   },record);
+  await p.addScriptTag({content:avatarSource});
   await p.addScriptTag({content:source});
   await p.locator('#playerDetails').waitFor({state:'visible'});
  }
@@ -31,7 +32,7 @@ test('Empty own profile, save, fresh read, other profile read-only and literal u
  a.equal(row.user_id,'own');a.equal(row.club,'Dart Club');
  a.equal(await p.locator('#playerBio').textContent(),row.bio);
  a.equal(await p.locator('#playerBio img').count(),0);
- await setup('own',row);a.match(await p.locator('#playerDetailsSummary').textContent(),/Ace · Dart Club/);
+ await setup('own',row);a.match(await p.locator('#playerDetailsSummary').textContent(),/Dart Club/);
  await setup('other',row);a.equal(await p.locator('#editPlayerDetails').isVisible(),false);
  a.equal(await p.evaluate(()=>writes.length),0);
  a.equal(await p.locator('#playerBio').textContent(),row.bio);

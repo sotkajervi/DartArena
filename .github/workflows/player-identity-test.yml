@@ -1,0 +1,36 @@
+name: Nicknames and avatars isolated validation
+on:
+  push:
+    branches: ['test/profile-identity-20261126']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: profile_test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check profile-avatars.js
+          node --check app.js
+          node --check lobby-social.js
+          node --check player-details.js
+          node --check player-profile.js
+          node --check dartarena-i18n.js
+          node --test tests/player-details.test.cjs tests/new-games-i18n.test.cjs tests/player-identity.test.cjs tests/lobby-form-avg.test.cjs
+      - run: psql -h localhost -U postgres -d profile_test -f tests/player-identity-db.sql
+        env:
+          PGPASSWORD: test
+      - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.58.2
+      - run: npx playwright install --with-deps chromium
+      - run: node --test tests/player-details-browser.test.cjs
