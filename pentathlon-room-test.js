@@ -275,15 +275,15 @@ async function ensureScene(){
 
 function choice(key,label,dart){
  const b=node('button','outline',label);b.type='button';b.dataset.key=key;
- // Shanghai uses the original choice buttons with a two-line label.
- // Keep the same click and keyboard handlers; only change presentation.
+
+ // Reuse the existing Shanghai / Klokka two-line scoring buttons for
+ // all special exercises, without changing their inputs or shortcuts.
  const kind=stage()?.kind;
- if((kind==='shanghai'&&['0','1','2','3'].includes(key))||
-    (kind==='clock'&&['0','2'].includes(key))){
+ if(['shanghai','clock','half'].includes(kind)&&['0','1','2','3'].includes(key)){
    b.classList.add('pt-special-hit-choice');
-   const name=kind==='clock'?
-     (key==='0'?'BOM':'TREFF D'+dart.n):
-     (key==='0'?'BOM':key==='1'?'SINGLE':key==='2'?'DOBBEL':'TRIPPEL');
+   const fixedHalf=kind==='half'&&!!E.currentTarget(game())?.mult;
+   const name=key==='0'?'BOM':kind==='clock'?'TREFF D'+dart.n:fixedHalf?'TREFF':
+     key==='1'?'SINGLE':key==='2'?'DOBBEL':'TRIPPEL';
    b.replaceChildren(
      node('span','pt-special-hit-name',name),
      node('span','pt-special-hit-key',key)
@@ -295,6 +295,7 @@ function choice(key,label,dart){
 }
 function actions(){
  const c=stage(),kind=c.kind,host=$('ptChoices');host.replaceChildren();
+ host.dataset.layout=kind==='shanghai'||(kind==='half'&&!E.currentTarget(game())?.mult)?'four':'two';
  if(kind==='shanghai'){
    const n=E.currentTarget(game()).number;
    choice('1','1 · SINGEL',{n,m:1});choice('2','2 · DOBBEL',{n,m:2});choice('3','3 · TRIPPEL',{n,m:3});

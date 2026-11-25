@@ -1,0 +1,16 @@
+name: Pentathlon special buttons test
+on:
+  push:
+    branches: ['test/pentathlon-special-buttons-20261125']
+permissions:
+  contents: read
+jobs:
+  buttons:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check pentathlon-room-test.js
+      - run: node --test tests/pentathlon-special-buttons.test.cjs tests/pentathlon-stage-points.test.cjs tests/pentathlon-2p.test.cjs tests/pentathlon-room-test.test.cjs tests/pentathlon-cancellation.test.cjs tests/pentathlon-leg-selector.test.cjs

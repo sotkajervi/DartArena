@@ -346,8 +346,28 @@ body.pt-online-test.pt-shanghai-active .focus-input-dock .pt-choices button{
  }
 }
 
-/* Original scoring buttons: one consistent two-line style for Shanghai
-   and Klokka rundt. No separate button implementation or input handlers. */
+/* Shared Shanghai-style scoring layout for all three special exercises.
+   Fixed targets use two equal columns; open targets use four. */
+body.pt-online-test .focus-input-dock .pt-choices[data-layout="two"],
+body.pt-online-test .focus-input-dock .pt-choices[data-layout="four"]{
+ display:grid;gap:6px;
+}
+body.pt-online-test .focus-input-dock .pt-choices[data-layout="two"]{
+ grid-template-columns:repeat(2,minmax(0,1fr));
+}
+body.pt-online-test .focus-input-dock .pt-choices[data-layout="four"]{
+ grid-template-columns:repeat(4,minmax(0,1fr));
+}
+body.pt-online-test .focus-input-dock .pt-choices[data-layout] button{
+ min-width:0;padding:9px 5px;font-size:12px;font-weight:900;
+}
+@media(max-width:800px){
+ body.pt-online-test .focus-input-dock .pt-choices[data-layout="four"]{
+   grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+}
+
+/* Original Shanghai and Klokka two-line style, now shared by Half-It. */
 body.pt-online-test .focus-input-dock .pt-choices button.pt-special-hit-choice{
  display:flex;flex-direction:column;align-items:center;justify-content:center;
  gap:4px;line-height:1.15;min-height:60px;
