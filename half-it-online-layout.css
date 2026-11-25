@@ -89,3 +89,6 @@ body.half-it-page #halfResultsTitle{font-size:18px;color:#00eaf4}
  body.half-it-page.match-tv-layout .match-info{margin:4px 0 0!important;padding:6px!important}
  body.half-it-page.match-tv-layout .half-status-list{margin:0}
 }
+
+/* Match the shared X01 starter icon and keep names centered. */
+body.half-it-page.match-tv-layout .half-player-name.match-name{justify-content:center;gap:6px;min-width:0}

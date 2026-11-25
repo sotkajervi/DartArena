@@ -43,8 +43,8 @@
 
     const enabled=canThrow();
     host.innerHTML=`<div class="half-standard-41-actions">
-      <button id="halfExact41Hit" class="half-standard-41-hit" type="button" ${enabled?'':'disabled'}>✓ TREFF <span class="da-key">ENTER</span></button>
-      <button id="halfExact41Miss" class="half-standard-41-miss" type="button" ${enabled?'':'disabled'}>✕ BOM <span class="da-key">BACKSPACE</span></button>
+      <button id="halfExact41Hit" class="half-standard-41-hit" type="button" ${enabled?'':'disabled'}>✓ TREFF <span class="da-key">2</span></button>
+      <button id="halfExact41Miss" class="half-standard-41-miss" type="button" ${enabled?'':'disabled'}>✕ BOM <span class="da-key">0</span></button>
     </div>`;
 
     const hit=$('halfExact41Hit'),miss=$('halfExact41Miss');
@@ -73,11 +73,11 @@
     const tag=event.target?.tagName;
     if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||event.target?.isContentEditable)return;
 
-    if(event.code==='Enter'||event.code==='NumpadEnter'){
+    if(event.key==='2'){
       event.preventDefault();
       event.stopImmediatePropagation();
       $('halfExact41Hit')?.click();
-    }else if(event.key==='Backspace'){
+    }else if(event.key==='0'){
       event.preventDefault();
       event.stopImmediatePropagation();
       $('halfExact41Miss')?.click();

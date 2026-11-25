@@ -1,0 +1,17 @@
+name: Half-It starter and 41 shortcuts test
+on:
+  push:
+    branches: ['test/half-it-starter-41-20261125']
+permissions:
+  contents: read
+jobs:
+  layout:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          for f in half-it-online-layout.js half-it-bootstrap.js half-it-standard.js half-it.js half-it-multileg.js half-it-standard-41-buttons.js; do node --check "$f" || exit 1; done
+          node --test tests/half-it-starter-41.test.cjs tests/half-it-online-layout.test.cjs tests/half-it-viewer-count.test.cjs tests/pentathlon-viewer-count.test.cjs tests/x01-leg-starter-marker.test.cjs
