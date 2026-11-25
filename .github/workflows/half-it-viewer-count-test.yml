@@ -1,0 +1,16 @@
+name: Half-It viewer counter test
+on:
+  push:
+    branches: ['test/half-it-viewer-count-20261125']
+permissions:
+  contents: read
+jobs:
+  viewer-count:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check spectator-presence.js
+      - run: node --test tests/half-it-viewer-count.test.cjs tests/pentathlon-viewer-count.test.cjs tests/half-it-online-layout.test.cjs
