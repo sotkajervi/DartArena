@@ -6,6 +6,12 @@
   if(window.DartArenaI18n)return;
   const KEY='dartarena-language';
   const translations=Object.freeze({
+  "Ingen fullførte Pentathlon-kamper ennå.": "No completed Pentathlon matches yet.",
+  "Kunne ikke laste topplisten. Prøv Oppdater.": "Could not load the leaderboard. Try Refresh.",
+  "Ugyldig kamp-ID.": "Invalid match ID.",
+  "Logg inn i DartArena først.": "Log in to DartArena first.",
+  "Fant ikke en tilgjengelig Pentathlon-test for denne kontoen. Åpne venterommet fra lobbyen.": "No available Pentathlon test found for this account. Open the waiting room from the lobby.",
+  "SE SLUTTRESULTAT →": "VIEW FINAL RESULT →",
   // New game interface translations (2026-11-25)
   "Kampforløp": "Match history",
   "HØYESTE I LEGET": "HIGHEST IN LEG",
@@ -1464,6 +1470,32 @@
   const originalAttrs=new WeakMap();
   const ignored='script,style,svg,canvas,code,pre,textarea,[contenteditable],[data-no-i18n],.brand,.brand-logo,.chat-message,.chat-bubble,.chat-msg,.da-chat-message,.dart-chat-message,.dart-chat-meta,.dart-chat-body,.player-name,.da-welcome-user,.da-result-stat-name,.premium-player-name,.tournament-name';
   const dynamic=[
+
+    [/^ØVELSE (\d+) AV (\d+)$/,m=>'EVENT '+m[1]+' OF '+m[2]],
+    [/^PENTATHLON · ØVELSE (\d+) AV (\d+)$/,m=>'PENTATHLON · EVENT '+m[1]+' OF '+m[2]],
+    [/^(SHANGHAI|HALF-IT) · MÅL (\d+)\/(\d+)$/,m=>m[1]+' · TARGET '+m[2]+'/'+m[3]],
+    [/^MÅL (\d+) · (\d+)\/(\d+) PILER$/,m=>'TARGET '+m[1]+' · '+m[2]+'/'+m[3]+' DARTS'],
+    [/^(\d+) piler denne turen$/,m=>m[1]+' darts this visit'],
+    [/^Trykk Enter når du er ferdig\. (\d+) resterende (?:pil blir|piler blir) registrert som bom\.$/,m=>'Press Enter when finished. '+m[1]+' remaining '+(m[1]==='1'?'dart counts':'darts count')+' as misses.'],
+    [/^Seier med (\d+) poeng etter sju øvelser\.$/,m=>'Won by '+m[1]+' points after seven events.'],
+    [/^(.+) fikk flest Pentathlon-poeng i denne øvelsen\.$/,m=>m[1]+' scored the most Pentathlon points in this event.'],
+    [/^(.+) starter første 501-leg\.$/,m=>m[1]+' starts the first 501 leg.'],
+    [/^Neste øvelse er klar\. (.+) starter\.$/,m=>'The next event is ready. '+m[1]+' starts.'],
+    [/^Registrert (BUST|\d+)\. (.+) kaster nå\.$/,m=>'Recorded '+m[1]+'. '+m[2]+' is throwing now.'],
+    [/^FØRER (\d+)$/,m=>'DRIVER '+m[1]],
+    [/^Navn på fører (\d+)$/,m=>'Driver '+m[1]+' name'],
+    [/^Type fører (\d+)$/,m=>'Driver '+m[1]+' type'],
+    [/^Sikt på tallet (\d+)$/,m=>'Aim for number '+m[1]],
+    [/^KASTERUNDE (\d+)$/,m=>'VISIT '+m[1]],
+    [/^(\d+) RUNDE(R)?$/,m=>m[1]+(m[1]==='1'?' LAP':' LAPS')],
+    [/^(\d+) \/ (\d+) RUNDER$/,m=>m[1]+' / '+m[2]+' LAPS'],
+    [/^Løpet er over etter (\d+) kasterunder\. Alle førerne fikk like mange piler\.$/,m=>'The race ended after '+m[1]+' visits. All drivers had the same number of darts.'],
+    [/^Løpet er i gang! (.+) kaster først\.$/,m=>'The race is underway! '+m[1]+' throws first.'],
+    [/^(.+) gjør seg klar…$/,m=>m[1]+' is getting ready…'],
+    [/^Registrer tre piler for (.+)\.$/,m=>'Record three darts for '+m[1]+'.'],
+    [/^Kunne ikke gjenoppta: (.+)$/,m=>'Could not resume: '+m[1]],
+    [/^(\d+) forsøk$/,m=>m[1]+(m[1]==='1'?' attempt':' attempts')],
+
     // X01 match room, corrections and Chicago stage labels.
     [/^Korriger kast (.+)$/i,m=>'Correct visit '+m[1]],
     [/^Korriger (\d+(?: \(\d+p\))?)$/i,m=>'Correct '+m[1]],
