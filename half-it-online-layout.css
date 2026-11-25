@@ -59,19 +59,11 @@ body.half-it-page #halfResultsTitle{font-size:18px;color:#00eaf4}
  /* The number of keypad rows varies (20 doubles/trebles, exact choice etc.).
     The shared X01 frame is preserved, and the measured dock reserves room. */
  body.half-it-page.match-page.match-tv-layout.standard-tv-layout{
-   --da-x01-input-reserve:var(--half-dock-height,210px);
- }
- body.half-it-page.match-page.match-tv-layout.standard-tv-layout.own-turn-focus{
-   --da-x01-frame-height:max(calc(100dvh - 154px),calc(var(--da-x01-input-reserve) + 230px));
+   --da-x01-input-reserve:var(--half-dock-height,210px)!important;
  }
  body.half-it-page.match-tv-layout .focus-input-dock{max-width:100%}
  body.half-it-page.match-tv-layout .half-grid>.match-info{min-height:90px!important}
  body.half-it-page.match-tv-layout .half-grid{overflow:auto!important}
-}
-@media(min-width:801px) and (max-height:820px){
- body.half-it-page.match-page.match-tv-layout.standard-tv-layout.own-turn-focus{
-  --da-x01-frame-height:max(calc(100dvh - 144px),calc(var(--da-x01-input-reserve) + 230px))
- }
 }
 @media(max-width:800px){
  body.half-it-page.match-page.match-tv-layout #matchView{
@@ -100,7 +92,7 @@ body.half-it-page.match-tv-layout #focusInputDock{position:relative;isolation:is
 @media(min-width:801px){
  body.half-it-page.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #matchView{
    grid-template-areas:"head head" "score video" "score input"!important;
-   grid-template-rows:auto minmax(230px,calc(var(--da-x01-frame-height) - var(--da-x01-input-reserve))) auto!important;
+   grid-template-rows:auto minmax(120px,calc(var(--da-x01-frame-height) - var(--da-x01-input-reserve))) auto!important;
  }
  body.half-it-page.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #videoGrid{
    grid-area:video!important;height:100%!important;max-height:100%!important;
@@ -147,4 +139,18 @@ body.half-it-page.match-tv-layout .focus-input-dock .half-entry .half-quick butt
 @media(max-width:480px){
  body.half-it-page.match-tv-layout .focus-input-dock .half-entry .half-control-label{font-size:10px;letter-spacing:0}
  body.half-it-page.match-tv-layout .focus-input-dock .half-entry button .da-key{font-size:14px}
+}
+
+/* Keep the whole dock within the existing desktop X01 frame. The shared
+   stylesheet uses an ID inside :has(), so the measured reserve above must
+   explicitly win the cascade. The 8px reserve includes the grid row gap. */
+@media(min-width:801px){
+ body.half-it-page.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #focusInputDock{
+   min-height:0;
+ }
+ body.half-it-page.match-tv-layout .focus-input-dock .half-number-grid button{min-height:32px!important}
+}
+@media(min-width:801px) and (max-height:760px){
+ body.half-it-page.match-tv-layout.standard-tv-layout.own-turn-focus .focus-input-dock .half-entry :is(.half-quick button,.half-multiplier button,.half-exact-options button,.half-actions button,.half-standard-41-actions button){min-height:46px!important}
+ body.half-it-page.match-tv-layout .focus-input-dock .half-entry{padding:5px 7px}
 }

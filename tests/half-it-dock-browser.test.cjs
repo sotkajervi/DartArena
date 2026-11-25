@@ -21,11 +21,25 @@ test('Both online Half-It variants keep every control below the camera, even wit
    await page.addScriptTag({content:read('half-it-online-layout.js')});
    await page.addScriptTag({content:read('half-it-shortcuts.js')});
    await page.addScriptTag({content:"var $=id=>document.getElementById(id),m={status:'playing'},round={type:'number',target:20},selectedDarts=[],selectedMult=1;var currentRound=()=>round,canThrow=()=>true,addDart=()=>{};\n"+source(mode)});
-   for(const [width,height] of [[1440,800],[1024,768],[390,844]]){
+   for(const [width,height] of [[1640,819],[1440,800],[1024,768],[1024,650],[390,844]]){
      await page.setViewportSize({width,height});
      for(const kind of ['number','double','treble','bull','same']){
-       await page.evaluate(type=>{round={type,target:20};buildPad()},kind);
+       await page.evaluate(type=>{window.scrollTo(0,0);round={type,target:20};buildPad()},kind);
        await page.waitForFunction(()=>{const a=document.querySelector('#videoGrid').getBoundingClientRect(),b=document.querySelector('#focusInputDock').getBoundingClientRect();return a.height>0&&b.height>0&&a.bottom<=b.top+1});
+       if(width>800){
+         await page.waitForFunction(()=>{
+           const dock=document.getElementById('focusInputDock');
+           const measured=parseFloat(getComputedStyle(document.body).getPropertyValue('--half-dock-height'));
+           const reserve=parseFloat(getComputedStyle(document.body).getPropertyValue('--da-x01-input-reserve'));
+           return Math.abs(measured-dock.getBoundingClientRect().height-8)<2&&Math.abs(measured-reserve)<1;
+         });
+         const fit=await page.evaluate(()=>{
+           const dock=document.getElementById('focusInputDock'),r=dock.getBoundingClientRect();
+           const buttons=[...dock.querySelectorAll('button')].filter(b=>b.getClientRects().length).map(b=>({text:b.textContent,bottom:b.getBoundingClientRect().bottom}));
+           return {dockBottom:r.bottom,viewport:innerHeight,scrollY,buttons:buttons.filter(b=>b.bottom>innerHeight+1)};
+         });
+         assert.ok(fit.dockBottom<=fit.viewport+1&&fit.buttons.length===0&&fit.scrollY===0,JSON.stringify({mode,width,height,kind,fit}));
+       }
        const metrics=await page.evaluate(()=>{
          const video=document.getElementById('videoGrid').getBoundingClientRect(),dock=document.getElementById('focusInputDock').getBoundingClientRect(),pip=document.getElementById('localVideoCard').getBoundingClientRect();
          return {videoBottom:video.bottom,dockTop:dock.top,pipBottom:pip.bottom,videoZ:getComputedStyle(document.getElementById('videoGrid')).zIndex,dockZ:getComputedStyle(document.getElementById('focusInputDock')).zIndex};
@@ -41,7 +55,7 @@ test('Both online Half-It variants keep every control below the camera, even wit
          const positions=await page.evaluate(()=>({hit:document.querySelector('.half-quick button').getBoundingClientRect().top,miss:document.getElementById('halfMissBtn').getBoundingClientRect().top}));
          assert.ok(Math.abs(positions.hit-positions.miss)<2);
          const btn=page.locator('.half-quick button').last();
-         await btn.scrollIntoViewIfNeeded();
+         if(width<=800)await btn.scrollIntoViewIfNeeded();
          assert.ok(await btn.evaluate(el=>{const r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}));
        }
      }
