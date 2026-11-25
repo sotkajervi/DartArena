@@ -155,7 +155,7 @@
       out[m.player1_id].bestLeg=Math.max(out[m.player1_id].bestLeg,as);out[m.player2_id].bestLeg=Math.max(out[m.player2_id].bestLeg,bs);
       let winnerId=as>bs?m.player1_id:bs>as?m.player2_id:null;
       if(!winnerId&&leg===lastLeg&&m.status==='finished')winnerId=m.winner_id||null;
-      wins.push({label:`Leg ${leg}`,winnerId});
+      wins.push({label:`Leg ${leg}`,winnerId,metric:{label:'SLUTTSCORE',values:{[m.player1_id]:a?.score_after==null?'–':as,[m.player2_id]:b?.score_after==null?'–':bs}}});
     }
     const mk=id=>{const s=out[id];return fillStats([
       {label:'TREFFRUNDER',value:s.ok},
@@ -163,7 +163,7 @@
       {label:'SUKSESS',value:pct(s.ok,s.total)},
       {label:'BESTE LEG',value:s.bestLeg}
     ])};
-    return{stats:{[m.player1_id]:mk(m.player1_id),[m.player2_id]:mk(m.player2_id)},summary:cumulativeSummary(wins,m)};
+    return{stats:{[m.player1_id]:mk(m.player1_id),[m.player2_id]:mk(m.player2_id)},summary:cumulativeSummary(wins,m).map((row,index)=>({...row,metric:wins[index].metric}))};
   }
 
   async function buildSixtyOne(m){
