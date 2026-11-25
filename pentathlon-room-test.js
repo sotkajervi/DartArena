@@ -292,6 +292,67 @@ function actions(){
 function stLabel(i){return E.STAGES[i]?.label||'Pentathlon'}
 
 // Compact stage-specific scoring reference. No changes to scoring rules.
+// Presentation only: use points already awarded by the authoritative stage
+// summary. A checkout's score points, leg win and speed bonus are distinct.
+function stagePointBreakdown(summary,p){
+ const total=summary?.pent?.[p];
+ if(!Number.isSafeInteger(total)||total<0||!Array.isArray(summary?.entries))return null;
+ if(!['x01','shanghai','clock','half'].includes(summary.kind))return null;
+ const groups=new Map();
+ let valid=true;
+ const add=(label,points,order)=>{
+   if(!Number.isSafeInteger(points)||points<0){valid=false;return}
+   if(!points)return;
+   const row=groups.get(label)||{label,count:0,points:0,order};
+   row.count++;row.points+=points;groups.set(label,row);
+ };
+ for(const e of summary.entries){
+   if(e.player!==p)continue;
+   const bonus=e.bonus;
+   if(!Number.isSafeInteger(bonus)||bonus<0){valid=false;break}
+   if(!bonus)continue;
+   if(summary.kind==='x01'){
+     if(e.type!=='visit'||e.bust){valid=false;break}
+     const leg=e.legPoints??0,speed=e.speedBonus??0;
+     if(!Number.isSafeInteger(leg)||leg<0||!Number.isSafeInteger(speed)||speed<0){valid=false;break}
+     const label=e.checkout?e.score+' utgang':e.score===180?'180':e.score>=160?'160–179':e.score>=131?'131–159':'95–130';
+     add(label,bonus-leg-speed,e.checkout?4:e.score===180?0:e.score>=160?1:e.score>=131?2:3);
+     add('Vunnet leg',leg,5);
+     add(summary.used?.[p]+'-pilers leg',speed,6);
+   }else if(summary.kind==='shanghai'){
+     const extra=e.shanghai===true?6:0,hit=bonus-extra;
+     const label=hit===1?'Single':hit===2?'Dobbel':hit===3?'Trippel':null;
+     if(hit&& !label){valid=false;break}
+     add(label||'Treff',hit,hit);
+     add('Shanghai-bonus',extra,4);
+   }else if(summary.kind==='clock'){
+     const extra=e.finishBonus??0;
+     add('Riktig dobbel',bonus-extra,1);
+     add('Ubrukte piler',extra,2);
+   }else{
+     const label=e.hit==='BULL 50'?'Bull 50':e.hit?.startsWith('S')?'Single':e.hit?.startsWith('D')?'Dobbel':e.hit?.startsWith('T')?'Trippel':null;
+     if(!label){valid=false;break}
+     add(label,bonus,label==='Single'?1:label==='Dobbel'?2:label==='Trippel'?3:4);
+   }
+ }
+ const rows=[...groups.values()].sort((a,b)=>a.order-b.order||a.label.localeCompare(b.label));
+ if(!valid||rows.reduce((sum,row)=>sum+row.points,0)!==total)return null;
+ return rows.map(({label,count,points})=>({label,count,points}));
+}
+function renderStagePointBreakdown(summary,p){
+ const box=node('div','pt-stage-point-breakdown');
+ const rows=stagePointBreakdown(summary,p);
+ if(!rows){box.append(node('span','pt-stage-point-empty','Poengfordeling utilgjengelig'));return box}
+ if(!rows.length){box.append(node('span','pt-stage-point-empty','Ingen poeng i øvelsen'));return box}
+ for(const row of rows){
+   const line=node('div','pt-stage-point-row');
+   const quantity=row.label==='Ubrukte piler'?row.points+' stk':row.count>1?row.count+' stk':'';
+   line.append(node('span','pt-stage-point-label',row.label+(quantity?' × '+(row.label==='Ubrukte piler'?row.points:row.count):'')),node('b','pt-stage-point-value',row.points+' P'));
+   box.append(line);
+ }
+ return box;
+}
+
 function renderPointsGuide(s){
  const index=Math.min(s.stageIndex,E.STAGES.length-1),info=E.STAGES[index];
  if(!info)return;
@@ -714,6 +775,7 @@ function render(){
    $('ptReviewDetails').replaceChildren();
    for(let i=0;i<2;i++){
      const card=node('div');card.append(node('h3','',s.players[i]),node('strong','',(last?.pent[i]||0)+' poeng'),
+       renderStagePointBreakdown(last,i),
        node('small','','Totalt: '+(last?.after[i]||0)+' Pentathlon-poeng'));
      $('ptReviewDetails').append(card);
    }

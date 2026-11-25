@@ -1,0 +1,16 @@
+name: Pentathlon exercise points test
+on:
+  push:
+    branches: [test/pentathlon-stage-points-20261125]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check pentathlon-room-test.js
+      - run: node --test tests/pentathlon-stage-points.test.cjs tests/pentathlon-2p.test.cjs tests/pentathlon-room-test.test.cjs

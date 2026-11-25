@@ -620,3 +620,12 @@ body.pt-online-test #ptStageOverlay .da-result-actions:has(#ptFinishedLobby){
 body.pt-online-test #ptStageOverlay #ptFinishedLobby{
  width:100%;flex:1 1 100%;max-width:none;
 }
+
+/* Stage result: itemized earned points, preserving the existing DA dialog. */
+body.pt-online-test #ptStageOverlay:has(#ptReview:not([hidden])) .pt-stage-modal{width:min(560px,94vw);max-height:90dvh;overflow:auto}
+body.pt-online-test #ptReviewDetails .pt-stage-point-breakdown{display:grid;gap:0;align-content:start;flex:1;text-align:left;border-top:1px solid rgba(66,119,127,.30);border-bottom:1px solid rgba(66,119,127,.30);padding:4px 0}
+body.pt-online-test #ptReviewDetails .pt-stage-point-row{display:flex;align-items:baseline;justify-content:space-between;gap:7px;padding:4px 2px;font-size:12px;line-height:1.25;color:#d5e6e8;border-bottom:1px solid rgba(66,119,127,.16)}
+body.pt-online-test #ptReviewDetails .pt-stage-point-row:last-child{border-bottom:0}
+body.pt-online-test #ptReviewDetails .pt-stage-point-label{min-width:0;overflow-wrap:anywhere}
+body.pt-online-test #ptReviewDetails .pt-stage-point-value{flex:0 0 auto;color:var(--cyan,#00eaf4);font-size:12px;font-weight:850;font-variant-numeric:tabular-nums;white-space:nowrap}
+body.pt-online-test #ptReviewDetails .pt-stage-point-empty{padding:6px 2px;text-align:center;color:#a4c7ca;font-size:11px}
