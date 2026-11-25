@@ -9,6 +9,6 @@
  if(dialog){
   $('sixtyOneHistoryButton').onclick=()=>{if(!dialog.open)dialog.showModal()};
   $('sixtyOneHistoryClose').onclick=()=>dialog.close();
-  window.addEventListener('keydown',e=>{if(dialog.open&&e.key!=='Escape')e.stopImmediatePropagation()},true);
+  window.addEventListener('keydown',e=>{if(!dialog.open||e.key==='Escape')return;if(['Enter','0','2','Backspace','p','P','z','Z'].includes(e.key)||['Numpad0','Numpad2','NumpadEnter'].includes(e.code))e.preventDefault();e.stopImmediatePropagation()},true);
  }
 })();

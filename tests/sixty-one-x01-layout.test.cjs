@@ -32,6 +32,6 @@ test('61 keeps X01 layout, camera PiP, timers and original scoring controls with
   await p.waitForFunction(()=>getComputedStyle(document.getElementById('focusInputDock')).display!=='none');
  }
  await p.keyboard.press('Enter');await p.keyboard.press('2');await p.keyboard.press('Numpad2');await p.keyboard.press('0');await p.keyboard.press('Numpad0');await p.keyboard.press('Backspace');a.equal(await p.evaluate(()=>hits),3);a.equal(await p.evaluate(()=>misses),3);
- await p.locator('#sixtyOneHistoryButton').click();await p.keyboard.press('Enter');await p.keyboard.press('2');await p.keyboard.press('0');a.equal(await p.evaluate(()=>hits),3);a.equal(await p.evaluate(()=>misses),3);await p.keyboard.press('Escape');a.equal(await p.locator('#sixtyOneHistoryDialog').evaluate(e=>e.open),false);
+ await p.locator('#sixtyOneHistoryButton').click();await p.keyboard.press('Enter');a.ok(await p.locator('#sixtyOneHistoryDialog').evaluate(e=>e.open));await p.keyboard.press('2');await p.keyboard.press('0');a.equal(await p.evaluate(()=>hits),3);a.equal(await p.evaluate(()=>misses),3);await p.keyboard.press('Escape');a.equal(await p.locator('#sixtyOneHistoryDialog').evaluate(e=>e.open),false);
  }finally{await browser.close()}
 });
