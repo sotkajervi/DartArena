@@ -1,0 +1,15 @@
+name: Pentathlon leg selector test
+on:
+  push:
+    branches: ['test/pentathlon-leg-selector-20261125']
+permissions:
+  contents: read
+jobs:
+  selector:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/pentathlon-leg-selector.test.cjs tests/pentathlon-room-test.test.cjs tests/pentathlon-stage-points.test.cjs tests/pentathlon-cancellation.test.cjs

@@ -1,14 +1,16 @@
 (()=>{
   if(typeof selectedGame!=='function')return;
   const games=window.DartArenaGames;
-  const isSpecial=g=>games?.isSpecial(g)??['chicago','cricket','half_it','half_it_standard','sixty_one'].includes(g);
+  const isSpecial=g=>games?.isSpecial(g)??['chicago','cricket','half_it','half_it_standard','sixty_one','jdc','pentathlon'].includes(g);
 
   syncGameMode=function(){
-    const g=selectedGame(),special=isSpecial(g),chicago=g==='chicago',sixty=g==='sixty_one';
+    const g=selectedGame(),special=isSpecial(g),chicago=g==='chicago',sixty=g==='sixty_one',pentathlon=g==='pentathlon';
     $('setsModeBtn').disabled=special;
     $('legsModeBtn').disabled=chicago;
     $('legsField').classList.toggle('hidden',chicago);
     $('sixtyOneTimeField').classList.toggle('hidden',!sixty);
+    $('roomLegs').disabled=pentathlon;
+    if(pentathlon)$('roomLegs').value='1';
     if(chicago)$('roomLegs').value='3';
     if(special)setMatchMode('legs');
   };
