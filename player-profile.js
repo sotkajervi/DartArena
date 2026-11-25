@@ -138,7 +138,8 @@ function renderMatches(){
 
 async function boot(){
   const {data:{session}}=await db.auth.getSession();
-  if(!session||!userId)return location.replace('./');
+  if(!session)return location.replace('./');
+  if(!userId)return location.replace('player.html?id='+encodeURIComponent(session.user.id));
   me=session.user.id;
   const sortSelect=$('historySort');
   if(sortSelect)sortSelect.onchange=()=>{activeSort=sortSelect.value;renderMatches()};

@@ -6,6 +6,21 @@
   if(window.DartArenaI18n)return;
   const KEY='dartarena-language';
   const translations=Object.freeze({
+  "Min profil": "My profile",
+  "Spillerinformasjon": "Player information",
+  "Rediger profil": "Edit profile",
+  "Valgfritt. Opplysningene vises til andre innloggede spillere. Ikke legg inn kontaktinformasjon.": "Optional. These details are visible to other signed-in players. Do not include contact information.",
+  "Kallenavn": "Nickname",
+  "Land": "Country",
+  "Dartklubb": "Darts club",
+  "Piler / utstyr": "Darts / equipment",
+  "Om meg": "About me",
+  "Lagre profil": "Save profile",
+  "Fyll ut profilen din hvis du ønsker.": "Fill in your profile if you wish.",
+  "Ingen ekstra spilleropplysninger ennå.": "No additional player details yet.",
+  "Profil lagret.": "Profile saved.",
+  "Kunne ikke lagre profilen. Prøv igjen.": "Could not save your profile. Please try again.",
+  "Kunne ikke laste spilleropplysninger.": "Could not load player details.",
   "Mitt heatmap · 501": "My heatmap · 501",
   "Periode": "Period",
   "Siste 30 dager": "Last 30 days",
