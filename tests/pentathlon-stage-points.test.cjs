@@ -29,7 +29,7 @@ test('All seven actual exercise summaries reconcile to the engine totals',()=>{
     s=E.submitX01(s,r<=170?{score,darts:3,doubleConfirmed:true}:{score});
    }else if(c.kind==='shanghai'){
     const n=E.currentTarget(s).number;
-    s=E.submitShanghaiTurn(s,[{n,m:1},{n,m:2},{n,m:3}]);
+    s=E.submitShanghaiTurn(s,p===0?[{n,m:1},{n,m:2},{n,m:3}]:n===1?[]:n===2?[{n,m:3},{n,m:3}]:[{n,m:1}]);
    }else if(c.kind==='clock'){
     const n=E.currentTarget(s).number;
     s=E.submitClockTurn(s,[{n,m:2}]);
@@ -40,7 +40,17 @@ test('All seven actual exercise summaries reconcile to the engine totals',()=>{
   }
   const summary=s.summaries.at(-1);
   sums(summary);
-  if(summary.kind==='shanghai')assert.ok(breakdown(summary,0).some(r=>r.label==='Shanghai-bonus'&&r.points===54));
+  if(summary.kind==='shanghai'){
+   const a=plain(breakdown(summary,0)),b=plain(breakdown(summary,1));
+   assert.equal(a.length,9);assert.equal(b.length,9);
+   for(let i=0;i<9;i++)assert.deepEqual(a[i],{label:(i+1)+': S · D · T (+6)',count:1,points:12});
+   assert.deepEqual(b[0],{label:'1: – · – · –',count:1,points:0});
+   assert.deepEqual(b[1],{label:'2: T · T · –',count:1,points:6});
+   for(let i=2;i<9;i++)assert.deepEqual(b[i],{label:(i+1)+': S · – · –',count:1,points:1});
+   assert.equal(summary.pent[1],13);
+   const bad=JSON.parse(JSON.stringify(summary));bad.entries.find(e=>e.player===0).target='TALL 10';
+   assert.equal(breakdown(bad,0),null);
+  }
   if(summary.kind==='clock')assert.ok(breakdown(summary,0).some(r=>r.label==='Riktig dobbel'));
   s=E.nextStage(s);
  }
@@ -53,5 +63,5 @@ test('Zero points, missing or inconsistent entries never invent scoring',()=>{
 });
 test('Existing per-player popup renders breakdown, exercise score and running total',()=>{
  assert.match(js,/renderStagePointBreakdown\(last,i\),\s*node\('small','','Totalt: '/);
- assert.match(fs.readFileSync('room.html','utf8'),/pentathlon-room-test\.js\?v=20261125-stage-ready2/);
+ assert.match(fs.readFileSync('room.html','utf8'),/pentathlon-room-test\.js\?v=20261125-shanghai-rounds1/);
 });

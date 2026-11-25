@@ -319,6 +319,24 @@ function stagePointBreakdown(summary,p){
  const total=summary?.pent?.[p];
  if(!Number.isSafeInteger(total)||total<0||!Array.isArray(summary?.entries))return null;
  if(!['x01','shanghai','clock','half'].includes(summary.kind))return null;
+ if(summary.kind==='shanghai'){
+   // Show each target independently, including scoreless rounds.
+   const rounds=Array.from({length:9},()=>({hits:[],points:0,extra:0}));
+   for(const e of summary.entries){
+     if(e.player!==p)continue;
+     const target=/^TALL ([1-9])$/.exec(e.target||'');
+     if(e.type!=='dart'||!target||!Number.isSafeInteger(e.bonus)||e.bonus<0)return null;
+     const n=Number(target[1]),round=rounds[n-1],extra=e.shanghai===true?6:0;
+     const hit=e.bonus-extra;
+     if(round.hits.length>=3||hit<0||hit>3)return null;
+     if(hit>0&&e.hit!==['','S','D','T'][hit]+n)return null;
+     round.hits.push(['–','S','D','T'][hit]);
+     round.points+=e.bonus;round.extra+=extra;
+   }
+   if(rounds.some(r=>r.hits.length!==3||r.extra!== (['S','D','T'].every(h=>r.hits.includes(h))?6:0))||
+      rounds.reduce((sum,r)=>sum+r.points,0)!==total)return null;
+   return rounds.map((r,i)=>({label:(i+1)+': '+r.hits.join(' · ')+(r.extra?' (+6)':''),count:1,points:r.points}));
+ }
  const groups=new Map();
  let valid=true;
  const add=(label,points,order)=>{
@@ -340,12 +358,6 @@ function stagePointBreakdown(summary,p){
      add(label,bonus-leg-speed,e.checkout?4:e.score===180?0:e.score>=160?1:e.score>=131?2:3);
      add('Vunnet leg',leg,5);
      add(summary.used?.[p]+'-pilers leg',speed,6);
-   }else if(summary.kind==='shanghai'){
-     const extra=e.shanghai===true?6:0,hit=bonus-extra;
-     const label=hit===1?'Single':hit===2?'Dobbel':hit===3?'Trippel':null;
-     if(hit&& !label){valid=false;break}
-     add(label||'Treff',hit,hit);
-     add('Shanghai-bonus',extra,4);
    }else if(summary.kind==='clock'){
      const extra=e.finishBonus??0;
      add('Riktig dobbel',bonus-extra,1);
