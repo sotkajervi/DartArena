@@ -19,7 +19,7 @@ create or replace function dartarena_identity_private.guard_name() returns trigg
 begin
  if new.username is distinct from old.username then
    if not dartarena_identity_private.valid_nick(new.username) then raise exception 'invalid_nickname' using errcode='22023';end if;
-   if old.nickname_changed_at is not null and old.nickname_changed_at>now()-interval '30 days' and not (select public.is_admin()) then raise exception 'nickname_cooldown' using errcode='22023';end if;
+   if old.nickname_changed_at is not null and old.nickname_changed_at>now()-interval '14 days' and not (select public.is_admin()) then raise exception 'nickname_cooldown' using errcode='22023';end if;
    new.nickname_changed_at=now();
  end if;
  return new;

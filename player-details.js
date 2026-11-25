@@ -34,7 +34,7 @@ function boot(w){
   if(!own&&staff&&!w.confirm(t('Lagre endringer på denne spillerens profil?')))return;
   save.disabled=true;status.textContent=t('Lagrer…');
   try{const {data,error}=await client.rpc(own?'save_player_identity':'staff_save_player_identity',{...Object.fromEntries(Object.entries(payload).map(([k,v])=>['p_'+k,v])),...(!own?{p_user_id:uid}:{})});if(error)throw error;const old=displayName;displayName=data||displayName;record=payload;if(old!==displayName){changedAt=new Date().toISOString();$('playerName').textContent=displayName;d.title='DartArena • '+displayName}render();dialog.close();$('playerDetailsStatus').textContent=t('Profil lagret.')}
-  catch(e){status.textContent=t(e?.code==='23505'?'Kallenavnet er allerede i bruk.':String(e?.message).includes('nickname_cooldown')?'Du kan endre kallenavn én gang hver 30. dag.':'Kunne ikke lagre profilen. Prøv igjen.')}finally{save.disabled=false}
+  catch(e){status.textContent=t(e?.code==='23505'?'Kallenavnet er allerede i bruk.':String(e?.message).includes('nickname_cooldown')?'Du kan endre kallenavn én gang hver 14. dag.':'Kunne ikke lagre profilen. Prøv igjen.')}finally{save.disabled=false}
  });
  async function load(){
   const {data:{session}}=await client.auth.getSession();if(!session)return;
