@@ -1,0 +1,44 @@
+name: Pentathlon both players ready test
+on:
+  push:
+    branches: ['test/pentathlon-ready-20261125']
+permissions:
+  contents: read
+jobs:
+  isolated:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: isolated-only
+          POSTGRES_DB: pentathlon_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGDATABASE: pentathlon_test
+      PGUSER: postgres
+      PGPASSWORD: isolated-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check pentathlon-room-test.js
+      - run: node --test tests/pentathlon-stage-points.test.cjs tests/pentathlon-2p.test.cjs tests/pentathlon-room-test.test.cjs
+      - name: Set up isolated PostgreSQL
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f tests/pentathlon-server-test-schema.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/pentathlon-server-validation.sql
+          psql -X -v ON_ERROR_STOP=1 -f db/pentathlon-stage-ready-candidate.sql
+      - run: node tests/pentathlon-stage-ready.cjs
+      - name: Verify rollback in isolated database
+        run: psql -X -v ON_ERROR_STOP=1 -f db/pentathlon-stage-ready-rollback.sql

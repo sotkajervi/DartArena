@@ -629,3 +629,8 @@ body.pt-online-test #ptReviewDetails .pt-stage-point-row:last-child{border-botto
 body.pt-online-test #ptReviewDetails .pt-stage-point-label{min-width:0;overflow-wrap:anywhere}
 body.pt-online-test #ptReviewDetails .pt-stage-point-value{flex:0 0 auto;color:var(--cyan,#00eaf4);font-size:12px;font-weight:850;font-variant-numeric:tabular-nums;white-space:nowrap}
 body.pt-online-test #ptReviewDetails .pt-stage-point-empty{padding:6px 2px;text-align:center;color:#a4c7ca;font-size:11px}
+
+/* Both players acknowledge the exercise result before the next stage. */
+#ptStageOverlay #ptCloseStageModal[hidden]{display:none!important}
+#ptStageOverlay #ptReview:has(#ptAdvance:disabled) #ptAdvance{cursor:default;opacity:.72}
+#ptStageOverlay #ptReviewCaption{min-height:2.5em}

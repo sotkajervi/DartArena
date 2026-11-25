@@ -8,13 +8,15 @@ const $=id=>document.getElementById(id),db=R.client(),challengeId=R.challengeId(
 if(!challengeId)return;
 let uid=null,challenge=null,record=null,channel=null,poll=null,pending=[],saving=false,lastInputTurn=null,sceneReady=false,sceneConfigured=false,sceneLoading=null,activeMatchId=null,entering=null;
 let bootReady=false,resumeMatchId=null;
-let lastCompletionPopupKey=null;
+let lastCompletionPopupKey=null,stageReadyError='';
 const copy=o=>JSON.parse(JSON.stringify(o));
 const clean=o=>{const a=copy(o);delete a.undo;return a};
 const game=()=>record?.state,stage=()=>game()?.current;
 let matchPlayerIds=null;
 const player=()=>matchPlayerIds?matchPlayerIds.indexOf(uid):(uid===challenge?.challenger_id?0:1);
 const mine=()=>game()?.status==='playing'&&stage()?.turn===player();
+const readyMask=()=>Number(record?.stage_ready_mask||0);
+const ownReady=()=>player()>=0&&!!(readyMask() & (1 << player()));
 const msg=(s,bad=false)=>{const el=$('ptMessage');if(el){el.textContent=s;el.classList.toggle('error',bad)}};
 function node(tag,cls,value){const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el}
 
@@ -160,6 +162,7 @@ async function ensureScene(){
    // constraints to leak into the modal; dialogs belong under <body>.
    document.body.appendChild(stageOverlay);
    const closeStage=()=>{
+     if(game()?.status==='review')return;
      stageOverlay.hidden=true;
      $('ptShowStageResult')?.focus();
    };
@@ -717,10 +720,12 @@ function render(){
  $('ptSpecial').hidden=!live||c.kind==='x01';
  $('ptReview').hidden=!review;
  $('ptFinished').hidden=!finished;
- $('ptShowStageResult').hidden=!(review||finished);
+ $('ptShowStageResult').hidden=!finished;
+ $('ptCloseStageModal').hidden=review;
+ if(review)$('ptStageOverlay').hidden=false;
  const completionKey=(review||finished)?s.stageIndex+':'+s.status:null;
  if(completionKey!==lastCompletionPopupKey){
-   lastCompletionPopupKey=completionKey;
+   lastCompletionPopupKey=completionKey;stageReadyError='';
    if(completionKey){
      const overlay=$('ptStageOverlay');
      overlay.hidden=false;
@@ -764,14 +769,14 @@ function render(){
      });
    }
  }else lastInputTurn=null;
- $('ptAdvance').disabled=saving;
+ $('ptAdvance').disabled=saving||ownReady();
  $('ptStatus').textContent=review?'Øvelse fullført':finished?'Ferdig':'Pågår';
- $('ptAdvance').textContent=s.stageIndex===6?'SE SLUTTRESULTAT →':'NESTE ØVELSE →';
+ $('ptAdvance').textContent=ownReady()?'VENTER PÅ MOTSTANDER … (1/2)':saving&&review?'BEKREFTER …':s.stageIndex===6?'SE SLUTTRESULTAT →':'NESTE ØVELSE →';
 
  if(review){
    const last=s.summaries.at(-1);
    $('ptReviewTitle').textContent=(last?.label||'Øvelse')+' · Resultat';
-   $('ptReviewCaption').textContent='Poengene er lagt til den samlede stillingen.';
+   $('ptReviewCaption').textContent=stageReadyError|| (ownReady()?'Du er klar. Venter på motstanderen (1/2).':readyMask()?'Motstanderen er klar (1/2). Bekreft når du er klar.':'Poengene er lagt til den samlede stillingen. Begge må bekrefte (0/2).');
    $('ptReviewDetails').replaceChildren();
    for(let i=0;i<2;i++){
      const card=node('div');card.append(node('h3','',s.players[i]),node('strong','',(last?.pent[i]||0)+' poeng'),
@@ -930,8 +935,8 @@ async function save(action,next){
      p_challenge_id:challengeId,p_expected_version:version,p_action:action,p_next:next
    });
    if(error)throw error;
-   record=data;pending=[];$('ptInput').value='';render();msg('Registrert.');await broadcast();
- }catch(e){msg('Kunne ikke lagre: '+(e.message||e)+'. Henter ny kampstatus.',true);await refresh()}
+   if(!record||data.version>=record.version)record=data;pending=[];$('ptInput').value='';stageReadyError='';render();msg('Registrert.');await broadcast();
+ }catch(e){if(action==='advance')stageReadyError='Kunne ikke bekrefte. Henter kampstatus. Prøv igjen om nødvendig.';msg('Kunne ikke lagre: '+(e.message||e)+'. Henter ny kampstatus.',true);await refresh()}
  finally{saving=false;if(record)render()}
 }
 function turnState(next){const n=clean(next);n.undo=[clean(game())];return n}
@@ -976,7 +981,8 @@ function submitSpecial(){
  }catch(e){msg(e.message||String(e),true)}
 }
 function advance(){
- if(game()?.status!=='review'||saving)return;
+ if(game()?.status!=='review'||saving||ownReady())return;
+ stageReadyError='';
  try{const n=clean(E.nextStage(game()));n.undo=[];save('advance',n)}
  catch(e){msg(e.message||String(e),true)}
 }
