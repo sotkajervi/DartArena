@@ -277,7 +277,7 @@ function choice(key,label,dart){
  const b=node('button','outline',label);b.type='button';b.dataset.key=key;
 
  // Reuse the existing Shanghai / Klokka two-line scoring buttons for
- // all special exercises, without changing their inputs or shortcuts.
+ // all special exercises. Fixed targets share key 2, independent of multiplier.
  const kind=stage()?.kind;
  if(['shanghai','clock','half'].includes(kind)&&['0','1','2','3'].includes(key)){
    b.classList.add('pt-special-hit-choice');
@@ -304,7 +304,8 @@ function actions(){
    if(n<=20)choice('2','TREFF D'+n+' · 2',{n,m:2});
  }else if(kind==='half'){
    const t=E.currentTarget(game());
-   for(const m of t.mult?[t.mult]:[1,2,3]){
+   if(t.mult)choice('2','TREFF · 2',{n:t.number,m:t.mult});
+   else for(const m of [1,2,3]){
      choice(String(m),(m===1?'SINGLE':m===2?'DOUBLE':'TRIPLE')+' · '+m,{n:t.number,m});
    }
  }

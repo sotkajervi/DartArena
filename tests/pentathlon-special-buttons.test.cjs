@@ -21,8 +21,9 @@ test('Shanghai and open Half-It use identical four buttons and shortcuts',()=>{
 test('Half-It D7, T10 and Bull use Treff and Bom, preserving actual field and key',()=>{
  for(const [n,m] of [[7,2],[10,3],[25,2]]){
   const s=scene('half',{number:n,mult:m});
-  a.equal(s.layout,'two');a.deepEqual(labels(s),['TREFF/'+m,'BOM/0']);
-  s.buttons[0].onclick();a.equal(s.pending[0].n,n);a.equal(s.pending[0].m,m);
+  a.equal(s.layout,'two');a.deepEqual(labels(s),['TREFF/2','BOM/0']);
+  a.deepEqual(s.buttons.map(b=>b.dataset.key),['2','0']);
+  s.buttons.find(b=>b.dataset.key==='2').onclick();a.equal(s.pending[0].n,n);a.equal(s.pending[0].m,m);
   s.buttons[1].onclick();a.equal(s.pending[1].n,0);a.equal(s.pending[1].m,0);
  }
 });
@@ -40,6 +41,6 @@ test('All exercises share existing two-line colors and equal-width layout',()=>{
  a.match(css,/\[data-layout="two"\]\{\s*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
  a.match(css,/\[data-layout="four"\]\{\s*grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
  const html=fs.readFileSync('room.html','utf8');
- a.match(html,/pentathlon-room-test\.js\?v=20261125-special-buttons1/);
+ a.match(html,/pentathlon-room-test\.js\?v=20261125-fixed-target-key1/);
  a.match(html,/pentathlon-room-test\.css\?v=20261125-viewer-count1/);
 });

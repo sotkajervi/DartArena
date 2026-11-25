@@ -63,5 +63,5 @@ test('Zero points, missing or inconsistent entries never invent scoring',()=>{
 });
 test('Existing per-player popup renders breakdown, exercise score and running total',()=>{
  assert.match(js,/renderStagePointBreakdown\(last,i\),\s*node\('small','','Totalt: '/);
- assert.match(fs.readFileSync('room.html','utf8'),/pentathlon-room-test\.js\?v=20261125-special-buttons1/);
+ assert.match(fs.readFileSync('room.html','utf8'),/pentathlon-room-test\.js\?v=20261125-fixed-target-key1/);
 });
