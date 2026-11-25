@@ -48,6 +48,15 @@ test('the timer is wired to the authoritative finished_at value and cleanup',()=
   assert.match(handoff,/post-match-media-lifecycle\.js\?v=20261112-postmatch60m1/);
 });
 test('media and telemetry services expose stop methods',()=>{
-  assert.match(fs.readFileSync(path.join(root,'match-sfu-media.js'),'utf8'),/window\.DartArenaMatchMedia=\{mode:'sfu',stop:/);
+  for(const file of ['match-sfu-media.js','match-sfu-media-secure.js']){
+    const code=fs.readFileSync(path.join(root,file),'utf8');
+    const exported=code.match(/window\.DartArenaMatchMedia=\{mode:'sfu',[^\n]+/);
+    assert.ok(exported,file+' must expose the match media API');
+    assert.match(exported[0],/\bstop:stopMedia\b/,file+' must expose the actual cleanup function');
+    assert.match(code,/function stopMedia\(/,file);
+  }
+  const lifecycle=fs.readFileSync(path.join(root,'post-match-media-lifecycle.js'),'utf8');
+  assert.match(lifecycle,/await root\.DartArenaMatchMedia\?\.stop\?\.\(\)/);
+  assert.match(lifecycle,/await root\.DartArenaMediaTelemetry\?\.stop\?\.\(\)/);
   assert.match(fs.readFileSync(path.join(root,'match-media-telemetry.js'),'utf8'),/DartArenaMediaTelemetry=\{flush,stop,/);
 });
