@@ -176,6 +176,7 @@ async function ensureScene(){
    document.body.appendChild(stageOverlay);
    const closeStage=()=>{
      if(game()?.status==='review')return;
+     if(game()?.status==='finished'){location.replace('./');return}
      stageOverlay.hidden=true;
      $('ptShowStageResult')?.focus();
    };
@@ -755,6 +756,10 @@ function render(){
  $('ptFinished').hidden=!finished;
  $('ptShowStageResult').hidden=!finished;
  $('ptCloseStageModal').hidden=review;
+ $('ptCloseStageModal').textContent=finished?'Til hovedlobby':'Lukk';
+ $('ptCloseStageModal').setAttribute('aria-label',finished?'Til hovedlobby':'Lukk øvelsesresultat');
+ $('ptShowStageResult').textContent='Se sluttresultat';
+ const cancelBtn=$('cancelMatchBtn');if(cancelBtn)cancelBtn.hidden=finished;
  if(review)$('ptStageOverlay').hidden=false;
  const completionKey=(review||finished)?s.stageIndex+':'+s.status:null;
  if(completionKey!==lastCompletionPopupKey){
