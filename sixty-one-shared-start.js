@@ -5,9 +5,9 @@ async function boot(){
  const mk=(card,id)=>{if($(id))return;const e=document.createElement('div');e.id=id;e.className='sixty-one-highout';e.innerHTML='<span>HØYESTE I LEGET</span><b>—</b>';card.appendChild(e)};mk($('p1Card'),'highOut1');mk($('p2Card'),'highOut2');
  const timerCard=document.querySelector('.sixty-one-timer-card');let b=$('startTimeBtn');if(!b){b=document.createElement('button');b.id='startTimeBtn';b.className='primary wide sixty-one-start-btn';b.textContent='▶ START TID';timerCard.insertBefore(b,$('pauseBtn'))}
  let note=$('sharedStartNote');if(!note){note=document.createElement('div');note.id='sharedStartNote';note.className='sixty-one-start-note';note.textContent='Venter på felles start';timerCard.insertBefore(note,b)}
- let starting=false;
+ const pauseBtn=$('pauseBtn');
+ let starting=false,pauseBusy=false;
  const sharedEnd=()=>state?.game_started_at?new Date(state.game_started_at).getTime()+Number(state.leg_duration_seconds||600)*1000:null;
- const originalCanAct=canAct;
  canAct=function(){
    if(!m||!state||m.status!=='playing'||m.turn_player_id!==profile?.id||submitting)return false;
    if(!state.game_started_at||state.is_paused)return false;
@@ -26,10 +26,16 @@ async function boot(){
    if(!state||!m)return;
    syncClockNote();
    if(m.status!=='playing'){return}
-   if(state.sudden_death){$('clock').textContent='SUDDEN DEATH';$('clock').classList.remove('done');return}
-   if(!state.game_started_at){$('clock').textContent=fmt(Number(state.leg_duration_seconds||600)*1000);$('clock').classList.remove('done');return}
-   if(state.is_paused)return;
-   const left=sharedEnd()-Date.now();$('clock').textContent=fmt(left);$('clock').classList.toggle('done',left<=0);if(left<=0)tryFinalize();
+   const clock=$('clock');
+   const paused=!!state.is_paused&&!state.sudden_death&&!!state.game_started_at;
+   clock.classList.toggle('paused',paused);
+   if(state.sudden_death){clock.textContent='SUDDEN DEATH';clock.classList.remove('done');return}
+   if(!state.game_started_at){clock.textContent=fmt(Number(state.leg_duration_seconds||600)*1000);clock.classList.remove('done');return}
+   const frozenAt=state.paused_at?new Date(state.paused_at).getTime():Date.now();
+   const left=sharedEnd()-(paused?frozenAt:Date.now()),display=fmt(left);
+   if(clock.textContent!==display)clock.textContent=display;
+   clock.classList.toggle('done',!paused&&left<=0);
+   if(!paused&&left<=0)tryFinalize();
  };
  // The authoritative state is already refreshed by the match engine's
  // existing realtime channel. Never maintain a second start-status snapshot.
@@ -40,6 +46,7 @@ async function boot(){
    b.textContent=starting?'Starter…':'▶ START TID';
    document.body.classList.toggle('sixty-one-not-started',!playing||!started);
    syncClockNote();
+   syncPauseUI();
  }
  function syncClockNote(){
    const playing=m?.status==='playing',started=!!state?.game_started_at;
@@ -47,6 +54,7 @@ async function boot(){
    let message='';
    if(playing){
      if(state?.sudden_death)message=`SUDDEN DEATH • ${state.sudden_death_target} • begge får ett forsøk`;
+     else if(state?.is_paused)message='Pauset · tiden står stille';
      else if(expired){
        const p1=Number(state.player1_attempts||0),p2=Number(state.player2_attempts||0),remaining=Math.abs(p1-p2);
        const lastId=p1<p2?m.player1_id:m.player2_id;
@@ -57,6 +65,23 @@ async function boot(){
    }
    if(note.textContent!==message)note.textContent=message;
    note.classList.toggle('time-up',!!expired);
+ }
+ function syncPauseUI(){
+   const active=m?.status==='playing'&&!!state?.game_started_at&&!state.sudden_death;
+   const paused=active&&!!state.is_paused;
+   pauseBtn.disabled=!active||pauseBusy;
+   pauseBtn.classList.toggle('active',paused);
+   const label=paused?'▶ FORTSETT':'⏸ PAUSE';
+   if(pauseBtn.dataset.pauseLabel!==label){
+     pauseBtn.dataset.pauseLabel=label;
+     pauseBtn.textContent=label+' ';
+     const key=document.createElement('span');key.className='da-key';key.textContent='P';pauseBtn.append(key);
+   }
+   if(paused){
+     $('matchStatus').textContent='Pauset';
+     $('turnText').textContent=(names?.[state.paused_by]||'En spiller')+' pauset kampen';
+     for(const id of ['hitBtn','missBtn','undoBtn'])$(id).disabled=true;
+   }
  }
  const baseRender=render;
  render=function(...args){const value=baseRender.apply(this,args);syncStartUI();return value};
@@ -73,6 +98,20 @@ async function boot(){
      try{await refreshGame()}catch{}
      if(!state?.game_started_at)alert(error?.message||String(error));
    }finally{starting=false;syncStartUI()}
+ };
+ pauseBtn.onclick=async()=>{
+   if(pauseBusy||!m||m.status!=='playing'||!state?.game_started_at||state.sudden_death)return;
+   const shouldPause=!state.is_paused;
+   pauseBusy=true;syncPauseUI();
+   try{
+     const {error}=await db.rpc('set_sixty_one_pause',{p_match_id:matchId,p_paused:shouldPause});
+     if(error)throw error;
+     await refreshGame();
+     $('matchMessage').textContent=state.is_paused?'Kampen er pauset. Tiden står stille.':'Kampen fortsetter.';
+   }catch(error){
+     try{await refreshGame()}catch{}
+     $('matchMessage').textContent=String(error?.message||'Kunne ikke endre pause.').includes('Time is up')?'Tiden er ute – legen må avgjøres.':String(error?.message||'Kunne ikke endre pause.');
+   }finally{pauseBusy=false;syncPauseUI()}
  };
  let tries=0;const adopt=()=>{tries++;if(typeof clockTimer!=='undefined'&&clockTimer){clearInterval(clockTimer);clockTimer=setInterval(tickClock,250);return}if(tries<80)setTimeout(adopt,250)};adopt();
 }
