@@ -28,3 +28,6 @@ jobs:
       - run: psql -h localhost -U postgres -d profile_test -f tests/player-details-db.sql
         env:
           PGPASSWORD: test
+      - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.58.2
+      - run: npx playwright install --with-deps chromium
+      - run: node --test tests/player-details-browser.test.cjs

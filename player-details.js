@@ -14,7 +14,7 @@ function boot(w){
   $('playerDetailsSummary').textContent=[record.nickname,record.country,record.club].filter(Boolean).join(' · ');
   $('playerBio').textContent=record.bio;
   const equipment=$('playerEquipment');equipment.replaceChildren();
-  if(record.equipment){const label=d.createElement('span');label.textContent=t('Piler / utstyr');const value=d.createElement('strong');value.textContent=record.equipment;equipment.append(label,value)}
+  if(record.equipment){const label=d.createElement('span');label.textContent=t('Piler / utstyr');const value=d.createElement('strong');value.setAttribute('data-no-i18n','');value.textContent=record.equipment;equipment.append(label,value)}
   equipment.hidden=!record.equipment;
   $('playerDetailsStatus').textContent=Object.values(record).some(Boolean)?'':t(own?'Fyll ut profilen din hvis du ønsker.':'Ingen ekstra spilleropplysninger ennå.');
   edit.hidden=!own||!loaded;
