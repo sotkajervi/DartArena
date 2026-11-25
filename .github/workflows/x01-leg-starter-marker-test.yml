@@ -14,3 +14,5 @@ jobs:
           node-version: '22'
       - run: node --check x01-leg-starter-marker.js
       - run: node tests/x01-leg-starter-marker.test.cjs
+      - run: node --check fx-live.js && node --check fx-match-bridge.js && node --check match.js && node --check throw-log.js
+      - run: node --test tests/fx-live.test.cjs tests/fx-match-bridge.test.cjs tests/x01-score-recovery.test.cjs

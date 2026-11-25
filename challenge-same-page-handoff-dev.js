@@ -99,7 +99,7 @@
        // The match page owns the new authenticated SFU session.
        await script('match-preferred-media.js?v=20261031-owner1');
        // Module scope isolates match.js declarations from classic room.js globals.
-       await script('match.js?v=20261123-common-x01-bridge16',{module:true});
+       await script('match.js?v=20261125-score-roll1',{module:true});
        if(typeof window.DartArenaBootLiveMatch!=='function')throw Error('Kampmotor mangler');
        await window.DartArenaBootLiveMatch(liveMatchId);
        window.DartArenaMediaTrace?.mark('MATCH_ENGINE_BOOTED');
@@ -111,7 +111,7 @@
          await script('opponent-focus.js?v=20261026-owncam-pip1');
          await script('match-controls.js?v=20261123-action-label25');
          await script('dartarena-dialog.js?v=20261027-correction2');
-         await script('throw-log.js?v=20261123-shared-lastthree31');
+         await script('throw-log.js?v=20261125-score-roll1');
          await script('match-media-router.js?v=20261104-preserve-challenge1');
          const test=window.DartArenaPentathlonMatchTest;
          if(typeof test?.enter!=='function')throw Error('Pentathlon-spillmotoren er ikke lastet');
@@ -132,8 +132,8 @@
        // scoring has an authenticated live-match ID. Reuse scripts already on
        // the tournament page instead of initializing duplicate media listeners.
        const modules=[
-         'fx-live.js?v=20261023-sweep2',
-         'fx-match-bridge.js?v=20261104-correct-match-id1',
+         'fx-live.js?v=20261125-score-roll1',
+         'fx-match-bridge.js?v=20261125-score-roll1',
          'autozoom/heatmap-math.js?v=20261023-final2',
          'online-heatmap-chart.js?v=20261023-shareheat1',
          'online-heatmap-result.js?v=20261104-shared-auth1',
@@ -143,7 +143,7 @@
           'x01-stable-sidebar.js?v=20261104-measure1',
          'dartarena-dialog.js?v=20261027-correction2',
          'cancelled-match-modal.js?v=20261103-tournament-return3',
-         'throw-log.js?v=20261104-shared-auth1',
+         'throw-log.js?v=20261125-score-roll1',
          'set-engine.js?v=20261124-score-recovery1',
          'x01-leg-starter-marker.js?v=20261125-live-starter1',
          'checkout-engine.js?v=20261121-score-sync1',

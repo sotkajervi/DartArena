@@ -12,6 +12,8 @@ const mid=window.DartArenaMatchEngineState?.matchId?.()||(samePage?null:params.g
 if(!FX||!mid||!window.supabase)return;
 const db=(window.DartArenaSupabaseClient||window.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK'));
 const effects={...FX.DEFAULT_EFFECTS,neon_relay:false};
+const scoreEngine=window.DartArenaMatchEngineState;
+let displayed=scoreEngine?.match?.()||null,rollingSeq=0;
 let fx=null,stage=null,cached=null,me=null,channel=null,disposed=false,lastAppliedUpdate=null;
 const transitions=[],pending=new Map(),seen=new Set();
 const scorePair=m=>({p1:Number(m?.player1_score),p2:Number(m?.player2_score)});
@@ -90,6 +92,33 @@ function parseTransition(before,after,visit){
     previousTurnSlot,nextTurnSlot,legEnded:!comparable(before,after),
     matchEnded:after.status==='finished',beforeScores,afterScores};
 }
+// Start the existing countdown in the same render task as the authoritative
+// score update, rather than waiting for a second Realtime INSERT/UPDATE pair.
+// The confirmed-visit bridge still owns rail and turn effects.
+function beforeScoreRender(next){
+  if(disposed||!next||String(next.id)!==String(mid))return;
+  const before=displayed;displayed=next;
+  if(!before||!fx)return;
+  const a=scorePair(before),b=scorePair(next);
+  const changed=['p1','p2'].filter(slot=>a[slot]!==b[slot]);
+  if(!comparable(before,next)||next.status==='cancelled'){
+    fx.syncSnapshot(b,{resetEffects:true});return;
+  }
+  if(!changed.length)return;
+  const slot=changed[0],player=slot==='p1'?before.player1_id:before.player2_id;
+  const scored=a[slot]-b[slot];
+  const valid=changed.length===1&&before.status==='playing'&&
+    before.turn_player_id===player&&numeric(a[slot])&&numeric(b[slot])&&
+    Number.isInteger(scored)&&scored>0&&scored<=180&&b[slot]!==1&&
+    ((next.status==='playing'&&next.turn_player_id===
+      (slot==='p1'?before.player2_id:before.player1_id)&&b[slot]>=2)||
+     (next.status==='finished'&&next.winner_id===player&&b[slot]===0));
+  if(!valid||stage!==stageKey(next)){fx.syncSnapshot(b,{resetEffects:true});return}
+  fx.emit({id:'render-score:'+mid+':'+(++rollingSeq),matchId:String(mid),
+    type:'score_rolling',playerSlot:slot,previousScore:a[slot],newScore:b[slot],
+    scored,checkout:b[slot]===0});
+}
+if(scoreEngine)window.DartArenaX01BeforeScoreRender=beforeScoreRender;
 function apply(visit){
   if(disposed||!visit?.id||seen.has(String(visit.id)))return;
   let found=null;
@@ -110,7 +139,7 @@ function apply(visit){
   setupFx(before);
   if(!fx)return;
   fx.syncSnapshot(candidate.beforeScores);
-  fx.acceptConfirmedOnlineVisit(candidate);
+  fx.acceptConfirmedOnlineVisit({...candidate,skipRolling:!!scoreEngine});
   // Do not reset score rails immediately; the FX engine animates their new state.
 }
 function checkPending(){for(const row of [...pending.values()])apply(row)}
@@ -165,7 +194,7 @@ async function boot(){
   me=session.user.id;
   const {data:match,error}=await db.from('matches').select('*').eq('id',mid).single();
   if(error||!match||![match.player1_id,match.player2_id].includes(me)||disposed)return;
-  cached=match;setupFx(match);
+  cached=scoreEngine?.match?.()||match;setupFx(cached);
   channel=db.channel('dartarena-fx-'+mid)
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches',filter:'id=eq.'+mid},
       payload=>updateMatch(payload.new))
@@ -175,6 +204,7 @@ async function boot(){
 }
 function cleanup(){
   if(disposed)return;disposed=true;
+  if(window.DartArenaX01BeforeScoreRender===beforeScoreRender)delete window.DartArenaX01BeforeScoreRender;
   fx?.destroy();fx=null;stage=null;
   if(channel){try{db.removeChannel(channel)}catch{}channel=null}
   transitions.length=0;pending.clear();seen.clear();

@@ -59,7 +59,7 @@
        // match.js is now safe to load: tournament engine is IIFE scoped.
        // The match page owns the new authenticated SFU session.
        await script('match-preferred-media.js?v=20261031-owner1');
-       await script('match.js?v=20261121-score-sync1');
+       await script('match.js?v=20261125-score-roll1');
        if(typeof window.DartArenaBootLiveMatch!=='function')throw Error('Kampmotor mangler');
        await window.DartArenaBootLiveMatch(liveMatchId);
        window.DartArenaMediaTrace?.mark('MATCH_ENGINE_BOOTED');
@@ -67,8 +67,8 @@
        // scoring has an authenticated live-match ID. Reuse scripts already on
        // the tournament page instead of initializing duplicate media listeners.
        const modules=[
-         'fx-live.js?v=20261023-sweep2',
-         'fx-match-bridge.js?v=20261023-live1',
+         'fx-live.js?v=20261125-score-roll1',
+         'fx-match-bridge.js?v=20261125-score-roll1',
          'autozoom/heatmap-math.js?v=20261023-final2',
          'online-heatmap-chart.js?v=20261023-shareheat1',
          'online-heatmap-result.js?v=20261102-live-id-fix3',
@@ -77,7 +77,7 @@
          'opponent-focus.js?v=20261026-owncam-pip1',
          'dartarena-dialog.js?v=20261027-correction2',
          'cancelled-match-modal.js?v=20261103-tournament-return3',
-         'throw-log.js?v=20261102-live-id-fix3',
+         'throw-log.js?v=20261125-score-roll1',
          'set-engine.js?v=20261124-score-recovery1',
          'x01-leg-starter-marker.js?v=20261125-live-starter1',
          'checkout-engine.js?v=20261121-score-sync1',

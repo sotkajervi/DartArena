@@ -6,8 +6,8 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const path=require('node:path');
 
-async function mount(initial){
-  const handlers={},instances=[],visits=[];
+async function mount(initial,{live=false}={}){
+  const handlers={},instances=[],visits=[],rolling=[],resets=[];
   const db={
     auth:{getSession:async()=>({data:{session:{user:{id:'alice'}}}})},
     from(table){
@@ -22,18 +22,19 @@ async function mount(initial){
   const FX={
     DEFAULT_EFFECTS:{rolling_score:true,neon_relay:true,led_score_rail:true,cinematic_switch:true,elimination_fx:true,bracket_power:true},
     createX01(config){
-      const instance={config,syncSnapshot(){},destroy(){},acceptConfirmedOnlineVisit(visit){visits.push(visit);return 1}};
+      const instance={config,syncSnapshot(scores,opts){if(opts?.resetEffects)resets.push(scores)},destroy(){},emit(event){rolling.push(event);return 1},acceptConfirmedOnlineVisit(visit){visits.push(visit);return 1}};
       instances.push(instance);return instance;
     }
   };
   const win={DartArenaFXLive:FX,supabase:{createClient:()=>db},addEventListener(){},
     setTimeout(fn){return 0}};
+  if(live)win.DartArenaMatchEngineState={match:()=>initial,matchId:()=>initial.id};
   const context=vm.createContext({window:win,location:{search:'?id=m1'},URLSearchParams,console});
   vm.runInContext(fs.readFileSync(path.join(__dirname,'../fx-match-bridge.js'),'utf8'),context);
   await new Promise(resolve=>setImmediate(resolve));
   assert.ok(handlers['matches:UPDATE']);
   assert.ok(handlers['match_throws:INSERT']);
-  return {handlers,instances,visits};
+  return {handlers,instances,visits,rolling,resets,win};
 }
 const initial={
   id:'m1',game:'501',status:'playing',current_set:1,current_leg:1,
@@ -94,4 +95,42 @@ test('New leg resets FX without replaying previous-leg checkouts',async()=>{
   handlers['matches:UPDATE']({new:next});
   assert.equal(visits.length,0);
   assert.equal(instances.length,1);
+});
+
+test('Live countdown begins at the old score in the render task, never from late throw events',async()=>{
+  const start={...initial,player1_score:242};
+  const {handlers,visits,rolling,win}=await mount(start,{live:true});
+  const a={...start,player1_score:142,turn_player_id:'bob'};
+  // Server RPC returns before either Realtime message. Render queues exactly one roll.
+  win.DartArenaX01BeforeScoreRender(a);
+  assert.equal(rolling.length,1);
+  assert.equal(rolling[0].type,'score_rolling');
+  assert.equal(rolling[0].previousScore,242);
+  assert.equal(rolling[0].newScore,142);
+  handlers['matches:UPDATE']({new:a});
+  handlers['match_throws:INSERT']({new:{id:81,match_id:'m1',player_id:'alice',score:100,set_no:1,leg_no:1}});
+  assert.equal(visits.length,1);assert.equal(visits[0].skipRolling,true);
+  win.DartArenaX01BeforeScoreRender(a);
+  assert.equal(rolling.length,1);
+  // Opponent's INSERT and UPDATE arrive before the main render.
+  const b={...a,player2_score:401,turn_player_id:'alice'};
+  handlers['match_throws:INSERT']({new:{id:82,match_id:'m1',player_id:'bob',score:100,set_no:1,leg_no:1}});
+  handlers['matches:UPDATE']({new:b});
+  assert.equal(visits[1].skipRolling,true);assert.equal(rolling.length,1);
+  win.DartArenaX01BeforeScoreRender(b);
+  assert.equal(rolling.length,2);assert.equal(rolling[1].playerSlot,'p2');
+});
+test('Corrections, busts and new legs never create a false countdown',async()=>{
+  const {rolling,resets,win}=await mount(initial,{live:true});
+  const a={...initial,player1_score:441}; // correction: turn unchanged
+  win.DartArenaX01BeforeScoreRender(a);
+  win.DartArenaX01BeforeScoreRender({...a,turn_player_id:'bob'}); // bust
+  win.DartArenaX01BeforeScoreRender({...a,current_leg:2,player1_score:501,turn_player_id:'bob'});
+  assert.equal(rolling.length,0);assert.equal(resets.length,2);
+});
+test('Main score renderer invokes the visual hook before updating the DOM, throw log delegates to score engine',()=>{
+  const engine=fs.readFileSync(path.join(__dirname,'../match.js'),'utf8');
+  const log=fs.readFileSync(path.join(__dirname,'../throw-log.js'),'utf8');
+  assert.match(engine,/DartArenaX01BeforeScoreRender\?\.\(m\);\$\('matchScore1'\)\.textContent/);
+  assert.match(log,/if\(engine\?\.applyScoreState\)\{engine\.applyScoreState\(updated\);return\}/);
 });

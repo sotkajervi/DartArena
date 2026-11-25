@@ -39,12 +39,12 @@ function engine(matchId,options={}){
     if(!e.id)return 0;
     const key=String(e.id);if(seen.has(key))return 0;
     seen.add(key);order.push(key);if(order.length>256)seen.delete(order.shift());
-    if(e.type==='score_applied'&&e.playerSlot&&scoreValid(e.previousScore)&&scoreValid(e.newScore)&&
+    if((e.type==='score_applied'||e.type==='score_rolling')&&e.playerSlot&&scoreValid(e.previousScore)&&scoreValid(e.newScore)&&
        e.previousScore>=2&&e.newScore!==1&&(e.newScore!==0||e.checkout===true)&&
        Number.isInteger(e.scored)&&e.scored>0&&e.scored<=180&&
        e.previousScore-e.newScore===e.scored&&!e.bust&&!e.undo){
-      if(can('rolling_score'))play('rolling:'+e.playerSlot,signal=>rolling(doc,find(e.playerSlot),e,signal,level));
-      if(can('led_score_rail'))play('rail:'+e.playerSlot,()=>{const rail=find('rail:'+e.playerSlot);if(rail)paintRail(rail,e.newScore,e.startScore,true)});
+      if(!e.skipRolling&&can('rolling_score'))play('rolling:'+e.playerSlot,signal=>rolling(doc,find(e.playerSlot),e,signal,level));
+      if(e.type==='score_applied'&&can('led_score_rail'))play('rail:'+e.playerSlot,()=>{const rail=find('rail:'+e.playerSlot);if(rail)paintRail(rail,e.newScore,e.startScore,true)});
     }
     if(e.type==='turn_changed'&&e.previousSlot!==e.nextSlot&&!e.legEnded&&!e.matchEnded){
       if(can('neon_relay'))play('turn',signal=>relay(doc,find('card:'+e.previousSlot),find('card:'+e.nextSlot),signal));
@@ -260,7 +260,7 @@ function createX01(options={}){
     if(scoreValid(prev)&&scoreValid(newScore)&&Number.isInteger(points)&&points>0&&points<=180&&
       !x.bust&&prev-newScore===points){
       count+=fx.emit({id:'score:'+x.eventId,type:'score_applied',matchId,playerSlot:x.playerSlot,
-        previousScore:prev,newScore,scored:points,startScore:start,checkout:x.checkout===true});
+        previousScore:prev,newScore,scored:points,startScore:start,checkout:x.checkout===true,skipRolling:x.skipRolling===true});
       scores[x.playerSlot]=newScore;
     }
     if(['p1','p2'].includes(x.nextTurnSlot)&&['p1','p2'].includes(x.previousTurnSlot)&&
