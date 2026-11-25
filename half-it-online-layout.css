@@ -176,3 +176,17 @@ body.half-it-page #halfCorrectionError{font-size:12px;color:#ffadb3;min-height:1
 body.half-it-page #halfCorrectionFields .half-correction-score-field{display:grid;gap:6px;justify-content:stretch;text-align:center}
 body.half-it-page #halfCorrectionFields .half-correction-score-field input{box-sizing:border-box;width:100%;min-width:0;height:72px;background:#091719;color:var(--text);border:1px solid #28777a;border-radius:12px;text-align:center;font-size:38px;font-weight:850;font-variant-numeric:tabular-nums}
 body.half-it-page #halfCorrectionFields .half-correction-score-hint{color:var(--muted);text-align:center;font-size:12px}
+
+/* Leg break uses the existing DartArena dialog frame, like Pentathlon. */
+body.half-it-page #halfLegBreakDialog{position:fixed;inset:0;margin:auto;width:min(500px,94vw);max-width:94vw;max-height:90dvh;overflow:auto;color:var(--text,#f2f7f7);box-sizing:border-box}
+body.half-it-page #halfLegBreakDialog:not([open]){display:none!important}
+body.half-it-page #halfLegBreakDialog::backdrop{background:rgba(2,7,8,.84);backdrop-filter:blur(8px)}
+body.half-it-page #halfLegBreakWinner{margin:12px 0;color:var(--amber,#f4c45d);font-weight:800}
+body.half-it-page #halfLegBreakScores{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+body.half-it-page .half-leg-break-player{display:grid;gap:7px;justify-items:center;padding:14px 8px;border:1px solid var(--line,#203438);border-radius:11px;background:#101d20;text-align:center;min-width:0}
+body.half-it-page .half-leg-break-player.winner{border-color:var(--amber,#f4c45d)}
+body.half-it-page .half-leg-break-player span{overflow-wrap:anywhere;font-size:13px}
+body.half-it-page .half-leg-break-player strong{font-size:32px;font-variant-numeric:tabular-nums}
+body.half-it-page #halfLegBreakStanding{font-size:18px;font-weight:850;text-align:center;margin:12px 0 4px}
+body.half-it-page #halfLegBreakNext{font-size:13px;color:var(--muted);text-align:center;margin:0}
+body.half-it-page #halfLegBreakContinue{width:100%}

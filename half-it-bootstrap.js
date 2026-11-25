@@ -18,6 +18,7 @@
       await loadScript('role-visuals.js?v=20261002-matchrooms1');
       await loadScript('match-room-polish.js?v=20261002-matchrooms2');
       await loadScript('half-it-round-correction.js?v=20261125-scorecorrect1');
+    await loadScript('half-it-leg-break.js?v=20261125-leg-popup1');
       return;
     }
     document.body.dataset.halfItMode='dartcounter';
@@ -33,5 +34,6 @@
     await loadScript('match-room-polish.js?v=20261002-matchrooms2');
     await loadScript('match-controls.js?v=20260930-cam2');
     await loadScript('half-it-round-correction.js?v=20261125-scorecorrect1');
+    await loadScript('half-it-leg-break.js?v=20261125-leg-popup1');
   })().catch(e=>{const m=document.getElementById('matchMessage');if(m)m.textContent=e?.message||'Kunne ikke laste Half-It.';console.error(e)});
 })();
