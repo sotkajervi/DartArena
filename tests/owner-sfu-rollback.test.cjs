@@ -58,28 +58,28 @@ test('owner switch checks is_owner and sends an actual RLS-protected database up
 });
 test('main pages load shared server-side config before their media routers and keep the Owner UI separate',()=>{
  for(const [page,after] of [
-   ['room.html','room-media-router.js?v=20261031-owner1'],
-   ['match.html','match-media-router.js?v=20261031-owner1'],
-   ['tournament-match-room.html','tournament-match-room.js?v=20261031-owner1']
+   ['room.html','room-media-router.js?'],
+   ['match.html','match-media-router.js?'],
+   ['tournament-match-room.html','tournament-match-room.js?']
  ]){
    const html=read(page);
-   const config=html.indexOf('media-transport.js?v=20261031-owner1');
+   const config=html.indexOf('media-transport.js?');
    assert.ok(config>0, page);
-   assert.ok(config<html.indexOf(after),page);
+   assert.ok(html.indexOf(after)>config,page);
    assert.ok(html.includes('sfu-client.js?'),page+' missing legacy client');
-   assert.ok(html.includes('sfu-client-secure.js?v=20261031-owner1'),page+' missing secure client');
+   assert.ok(html.includes('sfu-client-secure.js?'),page+' missing secure client');
  }
- assert.match(read('index.html'),/owner-media-switch\.js\?v=20261031-owner1/);
+ assert.match(read('index.html'),/owner-media-switch\.js\?v=[\w-]+/);
 });
 test('legacy fallback scripts are retained and new modules are opt-in',()=>{
  const waiting=read('room-media-router.js'),match=read('match-media-router.js');
  assert.match(waiting,/selected==='sfu'/);
- assert.match(waiting,/room-sfu-media-secure\.js\?v=20261031-ownersfu1/);
- assert.match(waiting,/room-sfu-media\.js\?v=20261003-fallback1/);
+ assert.match(waiting,/room-sfu-media-secure\.js\?v=[\w-]+/);
+ assert.match(waiting,/room-sfu-media\.js\?v=[\w-]+/);
  assert.match(match,/selected==='sfu'/);
- assert.match(match,/match-sfu-media-secure\.js\?v=20261031-ownersfu1/);
- assert.match(match,/match-sfu-media\.js\?v=20261014-pollcleanup1/);
- assert.match(match,/if\(new URLSearchParams\(location.search\).has\('tournamentMatch'\)\)/);
+ assert.match(match,/match-sfu-media-secure\.js\?v=[\w-]+/);
+ assert.match(match,/match-sfu-media\.js\?v=[\w-]+/);
+ assert.match(match,/if\(new URLSearchParams\(location.search\).has\('tournamentMatch'\)\s*\|\|/);
 });
 test('new transports use the authenticated separate SFU gateway and room-level authorization',()=>{
  const config=read('sfu-config.js'),client=read('sfu-client-secure.js');
@@ -98,7 +98,8 @@ test('tournament waiting room selects legacy or secure client with exact tournam
  for(const path of ['tournament-match-room.js','tournament-room-preferred-media.js']){
    const source=read(path);
    assert.match(source,/secure\?window\.DartArenaSecureSFU:window\.DartArenaSFU/);
-   assert.match(source,/kind:'tournament_match',id:tournamentMatchId/);
+   if(path==='tournament-match-room.js')assert.match(source,/kind:'tournament_match',id:tournamentMatchId/);
+   else {assert.match(source,/kind:'tournament_match',id:state\(\)\?\.tournamentMatchId\?\.\(\)/);assert.match(read('tournament-match-room.js'),/tournamentMatchId:\(\)=>tournamentMatchId/)}
  }
 });
 test('tournament readiness refuses different mode versions and unsupported secure spectators',()=>{
@@ -107,7 +108,14 @@ test('tournament readiness refuses different mode versions and unsupported secur
  assert.match(source,/remoteTransportMismatch=true/);
  assert.match(source,/if\(starting\|\|remoteTransportMismatch/);
  assert.match(source,/mediaMode:await window\.DartArenaMediaMode/);
- assert.match(read('match-spectator-broadcast.js'),/if\(\(await window\.DartArenaMediaMode\?\.getMode\?\.\(\)\)==='sfu'\)return/);
+ const broadcast=read('match-spectator-broadcast.js');
+ const secure=broadcast.match(/if\(\(await window\.DartArenaMediaMode\?\.getMode\?\.\(\)\)==='sfu'\)\{([\s\S]*?)\n    \}/);
+ assert.ok(secure,'Secure spectator branch exists');
+ assert.match(secure[1],/DartArenaMatchMedia\?\.publicationInfo\?\.\(\)/);
+ assert.match(secure[1],/await announce\(\)/);
+ assert.match(secure[1],/return;\s*$/);
+ assert.doesNotMatch(secure[1],/new window\.DartArenaSFU|\.publish\(/);
+ assert.ok(broadcast.indexOf('new window.DartArenaSFU')>secure.index,'Legacy publication follows the secure early return');
 });
 test('SQL stores one global legacy-default setting and Owner-only update with RLS',()=>{
  const sql=read('supabase-media-transport-owner-switch-20261031.sql');

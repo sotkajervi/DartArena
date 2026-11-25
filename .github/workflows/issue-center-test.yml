@@ -11,7 +11,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16
@@ -36,21 +36,16 @@ jobs:
       - run: psql -h localhost -U postgres -d issue_test -f tests/issue-center-db.sql
         env:
           PGPASSWORD: test
-      - name: Compare existing SFU regression against PR base
+      - name: Verify media runtime unchanged and updated SFU regression
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          git worktree add --detach "$RUNNER_TEMP/issue-baseline" "$BASE_SHA"
-          (cd "$RUNNER_TEMP/issue-baseline" && node --test tests/owner-sfu-rollback.test.cjs > "$RUNNER_TEMP/base-sfu.txt" 2>&1) || true
-          node --test tests/owner-sfu-rollback.test.cjs > "$RUNNER_TEMP/head-sfu.txt" 2>&1 || true
-          grep '^not ok ' "$RUNNER_TEMP/base-sfu.txt" > "$RUNNER_TEMP/base-failures.txt" || true
-          grep '^not ok ' "$RUNNER_TEMP/head-sfu.txt" > "$RUNNER_TEMP/head-failures.txt" || true
-          cat "$RUNNER_TEMP/base-failures.txt"
-          diff -u "$RUNNER_TEMP/base-failures.txt" "$RUNNER_TEMP/head-failures.txt"
+          git diff --exit-code "$BASE_SHA" HEAD -- media-transport.js owner-media-switch.js room-media-router.js match-media-router.js sfu-config.js sfu-client-secure.js match-sfu-media-secure.js room-sfu-media-secure.js tournament-match-room.js tournament-room-preferred-media.js match-spectator-broadcast.js
+          node --test tests/owner-sfu-rollback.test.cjs
       - name: Install isolated browser test tooling
         run: |
-          npm install --prefix "$RUNNER_TEMP/issue-browser" --no-save --ignore-scripts playwright@1.56.1
+          npm install --prefix "$RUNNER_TEMP/issue-browser" --no-save --ignore-scripts playwright@1.58.2
           "$RUNNER_TEMP/issue-browser/node_modules/.bin/playwright" install --with-deps chromium
       - name: Browser report and staff workflow (mock API, no production requests)
         run: NODE_PATH="$RUNNER_TEMP/issue-browser/node_modules" node --test tests/issue-center-browser.test.cjs
