@@ -1,0 +1,18 @@
+name: Half-It single result screen regression
+on:
+  push:
+    branches: ['test/half-it-single-result-20261125']
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check half-it-standard.js
+          node --check half-it-multileg.js
+          node --test tests/half-it-single-result.test.cjs tests/half-it-enter-autofill.test.cjs tests/half-it-starter-41.test.cjs tests/half-it-score-correction.test.cjs tests/half-it-correction-card-layout.test.cjs tests/result-stat-row-align.test.cjs

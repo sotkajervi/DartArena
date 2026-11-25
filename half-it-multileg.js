@@ -2,7 +2,6 @@
   const currentLegNo=()=>Math.max(1,Number(m?.current_leg||1));
   const currentLegVisits=()=>visits.filter(v=>Number(v.leg_no||1)===currentLegNo());
   const legRoundCount=playerId=>currentLegVisits().filter(v=>v.player_id===playerId).length;
-  const pct=(a,b)=>b?Math.round((a/b)*100):0;
 
   currentRoundNo=function(){
     if(!m)return 1;
@@ -10,38 +9,7 @@
     return Math.min(12,legRoundCount(m.turn_player_id)+1);
   };
 
-  function ensureResultScreen(){
-    if(document.getElementById('halfResultOverlay'))return;
-    const el=document.createElement('div');
-    el.id='halfResultOverlay';
-    el.className='half-result-overlay hidden';
-    el.innerHTML=`<section class="half-result-card"><small>KAMP FERDIG</small><h1 id="halfResultWinner">Vinner</h1><div id="halfResultLegs" class="half-result-legs">0 – 0</div><div class="half-result-grid"><article><span id="halfResultName1">Spiller 1</span><strong id="halfResultScore1">0</strong><div id="halfResultStats1" class="half-result-stats"></div></article><article><span id="halfResultName2">Spiller 2</span><strong id="halfResultScore2">0</strong><div id="halfResultStats2" class="half-result-stats"></div></article></div><div class="half-result-actions"><button id="halfResultClose" class="primary">Lukk kampfane</button></div></section>`;
-    document.body.appendChild(el);
-    document.getElementById('halfResultClose').onclick=()=>document.getElementById('closeMatchBtn')?.click();
-  }
-
-  function playerStats(id){
-    const rows=visits.filter(v=>v.player_id===id),ok=rows.filter(v=>v.success).length,fail=rows.length-ok;
-    return {rounds:rows.length,ok,fail,rate:pct(ok,rows.length)};
-  }
-
-  function syncResultScreen(){
-    ensureResultScreen();
-    const box=document.getElementById('halfResultOverlay');
-    if(!box||m?.status!=='finished'){box?.classList.add('hidden');return}
-    const s1=playerStats(m.player1_id),s2=playerStats(m.player2_id),winner=m.winner_id?names[m.winner_id]||'Vinner':'Uavgjort';
-    document.getElementById('halfResultWinner').textContent=m.winner_id?`${winner} vinner`:'Uavgjort';
-    document.getElementById('halfResultLegs').textContent=`${Number(m.player1_legs||0)} – ${Number(m.player2_legs||0)} i legs`;
-    document.getElementById('halfResultName1').textContent=names[m.player1_id]||'Spiller 1';
-    document.getElementById('halfResultName2').textContent=names[m.player2_id]||'Spiller 2';
-    document.getElementById('halfResultScore1').textContent=String(m.player1_score||0);
-    document.getElementById('halfResultScore2').textContent=String(m.player2_score||0);
-    document.getElementById('halfResultStats1').innerHTML=`Treffrunder <b>${s1.ok}</b><br>Halvert <b>${s1.fail}</b><br>Suksess <b>${s1.rate}%</b>`;
-    document.getElementById('halfResultStats2').innerHTML=`Treffrunder <b>${s2.ok}</b><br>Halvert <b>${s2.fail}</b><br>Suksess <b>${s2.rate}%</b>`;
-    box.classList.remove('hidden');
-  }
-
-  renderHistory=function(){
+    renderHistory=function(){
     const body=$('halfHistoryBody');if(!body||!m)return;
     const active=currentRoundNo(),lv=currentLegVisits();
     body.innerHTML=ROUNDS.map((r,i)=>{
@@ -65,7 +33,7 @@
     else if(m.status==='cancelled'){$('halfRoundLabel').textContent='AVBRUTT';$('halfTarget').textContent='Kampen er avbrutt';$('halfHelp').textContent='';$('turnText').textContent='Avbrutt';$('matchStatus').textContent='Avbrutt'}
     else{$('halfRoundLabel').textContent=`LEG ${leg} • RUNDE ${rn} AV 12`;$('halfTarget').textContent=r.type==='exact'&&state?.exact_target?`Eksakt ${state.exact_target}`:r.label;$('halfHelp').textContent=r.help;$('turnText').textContent=mine?'Din tur':`${names[m.turn_player_id]||'Motstanderen'} kaster`;$('matchStatus').textContent=`Pågår • Leg ${leg}`}
     const lv=currentLegVisits(),revealExact=m.status!=='playing'||rn>=8||lv.some(v=>v.round_no>=8);$('exactTarget').textContent=revealExact&&state?.exact_target?String(state.exact_target):'Vises i runde 8';$('cancelMatchBtn').classList.toggle('hidden',m.status!=='playing');
-    renderEntry();renderHistory();syncResultScreen();
+    renderEntry();renderHistory();if(m.status==='finished')window.DartArenaResults?.refresh()?.catch(e=>console.warn('Half-It result refresh failed',e));
   };
 
   const submitHalfItMulti=async()=>{
@@ -83,6 +51,6 @@
   };
   $('halfSubmitBtn').onclick=submitHalfItMulti;
 
-  ensureResultScreen();
+  
   if(m)render();
 })();
