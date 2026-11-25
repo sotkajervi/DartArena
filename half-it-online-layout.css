@@ -159,8 +159,10 @@ body.half-it-page.match-tv-layout .focus-input-dock .half-entry .half-quick butt
 body.half-it-page #halfCorrectionHistory{margin:7px 0 0;padding:7px 0 0;border-top:1px solid var(--line)}
 body.half-it-page #halfCorrectionHistory small{display:block;font-size:10px;color:var(--cyan);font-weight:850;margin-bottom:4px}
 body.half-it-page .half-correction-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
-body.half-it-page .half-correction-chips button{min-width:0;min-height:36px;padding:4px 2px;font-size:11px;white-space:normal;line-height:1.2}
-body.half-it-page .half-correction-chips button span{display:block;font-size:9px;color:var(--muted)}
+body.half-it-page .half-correction-chips button{position:relative;display:grid!important;grid-template-rows:auto 1fr;justify-items:center;align-items:center;gap:2px;min-width:0;min-height:58px;padding:5px 3px;white-space:nowrap;line-height:1.1}
+body.half-it-page .half-correction-chips .half-correction-round{font-size:10px;font-weight:650;color:var(--muted)}
+body.half-it-page .half-correction-chips .half-correction-score{font-size:21px;font-weight:850;font-variant-numeric:tabular-nums;color:var(--text)}
+body.half-it-page .half-correction-chips .half-correction-halved{position:absolute;right:4px;bottom:4px;display:grid;place-items:center;width:16px;height:16px;border-radius:4px;background:#402b16;color:#ffd18a;border:1px solid #73532c;font-size:11px;font-weight:800;line-height:1}
 body.half-it-page #halfCorrectionDialog{width:min(420px,94vw);max-height:85dvh;overflow:auto;margin:auto;padding:18px;background:#0d191c;border:1px solid #285054;border-radius:16px;color:var(--text)}
 body.half-it-page #halfCorrectionDialog:not([open]){display:none!important}
 body.half-it-page #halfCorrectionDialog::backdrop{background:rgba(0,10,13,.78)}

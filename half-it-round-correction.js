@@ -18,8 +18,11 @@
    chips.replaceChildren();const list=eligible();panel.hidden=!list.length;
    for(const v of list){
      const b=document.createElement('button');b.type='button';b.className='outline';
-     b.textContent='R'+v.round_no+' · '+v.score_after+' ✎';
-     const detail=document.createElement('span');detail.textContent=v.success?'+'+v.round_points:'Halvert';b.append(detail);
+     b.setAttribute('aria-label','Korriger runde '+v.round_no+', score '+v.score_after+(v.success?'':', halvert'));
+     const round=document.createElement('span');round.className='half-correction-round';round.textContent='Runde '+v.round_no;
+     const score=document.createElement('strong');score.className='half-correction-score';score.textContent=String(v.score_after);
+     b.append(round,score);
+     if(!v.success){const badge=document.createElement('span');badge.className='half-correction-halved';badge.textContent='½';badge.title='Halvert';badge.setAttribute('aria-hidden','true');b.append(badge)}
      b.onclick=()=>open(v);chips.append(b);
    }
  }
