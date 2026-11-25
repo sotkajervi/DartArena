@@ -1,0 +1,71 @@
+/* 61 uses the existing X01 TV frame, player cards and camera PiP.
+   All rules are scoped to the online 61 room; solo and transport are unchanged. */
+body.sixty-one-match-page.match-tv-layout .sixty-one-layout{margin:0!important;gap:0}
+body.sixty-one-match-page.match-tv-layout .sixty-one-scoreboard{margin:0;gap:7px!important}
+body.sixty-one-match-page.match-tv-layout .sixty-one-player{align-items:center;text-align:center;min-width:0}
+body.sixty-one-match-page.match-tv-layout .sixty-one-player-name{padding:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.sixty-one-match-page.match-tv-layout .sixty-one-player-row{display:contents}
+body.sixty-one-match-page.match-tv-layout .sixty-one-player-target{color:var(--text)}
+body.sixty-one-match-page.match-tv-layout .sixty-one-player-meta{text-align:center;white-space:normal;font-size:11px!important}
+body.sixty-one-match-page.match-tv-layout .sixty-one-highout{position:static;display:flex;align-items:center;justify-content:center;gap:5px;margin-top:4px;text-align:center}
+body.sixty-one-match-page.match-tv-layout .sixty-one-highout b{margin:0;font-size:14px}
+body.sixty-one-match-page.match-tv-layout .sixty-one-control-card{margin:4px 0 0}
+body.sixty-one-match-page.match-tv-layout #turnText{font-size:12px!important;text-align:center!important;margin:4px 0!important}
+body.sixty-one-match-page.match-tv-layout .sixty-one-undo-row{display:block}
+body.sixty-one-match-page.match-tv-layout #undoBtn{width:100%;min-width:0;padding:5px 7px;font-size:11px;min-height:28px}
+body.sixty-one-match-page.match-tv-layout .sixty-one-timer-card{overflow:auto;gap:2px}
+body.sixty-one-match-page.match-tv-layout .sixty-one-timer-card .sixty-one-clock{font-size:clamp(29px,3.2vw,46px);line-height:1.05;margin:4px 0;overflow-wrap:anywhere}
+body.sixty-one-match-page.match-tv-layout .sixty-one-timer-card #clock{font-variant-numeric:tabular-nums}
+body.sixty-one-match-page.match-tv-layout .sixty-one-clock-sound{margin:0}
+body.sixty-one-match-page.match-tv-layout .sixty-one-start-note{margin:2px 0;font-size:10px}
+body.sixty-one-match-page.match-tv-layout .sixty-one-timer-card :is(#startTimeBtn,#pauseBtn,#cameraBtn){margin:2px 0!important;min-height:30px;padding:5px 8px}
+body.sixty-one-match-page.match-tv-layout .sixty-one-timer-card h2{font-size:13px;margin:2px 0}
+body.sixty-one-match-page.match-tv-layout .sixty-one-status-list{gap:0;margin:0}
+body.sixty-one-match-page.match-tv-layout .sixty-one-status-row{padding:3px 0;font-size:10px}
+body.sixty-one-match-page.match-tv-layout #matchMessage{font-size:11px;overflow-wrap:anywhere}
+body.sixty-one-match-page.match-tv-layout #videoGrid{isolation:isolate;z-index:0}
+body.sixty-one-match-page.match-tv-layout #focusInputDock{position:relative;isolation:isolate;z-index:7!important}
+body.sixty-one-match-page.match-tv-layout.standard-tv-layout.own-turn-focus .focus-input-dock .score-entry.sixty-one-dock-content{
+ display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;align-items:center;gap:9px!important;padding:7px!important
+}
+body.sixty-one-match-page.match-tv-layout .focus-input-dock .sixty-one-control-top{display:block;margin:0;text-align:center;min-width:90px}
+body.sixty-one-match-page.match-tv-layout .focus-input-dock .sixty-one-control-top small{font-size:9px;white-space:normal}
+body.sixty-one-match-page.match-tv-layout .focus-input-dock .sixty-one-control-target{font-size:32px;line-height:1.05}
+body.sixty-one-match-page.match-tv-layout .focus-input-dock .sixty-one-main-actions{gap:7px}
+body.sixty-one-match-page.match-tv-layout.standard-tv-layout.own-turn-focus .focus-input-dock .sixty-one-main-actions button{
+ display:flex!important;flex-direction:column;gap:4px;min-width:0;min-height:64px;padding:5px!important;font-size:16px!important;white-space:normal!important
+}
+body.sixty-one-match-page.match-tv-layout .focus-input-dock .da-key{margin:0;font-size:11px}
+body.sixty-one-match-page #sixtyOneHistoryDialog{width:min(620px,94vw);max-height:85dvh;overflow:auto;margin:auto;padding:16px;color:var(--text);background:#071b20;border:1px solid #00dce9;border-radius:13px}
+body.sixty-one-match-page #sixtyOneHistoryDialog:not([open]){display:none!important}
+body.sixty-one-match-page #sixtyOneHistoryDialog::backdrop{background:rgba(0,10,13,.78)}
+body.sixty-one-match-page #sixtyOneHistoryClose{float:right;margin-left:8px}
+/* Avoid stable name/turn rules showing live scoreboard text under final result. */
+body.sixty-one-match-page.da-result-open .match-grid{display:none!important}
+@media(min-width:801px){
+ body.sixty-one-match-page.match-page.match-tv-layout.standard-tv-layout{--da-x01-input-reserve:var(--sixty-one-dock-height,110px)!important}
+ body.sixty-one-match-page.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #matchView{
+  grid-template-areas:"head head" "score video" "score input"!important;grid-template-rows:auto minmax(100px,calc(var(--da-x01-frame-height) - var(--da-x01-input-reserve))) auto!important
+ }
+ body.sixty-one-match-page.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #videoGrid{grid-area:video!important;height:100%!important;max-height:100%!important;min-height:0!important;align-self:stretch!important;transition:none!important}
+ body.sixty-one-match-page.match-page.match-tv-layout.standard-tv-layout.own-turn-focus:not(:has(#cricketBoard)) #focusInputDock{grid-area:input!important;align-self:start!important;margin:0!important}
+ body.sixty-one-match-page.match-page.match-tv-layout.standard-tv-layout .match-grid{overflow:auto!important}
+ body.sixty-one-match-page.match-page.match-tv-layout.standard-tv-layout .match-grid>.match-info{min-height:0!important;flex:1 0 auto!important}
+ body.sixty-one-match-page.match-page.match-tv-layout .match-player{min-height:0!important;padding:8px!important}
+ body.sixty-one-match-page.match-page.match-tv-layout .match-score{font-size:clamp(44px,7dvh,72px)!important;margin:5px 0!important}
+}
+@media(max-width:800px){
+ body.sixty-one-match-page.match-page.match-tv-layout #matchView{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto auto;grid-template-areas:"head" "score" "video" "input";gap:7px}
+ body.sixty-one-match-page.match-page.match-tv-layout .match-grid{max-height:none!important;overflow:visible!important}
+ body.sixty-one-match-page.match-page.match-tv-layout .match-players{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+ body.sixty-one-match-page.match-page.match-tv-layout .match-player{padding:7px!important;min-height:0!important}
+ body.sixty-one-match-page.match-page.match-tv-layout .match-score{font-size:clamp(38px,10vw,58px)!important;margin:4px 0!important}
+ body.sixty-one-match-page.match-page.match-tv-layout #videoGrid{height:clamp(150px,26dvh,260px)!important;max-height:none!important}
+ body.sixty-one-match-page.match-tv-layout .match-info{margin:4px 0 0!important;padding:6px!important}
+ body.sixty-one-match-page.match-tv-layout .sixty-one-status-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+ body.sixty-one-match-page.match-tv-layout .sixty-one-status-row{gap:3px}
+ body.sixty-one-match-page.match-tv-layout .sixty-one-status-row:last-child{grid-column:1/-1}
+ body.sixty-one-match-page.match-tv-layout.standard-tv-layout.own-turn-focus .focus-input-dock .score-entry.sixty-one-dock-content{grid-template-columns:1fr!important}
+ body.sixty-one-match-page.match-tv-layout .focus-input-dock .sixty-one-control-top{display:none}
+ body.sixty-one-match-page.match-tv-layout.standard-tv-layout.own-turn-focus .focus-input-dock .sixty-one-main-actions button{min-height:52px}
+}
