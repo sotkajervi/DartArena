@@ -154,3 +154,19 @@ body.half-it-page.match-tv-layout .focus-input-dock .half-entry .half-quick butt
  body.half-it-page.match-tv-layout.standard-tv-layout.own-turn-focus .focus-input-dock .half-entry :is(.half-quick button,.half-multiplier button,.half-exact-options button,.half-actions button,.half-standard-41-actions button){min-height:46px!important}
  body.half-it-page.match-tv-layout .focus-input-dock .half-entry{padding:5px 7px}
 }
+
+/* Active-leg correction uses the familiar compact recent-visit chips. */
+body.half-it-page #halfCorrectionHistory{margin:7px 0 0;padding:7px 0 0;border-top:1px solid var(--line)}
+body.half-it-page #halfCorrectionHistory small{display:block;font-size:10px;color:var(--cyan);font-weight:850;margin-bottom:4px}
+body.half-it-page .half-correction-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+body.half-it-page .half-correction-chips button{min-width:0;min-height:36px;padding:4px 2px;font-size:11px;white-space:normal;line-height:1.2}
+body.half-it-page .half-correction-chips button span{display:block;font-size:9px;color:var(--muted)}
+body.half-it-page #halfCorrectionDialog{width:min(420px,94vw);max-height:85dvh;overflow:auto;margin:auto;padding:18px;background:#0d191c;border:1px solid #285054;border-radius:16px;color:var(--text)}
+body.half-it-page #halfCorrectionDialog:not([open]){display:none!important}
+body.half-it-page #halfCorrectionDialog::backdrop{background:rgba(0,10,13,.78)}
+body.half-it-page #halfCorrectionDialog h2{font-size:20px;margin:3px 0 12px;color:var(--cyan)}
+body.half-it-page #halfCorrectionFields{display:grid;gap:8px}
+body.half-it-page #halfCorrectionFields label{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:13px}
+body.half-it-page #halfCorrectionFields select{max-width:65%;min-width:130px;background:#091719;color:var(--text);padding:8px;border:1px solid var(--line);border-radius:8px}
+body.half-it-page .half-correction-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+body.half-it-page #halfCorrectionError{font-size:12px;color:#ffadb3;min-height:1.4em}
