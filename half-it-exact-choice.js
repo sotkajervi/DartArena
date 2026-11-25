@@ -63,7 +63,7 @@
     baseRenderEntry();
     if(isExact()&&m.turn_player_id===profile?.id&&!selectedExactTarget){
       $('halfMissBtn').disabled=!canThrow()||selectedDarts.length>=3;
-      $('halfSubmitBtn').disabled=!canThrow()||selectedDarts.length!==3||selectedDarts.some(d=>d.n!==0);
+      $('halfSubmitBtn').disabled=!canThrow()||!selectedDarts.length||!options().length||selectedDarts.some(d=>d.n!==0);
     }
   };
 
@@ -102,11 +102,11 @@
   $('halfSubmitBtn').onclick=async()=>{
     syncKey();
     if(!isExact())return baseSubmit?.();
-    if(!canThrow()||selectedDarts.length!==3)return;
+    if(!canThrow()||!selectedDarts.length||selectedDarts.length>3)return;
     if(!selectedExactTarget){if(selectedDarts.every(d=>d.n===0)&&options().length)selectedExactTarget=options()[0];else return;}
     submitting=true;renderEntry();$('matchMessage').textContent='Registrerer…';
     try{
-      const darts=selectedDarts.map((d,i)=>i===0?{...d,exact_target:selectedExactTarget}:{...d});
+      const darts=Array.from({length:3},(_,i)=>({... (selectedDarts[i]||{n:0,mult:0})}));darts[0].exact_target=selectedExactTarget;
       const{data,error}=await db.rpc('submit_half_it_visit',{p_match_id:matchId,p_darts:darts});
       if(error)throw error;
       const chosen=selectedExactTarget;

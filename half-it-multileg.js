@@ -69,10 +69,10 @@
   };
 
   const submitHalfItMulti=async()=>{
-    if(!canThrow()||selectedDarts.length!==3)return;
+    if(!canThrow()||!selectedDarts.length||selectedDarts.length>3)return;
     submitting=true;renderEntry();$('matchMessage').textContent='Registrerer…';
     try{
-      const darts=selectedDarts.map(d=>({...d})),{data,error}=await db.rpc('submit_half_it_visit',{p_match_id:matchId,p_darts:darts});if(error)throw error;
+      const darts=Array.from({length:3},(_,i)=>({... (selectedDarts[i]||{n:0,mult:0})})),{data,error}=await db.rpc('submit_half_it_visit',{p_match_id:matchId,p_darts:darts});if(error)throw error;
       selectedDarts=[];selectedMult=1;await refreshGame();
       if(data?.finished)$('matchMessage').textContent=`${names[data.winner_id]||'Vinner'} vant kampen.`;
       else if(data?.leg_finished&&data?.leg_winner_id)$('matchMessage').textContent=`${names[data.leg_winner_id]||'Spiller'} vant leget. Leg ${m.current_leg} starter.`;

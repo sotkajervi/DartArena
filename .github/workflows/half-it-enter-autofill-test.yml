@@ -1,0 +1,17 @@
+name: Half-It screen Enter autofill regression
+on:
+  push:
+    branches: ['test/half-it-enter-autofill-20261125']
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          for f in half-it-standard.js half-it.js half-it-multileg.js half-it-exact-choice.js half-it-solo.js half-it-bootstrap.js; do node --check "$f"; done
+          node --test tests/half-it-enter-autofill.test.cjs tests/half-it-starter-41.test.cjs tests/half-it-online-layout.test.cjs tests/half-it-viewer-count.test.cjs
