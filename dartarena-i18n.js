@@ -39,7 +39,7 @@
   "Kunne ikke laste spilleropplysninger.": "Could not load player details.",
   "Mitt heatmap · 501": "My heatmap · 501",
   "Periode": "Period",
-  "Siste 14 dager": "Last 14 days",
+  "Siste 30 dager": "Last 30 days",
   "Siste 90 dager": "Last 90 days",
   "Personlig heatmap": "Personal heatmap",
   "Laster lagrede treff…": "Loading saved hits…",

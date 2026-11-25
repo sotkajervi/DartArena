@@ -14,7 +14,7 @@ grant select,insert,update on public.player_details to authenticated;
 create policy read_details on public.player_details for select to authenticated using(true);
 create policy insert_details on public.player_details for insert to authenticated with check(user_id=auth.uid());
 create policy update_details on public.player_details for update to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
-create function public.is_admin() returns boolean language sql stable as $select auth.uid() in ('33333333-3333-4333-8333-333333333333'::uuid,'44444444-4444-4444-8444-444444444444'::uuid)$;
+create function public.is_admin() returns boolean language sql stable as $$select auth.uid() in ('33333333-3333-4333-8333-333333333333'::uuid,'44444444-4444-4444-8444-444444444444'::uuid)$$;
 create schema storage;grant usage on schema storage to authenticated;
 create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
 create table storage.objects(bucket_id text,name text);alter table storage.objects enable row level security;grant select,insert,update,delete on storage.objects to authenticated;
@@ -42,24 +42,24 @@ do $$declare n int;begin
  delete from storage.objects;get diagnostics n=row_count;if n<>0 then raise exception 'foreign delete allowed';end if;
  delete from public.player_avatars;get diagnostics n=row_count;if n<>0 then raise exception 'foreign metadata delete allowed';end if;
 end$$;
-do $begin
+do $$begin
  begin perform public.staff_save_player_identity('11111111-1111-4111-8111-111111111111','Hack','','','','','');raise exception 'staff spoof allowed';exception when insufficient_privilege then null;end;
-end$;
+end$$;
 select set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',false);
-do $begin
+do $$begin
  if public.staff_save_player_identity('11111111-1111-4111-8111-111111111111','Corrected','NO','Club','Darts','Bio','')<>'Corrected' then raise exception 'staff correction failed';end if;
  update storage.objects set name=name where name='11111111-1111-4111-8111-111111111111/avatar.jpg';if not found then raise exception 'staff replacement denied';end if;
  update public.player_avatars set updated_at=now() where user_id='11111111-1111-4111-8111-111111111111';if not found then raise exception 'staff metadata denied';end if;
  begin insert into storage.objects values('player-avatars','invalid/path.jpg');raise exception 'bad path allowed';exception when insufficient_privilege then null;end;
  update public.profiles set status='available' where id='11111111-1111-4111-8111-111111111111';if found then raise exception 'staff broad update allowed';end if;
-end$;
+end$$;
 select set_config('request.jwt.claim.sub','44444444-4444-4444-8444-444444444444',false);
-do $begin
+do $$begin
  if public.staff_save_player_identity('11111111-1111-4111-8111-111111111111','Corrected2','','','','','')<>'Corrected2' then raise exception 'owner correction failed';end if;
  delete from storage.objects where name='11111111-1111-4111-8111-111111111111/avatar.jpg';if not found then raise exception 'staff delete denied';end if;
  delete from public.player_avatars where user_id='11111111-1111-4111-8111-111111111111';if not found then raise exception 'staff metadata delete denied';end if;
-end$;
+end$$;
 reset role;
-do $begin if (select count(*) from dartarena_identity_private.staff_profile_edits)<>4 then raise exception 'missing staff audit';end if;end$;
+do $$begin if (select count(*) from dartarena_identity_private.staff_profile_edits)<>4 then raise exception 'missing staff audit';end if;end$$;
 set role anon;
 do $$begin begin perform public.save_player_identity('abc','','','','','');raise exception 'anon allowed';exception when insufficient_privilege then null;end;end$$;
