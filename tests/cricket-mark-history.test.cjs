@@ -104,5 +104,5 @@ test('Both online room routes refresh visit history before rendering the new mat
     assert.match(src,/status==='SUBSCRIBED'\)\{await loadVisits/);
   }
   assert.match(fs.readFileSync('cricket.html','utf8'),/cricket-mark-history\.js\?v=20261125-mark-sync1/);
-  assert.match(fs.readFileSync('room.html','utf8'),/cricket-seamless-handoff\.js\?v=20261125-mark-sync1/);
+  assert.match(fs.readFileSync('room.html','utf8'),/cricket-seamless-handoff\.js\?v=20261125-stat-align1/);
 });

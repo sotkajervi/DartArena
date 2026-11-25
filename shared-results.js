@@ -256,7 +256,7 @@
   function statRowsHtml(rows){return fillStats(rows).map(s=>`<div class="da-result-statrow"><span>${esc(s.label)}</span><b>${esc(s.value)}</b></div>`).join('')}
   function playerCardHtml(id,name,m,stats){
     const winner=id===m.winner_id;
-    return`<article class="da-result-statcard ${winner?'winner':''}" data-player-id="${esc(id)}"><div class="da-result-playerhead"><div class="da-result-playericon">${winner?'♛':esc(playerInitial(name))}</div><div style="min-width:0"><div class="da-result-stat-name">${esc(name)}</div>${winner?'<span class="da-result-winner-badge">VINNER</span>':''}</div></div><div class="da-result-statlist">${statRowsHtml(stats)}</div></article>`;
+    return`<article class="da-result-statcard ${winner?'winner':''}" data-player-id="${esc(id)}"><div class="da-result-playerhead"><div class="da-result-playericon">${winner?'♛':esc(playerInitial(name))}</div><div style="min-width:0"><div class="da-result-stat-name">${esc(name)}</div><span class="da-result-winner-badge"${winner?'':' aria-hidden="true" style="visibility:hidden"'}>VINNER</span></div></div><div class="da-result-statlist">${statRowsHtml(stats)}</div></article>`;
   }
   function summaryHtml(summary,names,m){
     if(!summary?.length)return'';

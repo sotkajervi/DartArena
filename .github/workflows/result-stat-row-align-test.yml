@@ -1,0 +1,16 @@
+name: Shared result stat row alignment test
+on:
+  push:
+    branches: ['test/result-stat-row-align-20261125']
+permissions:
+  contents: read
+jobs:
+  result:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check shared-results.js
+      - run: node --test tests/result-stat-row-align.test.cjs tests/cricket-mark-history.test.cjs tests/spectator-scorecard-parity.test.cjs
