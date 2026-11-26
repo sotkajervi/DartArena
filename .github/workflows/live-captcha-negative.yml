@@ -1,0 +1,16 @@
+name: Live CAPTCHA negative checks
+on:
+  push:
+    branches: [test/auth-captcha-live-negative-20261127]
+permissions:
+  contents: read
+jobs:
+  captcha:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node tests/live-captcha-negative.cjs
