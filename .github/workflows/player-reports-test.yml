@@ -1,0 +1,30 @@
+name: Confidential player reports and moderation
+on:
+  push:
+    branches: ['test/player-reports-20261126']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: report_test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check issue-center.js
+          node --check dartarena-i18n.js
+          node --test tests/issue-center.test.cjs tests/new-games-i18n.test.cjs
+      - run: PGPASSWORD=test psql -h localhost -U postgres -d report_test -f tests/player-reports-db.sql
+      - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.58.2
+      - run: npx playwright install --with-deps chromium
+      - run: node --test tests/player-reports-browser.test.cjs tests/issue-center-browser.test.cjs
