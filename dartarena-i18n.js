@@ -6,6 +6,10 @@
   if(window.DartArenaI18n)return;
   const KEY='dartarena-language';
   const translations=Object.freeze({
+"Suspensjonsstatus": "Suspension status",
+"Alle spillere": "All players",
+"Ikke suspendert": "Not suspended",
+"Suspenderte spillere": "Suspended players",
   "Velg mikrofon": "Select microphone",
   "Mikrofon registrerer lyd": "Microphone detects sound",
   "Kamera eller mikrofon er blokkert i nettleseren.": "Camera or microphone is blocked in the browser.",
