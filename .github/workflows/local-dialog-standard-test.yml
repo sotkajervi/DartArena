@@ -1,0 +1,17 @@
+name: Local dialog standard
+on:
+  push:
+    branches: [test/local-dialog-standard-20261126]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check pentathlon-2p.js && node --check bot-match.js && node --check scoringarena-history.js && node --check practice-cloud.js
+      - run: node --test tests/local-dialog-standard.test.cjs tests/pentathlon-2p.test.cjs

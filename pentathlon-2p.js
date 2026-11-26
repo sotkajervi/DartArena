@@ -1205,14 +1205,24 @@
     }
     catch(error){report(error)}
   }
-  function reset(){
-    if(state&&!window.confirm(state.status==='finished'?'Starte en ny Pentathlon? Fullførte resultater beholdes i lokal historikk.':'Starte en ny Pentathlon? Nåværende ufullførte kamp og angrehistorikk overskrives.'))return;
-    archiveLocal(state);if(archiveWarning&&state?.status==='finished'){window.alert(archiveWarning);return}
+  const dialogText=(no,en)=>window.DartArenaI18n?.getLanguage?.()==='en'?en:no;
+  let resetPending=false;
+  async function reset(){
+    if(resetPending)return;
+    resetPending=true;
+    try{
+    const finished=state?.status==='finished';
+    if(state&&!await window.DartArenaDialog.confirm(
+      finished?dialogText('Start en ny Pentathlon? Fullførte resultater beholdes i lokal historikk.','Start a new Pentathlon? Completed results remain in local history.'):
+        dialogText('Start en ny Pentathlon? Nåværende ufullførte kamp og angrehistorikk overskrives.','Start a new Pentathlon? The unfinished match and undo history will be overwritten.'),
+      {title:dialogText('Ny kamp','New match'),tone:finished?'info':'warning',confirmText:dialogText('Start ny kamp','Start new match'),cancelText:dialogText('Avbryt','Cancel')}))return;
+    archiveLocal(state);if(archiveWarning&&state?.status==='finished'){await window.DartArenaDialog.alert(archiveWarning,{title:dialogText('Kunne ikke lagre kampen','Could not save match')});return}
     stopRival();state=null;rivalProfile=null;ghostProfile=null;shanghaiQueue=[];clockQueue=[];halfQueue=[];
     document.body.classList.remove('penta-finished');
     try{localStorage.removeItem(activeStore());if(rivalMode)localStorage.removeItem(RIVAL_ROWS);localStorage.removeItem(SHANGHAI_QUEUE_KEY+modeSuffix());localStorage.removeItem(CLOCK_QUEUE_KEY+modeSuffix());localStorage.removeItem(HALF_QUEUE_KEY+modeSuffix())}catch(_){}
     $('pentaGame').hidden=true;$('pentaSetup').hidden=false;modeChanged();
     $('pentaSetup').scrollIntoView({block:'start',behavior:'smooth'});
+    }finally{resetPending=false}
   }
   function nextStage(){
     if(state?.status!=='review')return;
@@ -1253,7 +1263,7 @@
     // "Save as PDF" as the print destination. No remote service is involved.
     const printWindow=window.open('','_blank');
     if(!printWindow){
-      window.alert('Nettleseren blokkerte rapportvinduet. Tillat popup-vinduer for DartArena og prøv igjen.');
+      window.DartArenaDialog.alert(dialogText('Nettleseren blokkerte rapportvinduet. Tillat popup-vinduer for DartArena og prøv igjen.','The browser blocked the report window. Allow pop-ups for DartArena and try again.'),{title:dialogText('Rapportvindu blokkert','Report window blocked')});
       return;
     }
     const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,ch=>({
@@ -1313,12 +1323,14 @@
     if(!$('pentaExportOptions').hidden&&!event.target.closest('.penta-export-menu'))setExportOpen(false);
   });
   document.addEventListener('keydown',event=>{
+    if(resetPending||window.DartArenaDialog.isOpen())return;
     if(event.key==='Escape'&&!$('pentaExportOptions').hidden){setExportOpen(false);$('pentaExport').focus()}
   });
   $('pentaStatsOpen').addEventListener('click',()=>setStatsOpen(!statsOpen));
   $('pentaStatsClose').addEventListener('click',()=>setStatsOpen(false));
   $('pentaStatsBackdrop').addEventListener('click',()=>setStatsOpen(false));
   document.addEventListener('keydown',event=>{
+    if(resetPending||window.DartArenaDialog.isOpen())return;
     if(event.key==='Escape'&&statsOpen)setStatsOpen(false);
   });
 
@@ -1334,6 +1346,7 @@
   });
   // Shanghai scoring: 1=S, 2=D, 3=T, 0=BOM on the current target.
   document.addEventListener('keydown',event=>{
+    if(resetPending||window.DartArenaDialog.isOpen())return;
     if(event.defaultPrevented||event.repeat||event.ctrlKey||event.altKey||
        event.metaKey||event.isComposing||state?.status!=='playing')return;
     const target=event.target;
@@ -1360,6 +1373,7 @@
   $('pentaHalfRemove').addEventListener('click',halfRemove);
   $('pentaHalfSubmit').addEventListener('click',halfSubmit);
   document.addEventListener('keydown',event=>{
+    if(resetPending||window.DartArenaDialog.isOpen())return;
     if(event.defaultPrevented||event.repeat||event.ctrlKey||event.altKey||event.metaKey||
       event.isComposing||state?.status!=='playing'||state.current.kind!=='half')return;
     const target=event.target;
@@ -1379,6 +1393,7 @@
   $('pentaClockRemove').addEventListener('click',clockRemoveHit);
   $('pentaClockSubmit').addEventListener('click',clockSubmitTurn);
   document.addEventListener('keydown',event=>{
+    if(resetPending||window.DartArenaDialog.isOpen())return;
     if(event.defaultPrevented||event.repeat||event.ctrlKey||event.altKey||event.metaKey||
        event.isComposing||state?.status!=='playing'||state.current.kind!=='clock')return;
     const target=event.target;
@@ -1392,6 +1407,7 @@
   $('pentaShanghaiSubmit').addEventListener('click',shanghaiSubmitTurn);
   // JDC: Enter confirms the whole 3-dart turn; Backspace removes the latest unconfirmed dart.
   document.addEventListener('keydown',event=>{
+    if(resetPending||window.DartArenaDialog.isOpen())return;
     if(event.defaultPrevented||event.repeat||event.ctrlKey||event.altKey||event.metaKey||
        event.isComposing||state?.status!=='playing'||state.current.kind!=='shanghai')return;
     const target=event.target;
@@ -1423,7 +1439,7 @@
   $('pentaHistoryFinished').addEventListener('click',showHistory);
   $('pentaHistoryClose').addEventListener('click',()=>{$('pentaHistoryModal').hidden=true});
   $('pentaHistoryModal').querySelector('.local-modal-backdrop').addEventListener('click',()=>{$('pentaHistoryModal').hidden=true});
-  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('pentaHistoryModal').hidden){event.preventDefault();$('pentaHistoryModal').hidden=true}});
+  document.addEventListener('keydown',event=>{if(resetPending||window.DartArenaDialog.isOpen())return;if(event.key==='Escape'&&!$('pentaHistoryModal').hidden){event.preventDefault();$('pentaHistoryModal').hidden=true}});
   $('pentaName0').addEventListener('input',()=>{if(ghostMode)refreshGhostChoices()});
   $('pentaOpponent').addEventListener('change',modeChanged);
   $('pentaStart').addEventListener('click',start);
@@ -1453,6 +1469,7 @@
     commitX01({score:0,bust:true,doubleConfirmed:false,darts:3});
   });
   document.addEventListener('keydown',event=>{
+    if(resetPending||window.DartArenaDialog.isOpen())return;
     if(rivalTurn()&&!event.ctrlKey&&!event.altKey&&!event.metaKey&&(/^[0-9]$/.test(event.key)||event.key==='Enter'||event.key==='Backspace')){event.preventDefault();event.stopImmediatePropagation();return}
     // On the result/review screen Enter means "Neste øvelse", even if
     // keyboard focus remains on a control from the just-completed exercise.

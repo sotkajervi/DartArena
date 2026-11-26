@@ -200,14 +200,20 @@ function humanSubmit(event){
    el.input.value='';resetCheckout();saveMatch();render();
  }catch(err){msg(err.message,true)}
 }
-function newMatch(){
- if(state?.status==='playing'&&!window.confirm('Avslutte den aktive botkampen?'))return;
+const dialogText=(no,en)=>window.DartArenaI18n?.getLanguage?.()==='en'?en:no;
+let newMatchPending=false;
+async function newMatch(){
+ if(newMatchPending)return;
+ newMatchPending=true;
+ try{
+ if(state?.status==='playing'&&!await window.DartArenaDialog.confirm(dialogText('Avslutte den aktive botkampen?','End the active bot match?'),{title:dialogText('Ny kamp','New match'),tone:'warning',confirmText:dialogText('Avslutt kamp','End match'),cancelText:dialogText('Avbryt','Cancel')}))return;
  if(botTimer!==null){clearTimeout(botTimer);botTimer=null}
  const previous=state?.players?.[0];
  state=null;config=null;recorded=false;
  saveMatch();
  if(previous)el.name.value=previous;
  resetCheckout();render();el.name.focus();
+ }finally{newMatchPending=false}
 }
 el.form.addEventListener('submit',start);
 el.mode.addEventListener('change',showHint);
@@ -220,8 +226,9 @@ el.next.addEventListener('click',()=>{
 });
 $('botNewMatch').addEventListener('click',newMatch);
 $('botPlayAgain').addEventListener('click',newMatch);
-$('botResetAdaptive').addEventListener('click',()=>{
- if(!window.confirm('Nullstille botens lærte nivå? Tidligere kampresultater beholdes.'))return;
+$('botResetAdaptive').addEventListener('click',async()=>{
+ if(window.DartArenaDialog.isOpen())return;
+ if(!await window.DartArenaDialog.confirm(dialogText('Nullstille botens lærte nivå? Tidligere kampresultater beholdes.','Reset the bot’s learned level? Previous match results are retained.'),{title:dialogText('Nullstill botnivå','Reset bot level'),tone:'warning',confirmText:dialogText('Nullstill','Reset'),cancelText:dialogText('Avbryt','Cancel')}))return;
  try{localStorage.removeItem(ADAPT_KEY)}catch{}
  showHint();showHistory();
 });

@@ -275,19 +275,25 @@ async function showCloudHistory(){
   div.append(label);
   if(item.status!=='finished'&&item.user_id===uid){
    const resume=document.createElement('button');resume.type='button';resume.className='outline';resume.textContent='Fortsett';
-   resume.onclick=()=>{
-    const local=read(key);
-    if(local?.id!==item.state?.id&&local?.status!=='finished'&&local&&!confirm('Erstatte pågående lokal kamp med kampen fra Supabase?'))return;
+   resume.onclick=async()=>{
+    if(resume.disabled)return;
+    resume.disabled=true;
+    const dialogText=(no,en)=>window.DartArenaI18n?.getLanguage?.()==='en'?en:no;
+    try{
+    const local=read(key),snapshot=localStorage.getItem(key);
+    const selected=item.settings?.rivalId;
+    if(category==='ai_rival'&&!selected){await window.DartArenaDialog.alert(dialogText('Denne AI Rival-kampen mangler spillerreferanse og kan ikke gjenopptas på ny enhet.','This AI Rival match has no player reference and cannot be resumed on a new device.'));return}
+    if(local?.id!==item.state?.id&&local?.status!=='finished'&&local&&!await window.DartArenaDialog.confirm(dialogText('Erstatte pågående lokal kamp med kampen fra Supabase?','Replace the active local match with the match from Supabase?'),{title:dialogText('Fortsett lagret kamp','Resume saved match'),tone:'warning',confirmText:dialogText('Fortsett','Resume'),cancelText:dialogText('Avbryt','Cancel')}))return;
+    if(localStorage.getItem(key)!==snapshot){await window.DartArenaDialog.alert(dialogText('Den lokale kampen er endret. Prøv igjen.','The local match has changed. Please try again.'));return}
     localStorage.setItem(key,JSON.stringify(item.state));
     localStorage.setItem(ownershipKey,uid);
     if(item.settings?.botSession)localStorage.setItem(sessionKey,JSON.stringify(item.settings.botSession));
     else localStorage.removeItem(sessionKey);
     if(category==='ai_rival'){
-     const selected=item.settings?.rivalId;
-     if(!selected){alert('Denne AI Rival-kampen mangler spillerreferanse og kan ikke gjenopptas på ny enhet.');return}
      localStorage.setItem('dartarena-ai-rival-501-selected-player',selected);
      location.href='ai-rival-501.html?player='+encodeURIComponent(selected);
     }else location.reload();
+    }finally{resume.disabled=false}
    };
    div.append(resume);
   }

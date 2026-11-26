@@ -58,10 +58,16 @@ function render(){
    });
  });
  container.querySelectorAll('[data-local-delete]').forEach(button=>{
-   button.addEventListener('click',()=>{
-     if(!window.confirm('Slette denne lokale kampen fra historikken? Dette kan ikke angres.'))return;
-     if(!H.remove(button.dataset.localDelete)){window.alert('Kunne ikke slette kampen.');return}
-     render();
+   button.addEventListener('click',async()=>{
+     if(button.disabled)return;
+     button.disabled=true;
+     const dialogText=(no,en)=>window.DartArenaI18n?.getLanguage?.()==='en'?en:no;
+     try{
+       const id=button.dataset.localDelete;
+       if(!await window.DartArenaDialog.confirm(dialogText('Slette denne lokale kampen fra historikken? Dette kan ikke angres.','Delete this local match from history? This cannot be undone.'),{title:dialogText('Slett kamp','Delete match'),tone:'danger',confirmText:dialogText('Slett kamp','Delete match'),cancelText:dialogText('Avbryt','Cancel')}))return;
+       if(!H.remove(id)){await window.DartArenaDialog.alert(dialogText('Kunne ikke slette kampen.','Could not delete the match.'));return}
+       render();
+     }finally{button.disabled=false}
    });
  });
  more.hidden=filtered.length<=8;
