@@ -1,0 +1,2 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
+test('auth links preserve destinations and use branded accessible colors',()=>{const html=fs.readFileSync('index.html','utf8');assert.match(html,/<p class="da-auth-links"><a href="password-reset\.html">Glemt passord\?<\/a><a href="fair-play\.html">Regler og fair play<\/a><\/p>/);assert.match(html,/#authView \.da-auth-links a,#authView \.da-auth-links a:visited\{color:#00eaf4/);assert.match(html,/#authView \.da-auth-links a:focus-visible\{outline:2px solid #00eaf4/);});
