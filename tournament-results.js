@@ -9,7 +9,7 @@
   const fmtAvg=n=>n?Number(n).toFixed(2):'–';
   const empty=txt=>`<div class="results-empty">${esc(txt)}</div>`;
   // Each independent player name gets a standalone role badge.
-  const person=(name,userId)=>`<span class="results-person-name"${userId?` data-user-id="${esc(userId)}"`:''}>${esc(name||'–')}</span>`;
+  const person=(name,userId)=>window.DartArenaProfileLink.html(userId,name||'–','results-person-name');
   const notifyRoles=()=>window.dispatchEvent(new Event('dartarena:results-rendered'));
   const isBye=m=>m?.stage==='cup'&&!!m.player1_id!==!!m.player2_id&&['finished','wo'].includes(m.status);
   function topRows(items,render){return items.length?items.slice(0,3).map((x,i)=>render(x,i)).join(''):empty('Ingen registrerte data.')}
@@ -104,7 +104,7 @@
       const top180=[...rows].sort((a,b)=>b.c180-a.c180||b.avg-a.avg).filter(x=>x.c180>0);
       $('top180').innerHTML=topRows(top180,(x,i)=>`<div class="highlight-row"><div class="highlight-rank">${i+1}</div><div><div class="highlight-name">${person(x.name,x.id)}</div><div class="highlight-note">Turneringen totalt</div></div><div class="highlight-value">${x.c180}</div></div>`);
     }
-    document.addEventListener('click',e=>{const row=e.target.closest('.highlight-row[data-match]');if(row?.dataset.match)openMatch(row.dataset.match)});
+    document.addEventListener('click',e=>{if(e.target.closest('a.da-profile-link'))return;const row=e.target.closest('.highlight-row[data-match]');if(row?.dataset.match)openMatch(row.dataset.match)});
     notifyRoles();
   }
   boot().catch(err=>{console.error('Tournament results failed',err);$('resultMeta').textContent='Kunne ikke laste resultater';$('playerStats').innerHTML=empty('Kunne ikke laste turneringsstatistikken.')});

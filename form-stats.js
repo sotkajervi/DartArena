@@ -73,7 +73,7 @@ async function boot(){
     const tournamentLabel=tournaments===1?'1 turnering':`${tournaments} turneringer`;
     const fastest=Number(row.fastest_leg||0);
     return `<tr>
-      <td><span class="form-rank">${index+1}</span><span class="form-player">${esc(row.username||'Spiller')}</span>${tierDot(jdcByUser.get(row.player_id))}<span class="form-sub">${tournamentLabel}</span></td>
+      <td><span class="form-rank">${index+1}</span>${window.DartArenaProfileLink.html(row.player_id,row.username||'Spiller','form-player da-role-player')}${tierDot(jdcByUser.get(row.player_id))}<span class="form-sub">${tournamentLabel}</span></td>
       <td class="form-avg">${num(row.form_avg)}</td>
       <td class="form-first9">${num(row.first9_avg)}</td>
       <td>${Number(row.count_100||0)}</td>

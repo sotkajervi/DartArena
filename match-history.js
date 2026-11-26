@@ -280,9 +280,9 @@ function render(){
       <div class="history-main">
         <div class="history-title">
           <span class="history-game">${esc(gameLabel(m))}</span>
-          <span class="history-player-block"><span class="history-player-line"><span class="history-player${p1Winner?' winner':''}">${esc(m.player1_name||'Spiller 1')}</span></span>${x01AverageLabel(m,m.player1_id)}</span>
+          <span class="history-player-block"><span class="history-player-line">${window.DartArenaProfileLink.html(m.player1_id,m.player1_name||'Spiller 1','history-player'+(p1Winner?' winner':''))}</span>${x01AverageLabel(m,m.player1_id)}</span>
           <span class="history-result">${a}–${b}</span>
-          <span class="history-player-block"><span class="history-player-line"><span class="history-player${p2Winner?' winner':''}">${esc(m.player2_name||'Spiller 2')}</span></span>${x01AverageLabel(m,m.player2_id)}</span>
+          <span class="history-player-block"><span class="history-player-line">${window.DartArenaProfileLink.html(m.player2_id,m.player2_name||'Spiller 2','history-player'+(p2Winner?' winner':''))}</span>${x01AverageLabel(m,m.player2_id)}</span>
           ${draw?'<span class="history-tag">Uavgjort</span>':''}
           ${m.is_warmup?'<span class="history-tag">OPPVARMING</span>':''}
         </div>

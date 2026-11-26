@@ -106,7 +106,7 @@
   function playerCard(id,name,winnerId,stats,hasData){
     const winner=id===winnerId;
     return `<article class="premium-player-card${winner?' winner':''}" data-player-id="${esc(id)}">
-      <div class="premium-player-head"><div class="premium-player-icon">${winner?'♛':esc(initial(name))}</div><div style="min-width:0"><div class="premium-player-name">${esc(name)}</div>${winner?'<span class="premium-winner-badge">VINNER</span>':''}</div></div>
+      <div class="premium-player-head"><div class="premium-player-icon">${winner?'♛':esc(initial(name))}</div><div style="min-width:0">${window.DartArenaProfileLink.html(id,name,'premium-player-name')}${winner?'<span class="premium-winner-badge">VINNER</span>':''}</div></div>
       <div class="premium-stat-grid">${statRows(stats,hasData).map(([label,value])=>`<div class="premium-stat"><span>${esc(label)}</span><b>${esc(value)}</b></div>`).join('')}</div>
     </article>`;
   }
@@ -131,7 +131,7 @@
       return `<div class="premium-leg-row">
         <span class="premium-leg-label">Leg ${num(leg.legNo)||index+1}</span>
         <span class="premium-leg-score">${left}–${right}</span>
-        <span class="premium-leg-winner${leg.winnerId===matchWinnerId?' match-winner':''}">${esc(winnerName)}</span>
+        ${window.DartArenaProfileLink.html(leg.winnerId,winnerName,'premium-leg-winner'+(leg.winnerId===matchWinnerId?' match-winner':''))}
         <span class="premium-leg-meta">${leg.darts} piler · checkout ${leg.checkout}</span>
       </div>`;
     }).join('');
@@ -150,7 +150,7 @@
       const setWinnerId=left===right?null:left>right?leftId:rightId;
       const setWinner=setWinnerId?names[setWinnerId]||'Vinner':'Uavgjort';
       return `<div class="premium-set-block">
-        <div class="premium-set-head"><strong>SETT ${setNo}</strong><span><span class="set-winner">${esc(setWinner)}</span> · ${left}–${right}</span></div>
+        <div class="premium-set-head"><strong>SETT ${setNo}</strong><span>${window.DartArenaProfileLink.html(setWinnerId,setWinner,'set-winner')} · ${left}–${right}</span></div>
         <div class="premium-leg-list">${legRows(setLegs,names,leftId,rightId,matchWinnerId)}</div>
       </div>`;
     }).join('');
@@ -181,7 +181,7 @@
       ['501 SIDO AVG',avg501]
     ];
     return `<article class="premium-player-card${winner?' winner':''}" data-player-id="${esc(id)}">
-      <div class="premium-player-head"><div class="premium-player-icon">${winner?'♛':esc(initial(name))}</div><div style="min-width:0"><div class="premium-player-name">${esc(name)}</div>${winner?'<span class="premium-winner-badge">VINNER</span>':''}</div></div>
+      <div class="premium-player-head"><div class="premium-player-icon">${winner?'♛':esc(initial(name))}</div><div style="min-width:0">${window.DartArenaProfileLink.html(id,name,'premium-player-name')}${winner?'<span class="premium-winner-badge">VINNER</span>':''}</div></div>
       <div class="premium-stat-grid">${rows.map(([label,value])=>`<div class="premium-stat"><span>${esc(label)}</span><b>${esc(value)}</b></div>`).join('')}</div>
     </article>`;
   }
@@ -213,7 +213,7 @@
       return `<div class="premium-leg-row">
         <span class="premium-leg-label">${esc(labels[stage]||`GAME ${stage||'?'}`)}</span>
         <span class="premium-leg-score">${left}–${right}</span>
-        <span class="premium-leg-winner${gameWinner===winnerId?' match-winner':''}">${esc(gameWinner?names[gameWinner]||'Vinner':'–')}</span>
+        ${window.DartArenaProfileLink.html(gameWinner,gameWinner?names[gameWinner]||'Vinner':'–','premium-leg-winner'+(gameWinner===winnerId?' match-winner':''))}
         <span class="premium-leg-meta">${metricLabel} • ${esc(leftName)} ${esc(leftMetric)} • ${esc(rightName)} ${esc(rightMetric)}</span>
       </div>`;
     }).join('');
@@ -223,7 +223,7 @@
     $('statsMeta').textContent=contextText(match,tm,tournament);
     $('statsView').innerHTML=`<section class="premium-result-card">
       <div class="premium-result-kicker">KAMP FERDIG</div>
-      <h2 class="premium-result-title"><span class="winner-name">${esc(winnerName)}</span>${winnerId?' vant!':' er ferdig'}</h2>
+      <h2 class="premium-result-title">${window.DartArenaProfileLink.html(winnerId,winnerName,'winner-name')}${winnerId?' vant!':' er ferdig'}</h2>
       <div class="premium-result-sub">Chicago Style • 301 DIDO • Cricket • 501 SIDO</div>
       <div class="premium-result-score">${scoreById[leftId]}<span>–</span>${scoreById[rightId]}</div>
       <div class="premium-player-grid">${chicagoMetricCard(leftId,leftName,winnerId,scoreById[leftId],chicagoStageAvg(x01Rows,1,leftId),chicagoMpr(cricketRows,leftId),chicagoStageAvg(x01Rows,3,leftId))}${chicagoMetricCard(rightId,rightName,winnerId,scoreById[rightId],chicagoStageAvg(x01Rows,1,rightId),chicagoMpr(cricketRows,rightId),chicagoStageAvg(x01Rows,3,rightId))}</div>
@@ -247,7 +247,7 @@
     const winnerName=winnerId?names[winnerId]||'Vinner':'Kampen';
     $('statsTitle').textContent=`${leftName} vs ${rightName}`;
     $('statsMeta').textContent=tournament?`${tournament.name||'Turnering'} • ${tm.stage==='group'?'Puljespill':'Cup'}`:'Turneringskamp';
-    $('statsView').innerHTML=`<section class="premium-result-card"><div class="premium-result-kicker">KAMP FERDIG</div><h2 class="premium-result-title"><span class="winner-name">${esc(winnerName)}</span>${winnerId?' vant!':' er ferdig'}</h2><div class="premium-result-sub">Kampen ble avgjort uten registrerte kast</div><div class="premium-result-score">WO</div><div class="premium-empty">Det finnes derfor ingen kast- eller legstatistikk for denne kampen.</div></section>`;
+    $('statsView').innerHTML=`<section class="premium-result-card"><div class="premium-result-kicker">KAMP FERDIG</div><h2 class="premium-result-title">${window.DartArenaProfileLink.html(winnerId,winnerName,'winner-name')}${winnerId?' vant!':' er ferdig'}</h2><div class="premium-result-sub">Kampen ble avgjort uten registrerte kast</div><div class="premium-result-score">WO</div><div class="premium-empty">Det finnes derfor ingen kast- eller legstatistikk for denne kampen.</div></section>`;
   }
   async function render(ctx){
     const {match,tm,tournament}=ctx;
@@ -264,7 +264,7 @@
       const[a,b]=resultScore(match,tm),winnerId=tm?.winner_id||match.winner_id||inferredWinner(match.player1_id,match.player2_id,a,b),winnerName=winnerId?names[winnerId]||'Vinner':'Kampen';
       const[leftId,rightId]=displayOrder(match,winnerId),[leftScore,rightScore]=orderedPair(match,winnerId,a,b);
       $('statsTitle').textContent=`${names[leftId]||n1} vs ${names[rightId]||n2}`;
-      $('statsView').innerHTML=`<section class="premium-result-card"><div class="premium-result-kicker">KAMP FERDIG</div><h2 class="premium-result-title"><span class="winner-name">${esc(winnerName)}</span>${winnerId?' vant!':' er ferdig'}</h2><div class="premium-result-sub">${esc(gameLabel(match))} • ${esc(formatLabel(match))}</div><div class="premium-result-score">${leftScore}<span>–</span>${rightScore}</div><div class="premium-empty">Denne detaljvisningen viser foreløpig full kaststatistikk for X01. Resultatet er lagret.</div></section>`;
+      $('statsView').innerHTML=`<section class="premium-result-card"><div class="premium-result-kicker">KAMP FERDIG</div><h2 class="premium-result-title">${window.DartArenaProfileLink.html(winnerId,winnerName,'winner-name')}${winnerId?' vant!':' er ferdig'}</h2><div class="premium-result-sub">${esc(gameLabel(match))} • ${esc(formatLabel(match))}</div><div class="premium-result-score">${leftScore}<span>–</span>${rightScore}</div><div class="premium-empty">Denne detaljvisningen viser foreløpig full kaststatistikk for X01. Resultatet er lagret.</div></section>`;
       return;
     }
     const fetchVisits=window.DartArenaTournamentStatsFetch?.fetchAllVisits;
@@ -289,7 +289,7 @@
     const scoreLabel=match.match_mode==='sets'?'<div class="premium-result-score-label">SETS</div>':'';
     $('statsView').innerHTML=`<section class="premium-result-card">
       <div class="premium-result-kicker">KAMP FERDIG</div>
-      <h2 class="premium-result-title"><span class="winner-name">${esc(winnerName)}</span>${winnerId?' vant!':' er ferdig'}</h2>
+      <h2 class="premium-result-title">${window.DartArenaProfileLink.html(winnerId,winnerName,'winner-name')}${winnerId?' vant!':' er ferdig'}</h2>
       <div class="premium-result-sub">${esc(gameLabel(match))} • ${esc(formatLabel(match))}</div>
       <div class="premium-result-score">${leftScore}<span>–</span>${rightScore}</div>${scoreLabel}
       <div class="premium-player-grid">${playerCard(leftId,leftName,winnerId,statsById[leftId],hasById[leftId])}${playerCard(rightId,rightName,winnerId,statsById[rightId],hasById[rightId])}</div>

@@ -82,7 +82,7 @@ async function load(){
   $('hofRows').innerHTML=top.length?top.map(row=>
     '<div class="hof-record'+(row.is_mine?' mine':'')+(manage?' is-admin':'')+'">'+
     '<b class="hof-rank">'+Number(row.place)+'</b>'+
-    '<span class="hof-name"><span class="da-role-player" data-user-id="'+esc(row.user_id)+'">'+esc(row.username||'Spiller')+'</span></span>'+
+    '<span class="hof-name">'+window.DartArenaProfileLink.html(row.user_id,row.username||'Spiller','da-role-player')+'</span>'+
     '<span class="hof-value">'+esc(displayNumber(row))+'</span>'+
     '<span class="hof-date">'+esc(date(row.achieved_at))+'</span>'+
     (manage?'<button type="button" class="small-btn danger hof-delete" data-place="'+Number(row.place)+'">Slett</button>':'')+
