@@ -170,6 +170,8 @@
   "Erstatte denne spillerens profilbilde?": "Replace this player's profile picture?",
   "Velg kallenavn": "Choose nickname",
   "Bruk 2–24 tegn: bokstaver, tall, punktum, bindestrek eller understrek.": "Use 2–24 letters, numbers, periods, hyphens or underscores.",
+  "Kallenavnet må ha 2–24 tegn: bokstaver, tall, punktum, bindestrek eller understrek. Mellomrom er ikke tillatt.": "Your nickname must be 2–24 characters: letters, numbers, periods, hyphens or underscores. Spaces are not allowed.",
+  "Kallenavn: 2–24 tegn, uten mellomrom. Bokstaver, tall, punktum, bindestrek og understrek er tillatt.": "Nickname: 2–24 characters, no spaces. Letters, numbers, periods, hyphens and underscores are allowed.",
   "Kallenavnet blir navnet ditt i DartArena. Du kan endre det én gang hver 14. dag.": "Your nickname is your DartArena display name. You can change it once every 14 days.",
   "Fullt navn (valgfritt)": "Full name (optional)",
   "Kallenavnet er allerede i bruk.": "This nickname is already taken.",

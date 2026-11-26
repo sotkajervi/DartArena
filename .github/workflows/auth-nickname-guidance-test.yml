@@ -1,0 +1,16 @@
+name: Auth nickname guidance
+on:
+  push:
+    branches: [test/auth-nickname-guidance-20261127]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check app.js && node --check dartarena-i18n.js
+      - run: node --test tests/auth-nickname-guidance.test.cjs tests/auth-link-theme.test.cjs tests/auth-captcha.test.cjs
