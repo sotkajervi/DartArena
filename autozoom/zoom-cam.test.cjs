@@ -15,7 +15,7 @@ test('Cam-test calibration stores only device geometry across navigation',()=>{
   const store=storage();
   assert.ok(Z.saveConfig(store,sample));
   const saved=Z.loadConfig(store);
-  assert.deepEqual({...saved},{...sample,zoom:1,panX:0,panY:0,hitOffsetX:0,hitOffsetY:0,speed:'normal',sensitivity:'normal',version:1});
+  assert.deepEqual({...saved},{...sample,zoom:1,panX:0,panY:0,hitOffsetX:0,hitOffsetY:0,speed:'fast',sensitivity:'normal',version:1});
   assert.equal(Object.keys(saved).includes('track'),false);
   assert.equal(Z.loadConfig(storage()),null);
   assert.equal(Z.saveConfig(store,{...sample,cx:4}),false);
@@ -96,14 +96,14 @@ test('Zoom-cam has fallback when captureStream is unsupported',()=>{
 });
 test('main lobby Cam-test includes calibration code and the physical camera selector',()=>{
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-  assert.match(html,/autozoom\/camera-calibration\.js\?v=20261027-turncal1/);
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261027-turncal1/);
+  assert.match(html,/autozoom\/camera-calibration\.js\?v=20261126-fastonly1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261126-fastonly1/);
   assert.match(html,/id="cameraTestCameraSelect"/);
 });
 test('waiting room includes calibrated Zoom-cam selection and real sender.replaceTrack',()=>{
   const html=fs.readFileSync(path.join(root,'room.html'),'utf8');
   const js=fs.readFileSync(path.join(root,'room-device-selector.js'),'utf8');
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261027-turncal1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261126-fastonly1/);
   assert.match(js,/ZOOM_VALUE/);
   assert.match(js,/option\.textContent='Zoom-cam \(kalibrert\)'/);
   assert.match(js,/sender\.replaceTrack\(next\.track\)/);
@@ -113,7 +113,7 @@ test('waiting room includes calibrated Zoom-cam selection and real sender.replac
 test('X01 match reloads physical input and composes actual outbound video',()=>{
   const html=fs.readFileSync(path.join(root,'match.html'),'utf8');
   const js=fs.readFileSync(path.join(root,'match.js'),'utf8');
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261027-turncal1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261126-fastonly1/);
   assert.match(js,/Z\.create\(raw,config\)/);
   assert.match(js,/stream=zoomCamSession\.stream/);
   assert.match(js,/deviceId:\{exact:config\.deviceId\}/);
@@ -264,15 +264,15 @@ test('Cam-test offers zoom, draggable positioning, reset and optional inset guid
   assert.match(ui,/pointermove/);
   assert.match(ui,/\.\.\.settings,\.\.\.framing/);
   const match=fs.readFileSync(path.join(root,'match.html'),'utf8');
-  assert.match(match,/autozoom\/zoom-cam\.js\?v=20261027-turncal1/);
+  assert.match(match,/autozoom\/zoom-cam\.js\?v=20261126-fastonly1/);
 });
 
 test('Cam-test picture controls load after calibration and stay separate from detection',()=>{
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-  const i=html.indexOf('autozoom/camera-calibration.js?v=20261027-turncal1');
+  const i=html.indexOf('autozoom/camera-calibration.js?v=20261126-fastonly1');
   const pic=html.indexOf('camera-picture.js?v=20261023-picture2');
   assert.ok(i>0&&pic>i);
-  assert.match(html,/autozoom\/camera-calibration\.css\?v=20261027-turncal1/);
+  assert.match(html,/autozoom\/camera-calibration\.css\?v=20261126-fastonly1/);
   const calibration=fs.readFileSync(path.join(root,'autozoom','camera-calibration.js'),'utf8');
   assert.match(calibration,/picture:false/);
   const zoom=fs.readFileSync(path.join(root,'autozoom','zoom-cam.js'),'utf8');
@@ -506,4 +506,14 @@ test('Pausing detector between turns preserves outgoing video and resuming retur
     global.MediaStream=old.media;global.requestAnimationFrame=old.raf;
     global.cancelAnimationFrame=old.cancel;global.document=old.doc;
   }
+});
+
+test('legacy and new speed settings always resolve to fast without losing calibration',()=>{
+ for(const speed of ['normal','smooth','fast',undefined]){
+  const store=storage();store.setItem('dartarena-zoomcam-calibration-v1',JSON.stringify({...sample,version:1,speed,zoom:2,sensitivity:'low'}));
+  const config=Z.loadConfig(store);assert.equal(config.speed,'fast');assert.equal(config.zoom,2);assert.equal(config.sensitivity,'low');assert.equal(config.cx,sample.cx);
+  assert.ok(Z.saveConfig(store,{...config,speed}));assert.equal(JSON.parse(store.getItem('dartarena-zoomcam-calibration-v1')).speed,'fast');
+ }
+ assert.match(fs.readFileSync(path.join(root,'autozoom/zoom-cam.js'),'utf8'),/tracker\.speedPreset\('fast'\)/);
+ assert.doesNotMatch(fs.readFileSync(path.join(root,'autozoom/camera-calibration.js'),'utf8'),/camZoomSpeed|speedSelect/);
 });

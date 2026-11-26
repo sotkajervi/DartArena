@@ -9,7 +9,7 @@ const camera=document.getElementById('cameraTestCameraSelect');
 if(!Z||!modal||!preview||!video||!camera)return;
 const tools=document.createElement('div');
 tools.className='cam-zoom-tools';
-tools.innerHTML='<div class="cam-zoom-row"><button type="button" id="camZoomCalibrate" class="outline">Kalibrer Zoom-cam</button><button type="button" id="camZoomPreview" class="outline">Forhåndsvis Zoom-cam</button><button type="button" id="camZoomClear" class="outline">Fjern kalibrering</button></div><div class="cam-zoom-settings"><label>Følsomhet<select id="camZoomSensitivity"><option value="normal" selected>Normal (stabil)</option><option value="low">Lav</option><option value="high">Høy (test)</option></select></label><label>Hastighet<select id="camZoomSpeed"><option value="fast">Rask</option><option value="normal" selected>Normal</option><option value="smooth">Rolig</option></select></label></div><p class="muted compact" id="camZoomHelp">Marker Bull og deretter D20. Zoom-cam kan velges i venterom etter kalibrering.</p>';
+tools.innerHTML='<div class="cam-zoom-row"><button type="button" id="camZoomCalibrate" class="outline">Kalibrer Zoom-cam</button><button type="button" id="camZoomPreview" class="outline">Forhåndsvis Zoom-cam</button><button type="button" id="camZoomClear" class="outline">Fjern kalibrering</button></div><div class="cam-zoom-settings"><label>Følsomhet<select id="camZoomSensitivity"><option value="normal" selected>Normal (stabil)</option><option value="low">Lav</option><option value="high">Høy (test)</option></select></label></div><p class="muted compact" id="camZoomHelp">Marker Bull og deretter D20. Zoom-cam kan velges i venterom etter kalibrering.</p>';
 preview.insertAdjacentElement('afterend',tools);
 const activationLabel=document.createElement('label');
 activationLabel.className='cam-zoom-guide-toggle';
@@ -18,7 +18,6 @@ tools.appendChild(activationLabel);
 const activation=activationLabel.querySelector('input');
 const button=tools.querySelector('#camZoomCalibrate'),clear=tools.querySelector('#camZoomClear'),help=tools.querySelector('#camZoomHelp');
 const previewButton=tools.querySelector('#camZoomPreview');
-const speedSelect=tools.querySelector('#camZoomSpeed');
 const sensitivitySelect=tools.querySelector('#camZoomSensitivity');
 const framingPanel=document.createElement('section');
 framingPanel.className='cam-zoom-framing';
@@ -266,7 +265,6 @@ function updateHelp(){
   const data=Z.loadConfig(localStorage);
   activation.checked=!!(data&&data.deviceId===deviceId()&&Z.selected(localStorage));
   if(data&&data.deviceId===deviceId()){
-    speedSelect.value=data.speed||'normal';
     sensitivitySelect.value=data.sensitivity||'normal';
     help.textContent=activation.checked
       ?'Zoom-cam er kalibrert og valgt for venterom og kamp.'
@@ -322,7 +320,7 @@ marker.addEventListener('click',event=>{
   if(!pt){help.textContent='Klikk innenfor kamerabildet.';return}
   if(step===1){bull=pt;step=2;help.textContent='Klikk midt i D20 på den ytre dobbelringen.';return}
   const settings=Z.calibration(video,bull,pt,deviceId());
-  if(!settings||!Z.saveConfig(localStorage,{...settings,...framing,speed:speedSelect.value,sensitivity:sensitivitySelect.value,
+  if(!settings||!Z.saveConfig(localStorage,{...settings,...framing,speed:'fast',sensitivity:sensitivitySelect.value,
     hitOffsetX:Number(hitX.value),hitOffsetY:Number(hitY.value)})){
     help.textContent='Kalibreringen ble ikke gyldig. Sjekk D20 og prøv igjen.';return
   }
@@ -337,11 +335,10 @@ clear.addEventListener('click',()=>{
 function saveOptions(){
   const data=Z.loadConfig(localStorage);
   if(data&&data.deviceId===deviceId()){
-    Z.saveConfig(localStorage,{...data,speed:speedSelect.value,sensitivity:sensitivitySelect.value});
+    Z.saveConfig(localStorage,{...data,speed:'fast',sensitivity:sensitivitySelect.value});
   }
   stopPreview();
 }
-speedSelect.addEventListener('change',saveOptions);
 sensitivitySelect.addEventListener('change',saveOptions);
 camera.addEventListener('change',()=>{stopPreview();cancel();setTimeout(()=>{loadFraming();updateHelp()},300)});
 document.getElementById('closeCameraTest')?.addEventListener('click',()=>{stopPreview();cancel();stopFramingLoop()});
