@@ -6,6 +6,13 @@
   if(window.DartArenaI18n)return;
   const KEY='dartarena-language';
   const translations=Object.freeze({
+  "Tilpass profilbilde": "Adjust profile picture",
+  "Dra bildet for å velge utsnitt. Bruk zoom eller roter bildet.": "Drag the image to choose the crop. Zoom or rotate the image.",
+  "Dra bildet eller bruk piltastene": "Drag the image or use the arrow keys",
+  "Zoom": "Zoom",
+  "Roter 90°": "Rotate 90°",
+  "Lagre profilbilde": "Save profile picture",
+  "Kunne ikke behandle bildet.": "Could not process the image.",
   "Rediger profil (Admin/Owner)": "Edit profile (Admin/Owner)",
   "Lagre endringer på denne spillerens profil?": "Save changes to this player's profile?",
   "Erstatte denne spillerens profilbilde?": "Replace this player's profile picture?",

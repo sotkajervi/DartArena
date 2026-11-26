@@ -25,11 +25,15 @@ async function paint(db,host){
  const urls=await getUrls(db,nodes.map(n=>n.dataset.avatarId));
  for(const n of nodes){if(!n.isConnected)continue;const url=urls.get(n.dataset.avatarId);const old=n.querySelector('img[data-player-avatar]');if(!url){old?.remove();continue}if(old?.getAttribute('src')===url)continue;old?.remove();const img=w.document.createElement('img');img.dataset.playerAvatar='1';img.alt='';img.decoding='async';img.loading='lazy';img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block';img.onerror=()=>img.remove();img.src=url;n.style.position='relative';img.style.position='absolute';img.style.inset='0';n.append(img)}
 }
+async function encodeCanvas(c){
+ for(const q of [.86,.72,.58,.44,.3]){const blob=await new Promise(resolve=>c.toBlob(resolve,'image/jpeg',q));if(blob&&blob.type==='image/jpeg'&&blob.size<=MAX)return blob}throw Error('invalid_avatar');
+}
 async function compress(file){
  if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>12*1024*1024)throw Error('invalid_avatar');
- const image=await w.createImageBitmap(file);try{const c=w.document.createElement('canvas');c.width=c.height=256;const ctx=c.getContext('2d');const side=Math.min(image.width,image.height);ctx.fillStyle='#0b1719';ctx.fillRect(0,0,256,256);ctx.drawImage(image,(image.width-side)/2,(image.height-side)/2,side,side,0,0,256,256);for(const q of [.86,.72,.58,.44,.3]){const blob=await new Promise(resolve=>c.toBlob(resolve,'image/jpeg',q));if(blob&&blob.size<=MAX)return blob}throw Error('invalid_avatar')}finally{image.close()}
+ const image=await w.createImageBitmap(file);try{const c=w.document.createElement('canvas');c.width=c.height=256;const ctx=c.getContext('2d');const side=Math.min(image.width,image.height);ctx.fillStyle='#0b1719';ctx.fillRect(0,0,256,256);ctx.drawImage(image,(image.width-side)/2,(image.height-side)/2,side,side,0,0,256,256);return await encodeCanvas(c)}finally{image.close()}
 }
-async function upload(db,id,file){if(!validId(id))throw Error('invalid_avatar');const blob=await compress(file);const {error}=await db.storage.from(BUCKET).upload(path(id),blob,{contentType:'image/jpeg',upsert:true,cacheControl:'300'});if(error)throw error;const {error:meta}=await db.from('player_avatars').upsert({user_id:id,updated_at:new Date().toISOString()});if(meta)throw meta;invalidate(id)}
+async function upload(db,id,file){return uploadCropped(db,id,await compress(file))}
+async function uploadCropped(db,id,blob){if(!validId(id)||!blob||blob.type!=='image/jpeg'||blob.size>MAX||!blob.size)throw Error('invalid_avatar');const {error}=await db.storage.from(BUCKET).upload(path(id),blob,{contentType:'image/jpeg',upsert:true,cacheControl:'300'});if(error)throw error;const {error:meta}=await db.from('player_avatars').upsert({user_id:id,updated_at:new Date().toISOString()});if(meta)throw meta;invalidate(id)}
 async function remove(db,id){if(!validId(id))throw Error('invalid_avatar');const {error}=await db.storage.from(BUCKET).remove([path(id)]);if(error)throw error;const {error:meta}=await db.from('player_avatars').delete().eq('user_id',id);if(meta)throw meta;invalidate(id)}
-const api={validNick,validId,paint,getUrls,compress,upload,remove,invalidate};if(typeof module==='object'&&module.exports)module.exports=api;else w.DartArenaIdentity=api;
+const api={validNick,validId,paint,getUrls,compress,encodeCanvas,upload,uploadCropped,remove,invalidate};if(typeof module==='object'&&module.exports)module.exports=api;else w.DartArenaIdentity=api;
 })(typeof window!=='undefined'?window:globalThis);
