@@ -10,7 +10,6 @@ const tr=(no,en)=>document.documentElement.lang==='en'?en:no;
 function activeSuspension(id){const s=suspensions.get(id);return s&&(!s.ends_at||Date.parse(s.ends_at)>Date.now())?s:null}
 function clearModeration(){staff=false;statusReady=false;suspensions.clear();$('moderationFilter').hidden=true;$('moderationStatus').textContent='';render()}
 async function refreshModeration(){
- if(!adminView)return;
  const token=++moderationRequest;
  try{
   const {data:{session},error:authError}=await db.auth.getSession();
@@ -36,11 +35,11 @@ function moderationBadge(id){
 }
 $('playerModeration').addEventListener('change',render);
 window.addEventListener('pageshow',e=>{if(e.persisted)void refreshModeration()});
-window.addEventListener('focus',()=>void refreshModeration());
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshModeration()});
+window.addEventListener('focus',()=>{if(staff||adminView)void refreshModeration()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(staff||adminView))void refreshModeration()});
 document.addEventListener('click',e=>{if(e.target.closest?.('[data-language]'))setTimeout(render,0)});
 db.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'||event==='SIGNED_IN'||event==='USER_UPDATED'){moderationRequest++;clearModeration();if(event!=='SIGNED_OUT')setTimeout(refreshModeration,0)}});
-if(adminView)setInterval(()=>{if(!document.hidden)void refreshModeration()},30000);
+setInterval(()=>{if(!document.hidden&&(staff||adminView))void refreshModeration()},30000);
 
 
 const SORTS={
