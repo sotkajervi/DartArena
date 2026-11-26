@@ -15,6 +15,9 @@
   const records = [];
   const aliases = new Map();
   const boards = new Map();
+  const visits = new Map();
+  let visit = new SeerVisit();
+  let demoRun = 0;
   let boardAlias = null;
   let sampleMode = false;
   const english = window.DartArenaI18n?.getLanguage() === 'en';
@@ -44,6 +47,62 @@
   $('seerAddNote').textContent = tr('Legg til notat', 'Add note');
   $('seerRemoved').textContent = tr('Pilene tatt ut', 'Darts removed');
 
+  const scenario = $('seerScenario');
+  scenario.setAttribute('aria-label', tr('Velg testdata', 'Select sample data'));
+  scenario.options[1].textContent = tr('T20 · gjentatt melding', 'T20 · repeated event');
+  scenario.options[2].textContent = tr('To piler i S20', 'Two darts in S20');
+  scenario.options[3].textContent = tr('Uenige kameraer', 'Camera disagreement');
+  $('seerProposalTitle').textContent = tr('Kastforslag', 'Suggested hits');
+
+  function hitLabel(hit) {
+    if (hit === 'MISS') return tr('Bom', 'Miss');
+    if (hit === 'D25') return 'Bull';
+    if (hit === 'S25') return '25';
+    return hit;
+  }
+
+  function renderVisit() {
+    const list = $('seerDarts');
+    list.replaceChildren();
+    let pending = 0;
+    for (const [number, dart] of [...visit.darts].sort(([a], [b]) => a - b)) {
+      const row = document.createElement('li');
+      const text = document.createElement('span');
+      const selected = SeerVisit.selected(dart);
+      const prefix = tr('Pil', 'Dart') + ' ' + number;
+      let result;
+      if (selected !== null) {
+        result = hitLabel(selected) + ' · ' + SeerVisit.points.get(selected);
+        if (dart.corrected !== null) result += tr(' (korrigert)', ' (corrected)');
+      } else {
+        pending++;
+        if (dart.calibrationError) result = tr('Kalibreringsfeil', 'Calibration error');
+        else if (dart.hits.length) result = tr('Uenige kameraer', 'Camera disagreement') + ' · ' + dart.hits.map(hitLabel).join(' / ');
+        else result = tr('Ikke detektert', 'Not detected');
+      }
+      text.textContent = prefix + ': ' + result;
+      const correction = document.createElement('select');
+      correction.setAttribute('aria-label', tr('Korriger pil ', 'Correct dart ') + number);
+      correction.add(new Option(tr('Velg treff …', 'Select hit …'), ''));
+      correction.options[0].disabled = true;
+      for (const hit of new Set([...dart.hits, ...SeerVisit.points.keys()])) {
+        correction.add(new Option(hitLabel(hit), hit));
+      }
+      correction.value = dart.corrected ?? '';
+      correction.addEventListener('change', () => {
+        if (!owner || !visit.correct(number, correction.value)) return;
+        addEvent('correction', { dart: number, hit: correction.value, throwId: dart.throwId });
+        renderVisit();
+      });
+      row.append(text, correction);
+      list.append(row);
+    }
+    let total = tr('Foreslått sum', 'Suggested total') + ': ' + visit.total;
+    if (pending) total += ' · ' + pending + tr(' uavklart', ' unresolved');
+    if (sampleMode) total += tr(' · Testdata', ' · Sample data');
+    $('seerVisitTotal').textContent = visit.darts.size ? total : tr('Venter på kast.', 'Waiting for darts.');
+  }
+
   const clock = new Intl.DateTimeFormat(english ? 'en-GB' : 'nb-NO', {
     hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3,
   });
@@ -63,7 +122,7 @@
     if (!Array.isArray(payload)) return null;
     const [identity, metadata, ...observations] = payload;
     return {
-      throwId: typeof identity?.id === 'string' ? alias(aliases, identity.id, 'id-') : null,
+      throwId: typeof identity?.id === 'string' && identity.id.trim() ? alias(aliases, identity.id, 'id-') : null,
       calibrationId: typeof metadata?.calibration_id === 'string' ? alias(aliases, metadata.calibration_id, 'id-') : null,
       calibrationError: typeof metadata?.has_calibration_error === 'boolean' ? metadata.has_calibration_error : null,
       observations: observations.map(dart => {
@@ -81,11 +140,15 @@
   }
 
   function resetLog() {
+    visits.clear();
+    visit = new SeerVisit();
     records.length = 0;
     aliases.clear();
     boards.clear();
     boardAlias = socket ? alias(boards, board.value.trim(), 'board-') : null;
     sampleMode = false;
+    if (socket) visits.set(boardAlias, visit);
+    renderVisit();
     note.value = '';
     save.disabled = true;
     resetSignals();
@@ -98,6 +161,7 @@
     board.disabled = active;
     connect.disabled = active;
     demo.disabled = active;
+    scenario.disabled = active;
     disconnect.disabled = !active;
   }
 
@@ -150,7 +214,15 @@
       seq: records.length + 1, at: received.toISOString(), event: name,
       source: sample ? 'demo' : 'live', board: sample ? null : boardAlias,
     };
-    if (name === 'score') record.score = exportScore(payload);
+    if (name === 'score') {
+      record.score = exportScore(payload);
+      if (visit.receive(record.score)) renderVisit();
+    }
+    if (name === 'correction') record.correction = raw;
+    if (name === 'darts_removed') {
+      visit.darts.clear();
+      renderVisit();
+    }
     if (name === 'note') record.note = raw;
     if (invalidJson) record.invalidJson = true;
     records.push(record);
@@ -192,6 +264,9 @@
     sampleMode = false;
     resetSignals();
     boardAlias = alias(boards, boardId, 'board-');
+    if (!visits.has(boardAlias)) visits.set(boardAlias, new SeerVisit());
+    visit = visits.get(boardAlias);
+    renderVisit();
     addEvent('connect_attempt', null);
     let joined = false;
     const connection = window.io('https://autoscoring-socket.dartsorakel.com', {
@@ -233,14 +308,25 @@
     sampleMode = true;
     resetSignals();
     addEvent('ping', {}, true);
-    const dart = { darts: 1, dx: 842, dy: 513, score: 60, multiplier: 3, base_score: 20 };
-    addEvent('score', JSON.stringify([
-      { id: 'demo-1' },
-      { calibration_id: 'demo-calibration' },
-      { ...dart, Cam: 0 },
-      { ...dart, Cam: 1 },
-      { Cam: 0, darts: 2, dx: 0, dy: 0, score: 0 },
-    ]), true);
+    visit = new SeerVisit();
+    demoRun++;
+    const first = { Cam: 0, darts: 1, dx: 842, dy: 513, score: 60, multiplier: 3, base_score: 20 };
+    const single = { ...first, score: 20, multiplier: 1 };
+    const frame = (index, ...observations) => JSON.stringify([
+      { id: `demo-${demoRun}-${index}` }, { calibration_id: 'demo-calibration' }, ...observations,
+    ]);
+    if (scenario.value === 'two') {
+      addEvent('score', frame(1, single));
+      addEvent('score', frame(2, single, { ...single, darts: 2 }));
+    } else if (scenario.value === 'conflict') {
+      addEvent('score', frame(1, first, { ...single, Cam: 1 }));
+    } else {
+      const observations = [first, { ...first, Cam: 1 }];
+      if (scenario.value === 'single') observations.push({ Cam: 0, darts: 2, dx: 0, dy: 0, score: 0 });
+      const message = frame(1, ...observations);
+      addEvent('score', message);
+      if (scenario.value === 'repeat') addEvent('score', message);
+    }
   });
 
   $('seerNotes').addEventListener('submit', (event) => {
@@ -286,6 +372,7 @@
     owner = allowed;
     $('seerTest').hidden = !allowed;
     $('seerEvents').hidden = !allowed;
+    $('seerProposals').hidden = !allowed;
     access.hidden = allowed;
     access.textContent = message;
     if (!allowed) {
