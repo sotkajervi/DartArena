@@ -1,0 +1,15 @@
+name: Zoom-cam fixed fast preset
+on:
+  push:
+    branches: [test/zoomcam-fast-20261126]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --check autozoom/zoom-cam.js && node --check autozoom/camera-calibration.js
+      - run: node --test autozoom/zoom-cam.test.cjs autozoom/tracker.test.cjs tests/zoomcam-turn-transition.test.cjs camera-picture.test.cjs
