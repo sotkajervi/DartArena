@@ -1,0 +1,20 @@
+name: Player profile name navigation
+on:
+  push:
+    branches: ['test/profile-name-links-20261126']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          for f in profile-name-link.js match-history.js player-profile.js form-stats.js hall-of-fame.js tournament-results.js premium-match-stats.js; do node --check "$f" || exit 1; done
+          node --test tests/profile-name-link.test.cjs tests/new-games-i18n.test.cjs tests/player-details.test.cjs
+      - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.58.2
+      - run: npx playwright install --with-deps chromium
+      - run: node --test tests/profile-name-link-browser.test.cjs
