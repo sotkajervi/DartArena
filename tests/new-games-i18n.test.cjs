@@ -59,5 +59,5 @@ test('Persistent heatmap and new 61 messages translate both directions',()=>{
  api.setLanguage('en');for(const [no,en] of cases)assert.equal(api.t(no),en,no);
 });
 test('Both history views, personal profile and live game load the current language dictionary',()=>{
- for(const p of ['match.html','match-stats.html','tournament-match-stats.html','player.html','61-match.html','half-it.html','pentathlon-rejoin.html'])assert.match(read(p),/dartarena-i18n\.js\?v=202611(?:25-heatmap-i18n1|26-(?:profile1|identity[1-4]|crop1|presentation1))/,p);
+ for(const p of ['match.html','match-stats.html','tournament-match-stats.html','player.html','61-match.html','half-it.html','pentathlon-rejoin.html'])assert.match(read(p),/dartarena-i18n\.js\?v=202611(?:25-heatmap-i18n1|26-(?:profile1|identity[1-4]|crop1|presentation1|input-i18n1))/,p);
 });
