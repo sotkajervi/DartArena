@@ -6,6 +6,8 @@
   if(window.DartArenaI18n)return;
   const KEY='dartarena-language';
   const translations=Object.freeze({
+  "Regler": "Rules",
+  "Camtest": "Camera test",
   "Regler og fair play": "Rules and fair play",
   "DartArena • Regler og fair play": "DartArena • Rules and fair play",
   "Versjon 1.0 • 26. november 2026": "Version 1.0 • 26 November 2026",
