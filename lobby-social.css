@@ -270,3 +270,10 @@
   #lobbyView #daSocialLobby .dart-chat-body{font-size:13px}
   #lobbyView #daSocialLobby .dart-chat-heading{padding-inline:6px}
 }
+
+/* Player name above a compact, evenly spaced row of role, average and status. */
+#lobbyView #daSocialLobby #playerList .da-social-player-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0}
+#lobbyView #daSocialLobby #playerList .da-social-player-meta>.player-name{flex:0 0 100%;min-width:0;overflow-wrap:anywhere}
+#lobbyView #daSocialLobby #playerList .da-social-player-meta>.player-role-badge,
+#lobbyView #daSocialLobby #playerList .da-social-player-meta>.da-lobby-form-avg,
+#lobbyView #daSocialLobby #playerList .da-social-player-meta>.status{margin:0;flex:0 0 auto;white-space:nowrap}

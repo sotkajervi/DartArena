@@ -1,0 +1,16 @@
+name: Lobby tag spacing
+on:
+  push:
+    branches: [test/lobby-tag-spacing-20261127]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check lobby-social.js && node --check app.js
+      - run: node --test tests/lobby-tag-spacing.test.cjs tests/lobby-social.test.cjs tests/auth-nickname-guidance.test.cjs tests/auth-link-theme.test.cjs tests/auth-captcha.test.cjs
