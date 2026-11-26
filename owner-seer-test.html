@@ -14,6 +14,10 @@
     .seer-shell [hidden] { display: none !important; }
     .seer-shell .card { margin: 14px 0; padding: clamp(16px, 3vw, 28px); }
     .seer-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .seer-signals { display: flex; flex-wrap: wrap; gap: 12px 28px; }
+    .seer-signals dt { color: var(--muted); }
+    .seer-signals dd { margin: 4px 0 0; font-variant-numeric: tabular-nums; }
+    #seerNotes { margin-block: 16px; }
     #seerLog { padding-left: 1.4rem; overflow-wrap: anywhere; }
     #seerLog li { margin-bottom: 12px; }
     #seerLog summary { cursor: pointer; }
@@ -40,19 +44,35 @@
             <button id="seerDemo" class="outline" type="button">Vis testdata</button>
           </div>
         </form>
-        <p id="seerStatus" role="status">Frakoblet</p>
+        <dl class="seer-signals">
+          <div><dt id="seerServerLabel">SEER-server</dt><dd id="seerStatus" role="status">Frakoblet</dd></div>
+          <div><dt id="seerPingLabel">Sist mottatt ping</dt><dd id="seerPing">—</dd></div>
+          <div><dt id="seerScoreLabel">Sist mottatt kast</dt><dd id="seerScore">—</dd></div>
+        </dl>
       </div>
     </section>
     <section class="card" id="seerEvents" hidden>
       <h2 id="seerLogTitle">Hendelseslogg</h2>
       <p id="seerLast" class="muted"></p>
-      <button id="seerClear" class="outline" type="button" disabled>Tøm logg</button>
+      <div class="seer-actions">
+        <button id="seerSave" class="primary" type="button" disabled>Lagre testlogg (.json)</button>
+        <button id="seerClear" class="outline" type="button" disabled>Tøm logg</button>
+      </div>
+      <form id="seerNotes">
+        <label class="field"><span id="seerNoteLabel">Kastnotat (tas med i eksporten)</span>
+          <input id="seerNote" type="text" maxlength="240" placeholder="Faktisk T20" autocomplete="off">
+        </label>
+        <div class="seer-actions">
+          <button id="seerAddNote" class="outline" type="submit">Legg til notat</button>
+          <button id="seerRemoved" class="outline" type="button">Pilene tatt ut</button>
+        </div>
+      </form>
       <ol id="seerLog"></ol>
     </section>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
   <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.8.1/dist/socket.io.min.js"></script>
   <script src="dartarena-i18n.js?v=20261126-menuorder1"></script>
-  <script src="owner-seer-test.js?v=20261126-seer1"></script>
+  <script src="owner-seer-test.js?v=20261126-seerlog1"></script>
 </body>
 </html>
