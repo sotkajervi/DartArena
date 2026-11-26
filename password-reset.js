@@ -1,5 +1,6 @@
 // Generated from src/pages/password-reset.ts. Do not edit directly.
 const sdk = window.supabase;
+const captcha = window.DartArenaAuthCaptcha;
 const element = (id) => document.getElementById(id);
 const message = element('resetMessage');
 const requestForm = element('requestForm');
@@ -46,12 +47,16 @@ else {
         try {
             // Fixed production destination; never accept a next/redirect URL from input.
             // The lobby entry forwards recovery fragments before its Supabase client starts.
-            const { error } = await auth.resetPasswordForEmail(element('resetEmail').value.trim(), { redirectTo: 'https://sotkajervi.github.io/DartArena/' });
+            const captchaToken = await captcha?.token('requestForm');
+            const { error } = await auth.resetPasswordForEmail(element('resetEmail').value.trim(), { redirectTo: 'https://sotkajervi.github.io/DartArena/', ...(captchaToken ? { captchaToken } : {}) });
             if (error)
                 throw error;
             say('Hvis e-postadressen er registrert, får du en lenke for å velge nytt passord. Sjekk også søppelpost.');
         }
         catch (error) {
+            const captchaMessage = captcha?.message(error);
+            if (captchaMessage)
+                return say(captchaMessage, true);
             const code = error.code;
             say(code === 'over_email_send_rate_limit' || code === 'over_request_rate_limit'
                 ? 'For mange forsøk. Vent litt før du prøver igjen.'

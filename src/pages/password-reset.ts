@@ -9,7 +9,7 @@ type Auth = {
   getUser(): Promise<Result>;
   resetPasswordForEmail(
     email: string,
-    options: { redirectTo: string },
+    options: { redirectTo: string; captchaToken?: string },
   ): Promise<{ error: AuthError | null }>;
   updateUser(attributes: { password: string }): Promise<Result>;
   signOut(options: { scope: 'local' }): Promise<{ error: AuthError | null }>;
@@ -19,6 +19,7 @@ const sdk = (
     supabase: { createClient(url: string, key: string, options: unknown): { auth: Auth } };
   }
 ).supabase;
+const captcha = (window as unknown as { DartArenaAuthCaptcha?: { token(formId: string): Promise<string | undefined>; message(error: unknown): string | undefined } }).DartArenaAuthCaptcha;
 const element = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const message = element<HTMLParagraphElement>('resetMessage');
 const requestForm = element<HTMLFormElement>('requestForm');
@@ -72,15 +73,18 @@ if (!sdk) {
     try {
       // Fixed production destination; never accept a next/redirect URL from input.
       // The lobby entry forwards recovery fragments before its Supabase client starts.
+      const captchaToken = await captcha?.token('requestForm');
       const { error } = await auth.resetPasswordForEmail(
         element<HTMLInputElement>('resetEmail').value.trim(),
-        { redirectTo: 'https://sotkajervi.github.io/DartArena/' },
+        { redirectTo: 'https://sotkajervi.github.io/DartArena/', ...(captchaToken ? { captchaToken } : {}) },
       );
       if (error) throw error;
       say(
         'Hvis e-postadressen er registrert, får du en lenke for å velge nytt passord. Sjekk også søppelpost.',
       );
     } catch (error) {
+      const captchaMessage = captcha?.message(error);
+      if (captchaMessage) return say(captchaMessage, true);
       const code = (error as AuthError).code;
       say(
         code === 'over_email_send_rate_limit' || code === 'over_request_rate_limit'

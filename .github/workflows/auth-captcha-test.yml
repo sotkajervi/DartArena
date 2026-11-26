@@ -1,0 +1,19 @@
+name: Auth CAPTCHA preparation
+on:
+  push:
+    branches: [test/auth-turnstile-prep-20261126]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: node --check auth-captcha.js && node --check app.js
+      - run: npm run typecheck
+      - run: node --test tests/auth-captcha.test.cjs tests/password-reset.test.cjs

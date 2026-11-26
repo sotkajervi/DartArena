@@ -22,7 +22,7 @@ async function setup(hash = '', options = {}) {
     async signOut(config) { calls.signout.push(config); return { error: null }; },
   };
   vm.runInNewContext(compiled.replace('export {};', ''), {
-    window: { supabase: { createClient(url, key, config) { calls.config = config; return { auth }; } } },
+    window: { DartArenaAuthCaptcha: options.captcha, supabase: { createClient(url, key, config) { calls.config = config; return { auth }; } } },
     document: { getElementById: id => nodes[id] }, URLSearchParams,
     location: { hash, search: '', pathname: '/DartArena/password-reset.html' },
     history: { replaceState(...args) { calls.history.push(args); } }, setTimeout: fn => setImmediate(fn),
@@ -81,5 +81,7 @@ test('password reset HTML uses the same eight-character policy', () => {
   const html = fs.readFileSync('password-reset.html', 'utf8');
   for (const id of ['newPassword', 'confirmPassword']) assert.match(html, new RegExp('id="'+id+'"[^>]*minlength="8"'));
   assert.match(html, /Bruk minst 8 tegn/);
-  assert.match(html, /password-reset\.js\?v=20261124-auth-password2/);
+  assert.match(html, /password-reset\.js\?v=20261126-auth1/);
 });
+
+test('reset request forwards CAPTCHA token and fails closed on challenge error', async()=>{const s=await setup('',{captcha:{token:async()=> 'test-token',message:()=>undefined}});await s.submit('requestForm');assert.equal(s.calls.request[0].config.captchaToken,'test-token');const t=await setup('',{captcha:{token:async()=>{throw Error('captcha')},message:()=> 'Try again'}});await t.submit('requestForm');assert.equal(t.calls.request.length,0);assert.equal(t.nodes.sendReset.disabled,false);});
