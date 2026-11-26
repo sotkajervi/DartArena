@@ -208,15 +208,17 @@ test('own saved visits pause tracking; opponent turn confirmation triggers reset
   const regular=fs.readFileSync(path.join(root,'set-engine.js'),'utf8');
   const checkout=fs.readFileSync(path.join(root,'checkout-engine.js'),'utf8');
   const fallback=fs.readFileSync(path.join(root,'match.js'),'utf8');
-  for(const code of [regular,checkout]){
-    const fail=code.indexOf('if(error||!data)');
-    const pause=code.indexOf('window.DartArenaX01ZoomSession?.pauseTracking?.()');
-    assert.ok(pause>fail&&fail>=0,'Pause only after a successful score save');
-    assert.doesNotMatch(code,/window\.DartArenaX01ZoomSession\?\.resetToT20\?\.\(\)/);
-  }
+  const submit=regular.indexOf("db.rpc('submit_x01_checked'");
+  const fail=regular.indexOf('if(error||!data)',submit);
+  const validate=regular.indexOf('if(!next?.id||next.id!==matchId)',fail);
+  const apply=regular.indexOf('state.applyScoreState(next)',validate);
+  assert.ok(submit>=0&&fail>submit&&validate>fail&&apply>validate,'Only a successful validated score response updates match state');
+  assert.match(regular,/DartArenaCheckout\.askDarts/);
+  assert.doesNotMatch(checkout,/\.rpc\(|pauseTracking|resetToT20/);
   assert.match(fallback,/function syncZoomCamTurn\(previous,next\)/);
+  assert.match(fallback,/if\(!mine\)\{zoomCamSession\.pauseTracking\?\.\(\);return\}/);
   assert.match(fallback,/if\(newTurn\|\|newLeg\)zoomCamSession\.resetToT20\?\.\(\)/);
-  assert.match(fallback,/window\.DartArenaX01ZoomSession\?\.pauseTracking\?\.\(\)/);
+  assert.match(fallback,/m=next;\s*syncZoomCamTurn\(previous,m\)/);
 });
 
 test('digital framing crops and pans without changing camera calibration coordinates',()=>{
@@ -272,7 +274,7 @@ test('Cam-test picture controls load after calibration and stay separate from de
   const i=html.indexOf('autozoom/camera-calibration.js?v=20261126-fastonly1');
   const pic=html.indexOf('camera-picture.js?v=20261023-picture2');
   assert.ok(i>0&&pic>i);
-  assert.match(html,/autozoom\/camera-calibration\.css\?v=20261126-fastonly1/);
+  assert.match(html,/autozoom\/camera-calibration\.css\?v=20261027-turncal1/);
   const calibration=fs.readFileSync(path.join(root,'autozoom','camera-calibration.js'),'utf8');
   assert.match(calibration,/picture:false/);
   const zoom=fs.readFileSync(path.join(root,'autozoom','zoom-cam.js'),'utf8');
