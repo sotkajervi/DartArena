@@ -28,8 +28,8 @@ alter table public.player_reports enable row level security;
 revoke all on public.player_reports from public,anon,authenticated;
 grant select on public.player_reports to authenticated;
 grant update(status,internal_note) on public.player_reports to authenticated;
-create policy player_reports_staff_read on public.player_reports for select to authenticated using((select public.is_admin()));
-create policy player_reports_staff_update on public.player_reports for update to authenticated using((select public.is_admin())) with check((select public.is_admin()));
+create policy player_reports_staff_read on public.player_reports for select to authenticated using((select public.is_admin()) and target_id<>(select auth.uid()));
+create policy player_reports_staff_update on public.player_reports for update to authenticated using((select public.is_admin()) and target_id<>(select auth.uid())) with check((select public.is_admin()) and target_id<>(select auth.uid()));
 create table dartarena_moderation_private.report_audit(
  id bigint generated always as identity primary key,
  report_id uuid not null references public.player_reports(id) on delete cascade,

@@ -19,7 +19,7 @@ do $check$begin
  begin perform public.submit_player_report('33333333-3333-4333-8333-333333333333','avatar','bad image','YWJjZA==');raise exception 'bad image accepted';exception when invalid_parameter_value then null;end;
  begin perform public.submit_player_report('33333333-3333-4333-8333-333333333333','other','bad category image','/9j/AA==');raise exception 'wrong evidence accepted';exception when invalid_parameter_value then null;end;
 end $check$;
-select public.submit_player_report('33333333-3333-4333-8333-333333333333','behavior','Third report');
+select public.submit_player_report('22222222-2222-4222-8222-222222222222','behavior','Report about staff');
 do $check$begin
  begin perform public.submit_player_report('33333333-3333-4333-8333-333333333333','spam','Fourth report');raise exception 'rate limit bypass' using errcode='XX000';exception when sqlstate 'P0001' then null;end;
 end $check$;
@@ -31,7 +31,8 @@ update public.player_details set full_name='Changed Name' where user_id='3333333
 set role authenticated;
 select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',false);
 do $check$begin
- if (select count(*) from public.player_reports where target_nickname='OldNick' and target_full_name='Original Name' and reporter_nickname='Reporter')<>3 then raise exception 'snapshot not preserved';end if;
+ if exists(select 1 from public.player_reports where target_id=auth.uid()) then raise exception 'reported staff can read own case';end if;
+ if (select count(*) from public.player_reports where target_nickname='OldNick' and target_full_name='Original Name' and reporter_nickname='Reporter')<>2 then raise exception 'snapshot not preserved';end if;
  if (select count(*) from public.player_reports where avatar_evidence='/9j/AA==' and avatar_updated_at is not null)<>1 then raise exception 'evidence missing';end if;
  update public.player_reports set status='dismissed',internal_note='Reviewed' where category='name';
  if not exists(select 1 from public.player_reports where status='dismissed' and handled_by=auth.uid() and handled_at is not null) then raise exception 'staff update missing';end if;

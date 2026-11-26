@@ -128,7 +128,7 @@
       const dl=el('label',tr('Beskrivelse','Description'));dl.append(desc);
       const opt=el('input');opt.type='checkbox';const ol=el('label');ol.hidden=true;ol.append(opt,d.createTextNode(tr('Legg ved kopi av profilbildet (hvis tilgjengelig)','Attach a copy of the profile picture (if available)')));
       cat.onchange=()=>{ol.hidden=cat.value!=='avatar';opt.checked=cat.value==='avatar'&&!!d.querySelector('#profileAvatar img[data-player-avatar]')};
-      const hint=el('p',tr('Kun Admin/Owner kan lese rapporten. Spilleren varsles ikke om hvem som rapporterer. Navn på rapporttidspunktet lagres. Ikke legg inn unødvendige personopplysninger.','Only Admin/Owner can read the report. The player is not notified of who reported them. Names at report time are saved. Do not include unnecessary personal information.'),'da-issue-muted');
+      const hint=el('p',tr('Kun Admin/Owner som ikke selv er rapportert i saken kan lese rapporten. Spilleren varsles ikke om hvem som rapporterer. Navn på rapporttidspunktet lagres. Ikke legg inn unødvendige personopplysninger.','Only Admin/Owner who are not the subject of the case can read the report. The player is not notified of who reported them. Names at report time are saved. Do not include unnecessary personal information.'),'da-issue-muted');
       const status=el('p');status.setAttribute('role','status');
       const actions=el('div',undefined,'da-issue-actions'),send=el('button',tr('Send rapport','Submit report'),'da-issue-primary');send.type='submit';const cancel=btn(tr('Lukk','Close'),()=>close(x));actions.append(send,cancel);
       f.append(cl,dl,ol,hint,status,actions);x.append(f);
