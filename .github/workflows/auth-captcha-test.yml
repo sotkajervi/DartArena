@@ -13,7 +13,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm ci
+      # Only the pinned TypeScript compiler is required; the repo has no npm lockfile.
+      - run: npm install --prefix "$RUNNER_TEMP/da-auth-test" --no-save --ignore-scripts --no-audit --no-fund typescript@6.0.2
       - run: node --check auth-captcha.js && node --check app.js
-      - run: npm run typecheck
-      - run: node --test tests/auth-captcha.test.cjs tests/password-reset.test.cjs
+      - run: '"$RUNNER_TEMP/da-auth-test/node_modules/.bin/tsc" --noEmit'
+      - run: NODE_PATH="$RUNNER_TEMP/da-auth-test/node_modules" node --test tests/auth-captcha.test.cjs tests/password-reset.test.cjs
