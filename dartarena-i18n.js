@@ -6,6 +6,17 @@
   if(window.DartArenaI18n)return;
   const KEY='dartarena-language';
   const translations=Object.freeze({
+  "Blokker utfordringer": "Block challenges",
+  "Fjern blokkering": "Unblock",
+  "Blokkerte spillere": "Blocked players",
+  "Vil du blokkere direkte utfordringer mellom deg og denne spilleren? Turneringskamper påvirkes ikke.": "Block direct challenges between you and this player? Tournament matches are unaffected.",
+  "Blokkering fjernet.": "Block removed.",
+  "Direkte utfordringer er blokkert.": "Direct challenges are blocked.",
+  "Kunne ikke endre blokkering. Prøv igjen.": "Could not change block. Try again.",
+  "Ingen blokkerte spillere.": "No blocked players.",
+  "Kunne ikke laste blokkerte spillere.": "Could not load blocked players.",
+  "Utfordringen er ikke tilgjengelig.": "Challenge unavailable.",
+  "Direkte utfordringer blokkeres begge veier. Turneringskamper og allerede åpne venterom påvirkes ikke.": "Direct challenges are blocked both ways. Tournament matches and already open waiting rooms are unaffected.",
   "Rapporter spiller": "Report player",
   "Visningsnavn": "Display name",
   "Fullt navn + kallenavn": "Full name + nickname",

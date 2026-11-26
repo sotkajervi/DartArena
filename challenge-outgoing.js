@@ -166,6 +166,7 @@
   const baseLoadPlayers=loadPlayers;
   loadPlayers=async function(){const result=await baseLoadPlayers();applySentButtonState();return result};
 
+  const challengeError=e=>e?.message==='Challenge unavailable'?(window.DartArenaI18n?.t?.('Utfordringen er ikke tilgjengelig.')||'Utfordringen er ikke tilgjengelig.'):e.message;
   sendInvite=async function(button){
     if(activeMatch||!button||button.disabled)return;
     const id=button.dataset.id,old=button.textContent;
@@ -191,7 +192,7 @@
         .eq('status','pending')
         .select('id')
         .maybeSingle();
-      if(acceptError){button.disabled=false;button.textContent=old;alert(acceptError.message);return}
+      if(acceptError){button.disabled=false;button.textContent=old;alert(challengeError(acceptError));return}
       if(!accepted?.id){button.disabled=false;button.textContent=old;await Promise.all([loadChallenges(),loadPlayers()]);return}
       openAcceptedRoom(accepted.id);
       return;
@@ -210,7 +211,7 @@
     }
     button.textContent='Sender…';
     const{data,error}=await db.from('challenges').insert({challenger_id:profile.id,challenged_id:id,game:501,legs:5,allow_draw:false,starter:'me',status:'pending'}).select('id').single();
-    if(error){button.disabled=false;button.textContent=old;alert(error.message);return}
+    if(error){button.disabled=false;button.textContent=old;alert(challengeError(error));return}
     pendingSentIds.add(id);
     observedPendingChallengeIds.add(data.id);
     button.textContent='Sendt';
