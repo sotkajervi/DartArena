@@ -271,9 +271,11 @@
   #lobbyView #daSocialLobby .dart-chat-heading{padding-inline:6px}
 }
 
-/* Player name above a compact, evenly spaced row of role, average and status. */
-#lobbyView #daSocialLobby #playerList .da-social-player-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0}
-#lobbyView #daSocialLobby #playerList .da-social-player-meta>.player-name{flex:0 0 100%;min-width:0;overflow-wrap:anywhere}
-#lobbyView #daSocialLobby #playerList .da-social-player-meta>.player-role-badge,
-#lobbyView #daSocialLobby #playerList .da-social-player-meta>.da-lobby-form-avg,
-#lobbyView #daSocialLobby #playerList .da-social-player-meta>.status{margin:0;flex:0 0 auto;white-space:nowrap}
+/* Keep staff role beside the nickname; average and presence on their own row. */
+#lobbyView #daSocialLobby #playerList .da-social-player-meta{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+#lobbyView #daSocialLobby #playerList .da-social-player-heading,
+#lobbyView #daSocialLobby #playerList .da-social-player-tags{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0;max-width:100%}
+#lobbyView #daSocialLobby #playerList .da-social-player-heading>.player-name{min-width:0;overflow-wrap:anywhere}
+#lobbyView #daSocialLobby #playerList .da-social-player-heading>.player-role-badge,
+#lobbyView #daSocialLobby #playerList .da-social-player-tags>.da-lobby-form-avg,
+#lobbyView #daSocialLobby #playerList .da-social-player-tags>.status{margin:0;flex:0 0 auto;white-space:nowrap}

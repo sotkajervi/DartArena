@@ -106,7 +106,7 @@
     chat.setAttribute('aria-labelledby','daSocialChatTab');
     if(!doc.querySelector('link[data-dartarena-social-css]')){
       const style=doc.createElement('link');
-      style.rel='stylesheet';style.href='lobby-social.css?v=20261127-tag-gap1';
+      style.rel='stylesheet';style.href='lobby-social.css?v=20261127-tag-gap2';
       style.dataset.dartarenaSocialCss='1';
       doc.head.appendChild(style);
     }
@@ -189,8 +189,8 @@
       const action=can?'Utfordre':inGame?'I kamp':'Ikke ledig';
       return '<div class="player-row da-social-player" data-player-status="'+esc(p.status)+'">'+
         '<div class="player-main"><div class="avatar" data-avatar-id="'+esc(p.id)+'">'+escapeName((p.username||'?').slice(0,1).toUpperCase())+'</div>'+
-        '<div class="da-social-player-meta"><a class="player-name da-player-profile-link" data-da-display-id="'+esc(p.id)+'" data-user-id="'+esc(p.id)+'" data-no-i18n href="player.html?id='+encodeURIComponent(p.id)+'" target="_blank" rel="noopener" title="Se spillerprofil">'+escapeName(p.username||'Spiller')+'</a> <span class="da-lobby-form-avg" data-form-player="'+esc(p.id)+'" title="501 • 20 • Bo5+">AVG –</span>'+
-        '<div class="status"><span class="dot '+esc(p.status)+'"></span>'+rawStatus+'</div></div></div>'+
+        '<div class="da-social-player-meta"><div class="da-social-player-heading"><a class="player-name da-player-profile-link" data-da-display-id="'+esc(p.id)+'" data-user-id="'+esc(p.id)+'" data-no-i18n href="player.html?id='+encodeURIComponent(p.id)+'" target="_blank" rel="noopener" title="Se spillerprofil">'+escapeName(p.username||'Spiller')+'</a></div><div class="da-social-player-tags"><span class="da-lobby-form-avg" data-form-player="'+esc(p.id)+'" title="501 • 20 • Bo5+">AVG –</span>'+
+        '<div class="status"><span class="dot '+esc(p.status)+'"></span>'+rawStatus+'</div></div></div></div>'+
         '<button type="button" class="small-btn challenge-btn" data-id="'+esc(p.id)+'" '+(can?'':'disabled')+'>'+action+'</button></div>';
     }).join(''):'<p class="muted">Ingen spillere passer dette søket eller filteret.</p>';
     target.querySelectorAll('.challenge-btn:not([disabled])').forEach(button=>
