@@ -6,6 +6,11 @@
   if(window.DartArenaI18n)return;
   const KEY='dartarena-language';
   const translations=Object.freeze({
+  "Visningsnavn": "Display name",
+  "Fullt navn + kallenavn": "Full name + nickname",
+  "Forhåndsvisning:": "Preview:",
+  "Fyll inn fullt navn for å bruke dette visningsvalget.": "Enter your full name to use this display option.",
+  "Kallenavnet er unikt. Du kan endre det én gang hver 14. dag. Visningsnavnet kan endres når du vil.": "Your nickname is unique. You can change it once every 14 days. Change your display option whenever you want.",
   "Tilpass profilbilde": "Adjust profile picture",
   "Dra bildet for å velge utsnitt. Bruk zoom eller roter bildet.": "Drag the image to choose the crop. Zoom or rotate the image.",
   "Dra bildet eller bruk piltastene": "Drag the image or use the arrow keys",
