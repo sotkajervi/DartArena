@@ -50,3 +50,18 @@ test('distinguishes missing detections, real misses, invalid hits and a calibrat
   assert.equal(visit.total, 60);
   assert.equal(visit.receive(frame(null, single)), false);
 });
+
+test('a calibration error keeps the affected dart pending through recovery until corrected', () => {
+  const visit = new SeerVisit();
+  const bad = { ...frame('a', treble), calibrationError: true };
+  visit.receive(bad, '2026-11-27T00:01:00.000Z');
+  assert.deepEqual(visit.calibration, { state: 'error', receivedAt: '2026-11-27T00:01:00.000Z' });
+  assert.equal(visit.total, 0);
+  visit.calibration = { state: 'ready', receivedAt: '2026-11-27T00:02:00.000Z' };
+  visit.receive(frame('b', treble, { ...single, darts: 2 }));
+  assert.equal(visit.total, 20);
+  assert.equal(visit.receive(bad, '2026-11-27T00:03:00.000Z'), false);
+  assert.equal(visit.calibration.state, 'ready');
+  assert.ok(visit.correct(1, 'T20'));
+  assert.equal(visit.total, 80);
+});
