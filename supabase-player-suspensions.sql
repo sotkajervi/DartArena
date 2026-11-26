@@ -2,7 +2,7 @@
 begin;
 create table public.player_suspensions(
  id uuid primary key default gen_random_uuid(),
- player_id uuid not null references public.profiles(id),
+ player_id uuid not null,
  imposed_by uuid not null,
  imposed_at timestamptz not null default now(),
  ends_at timestamptz,
@@ -67,12 +67,12 @@ language sql security invoker set search_path='' as $body$ select dartarena_mode
 revoke all on function public.manage_player_suspension(uuid,text,text) from public,anon;
 grant execute on function public.manage_player_suspension(uuid,text,text) to authenticated;
 -- Guard all write paths below, including SECURITY DEFINER match creation.
--- Try-lock prevents deadlock with a concurrent moderation operation.
+-- Shared try-locks do not serialize normal scoring; only a concurrent moderation action is exclusive.
 create function dartarena_moderation_private.require_active(p_id uuid) returns void
 language plpgsql security definer set search_path='' as $body$
 begin
  if p_id is null then return;end if;
- if not pg_catalog.pg_try_advisory_xact_lock(dartarena_moderation_private.suspension_key(p_id)) or dartarena_moderation_private.is_suspended(p_id) then raise exception 'Online participation unavailable' using errcode='42501';end if;
+ if not pg_catalog.pg_try_advisory_xact_lock_shared(dartarena_moderation_private.suspension_key(p_id)) or dartarena_moderation_private.is_suspended(p_id) then raise exception 'Online participation unavailable' using errcode='42501';end if;
 end $body$;
 revoke all on function dartarena_moderation_private.require_active(uuid) from public,anon,authenticated;
 create function dartarena_moderation_private.guard_online_suspension() returns trigger
