@@ -58,7 +58,7 @@ function saveConfig(storage,data){
   if(![data.cx,data.cy,data.radius,data.rotation,data.aspect].every(Number.isFinite))return false;
   if(data.cx<0||data.cx>1||data.cy<0||data.cy>1||data.radius<.03||data.radius>.65||data.aspect<.5||data.aspect>3)return false;
   storage.setItem(CONFIG_KEY,JSON.stringify({...data,...framingOf(data),...hitOffsetOf(data),
-    speed:['fast','normal','smooth'].includes(data.speed)?data.speed:'normal',
+    speed:'fast',
     sensitivity:['low','normal','high'].includes(data.sensitivity)?data.sensitivity:'normal',
     version:1}));
   return true;
@@ -69,7 +69,7 @@ function loadConfig(storage){
     if(!data||data.version!==1||typeof data.deviceId!=='string'||!data.deviceId)return null;
     if(![data.cx,data.cy,data.radius,data.rotation,data.aspect].every(Number.isFinite)
       ||data.cx<0||data.cx>1||data.cy<0||data.cy>1||data.radius<.03||data.radius>.65||data.aspect<.5||data.aspect>3)return null;
-    return {...data,...framingOf(data),...hitOffsetOf(data)};
+    return {...data,...framingOf(data),...hitOffsetOf(data),speed:'fast'};
   }catch{return null}
 }
 function selected(storage){return storage.getItem(MODE_KEY)==='zoom'}
@@ -117,7 +117,7 @@ function create(raw,config,{fps=25,video=null,
   const setDrawFilter=value=>{if('filter' in ctx)ctx.filter=value};
   let out=null,loop=0,clock=0,stopped=false,prev=null,ref=null,still=0,target=null,current=null,lastRawHit=null;
   let trackingPaused=false,lastFrameAt=0,watchdog=null;
-  const speed=tracker.speedPreset(config.speed);
+  const speed=tracker.speedPreset('fast');
   const gate=tracker.createChangeGate({stableFrames:speed.stableFrames,motionWindowMs:4000,cooldownMs:speed.cooldownMs});
   const sampled=document.createElement('canvas'),sampleCtx=sampled.getContext('2d',{willReadFrequently:true});
   let lastAnalysis=0,resetResumeAt=0,lastRenderErrorAt=-Infinity;
