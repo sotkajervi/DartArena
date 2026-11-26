@@ -6,6 +6,7 @@
   if(window.DartArenaI18n)return;
   const KEY='dartarena-language';
   const translations=Object.freeze({
+  "Rapporter spiller": "Report player",
   "Visningsnavn": "Display name",
   "Fullt navn + kallenavn": "Full name + nickname",
   "Forhåndsvisning:": "Preview:",

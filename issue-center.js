@@ -68,11 +68,13 @@
     const en=()=>{try{return w.localStorage.getItem('dartarena-language')==='en'}catch{return false}};
     const tr=(no,eng)=>en()?eng:no;
     const titles={video:['Video / kamera','Video / camera'],audio:['Lyd','Audio'],scoring:['Poengføring','Scoring'],tournament:['Turnering','Tournament'],performance:['Forsinkelse / ytelse','Lag / performance'],other:['Annet','Other'],suggestion:['Funksjonsforslag','Feature suggestion']};
+    const playerTitles={name:['Upassende navn / kallenavn','Inappropriate name / nickname'],avatar:['Upassende profilbilde','Inappropriate profile picture'],behavior:['Dårlig oppførsel / trakassering','Misconduct / harassment'],cheating:['Mistanke om juks','Suspected cheating'],no_show:['Uteblivelse fra turneringskamp','Tournament no-show'],spam:['Spam / uønskede utfordringer','Spam / unwanted challenges'],other:['Annet','Other']};
+    const playerStates=[['new','Ny','New'],['investigating','Undersøkes','Investigating'],['dismissed','Avvist','Dismissed'],['resolved','Behandlet','Resolved']];
     const el=(tag,text,cls)=>{const x=d.createElement(tag);if(text!==undefined)x.textContent=text;if(cls)x.className=cls;return x};
     const btn=(text,fn,cls='da-issue-button')=>{const b=el('button',text,cls);b.type='button';b.addEventListener('click',fn);return b};
     const client=()=>{try{if(w.DartArenaSupabaseClient)return w.DartArenaSupabaseClient;if(typeof db!=='undefined'&&db)return db}catch{}return w.supabase?(w.DartArenaSupabaseClient=w.supabase.createClient('https://jqpxlbhwvskhjbqrbidk.supabase.co','sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK')):null};
     const style=el('style');
-    style.textContent='.da-issue-launch{position:fixed;right:10px;bottom:10px;z-index:1000;font:600 12px system-ui;opacity:.9}.da-issue-button,.da-issue-dialog button{border:1px solid #287982;border-radius:8px;background:#102b30;color:#eaffff;padding:8px 12px;cursor:pointer;font:inherit}.da-issue-dialog{box-sizing:border-box;background:#0c1b20;color:#eaffff;border:1px solid #27858d;border-radius:14px;width:min(580px,94vw);max-height:88vh;overflow:auto;padding:20px;font:14px system-ui;z-index:2147483640}.da-issue-dialog::backdrop{background:#000a}.da-issue-dialog h2{margin:0 0 15px;color:#5be6e7;font-size:21px}.da-issue-dialog label{display:block;margin:12px 0}.da-issue-dialog select,.da-issue-dialog textarea{display:block;width:100%;box-sizing:border-box;padding:9px;background:#071416;border:1px solid #375c62;color:#eaffff;border-radius:7px;font:inherit}.da-issue-dialog input[type=checkbox]{margin-right:7px}.da-issue-dialog p{margin:10px 0;overflow-wrap:anywhere}.da-issue-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.da-issue-dialog .da-issue-primary{background:#55dddd;color:#062023;font-weight:700}.da-issue-dialog button:disabled{opacity:.5;cursor:default}.da-issue-row{border:1px solid #285057;border-radius:8px;padding:12px;margin:10px 0}.da-issue-dialog pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;font-size:11px}.da-issue-muted{color:#b4c9cb;font-size:12px}';
+    style.textContent='.da-issue-launch{position:fixed;right:10px;bottom:10px;z-index:1000;font:600 12px system-ui;opacity:.9}.da-issue-button,.da-issue-dialog button{border:1px solid #287982;border-radius:8px;background:#102b30;color:#eaffff;padding:8px 12px;cursor:pointer;font:inherit}.da-issue-dialog{box-sizing:border-box;background:#0c1b20;color:#eaffff;border:1px solid #27858d;border-radius:14px;width:min(580px,94vw);max-height:88vh;overflow:auto;padding:20px;font:14px system-ui;z-index:2147483640}.da-issue-dialog::backdrop{background:#000a}.da-issue-dialog h2{margin:0 0 15px;color:#5be6e7;font-size:21px}.da-issue-dialog label{display:block;margin:12px 0}.da-issue-dialog select,.da-issue-dialog textarea{display:block;width:100%;box-sizing:border-box;padding:9px;background:#071416;border:1px solid #375c62;color:#eaffff;border-radius:7px;font:inherit}.da-issue-dialog input[type=checkbox]{margin-right:7px}.da-issue-dialog p{margin:10px 0;overflow-wrap:anywhere}.da-issue-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.da-issue-dialog .da-issue-primary{background:#55dddd;color:#062023;font-weight:700}.da-issue-dialog button:disabled{opacity:.5;cursor:default}.da-issue-dialog [hidden]{display:none!important}.da-issue-dialog button[aria-pressed=true]{border-color:#00eaf4;color:#00eaf4}.da-issue-row{border:1px solid #285057;border-radius:8px;padding:12px;margin:10px 0}.da-issue-dialog pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;font-size:11px}.da-issue-muted{color:#b4c9cb;font-size:12px}';
     d.head.append(style);
     const dialog=()=>{const x=el('dialog',undefined,'da-issue-dialog');x.setAttribute('data-da-issue','');x.addEventListener('keydown',e=>e.stopPropagation());x.addEventListener('close',()=>x.remove());d.body.append(x);return x};
     const show=x=>{if(typeof x.showModal==='function')x.showModal();else{x.setAttribute('open','');x.style.position='fixed';x.style.inset='10% auto auto 3%'}};
@@ -110,24 +112,79 @@
       });
       show(x);
     }
+    async function captureAvatar(target,c){
+      const urls=await w.DartArenaIdentity?.getUrls(c,[target]);const url=urls?.get(target);if(!url)throw Error('avatar_missing');
+      const response=await w.fetch(url,{cache:'no-store',credentials:'omit'});if(!response.ok)throw Error('avatar_missing');
+      const blob=await response.blob();if(blob.type!=='image/jpeg'||blob.size>102400||!blob.size)throw Error('avatar_invalid');
+      const bytes=new Uint8Array(await blob.arrayBuffer());let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));return w.btoa(binary);
+    }
+    function openPlayerReport(target){
+      if(d.querySelector('dialog[data-da-issue][open]')||!uuid(target))return;
+      const x=dialog();x.append(el('h2',tr('Rapporter spiller','Report player')),el('p',d.getElementById('playerName')?.textContent||'', 'da-issue-muted'));
+      const f=el('form'),cat=el('select');cat.required=true;
+      for(const [key,label] of Object.entries(playerTitles)){const o=el('option',tr(...label));o.value=key;cat.append(o)}
+      const cl=el('label',tr('Kategori','Category'));cl.append(cat);
+      const desc=el('textarea');desc.required=true;desc.maxLength=2000;desc.rows=4;desc.placeholder=tr('Beskriv hva som har skjedd.','Describe what happened.');
+      const dl=el('label',tr('Beskrivelse','Description'));dl.append(desc);
+      const opt=el('input');opt.type='checkbox';const ol=el('label');ol.hidden=true;ol.append(opt,d.createTextNode(tr('Legg ved kopi av profilbildet (hvis tilgjengelig)','Attach a copy of the profile picture (if available)')));
+      cat.onchange=()=>{ol.hidden=cat.value!=='avatar';opt.checked=cat.value==='avatar'&&!!d.querySelector('#profileAvatar img[data-player-avatar]')};
+      const hint=el('p',tr('Kun Admin/Owner kan lese rapporten. Spilleren varsles ikke om hvem som rapporterer. Navn på rapporttidspunktet lagres. Ikke legg inn unødvendige personopplysninger.','Only Admin/Owner can read the report. The player is not notified of who reported them. Names at report time are saved. Do not include unnecessary personal information.'),'da-issue-muted');
+      const status=el('p');status.setAttribute('role','status');
+      const actions=el('div',undefined,'da-issue-actions'),send=el('button',tr('Send rapport','Submit report'),'da-issue-primary');send.type='submit';const cancel=btn(tr('Lukk','Close'),()=>close(x));actions.append(send,cancel);
+      f.append(cl,dl,ol,hint,status,actions);x.append(f);
+      let busy=false;x.addEventListener('cancel',e=>{if(busy)e.preventDefault()});
+      f.onsubmit=async e=>{e.preventDefault();if(busy||send.disabled||!desc.value.trim())return;busy=true;send.disabled=cancel.disabled=cat.disabled=desc.disabled=opt.disabled=true;status.textContent=tr('Sender…','Submitting…');
+       try{const c=client(),{data,error}=await c.auth.getSession();if(error||!data?.session?.user||data.session.user.id===target)throw Error('invalid_target');
+        let evidence=null;if(cat.value==='avatar'&&opt.checked){try{evidence=await captureAvatar(target,c)}catch{throw Error('avatar_capture_failed')}}
+        const {error:writeError}=await c.rpc('submit_player_report',{p_target_id:target,p_category:cat.value,p_description:desc.value.trim(),p_avatar_evidence:evidence});if(writeError)throw writeError;
+        status.textContent=tr('Rapport sendt. Takk!','Report submitted. Thank you!');cancel.disabled=false;
+       }catch(err){status.textContent=err?.message==='avatar_capture_failed'?tr('Kunne ikke hente profilbildet. Prøv igjen eller fjern avhukingen for å sende uten bilde.','Could not capture the profile picture. Retry or uncheck the box to submit without it.'):err?.code==='P0001'?tr('For mange rapporter. Prøv igjen senere.','Too many reports. Try again later.'):tr('Kunne ikke sende. Teksten er beholdt – prøv igjen.','Could not submit. Your text is preserved – try again.');send.disabled=cancel.disabled=cat.disabled=desc.disabled=opt.disabled=false}
+       finally{busy=false}
+      };
+      show(x);
+    }
     async function openAdmin(){
       if(d.querySelector('dialog[data-da-issue][open]'))return;
       const x=dialog(),c=client(),list=el('div'),status=el('p');
       const head=el('div',undefined,'da-issue-actions');
       x.append(el('h2',tr('Rapportsenter','Issue Center')),head,status,list);
-      const filter=el('select');for(const [v,no,eng] of [['all','Alle','All'],['new','Nye','New'],['investigating','Undersøkes','Investigating'],['resolved','Løst','Resolved']]){const o=el('option',tr(no,eng));o.value=v;filter.append(o)}
-      head.append(filter,btn(tr('Oppdater','Refresh'),load),btn(tr('Lukk','Close'),()=>close(x)));filter.onchange=load;
+      let section='technical',request=0;
+      const filter=el('select');
+      const technical=btn(tr('Tekniske rapporter','Technical reports'),()=>switchSection('technical'));
+      const players=btn(tr('Spillerrapporter','Player reports'),()=>switchSection('players'));
+      function switchSection(next){section=next;technical.setAttribute('aria-pressed',String(next==='technical'));players.setAttribute('aria-pressed',String(next==='players'));filter.replaceChildren();for(const [v,no,eng] of [['all','Alle','All'],...(next==='players'?playerStates:[['new','Nye','New'],['investigating','Undersøkes','Investigating'],['resolved','Løst','Resolved']])]){const o=el('option',tr(no,eng));o.value=v;filter.append(o)}}
+      head.append(technical,players,filter,btn(tr('Oppdater','Refresh'),load),btn(tr('Lukk','Close'),()=>close(x)));filter.onchange=load;
+      technical.addEventListener('click',load);players.addEventListener('click',load);switchSection('technical');
       async function load(){
-        status.textContent=tr('Laster…','Loading…');list.replaceChildren();
+        const token=++request;const playerMode=section==='players';status.textContent=tr('Laster…','Loading…');list.replaceChildren();
         try{
           const {data:admin,error:roleError}=await c.rpc('is_admin');if(roleError||!admin)throw Error('denied');
-          let q=c.from('issue_reports').select('id,user_id,created_at,category,description,page,status').order('created_at',{ascending:false}).limit(50);
+          let q=playerMode?c.from('player_reports').select('id,reporter_id,target_id,target_nickname,target_full_name,reporter_nickname,created_at,category,description,status').order('created_at',{ascending:false}).limit(50):c.from('issue_reports').select('id,user_id,created_at,category,description,page,status').order('created_at',{ascending:false}).limit(50);
           if(filter.value!=='all')q=q.eq('status',filter.value);
-          const {data,error}=await q;if(error)throw error;
+          const {data,error}=await q;if(token!==request)return;if(error)throw error;
           status.textContent=tr('Viser inntil 50 siste rapporter.','Showing up to 50 latest reports.');
-          for(const r of data||[]){const card=el('div',undefined,'da-issue-row');card.append(el('strong',tr(...(titles[r.category]||titles.other))+' · '+r.status),el('p',r.description),el('p',new Date(r.created_at).toLocaleString()+' · '+r.page+' · '+r.user_id,'da-issue-muted'),btn(tr('Åpne','Open'),()=>detail(r.id,card)));list.append(card)}
+          for(const r of data||[]){const card=el('div',undefined,'da-issue-row');
+            if(playerMode){card.append(el('strong',tr(...(playerTitles[r.category]||playerTitles.other))+' · '+r.status),el('p',tr('Rapportert spiller: ','Reported player: ')+(r.target_nickname||'')+(r.target_full_name?' · '+r.target_full_name:'')),el('p',r.description),el('p',new Date(r.created_at).toLocaleString()+' · '+tr('Rapportert av: ','Reported by: ')+r.reporter_nickname,'da-issue-muted'),btn(tr('Åpne','Open'),()=>playerDetail(r.id,card)))}
+            else card.append(el('strong',tr(...(titles[r.category]||titles.other))+' · '+r.status),el('p',r.description),el('p',new Date(r.created_at).toLocaleString()+' · '+r.page+' · '+r.user_id,'da-issue-muted'),btn(tr('Åpne','Open'),()=>detail(r.id,card)));
+            list.append(card)
+          }
           if(!data?.length)list.append(el('p',tr('Ingen rapporter.','No reports.')));
-        }catch{status.textContent=tr('Ingen tilgang, eller kunne ikke laste rapporter.','Access denied or unable to load reports.')}
+        }catch{if(token===request)status.textContent=tr('Ingen tilgang, eller kunne ikke laste rapporter.','Access denied or unable to load reports.')}
+      }
+      async function playerDetail(id,card){
+        if(card.querySelector('[data-detail]'))return;const box=el('div');box.dataset.detail='1';card.append(box);box.textContent=tr('Laster…','Loading…');
+        try{const {data:r,error}=await c.from('player_reports').select('id,target_id,reporter_id,target_nickname,target_full_name,target_display_mode,reporter_nickname,avatar_updated_at,avatar_evidence,status,internal_note,handled_by,handled_at').eq('id',id).single();if(error||!r)throw Error();
+          box.replaceChildren(el('p',tr('Navn ved rapportering: ','Name at report time: ')+r.target_nickname+' · '+(r.target_full_name||'–')+' · '+r.target_display_mode),el('p',tr('Spiller-ID: ','Player ID: ')+r.target_id,'da-issue-muted'),el('p',tr('Rapportør-ID: ','Reporter ID: ')+r.reporter_id,'da-issue-muted'));
+          for(const [uid,label] of [[r.target_id,tr('Åpne spillerprofil','Open player profile')],[r.reporter_id,tr('Åpne rapportørprofil','Open reporter profile')]])if(uuid(uid)){const a=el('a',label);a.href='player.html?id='+encodeURIComponent(uid);a.target='_blank';a.rel='noopener noreferrer';box.append(a,el('p',''))}
+          if(r.avatar_updated_at)box.append(el('p',tr('Registrert bilde oppdatert: ','Recorded avatar updated: ')+new Date(r.avatar_updated_at).toLocaleString(),'da-issue-muted'));
+          if(r.avatar_evidence&&/^[A-Za-z0-9+/]+={0,2}$/.test(r.avatar_evidence)&&r.avatar_evidence.length<=136536){const img=el('img');img.src='data:image/jpeg;base64,'+r.avatar_evidence;img.alt=tr('Vedlagt profilbilde','Attached profile picture');img.style.cssText='max-width:160px;max-height:160px;border-radius:8px;display:block';box.append(el('p',tr('Bildekopi fra rapportøren (ikke uavhengig verifisert).','Image copy from reporter (not independently verified).'),'da-issue-muted'),img)}
+          else box.append(el('p',tr('Ingen lagret bildevedlegg.','No stored image attachment.'),'da-issue-muted'));
+          if(r.handled_at)box.append(el('p',tr('Sist behandlet: ','Last handled: ')+new Date(r.handled_at).toLocaleString()+' · '+r.handled_by,'da-issue-muted'));
+          const s=el('select');for(const [v,no,eng] of playerStates){const o=el('option',tr(no,eng));o.value=v;s.append(o)}s.value=r.status;
+          const n=el('textarea');n.rows=3;n.maxLength=2000;n.value=r.internal_note||'';n.placeholder=tr('Internt notat','Internal note');const msg=el('p');msg.setAttribute('role','status');
+          const save=btn(tr('Lagre','Save'),async()=>{save.disabled=true;try{const {data,error}=await c.from('player_reports').update({status:s.value,internal_note:n.value}).eq('id',id).select('id');if(error||!data?.length)throw Error();await load()}catch{msg.textContent=tr('Kunne ikke lagre.','Unable to save.');save.disabled=false}});
+          box.append(s,n,save,msg);
+        }catch{box.textContent=tr('Kunne ikke åpne rapport.','Unable to open report.')}
       }
       async function detail(id,card){
         if(card.querySelector('[data-detail]'))return;
@@ -148,6 +205,7 @@
     }
     const launcher=btn(tr('Rapporter feil','Report issue'),openReport,'da-issue-button da-issue-launch');launcher.id='daIssueReportBtn';
     d.body.append(launcher);
+    const reportButton=d.getElementById('reportPlayerBtn');if(reportButton){const target=uuid(new URLSearchParams(w.location.search).get('id'));const c=client();if(target&&c)void (async()=>{try{const {data}=await c.auth.getSession();if(!data?.session?.user||data.session.user.id===target)return;const {data:profile,error}=await c.from('profiles').select('id').eq('id',target).maybeSingle();if(!error&&profile){reportButton.hidden=false;reportButton.onclick=()=>openPlayerReport(target)}}catch{}})();}
     function addAdminIcon(b){
       const ns='http://www.w3.org/2000/svg',svg=d.createElementNS(ns,'svg');
       for(const [key,value] of Object.entries({'aria-hidden':'true',focusable:'false',viewBox:'0 0 24 24',width:'17',height:'17',style:'vertical-align:-3px;margin-right:5px;fill:none;stroke:#00eaf4;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round'}))svg.setAttribute(key,value);
