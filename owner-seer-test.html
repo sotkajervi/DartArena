@@ -20,6 +20,9 @@
     #seerDarts { padding: 0; list-style: none; }
     #seerDarts li { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); }
     #seerDarts select, #seerScenario { max-width: 100%; padding: 8px; background: #102326; color: var(--text); border: 1px solid var(--line); border-radius: 8px; }
+    #seerCalibration[data-state="ready"] { color: #81e8cb; }
+    #seerCalibration[data-state="error"] { color: #ffaaaa; }
+    #seerCalibrationTime { display: block; color: var(--muted); font-size: .85em; }
     #seerNotes { margin-block: 16px; }
     #seerLog { padding-left: 1.4rem; overflow-wrap: anywhere; }
     #seerLog li { margin-bottom: 12px; }
@@ -49,6 +52,8 @@
               <option value="repeat">T20 · gjentatt melding</option>
               <option value="two">To piler i S20</option>
               <option value="conflict">Uenige kameraer</option>
+              <option value="calibrated">Vellykket kalibrering</option>
+              <option value="calibration-error">Kalibreringsfeil ved T20</option>
             </select>
             <button id="seerDemo" class="outline" type="button">Vis testdata</button>
           </div>
@@ -56,6 +61,8 @@
         <dl class="seer-signals">
           <div><dt id="seerServerLabel">SEER-server</dt><dd id="seerStatus" role="status">Frakoblet</dd></div>
           <div><dt id="seerPingLabel">Sist mottatt ping</dt><dd id="seerPing">—</dd></div>
+          <div><dt id="seerCalibrationLabel">Sist kjente kalibrering</dt>
+            <dd><span id="seerCalibration" role="status">Ukjent</span><small id="seerCalibrationTime"></small></dd></div>
           <div><dt id="seerScoreLabel">Sist mottatt kast</dt><dd id="seerScore">—</dd></div>
         </dl>
       </div>
@@ -87,7 +94,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
   <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.8.1/dist/socket.io.min.js"></script>
   <script src="dartarena-i18n.js?v=20261126-menuorder1"></script>
-  <script src="seer-visit.js?v=20261127-throws1"></script>
-  <script src="owner-seer-test.js?v=20261127-throws1"></script>
+  <script src="seer-visit.js?v=20261127-cal1"></script>
+  <script src="owner-seer-test.js?v=20261127-cal1"></script>
 </body>
 </html>

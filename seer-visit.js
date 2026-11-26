@@ -1,11 +1,12 @@
 // One diagnostic visit on a single board. Start the next visit at manual removal.
 class SeerVisit {
   constructor() {
+    this.calibration = null;
     this.seen = new Set();
     this.darts = new Map();
   }
 
-  receive(score) {
+  receive(score, receivedAt) {
     if (!score?.throwId || this.seen.has(score.throwId)) return false;
     const candidates = new Map();
     for (const dart of score.observations) {
@@ -15,14 +16,16 @@ class SeerVisit {
       const hit = SeerVisit.hit(dart);
       if (hit !== null) candidates.get(number).add(hit);
     }
-    if (!candidates.size) return false;
+    if (score.calibrationError === true) this.calibration = { state: 'error', receivedAt };
+    if (!candidates.size) return score.calibrationError === true;
     this.seen.add(score.throwId);
     for (const [number, hits] of candidates) {
       // Each analysis can include darts already on the board. Replace the slot's
       // observations, keeping the player's correction until the darts are removed.
-      const corrected = this.darts.get(number)?.corrected ?? null;
+      const previous = this.darts.get(number);
+      const corrected = previous?.corrected ?? null;
       this.darts.set(number, { hits: [...hits], corrected, throwId: score.throwId,
-        calibrationError: score.calibrationError === true });
+        calibrationError: this.calibration?.state === 'error' || previous?.calibrationError === true });
     }
     return true;
   }
