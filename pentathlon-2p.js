@@ -240,6 +240,14 @@
     {n:10,m:3,label:'T10'},{n:17,m:0,label:'17'},
     {n:25,m:2,label:'Bull 50'}
   ];
+  // Fixed fields use the same hit key as online Pentathlon, independent of multiplier.
+  function halfHitKey(rule,m){return rule.m?'2':String(m)}
+  function halfDartForKey(rule,key){
+    if(key==='0')return {n:0,m:0};
+    if(!['1','2','3'].includes(key))return null;
+    if(rule.m&&key!==halfHitKey(rule,rule.m))return null;
+    return {n:rule.n,m:rule.m||Number(key)};
+  }
   let halfQueue=[];
   function halfIdentity(){
     if(state?.status!=='playing'||state.current.kind!=='half')return null;
@@ -747,7 +755,7 @@
     for(const {n,m} of options){
       const button=create('button','outline special-choice');
       button.type='button';button.textContent=E.labelDart({n,m})+' ';
-      button.append(create('span','da-key',m===1?'1':m===2?'2':'3'));
+      button.append(create('span','da-key',halfHitKey(target,m)));
       button.addEventListener('click',()=>halfAdd(n,m));
       choices.appendChild(button);
     }
@@ -1359,9 +1367,9 @@
     if(event.key==='0'){event.preventDefault();halfAdd(0,0)}
     else if(['1','2','3'].includes(event.key)){
       const rule=HALF_TARGETS[Math.min(6,Math.floor(state.current.used[state.current.turn]/3))];
-      const m=rule.m||Number(event.key);
-      if(rule.m===0||Number(event.key)===rule.m){
-        event.preventDefault();halfAdd(rule.n,m);
+      const dart=halfDartForKey(rule,event.key);
+      if(dart){
+        event.preventDefault();halfAdd(dart.n,dart.m);
       }
     }else if(event.key==='Enter'){event.preventDefault();halfSubmit()}
     else if(event.key==='Backspace'){event.preventDefault();halfRemove()}

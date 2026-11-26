@@ -1,0 +1,17 @@
+name: Local Pentathlon fixed target keys
+on:
+  push:
+    branches: [test/pentathlon-local-fixed-key-20261126]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check pentathlon-2p.js
+      - run: node --test tests/pentathlon-local-fixed-key.test.cjs tests/pentathlon-2p.test.cjs
