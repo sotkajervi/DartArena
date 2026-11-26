@@ -53,6 +53,8 @@ async function enterLobby(s=session){
  const{data,error}=await db.from('profiles').select('*').eq('id',s.user.id).single();
  if(token!==lobbyInitToken||session?.user?.id!==s.user.id){if(lobbyEnteringUserId===s.user.id)lobbyEnteringUserId=null;return}
  if(error){if(lobbyEnteringUserId===s.user.id)lobbyEnteringUserId=null;showSessionError('Kunne ikke laste lobbyen. Kontroller nettet og prøv igjen.');console.error('Profile load failed',error);return}
+ await window.DartArenaAdminCenter?.prepare?.(s.user.id);
+ if(token!==lobbyInitToken||session?.user?.id!==s.user.id)return;
  profile=data;
  lobbyStarted=true;
  setSessionView('lobby');
