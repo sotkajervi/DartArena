@@ -1,0 +1,22 @@
+name: Profile avatar crop editor
+on:
+  push:
+    branches: ['test/avatar-crop-20261126']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check avatar-crop.js
+          node --check profile-avatars.js
+          node --check player-details.js
+          node --test tests/avatar-crop.test.cjs tests/player-details.test.cjs tests/player-identity.test.cjs tests/new-games-i18n.test.cjs
+      - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.58.2
+      - run: npx playwright install --with-deps chromium
+      - run: node --test tests/avatar-crop-browser.test.cjs tests/player-details-browser.test.cjs

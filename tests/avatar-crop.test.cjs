@@ -1,0 +1,3 @@
+const {test}=require('node:test'),a=require('node:assert/strict'),{geometry}=require('../avatar-crop.js');
+test('Wide images can be moved to either side without uncovered pixels',()=>{a.deepEqual(geometry(1024,512),{scale:.5,x:0,y:0});a.deepEqual(geometry(1024,512,1,0,999,999),{scale:.5,x:128,y:0});a.deepEqual(geometry(1024,512,1,1,999,-999),{scale:.5,x:0,y:-128})});
+test('Zoom and pan stay inside the picture for all rotations',()=>{for(const r of [0,1,2,3])for(const z of [1,1.5,3]){const g=geometry(1024,512,z,r,99999,-99999);const w=r%2?512:1024,h=r%2?1024:512;a.ok(w*g.scale/2-Math.abs(g.x)>=128);a.ok(h*g.scale/2-Math.abs(g.y)>=128)}});
