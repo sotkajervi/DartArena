@@ -23,8 +23,8 @@ async function settle() { for (let i = 0; i < 24; i++) await Promise.resolve(); 
 
 function makeLobby(initialRows = []) {
   let rows = initialRows.map(row => ({ ...row }));
-  let sentUpdate = null, nextId = 1, statusCheckError = null;
-  const navigations = [], popupCalls = [];
+  let sentUpdate = null, nextId = 1, statusCheckError = null, insertError = null, recipientStatus = 'available', recipientLastSeen = new Date().toISOString();
+  const navigations = [], popupCalls = [], alerts = [];
   const sentHost = { innerHTML: '', querySelectorAll() { return []; } };
   const prompt = { hidden: true, innerHTML: '', querySelector() { return { onclick: null }; } };
   const context = {
@@ -38,7 +38,7 @@ function makeLobby(initialRows = []) {
     esc: v => String(v),
     setInterval() {},
     console,
-    alert() {},
+    alert(message) { alerts.push(message); },
     location: { origin: 'https://dartarena.test' },
     document: {
       getElementById(id) {
@@ -70,9 +70,10 @@ function makeLobby(initialRows = []) {
               return Promise.resolve({ data: null, error: statusCheckError }).then(resolve, reject);
             }
             let candidates = table === 'challenges' ? rows : [
-              { id: 'user-a', username: 'A' }, { id: 'user-b', username: 'B' }
+              { id: 'user-a', username: 'A', status: 'available', last_seen: new Date().toISOString() }, { id: 'user-b', username: 'B', status: recipientStatus, last_seen: recipientLastSeen }
             ];
             if (this.operation?.type === 'insert') {
+              if (insertError) return Promise.resolve({ data:null,error:insertError }).then(resolve,reject);
               const row = { id: 'new-invite-' + nextId++, ...this.operation.payload };
               rows.push(row);
               candidates = [row];
@@ -103,7 +104,9 @@ function makeLobby(initialRows = []) {
   };
   vm.runInNewContext(instrumented, context);
   return {
-    hooks: context.__challengeTest, navigations, popupCalls, prompt, sentHost,
+    hooks: context.__challengeTest, navigations, popupCalls, prompt, sentHost, alerts,
+    setInsertError(error) { insertError = error; },
+    setRecipient(status,lastSeen) { recipientStatus=status; recipientLastSeen=lastSeen; },
     setRows(updated) { rows = updated.map(row => ({ ...row })); },
     emit(row) { sentUpdate?.({ new: row }); },
     setActiveMatch(value) { context.activeMatch = value; },
@@ -364,4 +367,25 @@ test('returning to lobby during an active match does not auto-redirect', () => {
   assert.doesNotMatch(appSource, /openMatch\(activeMatch\.id,false/);
   assert.match(appSource, /reopenMatchBtn'\)\.onclick=\(\)=>activeMatch&&openMatch\(activeMatch\.id,true/);
   assert.match(indexSource, /Kampen er fortsatt aktiv\. Bruk knappen for å gå tilbake til kamprommet\./);
+});
+
+
+test('server block rejection is generic and does not create invitation or open a room', async () => {
+  const lobby=makeLobby();
+  await lobby.hooks.startForProfile();
+  lobby.setInsertError({code:'42501',message:'Challenge unavailable'});
+  const button=await lobby.invite();
+  assert.equal(button.disabled,false);
+  assert.deepEqual(lobby.alerts,['Utfordringen er ikke tilgjengelig.']);
+  assert.deepEqual(Array.from(lobby.hooks.observed()),[]);
+  assert.deepEqual(lobby.navigations,[]);
+});
+test('stale or unavailable recipient cannot receive a new challenge', async () => {
+  for(const [status,seen] of [['available',new Date(Date.now()-600000).toISOString()],['unavailable',new Date().toISOString()]]){
+    const lobby=makeLobby();lobby.setRecipient(status,seen);await lobby.hooks.startForProfile();const button=await lobby.invite();
+    assert.equal(button.disabled,true);assert.equal(button.textContent,'Ikke ledig');assert.deepEqual(Array.from(lobby.hooks.observed()),[]);
+  }
+});
+test('blocked pending acceptance stays in lobby and does not reveal block',async()=>{
+ const app=acceptHandler({serverError:{code:'42501',message:'Challenge unavailable'}});await app.click();assert.deepEqual(app.navigations,[]);assert.deepEqual(app.alerts,['Utfordringen er ikke tilgjengelig.']);
 });
