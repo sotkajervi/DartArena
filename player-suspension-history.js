@@ -63,6 +63,6 @@ d.addEventListener('dartarena:languagechange',render);
 w.addEventListener('dartarena:suspension-changed',refresh);
 w.addEventListener('pageshow',e=>{if(e.persisted)refresh()});
 w.addEventListener('focus',refresh);
-setInterval(()=>{if(verified&&!d.hidden)render()},30000);
+setInterval(()=>{if(verified&&!d.hidden)refresh()},30000);
 refresh();
 })(window);
