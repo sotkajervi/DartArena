@@ -1,6 +1,6 @@
 const {test}=require('node:test'),a=require('node:assert/strict'),fs=require('node:fs'),{chromium}=require('playwright');
 const html=fs.readFileSync('player.html','utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<link\b[^>]*>/gi,'');
-const source=fs.readFileSync('player-details.js','utf8');const avatarSource=fs.readFileSync('profile-avatars.js','utf8');
+const source=fs.readFileSync('player-details.js','utf8');const avatarSource=fs.readFileSync('profile-avatars.js','utf8');const presentationSource=fs.readFileSync('profile-name-link.js','utf8');
 test('Empty own profile, save, fresh read, other profile read-only and literal user text',async()=>{
  const browser=await chromium.launch({headless:true});
  try{
@@ -17,6 +17,7 @@ test('Empty own profile, save, fresh read, other profile read-only and literal u
    };
   },{record,staff});
   await p.addScriptTag({content:avatarSource});
+  await p.addScriptTag({content:presentationSource});
   await p.addScriptTag({content:source});
   await p.locator('#playerDetails').waitFor({state:'visible'});
  }
@@ -25,11 +26,14 @@ test('Empty own profile, save, fresh read, other profile read-only and literal u
  await p.locator('#editPlayerDetails').click();
  await p.locator('input[name=nickname]').fill('Ace');
  await p.locator('input[name=club]').fill('Dart Club');
+ await p.locator('input[name=full_name]').fill('Example Name');
+ await p.locator('select[name=display_mode]').selectOption('both');
+ a.equal(await p.locator('#displayNamePreview').textContent(),'Example Name «Ace»');
  await p.locator('textarea[name=bio]').fill('<img src=x onerror=alert(1)>');
  await p.locator('#savePlayerDetails').click();
  await p.waitForFunction(()=>writes.length===1&&!document.getElementById('playerDetailsDialog').open);
  const row=await p.evaluate(()=>record);
- a.equal(row.user_id,'own');a.equal(row.club,'Dart Club');
+ a.equal(row.user_id,'own');a.equal(row.club,'Dart Club');a.equal(row.display_mode,'both');a.equal(await p.locator('#playerName').textContent(),'Example Name «Ace»');
  a.equal(await p.locator('#playerBio').textContent(),row.bio);
  a.equal(await p.locator('#playerBio img').count(),0);
  await setup('own',row);a.match(await p.locator('#playerDetailsSummary').textContent(),/Dart Club/);
@@ -39,6 +43,6 @@ test('Empty own profile, save, fresh read, other profile read-only and literal u
  await setup('other',row,true);a.equal(await p.locator('#editPlayerDetails').isVisible(),true);
  await p.locator('#editPlayerDetails').click();await p.locator('input[name=nickname]').fill('StaffFixed');p.once('dialog',dlg=>dlg.accept());
  await p.locator('#savePlayerDetails').click();await p.waitForFunction(()=>writes.length===1&&!document.getElementById('playerDetailsDialog').open);
- a.equal(await p.evaluate(()=>writes[0].user_id),'other');a.equal(await p.locator('#playerName').textContent(),'StaffFixed');
+ a.equal(await p.evaluate(()=>writes[0].user_id),'other');a.equal(await p.locator('#playerName').textContent(),'Example Name «StaffFixed»');
  }finally{await browser.close()}
 });

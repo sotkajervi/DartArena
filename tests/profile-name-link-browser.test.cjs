@@ -7,7 +7,7 @@ test('Actual history renderer links both players, keeps score/AVG and opens corr
  const p1='11111111-1111-4111-8111-111111111111',p2='22222222-2222-4222-8222-222222222222',mid='33333333-3333-4333-8333-333333333333';
  await context.route('https://profile.invalid/**',r=>r.fulfill({contentType:'text/html',body:r.request().url().includes('match-history.html')?read('match-history.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<link\b[^>]*>/gi,''):'<p>Profile destination</p>'}));
  await p.goto('https://profile.invalid/match-history.html');
- await p.evaluate(()=>{window.DartArenaSupabaseClient={};window.DartArenaDialog={}});
+ await p.evaluate(()=>{window.DartArenaSupabaseClient={from:()=>({select(){return this},async in(){return{data:[]}}})};window.DartArenaDialog={}});
  await p.addScriptTag({content:read('profile-name-link.js')});
  await p.addScriptTag({content:read('match-history.js').split('\nboot().catch(')[0]});
  await p.evaluate(({p1,p2,mid})=>{me=p1;allMatches=[{id:mid,player1_id:p1,player2_id:p2,player1_name:'Ace',player2_name:'<img src=x>',winner_id:p1,player1_legs:3,player2_legs:1,game:501,legs:5,game_variant:'x01',finished_at:'2026-11-25T21:00:00Z'}];render()},{p1,p2,mid});
