@@ -189,7 +189,7 @@
       const action=can?'Utfordre':inGame?'I kamp':'Ikke ledig';
       return '<div class="player-row da-social-player" data-player-status="'+esc(p.status)+'">'+
         '<div class="player-main"><div class="avatar" data-avatar-id="'+esc(p.id)+'">'+escapeName((p.username||'?').slice(0,1).toUpperCase())+'</div>'+
-        '<div><a class="player-name da-player-profile-link" href="player.html?id='+encodeURIComponent(p.id)+'" target="_blank" rel="noopener" title="Se spillerprofil">'+escapeName(p.username||'Spiller')+'</a> <span class="da-lobby-form-avg" data-form-player="'+esc(p.id)+'" title="501 • 20 • Bo5+">AVG –</span>'+
+        '<div><a class="player-name da-player-profile-link" data-da-display-id="'+esc(p.id)+'" data-user-id="'+esc(p.id)+'" data-no-i18n href="player.html?id='+encodeURIComponent(p.id)+'" target="_blank" rel="noopener" title="Se spillerprofil">'+escapeName(p.username||'Spiller')+'</a> <span class="da-lobby-form-avg" data-form-player="'+esc(p.id)+'" title="501 • 20 • Bo5+">AVG –</span>'+
         '<div class="status"><span class="dot '+esc(p.status)+'"></span>'+rawStatus+'</div></div></div>'+
         '<button type="button" class="small-btn challenge-btn" data-id="'+esc(p.id)+'" '+(can?'':'disabled')+'>'+action+'</button></div>';
     }).join(''):'<p class="muted">Ingen spillere passer dette søket eller filteret.</p>';
@@ -199,7 +199,7 @@
         if(typeof latest==='function')latest(button);
       }));
     void fillForm(context,list,target,token);
-    void root.DartArenaIdentity?.paint(context.db,target);
+    if(root.DartArenaProfileLink)void root.DartArenaProfileLink.paint(context.db,target,{avatars:false});else void root.DartArenaIdentity?.paint(context.db,target);
     previous.disabled=state.page<=1;
     pageLabel.textContent='Side '+state.page+' av '+Math.max(1,Math.ceil(state.total/PAGE_SIZE));
     more.hidden=!(Number.isInteger(count)&&count>PAGE_SIZE*state.page);

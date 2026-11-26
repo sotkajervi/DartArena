@@ -60,9 +60,9 @@ function match501Avg(m){
 function matchTime(m){return new Date(m.finished_at||m.created_at||0).getTime()||0}
 
 function renderStats(s){
-  $('playerName').textContent=s.username||'Spiller';
+  if(!$('playerName').dataset.daPresentationReady)$('playerName').textContent=s.username||'Spiller';
   $('playerMeta').textContent=`Registrert ${fmtDate(s.registered_at)} • ${num(s.total_matches)} ferdige onlinekamper`;
-  document.title=`DartArena • ${s.username||'Spiller'}`;
+  if(!$('playerName').dataset.daPresentationReady)document.title=`DartArena • ${s.username||'Spiller'}`;
   $('statMatches').textContent=num(s.total_matches);
   $('statWins').textContent=num(s.wins);
   $('statWinPct').textContent=pct(s.win_pct);
@@ -132,6 +132,7 @@ function renderMatches(){
     const action=canOpenStats(m)?`<button class="small-btn" data-stats-id="${m.id}">Se statistikk</button>`:'';
     return `<article class="profile-match"><div><div class="profile-match-title"><span class="match-tag">${esc(gameLabel(m))}</span><span>vs</span>${window.DartArenaProfileLink.html(isP1?m.player2_id:m.player1_id,opponent,'history-player player-name')}<span class="profile-match-result ${won?'winner':''}">${own}–${opp}</span>${won?'<span class="match-tag">SEIER</span>':lost?'<span class="match-tag" style="color:var(--muted);border-color:rgba(255,255,255,.12)">TAP</span>':draw?'<span class="match-tag">UAVGJORT</span>':''}</div><div class="profile-match-meta"><span>${fmtDate(m.finished_at||m.created_at,true)}</span><span>${esc(formatLabel(m))}</span><span>${esc(contextLabel(m))}</span></div>${stats}</div><div class="profile-actions">${action}</div></article>`;
   }).join('');
+  void window.DartArenaProfileLink?.paint(db,$('matchList'));
   document.querySelectorAll('[data-stats-id]').forEach(button=>button.onclick=()=>window.open(`match-stats.html?id=${encodeURIComponent(button.dataset.statsId)}`,`dartarena-match-stats-${button.dataset.statsId}`));
   window.DartArenaRoleVisuals?.scan?.();
 }

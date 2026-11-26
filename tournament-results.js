@@ -105,6 +105,7 @@
       $('top180').innerHTML=topRows(top180,(x,i)=>`<div class="highlight-row"><div class="highlight-rank">${i+1}</div><div><div class="highlight-name">${person(x.name,x.id)}</div><div class="highlight-note">Turneringen totalt</div></div><div class="highlight-value">${x.c180}</div></div>`);
     }
     document.addEventListener('click',e=>{if(e.target.closest('a.da-profile-link'))return;const row=e.target.closest('.highlight-row[data-match]');if(row?.dataset.match)openMatch(row.dataset.match)});
+    void window.DartArenaProfileLink?.paint(db,document);
     notifyRoles();
   }
   boot().catch(err=>{console.error('Tournament results failed',err);$('resultMeta').textContent='Kunne ikke laste resultater';$('playerStats').innerHTML=empty('Kunne ikke laste turneringsstatistikken.')});

@@ -298,6 +298,7 @@ function render(){
     </article>`;
   }).join('');
 
+  void window.DartArenaProfileLink?.paint(db,$('historyList'));
   document.querySelectorAll('[data-pentathlon-id]').forEach(button=>button.onclick=()=>{
     const url=new URL('room.html',location.href);
     url.searchParams.set('id',button.dataset.challengeId);

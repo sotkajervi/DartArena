@@ -92,6 +92,7 @@ async function load(){
    const row=top.find(r=>Number(r.place)===Number(b.dataset.place));
    if(row)b.onclick=()=>remove(row,b);
   });
+  void window.DartArenaProfileLink?.paint(db,$('hofRows'));
   window.DartArenaRoleVisuals?.scan?.($('hofRows'));
  }catch(e){if(token===request){console.error('[Hall of Fame]',e);$('hofRows').innerHTML='<div class="hof-empty">Kunne ikke laste rekordene. Prøv Oppdater.</div>'}}
  finally{if(token===request){busy=false;$('hofRefresh').disabled=false}}

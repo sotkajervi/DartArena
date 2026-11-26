@@ -68,7 +68,7 @@ function render(){
     return;
   }
   $('playerDirectory').innerHTML=rows.map((p,index)=>`<article class="directory-row" role="link" tabindex="0" data-player-id="${p.user_id}">
-    <div class="directory-player"><div class="directory-avatar" data-avatar-id="${esc(p.user_id)}">${esc((p.username||'?')[0].toUpperCase())}</div><div style="min-width:0"><div class="directory-name player-name">${esc(p.username||'Spiller')}</div><div class="directory-sub"><span class="directory-rank">#${index+1}</span>Registrert ${fmtDate(p.registered_at)}</div></div></div>
+    <div class="directory-player"><div class="directory-avatar" data-avatar-id="${esc(p.user_id)}">${esc((p.username||'?')[0].toUpperCase())}</div><div style="min-width:0"><div class="directory-name player-name" data-da-display-id="${esc(p.user_id)}" data-user-id="${esc(p.user_id)}" data-no-i18n>${esc(p.username||'Spiller')}</div><div class="directory-sub"><span class="directory-rank">#${index+1}</span>Registrert ${fmtDate(p.registered_at)}</div></div></div>
     <div class="directory-stat"><small>501-kamper</small><strong>${Number(p.matches||0)}</strong></div>
     <div class="directory-stat directory-secondary"><small>Seier</small><strong>${pct(p.win_pct)}</strong></div>
     <div class="directory-stat avg directory-secondary"><small>501 AVG</small><strong>${metric(p.x01_avg)}</strong></div>
@@ -84,7 +84,7 @@ function render(){
     });
   });
   window.DartArenaRoleVisuals?.scan?.();
-  void window.DartArenaIdentity?.paint(db,$('playerDirectory'));
+  if(window.DartArenaProfileLink)void window.DartArenaProfileLink.paint(db,$('playerDirectory'),{avatars:false});else void window.DartArenaIdentity?.paint(db,$('playerDirectory'));
 }
 
 async function loadPlayers(query=''){

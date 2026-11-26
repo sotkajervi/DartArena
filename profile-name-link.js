@@ -19,7 +19,7 @@ async function fetchNames(db,ids){
    if(error)throw error;
    const rows=new Map((data||[]).map(r=>[r.user_id,r]));
    for(const id of batch)names.set(id,{at:Date.now(),row:rows.get(id)||null});
-  }catch{}finally{for(const id of batch)inflight.delete(id)}})();
+  }catch{for(const id of batch)names.set(id,{at:Date.now()-TTL+15000,row:null})}finally{for(const id of batch)inflight.delete(id)}})();
   batch.forEach(id=>inflight.set(id,job));
  }
  await Promise.all([...new Set(ids.map(id=>inflight.get(id)).filter(Boolean))]);

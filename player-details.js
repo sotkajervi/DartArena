@@ -12,7 +12,7 @@ function boot(w){
  async function drawAvatar(){if(avatars){await avatars.paint(client,avatar);$('removeAvatar').hidden=!avatar.querySelector('img[data-player-avatar]')||(!own&&!staff)}}
  const t=s=>w.DartArenaI18n?.t?.(s)||s;
  function render(){
-  const shown=w.DartArenaProfileLink?.display(displayName,record.full_name,displayMode)||displayName;const heading=$('playerName');heading.dataset.userId=uid;heading.textContent=shown;d.title='DartArena • '+shown;
+  const shown=w.DartArenaProfileLink?.display(displayName,record.full_name,displayMode)||displayName;const heading=$('playerName');heading.dataset.userId=uid;heading.dataset.daPresentationReady='1';heading.textContent=shown;d.title='DartArena • '+shown;
   const letter=initial(shown||heading.textContent);if(avatar.firstChild?.nodeType===3)avatar.firstChild.nodeValue=letter;else avatar.prepend(d.createTextNode(letter));
   $('playerDetailsSummary').textContent=[record.full_name,record.country,record.club].filter(Boolean).join(' · ');
   $('playerBio').textContent=record.bio;

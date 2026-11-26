@@ -88,6 +88,7 @@ async function boot(){
     </tr>`;
   }).join('');
 
+  void window.DartArenaProfileLink?.paint(db,$('formTableBody'));
   $('formState').classList.add('hidden');
   $('formTableWrap').classList.remove('hidden');
   requestAnimationFrame(updateFormStatsScrollHint);

@@ -302,6 +302,7 @@
     configureBack();
     const ctx=await loadContext();
     await render(ctx);
+    void window.DartArenaProfileLink?.paint(db,$('statsView'));
     const match=ctx.match;
     if(match?.status==='finished'&&(match.game_variant||'x01')==='x01'&&String(match.game_config?.chicago??'false').toLowerCase()!=='true')window.DartArenaPremiumHeatmap?.mount(match.id,db);
   }
