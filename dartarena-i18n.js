@@ -1898,7 +1898,9 @@
   }
   const ATTRS=['placeholder','title','aria-label'];
   function applyAttrs(el){
-    if(!el||el.nodeType!==1||skip(el))return;
+    if(!el||el.nodeType!==1)return;
+    // Translate UI attributes of textareas, never their text or user-entered value.
+    if(skip(el)&&!(el.matches('textarea')&&!skip(el.parentElement)&&!el.matches('[data-no-i18n],[contenteditable]')))return;
     let saved=originalAttrs.get(el);
     if(!saved){saved={};originalAttrs.set(el,saved)}
     for(const name of ATTRS){
@@ -1915,8 +1917,7 @@
     if(!root)return;
     if(root.nodeType===3){applyText(root);return}
     if(root.nodeType!==1&&root.nodeType!==9&&root.nodeType!==11)return;
-    if(root.nodeType===1&&skip(root))return;
-    if(root.nodeType===1)applyAttrs(root);
+    if(root.nodeType===1){applyAttrs(root);if(skip(root))return;}
     const walker=document.createTreeWalker(root,NodeFilter.SHOW_ELEMENT|NodeFilter.SHOW_TEXT);
     while(walker.nextNode()){
       const n=walker.currentNode;
