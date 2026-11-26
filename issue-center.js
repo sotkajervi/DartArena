@@ -217,7 +217,7 @@
     }
     const refreshAdminLabel=()=>{const label=d.getElementById('daIssueAdminLabel');if(label)label.textContent=tr('Rapportsenter','Issue Center')};
     const host=d.getElementById('lobbyStatsActions');
-    if(host){
+    if(host&&!host.hasAttribute('data-da-admin-tools-moved')){
       const c=client();
       const refresh=async()=>{try{const {data}=await c.auth.getSession();const {data:admin}=data?.session?await c.rpc('is_admin'):{data:false};const old=d.getElementById('daIssueAdminBtn');if(!admin){old?.remove();return}if(!old){const b=btn(tr('Rapportsenter','Issue Center'),openAdmin,'small-btn lobby-utility-btn');b.id='daIssueAdminBtn';addAdminIcon(b);host.append(b)}}catch{}};
       if(c){refresh();c.auth.onAuthStateChange(()=>setTimeout(refresh,0))}
