@@ -14,6 +14,7 @@ test('fallback and viewer constructors carry explicit room and authenticated cli
  ['match-sfu-media.js',"{kind:'match',id:safeMatchId()},safeDb()"],
  ['match-spectator-broadcast.js',"{kind:'match',id:liveMatchId},client"],
  ['spectate-runtime.js',"{kind:'match',id:matchId},db"],
+ ['spectate.js',"{kind:'match',id:matchId},db"],
  ['tournament-match-viewer.js',"{kind:'match',id:tm.live_match_id},db"]
  ];
  for(const [p,context] of checks){
