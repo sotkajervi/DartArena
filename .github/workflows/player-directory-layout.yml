@@ -1,0 +1,23 @@
+name: Player directory layout regression
+on:
+  push:
+    branches: ['test/player-directory-layout-20261127']
+  pull_request:
+    branches: [main]
+    paths: ['players.js','players.html','tests/player-directory-layout.test.cjs','.github/workflows/player-directory-layout.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check players.js && node --test tests/player-identity.test.cjs tests/profile-name-link.test.cjs tests/profile-presentation.test.cjs
+      - run: npm install --prefix "$RUNNER_TEMP/da-directory" --no-audit --no-fund playwright@1.58.2
+      - run: '"$RUNNER_TEMP/da-directory/node_modules/.bin/playwright" install --with-deps chromium'
+      - run: NODE_PATH="$RUNNER_TEMP/da-directory/node_modules" node --test tests/player-directory-layout.test.cjs

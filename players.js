@@ -93,25 +93,28 @@ function sortedRows(){
 function selectedMetric(){
   const key=$('playerSort').value;
   const sort=SORTS[key]||SORTS.name;
-  if(key==='name')return{label:'501 AVG',value:p=>metric(p.x01_avg,2)};
+  if(['name','x01_avg','matches','win_pct','c180'].includes(key))return null;
   return{label:sort.label.toUpperCase(),value:p=>sort.format(p[sort.field])};
 }
 
 function render(){
-  const rows=sortedRows(),sort=SORTS[$('playerSort').value]||SORTS.name,selected=selectedMetric();
+  const key=$('playerSort').value;
+  const rows=sortedRows(),sort=SORTS[key]||SORTS.name,selected=selectedMetric();
+  const mobileStat=key==='win_pct'||key==='c180'?key:selected?'extra':'x01_avg';
+  const secondary=field=>field===mobileStat?'':' directory-secondary';
   $('playerCount').textContent=currentQuery?`${rows.length} treff`:`${rows.length} registrerte spillere`;
   $('sortSummary').textContent=`Sortert på ${sort.label}`;
   if(!rows.length){
     $('playerDirectory').innerHTML='<p class="muted directory-empty">Ingen spillere matcher søket.</p>';
     return;
   }
-  $('playerDirectory').innerHTML=rows.map((p,index)=>`<article class="directory-row${staff&&statusReady&&activeSuspension(p.user_id)?' directory-row-suspended':''}" role="link" tabindex="0" data-player-id="${p.user_id}">
-    <div class="directory-player"><div class="directory-avatar" data-avatar-id="${esc(p.user_id)}">${esc((p.username||'?')[0].toUpperCase())}</div><div style="min-width:0"><div class="directory-name player-name" data-da-display-id="${esc(p.user_id)}" data-user-id="${esc(p.user_id)}" data-no-i18n>${esc(p.username||'Spiller')}</div><div class="directory-sub"><span class="directory-rank">#${index+1}</span>Registrert ${fmtDate(p.registered_at)}</div>${moderationBadge(p.user_id)}</div></div>
+  $('playerDirectory').innerHTML=rows.map((p,index)=>`<article class="directory-row${selected?' directory-extra-metric':''}${staff&&statusReady&&activeSuspension(p.user_id)?' directory-row-suspended':''}" role="link" tabindex="0" data-player-id="${p.user_id}">
+    <div class="directory-player"><div class="directory-avatar" data-avatar-id="${esc(p.user_id)}">${esc((p.username||'?')[0].toUpperCase())}</div><div class="directory-identity"><div class="directory-name-row"><div class="directory-name player-name" data-da-display-id="${esc(p.user_id)}" data-user-id="${esc(p.user_id)}" data-no-i18n>${esc(p.username||'Spiller')}</div></div><div class="directory-sub"><span class="directory-rank">#${index+1}</span>Registrert ${fmtDate(p.registered_at)}</div>${moderationBadge(p.user_id)}</div></div>
     <div class="directory-stat"><small>501-kamper</small><strong>${Number(p.matches||0)}</strong></div>
-    <div class="directory-stat directory-secondary"><small>Seier</small><strong>${pct(p.win_pct)}</strong></div>
-    <div class="directory-stat avg directory-secondary"><small>501 AVG</small><strong>${metric(p.x01_avg)}</strong></div>
-    <div class="directory-stat directory-secondary"><small>180</small><strong>${Number(p.c180||0)}</strong></div>
-    <div class="directory-stat avg"><small>${esc(selected.label)}</small><strong>${esc(selected.value(p))}</strong></div>
+    <div class="directory-stat${secondary('win_pct')}"><small>Seier</small><strong>${pct(p.win_pct)}</strong></div>
+    <div class="directory-stat avg${secondary('x01_avg')}"><small>501 AVG</small><strong>${metric(p.x01_avg)}</strong></div>
+    <div class="directory-stat${secondary('c180')}"><small>180</small><strong>${Number(p.c180||0)}</strong></div>
+    ${selected?`<div class="directory-stat avg"><small>${esc(selected.label)}</small><strong>${esc(selected.value(p))}</strong></div>`:''}
     <div class="directory-open">›</div>
   </article>`).join('');
 
