@@ -278,7 +278,28 @@ async function admitNewSession(storage,userId,now=Date.now()) {
     return {allowed:true,globalWarning:windows.some((w,i)=>i<2&&w.state.count===Math.ceil(w.limit*.8))};
   });
 }
+// Bound cumulative track additions, including ambiguous/failed upstream attempts.
+const MAX_TRACK_ADDITIONS=8;
+async function closeMedia(env,id){
+  const suffix="/sessions/"+encodeURIComponent(id);
+  const info=await callSfu(env,suffix,"GET");
+  if(!info.ok||!Array.isArray(info.sfu?.tracks))return false;
+  if(info.sfu.tracks.some(t=>!t||typeof t.mid!=="string"||!["active","inactive","initializing"].includes(t.status)))return false;
+  const mids=[...new Set(info.sfu.tracks.filter(t=>t.status!=="inactive").map(t=>t.mid))];
+  if(!mids.length)return true;
+  const result=await callSfu(env,suffix+"/tracks/close","PUT",{tracks:mids.map(mid=>({mid})),force:true});
+  if(!result.ok||!Array.isArray(result.sfu?.tracks))return false;
+  // An HTTP 200 alone is insufficient; verify each requested mid.
+  return mids.every(mid=>result.sfu.tracks.some(t=>t.mid===mid&&(!t.errorCode||t.errorCode==="close_track_error")));
+}
 var SfuRoom = class extends DurableObject {
+  sessionQueues=new Map();
+  async serialSession(id,fn){
+    const prior=this.sessionQueues.get(id)||Promise.resolve();
+    const job=prior.catch(()=>{}).then(fn);
+    this.sessionQueues.set(id,job);
+    try{return await job}finally{if(this.sessionQueues.get(id)===job)this.sessionQueues.delete(id)}
+  }
   static {
     __name(this, "SfuRoom");
   }
@@ -287,7 +308,7 @@ var SfuRoom = class extends DurableObject {
     const session = await this.ctx.storage.get("s:" + id);
     if (!session) return null;
     if (Date.now() - session.createdAt > SESSION_LIFETIME_MS) {
-      await this.ctx.storage.delete("s:" + id);
+      // Preserve ownership for explicit cleanup of expired sessions.
       return null;
     }
     return session;
@@ -321,13 +342,33 @@ var SfuRoom = class extends DurableObject {
   owner: userId,
   createdAt: Date.now(),
   published: [],
+  trackAttempts: 0,
   intent: intent === "subscribe" ? "subscribe" : "publish"
 });
       return result.ok ? json(result, result.status) : json({ ok: false, error: "Cloudflare SFU rejected request", stage: "sfu-upstream", upstreamStatus: result.status }, result.status);
     }
     const id = body?.sessionId;
+    if(!validSfuSession(id))return json({ok:false,error:"Invalid session"},400);
+    return this.serialSession(id,async()=>{
+    if(path==="/api/sfu/close"&&method==="POST"){
+      // Closing is authorized by recorded owner, including after match completion.
+      const owned=await this.ctx.storage.get("s:"+id);
+      if(!owned||owned.owner!==userId)return json({ok:false,error:"SFU session not owned by user in this room"},403);
+      await this.ctx.storage.put("s:"+id,{...owned,closing:true});
+      if(!await closeMedia(env,id))return json({ok:false,error:"SFU media cleanup incomplete; retry"},502);
+      await this.ctx.storage.delete("s:"+id);
+      return json({ok:true,closed:true});
+    }
     const session = await this.getSession(id);
     if (!session || session.owner !== userId) return json({ ok: false, error: "SFU session not owned by user in this room" }, 403);
+    if(session.closing)return json({ok:false,error:"SFU session is closing"},409);
+    const reserveTracks=async n=>{
+      const used=Number.isInteger(session.trackAttempts)?session.trackAttempts:session.published.length;
+      if(used+n>MAX_TRACK_ADDITIONS)return false;
+      session.trackAttempts=used+n;
+      await this.ctx.storage.put("s:"+id,session);
+      return true;
+    };
     const suffix = "/sessions/" + encodeURIComponent(id);
     if (path === "/api/sfu/publish" && method === "POST") {
       if (session.intent === "subscribe") {
@@ -337,6 +378,7 @@ var SfuRoom = class extends DurableObject {
   );
 }
       if (!validSdp(body?.sessionDescription) || !validTracks(body?.tracks, "local")) return json({ ok: false, error: "Invalid publish request" }, 400);
+      if(!await reserveTracks(body.tracks.length))return json({ok:false,error:"SFU track limit exceeded"},429);
       const result = await callSfu(env, suffix + "/tracks/new", "POST", { sessionDescription: body.sessionDescription, tracks: body.tracks });
       if (result.ok) {
         const published = [.../* @__PURE__ */ new Set([...session.published, ...body.tracks.map((t) => t.trackName)])];
@@ -350,6 +392,7 @@ var SfuRoom = class extends DurableObject {
         const remote = await this.getSession(t.sessionId);
         if (!remote || !remote.published.includes(t.trackName)) return json({ ok: false, error: "Publication not found in authorized room" }, 403);
       }
+      if(!await reserveTracks(body.tracks.length))return json({ok:false,error:"SFU track limit exceeded"},429);
       const result = await callSfu(env, suffix + "/tracks/new", "POST", { tracks: body.tracks });
       return json(result, result.status);
     }
@@ -359,6 +402,7 @@ var SfuRoom = class extends DurableObject {
       return json(result, result.status);
     }
     return json({ ok: false, error: "Not found" }, 404);
+    });
   }
 };
 var dartarena_realtime_staging_default = {
@@ -379,7 +423,7 @@ var dartarena_realtime_staging_default = {
       return new Response(videoTestHtml(env), { status: 200, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" } });
     }
     if (!env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY || !env.SFU_ROOMS) return json({ ok: false, error: "Security configuration unavailable" }, 503, cors);
-    if (!["/api/sfu/access-check", "/api/sfu/session", "/api/sfu/publish", "/api/sfu/subscribe", "/api/sfu/renegotiate"].includes(path)) return json({ ok: false, error: "Not found" }, 404, cors);
+    if (!["/api/sfu/access-check", "/api/sfu/session", "/api/sfu/publish", "/api/sfu/subscribe", "/api/sfu/renegotiate", "/api/sfu/close"].includes(path)) return json({ ok: false, error: "Not found" }, 404, cors);
     const method = path === "/api/sfu/renegotiate" ? "PUT" : "POST";
     if (request.method !== method) return json({ ok: false, error: "Method not allowed" }, 405, cors);
     const kind = request.headers.get("X-DartArena-Room-Kind");
@@ -400,15 +444,18 @@ const action =
     intent === "subscribe")
     ? "subscribe"
     : "publish";
-    let authorized = false;
+    // A signed-in owner may close a recorded session after leaving the room.
+    // The room object independently checks ownership; no other operation bypasses membership.
+    const closing=path==="/api/sfu/close";
+    let authorized = closing;
     try {
-      authorized = await isRoomMember(env, user.authorization, kind, roomId, action);
+      if(!closing)authorized = await isRoomMember(env, user.authorization, kind, roomId, action);
     } catch {
       return json({ ok: false, error: "Room authorization unavailable" }, 503, cors);
     }
     if (!authorized) return json({ ok: false, error: "Room access denied" }, 403, cors);
     if (path === "/api/sfu/access-check") return json({ ok: true, authorized: true, mediaEnabled: false }, 200, cors);
-    if (env.SFU_MEDIA_ENABLED !== "true") return json({ ok: false, error: "SFU media disabled in staging" }, 503, cors);
+    if (!closing && env.SFU_MEDIA_ENABLED !== "true") return json({ ok: false, error: "SFU media disabled in staging" }, 503, cors);
     if (
   path === "/api/sfu/publish" &&
   request.headers.get("X-DartArena-SFU-Intent") === "subscribe"

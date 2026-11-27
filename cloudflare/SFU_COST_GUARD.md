@@ -13,3 +13,11 @@ Based on the active Worker source provided by the owner. Candidate only: GitHub 
 
 ## Manual deployment (only after offline tests and review)
 Save the current deployed Worker version/rollback identifier and compare the current code with the supplied source. In Cloudflare edit the active dartarena-realtime-security-test Worker, replacing its module with cloudflare/dartarena-realtime-cost-guard.js; preserve existing bindings, variables, secrets and SfuRoom class. Do not deploy to the retired Worker. Test one regular match and spectator with no live load test. Roll back via Deployments if needed. Production is unchanged by this branch.
+
+## Stage 2 candidate – explicit cleanup and track cap
+- Maximum eight cumulative track additions per newly created session, including failed/ambiguous upstream operations. Existing subscriber allocations are not reconstructed. This is not a global simultaneous connection cap.
+- Per-session mutation queue serializes concurrent requests within a room object; explicit close marks the record closing before upstream calls, blocks further mutations and releases ownership only after confirmed per-track closure or inactive/empty track inspection.
+- New authenticated POST /api/sfu/close accepts only the recorded owner in the matching room object, including after room membership ends. No arbitrary upstream track identifiers accepted; server reads session state itself.
+- This endpoint is not yet called by the production browser. Browser teardown integration and global concurrent session admission are separate stages. Cloudflare already reclaims inactive media; this candidate does not periodically force-close live streams or implement billing alerts.
+- Reference: https://developers.cloudflare.com/realtime/sfu/get-started/connection-patterns/ ; https://developers.cloudflare.com/realtime/sfu/api/ ; https://developers.cloudflare.com/realtime/sfu/observability/error-codes/
+- Stage 1 is in production per owner confirmation; stage 2 is only a test candidate. Preserve stage 1 rollback version before any manual deployment.

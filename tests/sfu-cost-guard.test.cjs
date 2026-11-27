@@ -65,3 +65,53 @@ test('rate limit prevents room/upstream call and exposes retry-after',async()=>{
 test('emergency switch blocks new sessions only',async()=>{const h=harness({emergency:true});assert.equal((await h.run('/api/sfu/session')).status,503);assert.equal((await h.run('/api/sfu/subscribe')).status,200);assert.deepEqual(h.counts(),{upstream:1,guards:0,auth:2});});
 test('unauthorized users and unauthorized rooms never reach admission',async()=>{for(const options of [{allowed:false},{authorized:false}]){const h=harness(options);assert.ok([401,403].includes((await h.run('/api/sfu/session')).status));assert.deepEqual(h.counts(),{upstream:0,guards:0,auth:1});}});
 test('internal guard is not a public worker route',async()=>{const h=harness();assert.equal((await h.run('/admit-session')).status,404);assert.deepEqual(h.counts(),{upstream:0,guards:0,auth:0});});
+
+function roomHarness(upstream){
+ const calls=[];
+ const {SfuRoom}=load(async(url,opts)=>{calls.push({url,method:opts.method,body:opts.body?JSON.parse(opts.body):undefined});return upstream(calls.at(-1));});
+ const st=storage(),room=new SfuRoom({storage:st},{REALTIME_SFU_APP_ID:'fake-app',REALTIME_SFU_BEARER_TOKEN:'fake-token'});
+ const session='session_123';
+ const req=(path,body,owner=user(1),intent='publish')=>new Request('https://internal/sfu',{method:'POST',body:JSON.stringify({userId:owner,path,method:path.endsWith('/renegotiate')?'PUT':'POST',body:{sessionId:session,...body},intent})});
+ return {st,calls,room,session,run:(...args)=>room.fetch(req(...args)),seed:extra=>st.put('s:'+session,{owner:user(1),createdAt:Date.now(),published:[],intent:'publish',trackAttempts:0,...extra})};
+}
+const publishBody={sessionDescription:{type:'offer',sdp:'v=0'},tracks:[{location:'local',trackName:'camera',mid:'0'},{location:'local',trackName:'microphone-1',mid:'1'}]};
+test('cumulative track limit is enforced even when upstream fails',async()=>{
+ const h=roomHarness(()=>Response.json({error:'mock failure'},{status:500}));await h.seed();
+ for(let i=0;i<4;i++)assert.equal((await h.run('/api/sfu/publish',publishBody)).status,500);
+ assert.equal((await h.run('/api/sfu/publish',publishBody)).status,429);assert.equal(h.calls.length,4);
+});
+test('concurrent additions share one cumulative quota',async()=>{
+ const h=roomHarness(()=>Response.json({tracks:[]}));await h.seed();
+ const results=await Promise.all(Array.from({length:8},()=>h.run('/api/sfu/publish',publishBody)));
+ assert.equal(results.filter(r=>r.status===200).length,4);
+ assert.equal(results.filter(r=>r.status===429).length,4);
+ assert.equal(h.calls.length,4);
+});
+test('owner can force-close only their own session, using upstream mids',async()=>{
+ const h=roomHarness(c=>c.method==='GET'?Response.json({tracks:[{mid:'0',status:'active'},{mid:'1',status:'inactive'},{mid:'2',status:'initializing'}]}):Response.json({tracks:[{mid:'0'},{mid:'2',errorCode:'close_track_error'}]}));
+ await h.seed({createdAt:Date.now()-4*3600000});
+ assert.equal((await h.run('/api/sfu/close',{},user(2))).status,403);assert.equal(h.calls.length,0);
+ assert.equal((await h.run('/api/sfu/close',{})).status,200);
+ assert.equal(h.calls[1].method,'PUT');assert.deepEqual(h.calls[1].body,{tracks:[{mid:'0'},{mid:'2'}],force:true});
+ assert.equal(await h.st.get('s:'+h.session),undefined);
+});
+test('partial close failure retains ownership, rejects mutations and allows retry',async()=>{
+ let fail=true;const h=roomHarness(c=>c.method==='GET'?Response.json({tracks:[{mid:'0',status:'active'},{mid:'1',status:'active'}]}):Response.json({tracks:[{mid:'0'},{mid:'1',...(fail?{errorCode:'internal_error'}:{})}]}));
+ await h.seed();assert.equal((await h.run('/api/sfu/close',{})).status,502);
+ assert.equal((await h.st.get('s:'+h.session)).closing,true);
+ assert.equal((await h.run('/api/sfu/publish',publishBody)).status,409);
+ fail=false;assert.equal((await h.run('/api/sfu/close',{})).status,200);
+ assert.equal(await h.st.get('s:'+h.session),undefined);
+});
+test('inactive tracks require no close request',async()=>{
+ const h=roomHarness(()=>Response.json({tracks:[{mid:'0',status:'inactive'}]}));await h.seed();
+ assert.equal((await h.run('/api/sfu/close',{})).status,200);assert.equal(h.calls.length,1);
+});
+test('missing close results never release ownership',async()=>{
+ const h=roomHarness(c=>c.method==='GET'?Response.json({tracks:[{mid:'0',status:'active'}]}):Response.json({tracks:[]}));
+ await h.seed();assert.equal((await h.run('/api/sfu/close',{})).status,502);assert.ok(await h.st.get('s:'+h.session));
+});
+test('close reaches room even after membership ends, still requires authentication',async()=>{
+ const h=harness({authorized:false});assert.equal((await h.run('/api/sfu/close')).status,200);assert.deepEqual(h.counts(),{upstream:1,guards:0,auth:1});
+ const unauth=harness({allowed:false});assert.equal((await unauth.run('/api/sfu/close')).status,401);assert.equal(unauth.counts().upstream,0);
+});
