@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: '22'
       - run: for file in tournament*.js lobby-chat.js; do node --check "$file" || exit 1; done
-      - run: node --test tests/tournament-performance-regression.test.cjs tests/tournament-live-scores.test.cjs tests/tournament-group-results-layout.test.cjs tests/tournament-stats-fetch.test.cjs tests/tournament-lobby-navigation.test.cjs tests/lobby-chat-feed.test.cjs tests/profile-presentation.test.cjs tests/profile-name-link.test.cjs
+      - run: node --test tests/tournament-performance-regression.test.cjs tests/tournament-live-scores.test.cjs tests/tournament-group-results-layout.test.cjs tests/tournament-stats-fetch.test.cjs tests/tournament-lobby-navigation.test.cjs tests/tournament-realtime-auth-gate.test.cjs tests/lobby-chat-feed.test.cjs tests/profile-presentation.test.cjs tests/profile-name-link.test.cjs
       - run: npm install --prefix "$RUNNER_TEMP/da-tournament" --no-audit --no-fund playwright@1.58.2
       - run: '"$RUNNER_TEMP/da-tournament/node_modules/.bin/playwright" install --with-deps chromium'
       - run: NODE_PATH="$RUNNER_TEMP/da-tournament/node_modules" node --test tests/tournament-presentation.test.cjs

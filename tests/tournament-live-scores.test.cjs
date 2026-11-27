@@ -77,6 +77,8 @@ test('cup and group score nodes update in realtime and via polling without card 
     clearTimeout(){},clearInterval(){}
   };
   vm.runInNewContext(src,context);
+  // Authenticated startup schedules the initial read asynchronously.
+  for(let i=0;i<12;i++)await Promise.resolve();
   const boot=pending.find(job=>job.ms===500);
   assert.ok(boot);
   await boot.fn();
@@ -97,7 +99,7 @@ test('cup and group score nodes update in realtime and via polling without card 
     {id:'live-cup',player1_legs:3,player2_legs:2},
     {id:'live-group',player1_legs:2,player2_legs:2}
   ];
-  const poll=intervals.find(job=>job.ms===3000);
+  const poll=intervals.find(job=>job.ms===10000);
   assert.ok(poll);
   await poll.fn();
   assert.equal(cupScore.textContent,'3–2');

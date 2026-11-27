@@ -68,8 +68,10 @@ test('Tournament aggregate stats no longer subscribes to every throw in DartAren
   const source=read('tournament-stats.js');
   assert.match(source,/table:'tournament_matches',filter:/);
   assert.doesNotMatch(source,/\.on\('postgres_changes',\{event:'\*',schema:'public',table:'match_throws'/);
-  assert.match(source,/window\.addEventListener\('focus',scheduleLoad\)/);
-  assert.match(source,/visibilitychange/);
+  assert.doesNotMatch(source,/window\.addEventListener\('focus',scheduleLoad\)/);
+  assert.doesNotMatch(source,/visibilitychange/);
+  assert.match(source,/!\['finished','wo'\]\.includes\(match.status\)\|\|completedIds.has\(match.id\)/);
+  assert.match(source,/completedIds.add\(match.id\);\s*scheduleLoad\(\)/);
 });
 test('Spectator retains event-driven updates but reduces healthy polling to 15s',async()=>{
   const f=viewerFixture();
@@ -114,7 +116,10 @@ test('Two close Realtime changes request one read while FX remains immediate',as
   await f.flush();
   assert.equal(f.fetchCount-before,1);
 });
-test('Pages load versioned optimized files; prior rollback preserved separately',()=>{
-  assert.match(read('tournament.html'),/tournament-stats\.js\?v=20261027-perf1/);
-  assert.match(read('tournament-match-viewer.html'),/tournament-match-viewer\.js\?v=20261027-perf1/);
+test('Pages load dated cache versions at least as recent as the performance fixes',()=>{
+  for(const [page,script] of [['tournament.html','tournament-stats'],['tournament-match-viewer.html','tournament-match-viewer']]){
+    const version=read(page).match(new RegExp(script+'\\.js\\?v=(\\d{8})-[\\w-]+'));
+    assert.ok(version,script+' requires cache version');
+    assert.ok(version[1]>='20261027');
+  }
 });
