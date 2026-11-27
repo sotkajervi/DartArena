@@ -11,7 +11,7 @@ test('Owner SEER simulation and ordinary 501 remain isolated in Chromium',async(
     if(u.hostname==='cdn.jsdelivr.net'&&u.pathname.includes('supabase'))return r.fulfill({contentType:'application/javascript',body:`window.supabase={createClient:()=>({auth:{getUser:async()=>({data:{user:{id:'owner-test'}}}),onAuthStateChange:cb=>{window.mockAuth=cb}},rpc:async name=>({data:name==='is_owner'&&${allowed===true}})})}`});
     if(u.hostname!=='dartarena.test')return r.abort();
     const p=u.pathname.slice(1);
-    if(!/^[\\w./-]+$/.test(p)||p.includes('..')||!fs.existsSync(p)||!fs.statSync(p).isFile())return r.fulfill({status:404,body:''});
+    if(!/^[A-Za-z0-9_./-]+$/.test(p)||p.includes('..')||!fs.existsSync(p)||!fs.statSync(p).isFile())return r.fulfill({status:404,body:''});
     if(p==='practice-cloud.js'||p==='role-visuals.js')return r.fulfill({contentType:'application/javascript',body:''});
     return r.fulfill({contentType:mime[p.split('.').pop()]||'application/octet-stream',body:fs.readFileSync(p)});
    });
@@ -21,7 +21,7 @@ test('Owner SEER simulation and ordinary 501 remain isolated in Chromium',async(
    return {page,errors};
   }
   let {page:p,errors}=await open('owner-seer-local-501.html',false);
-  await p.getByText('Tilgang krever Owner.',{exact:true}).waitFor();
+  await p.getByText('Tilgang krever Owner.',{exact:true}).waitFor({timeout:10000}).catch(async e=>{throw Error('Owner denial not displayed: '+JSON.stringify({status:await p.locator('#seerLocalAccess').textContent(),errors})+'; '+e.message)});
   a.equal(await p.locator('#seerLocalRoom').isVisible(),false);
   a.equal(await p.locator('script[src*="local-h2h.js"]').count(),0);
   a.deepEqual(errors,[]);await p.close();
