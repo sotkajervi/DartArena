@@ -5,7 +5,7 @@ const db = window.supabase?.createClient(
     'sb_publishable_aqx1Q36C3cznImJ5KMDk3w_I1uUTHQK',
   );
 let ticket=0,loaded=false,ownerId=null,initializing=false;
-function deny(message){room.hidden=true;room.inert=true;$('localCheckout').inert=true;$('localCorrectionModal').inert=true;access.hidden=false;access.textContent=message;}
+function deny(message){room.hidden=true;room.inert=true;$('localCheckout').hidden=true;$('localCorrectionModal').hidden=true;$('localCheckout').inert=true;$('localCorrectionModal').inert=true;access.hidden=false;access.textContent=message;}
 async function check(){
  const checkId=++ticket;
  try{
