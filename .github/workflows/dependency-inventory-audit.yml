@@ -18,7 +18,10 @@ jobs:
           - {name: supabase-browser, packages: '@supabase/supabase-js@2.117.2'}
           - {name: supabase-edge, packages: '@supabase/supabase-js@2.49.1'}
           - {name: socket-io, packages: 'socket.io-client@4.8.4'}
-          - {name: tensorflow, packages: '@tensorflow/tfjs-core@4.22.0 @tensorflow/tfjs-backend-cpu@4.22.0 @tensorflow/tfjs-tflite@0.0.1-alpha.10'}
+          - {name: tensorflow-core, packages: '@tensorflow/tfjs-core@4.22.0 @tensorflow/tfjs-backend-cpu@4.22.0'}
+          # TFLite requires core 4.9.0. Audit the supported peer graph separately;
+          # this is not a compatibility pass for the shipped mixed CDN stack.
+          - {name: tensorflow-lite-peer, packages: '@tensorflow/tfjs-core@4.9.0 @tensorflow/tfjs-tflite@0.0.1-alpha.10'}
     name: Audit ${{ matrix.name }}
     steps:
       - uses: actions/checkout@v4
@@ -62,10 +65,9 @@ jobs:
           tar -xzf socket.io-client-4.8.4.tgz package/dist/socket.io.min.js
           curl --fail --silent --show-error --location --max-time 30 https://cdn.jsdelivr.net/npm/socket.io-client@4.8.4/dist/socket.io.min.js -o cdn.js
           cmp package/dist/socket.io.min.js cdn.js
-          printf 'SRI candidate: sha384-'
-          openssl dgst -sha384 -binary cdn.js | openssl base64 -A
-          printf '\n'
+          actual="sha384-$(openssl dgst -sha384 -binary cdn.js | openssl base64 -A)"
+          test "$actual" = 'sha384-fBrXvbDtHoeKWJ/hcA6M+YGueiDW+h45I7V6F2kD1S8bOkrF9rZYPLVkCR6BLR/1'
           cd "$GITHUB_WORKSPACE"
-          grep -F 'socket.io-client@4.8.4/dist/socket.io.min.js' owner-seer-test.html
+          grep -F 'src="https://cdn.jsdelivr.net/npm/socket.io-client@4.8.4/dist/socket.io.min.js" integrity="sha384-fBrXvbDtHoeKWJ/hcA6M+YGueiDW+h45I7V6F2kD1S8bOkrF9rZYPLVkCR6BLR/1" crossorigin="anonymous"' owner-seer-test.html
           node --check owner-seer-test.js
           node --test tests/seer-visit.test.cjs
