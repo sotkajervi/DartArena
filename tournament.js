@@ -11,6 +11,21 @@ let me=null;
 let tournament=null;
 let members=[];
 let names={};
+let tournamentShownNames={};
+function tournamentDisplayName(uid,fallback='Spiller'){
+  return tournamentShownNames[uid]||names[uid]||fallback;
+}
+async function resolveTournamentNames(ids){
+  const players=[...new Set(ids.filter(uid=>uid&&uid!==AI_RIVAL_ID&&names[uid]))].map(id=>({id,username:names[id]}));
+  if(!players.length||!window.DartArenaProfileLink?.resolve)return;
+  Object.assign(tournamentShownNames,await window.DartArenaProfileLink.resolve(db,players));
+}
+function renderParticipantRows(rows){
+  return rows.map(x=>{
+    const shown=tournamentDisplayName(x.user_id),initial=Array.from(shown)[0]?.toUpperCase()||'?';
+    return `<div class="player-row"><div class="player-main"><div class="avatar tournament-participant-avatar" data-avatar-id="${esc(x.user_id)}" aria-hidden="true">${esc(initial)}</div><div class="tournament-participant-identity"><span class="player-name ${x.role==='owner'?'role-admin':'role-participant'}" data-user-id="${esc(x.user_id)}" data-no-i18n>${esc(shown)}</span><div class="status">${x.role==='owner'?(x.playing?'Turneringsleder • Påmeldt':'Turneringsleder • Ikke påmeldt'):'Deltaker'}</div></div></div></div>`;
+  }).join('');
+}
 let drawnGroups=null;
 const AI_RIVAL_ID='00000000-0000-4000-8000-0000000000a1';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -151,6 +166,7 @@ async function load(){
     else names={...names,...Object.fromEntries((p||[]).map(x=>[x.id,x.username]))};
   }
 
+  await resolveTournamentNames(ids);
   renderPage();
   window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
   // The finished archive must show its group standings and all group matches,
@@ -171,7 +187,7 @@ function renderLeaderTransfer(){
   const previous=select.value;
   select.innerHTML='<option value="">Velg påmeldt deltaker</option>'+
     candidates.sort((a,b)=>(names[a.user_id]||'').localeCompare(names[b.user_id]||'','nb'))
-      .map(x=>`<option value="${esc(x.user_id)}">${esc(names[x.user_id]||'Spiller')}</option>`).join('');
+      .map(x=>`<option value="${esc(x.user_id)}">${esc(tournamentDisplayName(x.user_id))}</option>`).join('');
   select.value=isLeader&&candidates.some(x=>x.user_id===previous)?previous:'';
   select.disabled=!isLeader||!candidates.length;
   button.disabled=!isLeader||!select.value;
@@ -184,7 +200,7 @@ async function transferTournamentLeader(){
   if(!tournament||tournament.owner_id!==me)return;
   const newOwnerId=$('leaderTransferSelect')?.value;
   if(!newOwnerId||!getParticipants().some(x=>x.user_id===newOwnerId))return;
-  const name=names[newOwnerId]||'denne deltakeren';
+  const name=tournamentDisplayName(newOwnerId,'denne deltakeren');
   const dialog=await getDialog();
   const message=`Overføre turneringslederrollen til ${name}?\n\n${name} vil overta styringen av turneringen. Du mister lederrollen, men forblir påmeldt som spiller hvis du er registrert. Overføringen fjerner deg ikke fra pågående kamper.`;
   const ok=dialog
@@ -225,7 +241,8 @@ function renderPage(){
     {user_id:t.owner_id,role:'owner',playing:ownerJoined},
     ...participants.filter(x=>x.user_id!==t.owner_id).map(x=>({...x,playing:true}))
   ];
-  $('participantList').innerHTML=rows.map(x=>`<div class="player-row"><div class="player-main"><div class="avatar">${esc((names[x.user_id]||'?')[0].toUpperCase())}</div><div><div class="player-name ${x.role==='owner'?'role-admin':'role-participant'}" data-user-id="${esc(x.user_id)}">${esc(names[x.user_id]||'Spiller')}</div><div class="status">${x.role==='owner'?(x.playing?'Turneringsleder • Påmeldt':'Turneringsleder • Ikke påmeldt'):'Deltaker'}</div></div></div></div>`).join('');
+  $('participantList').innerHTML=renderParticipantRows(rows);
+  void window.DartArenaIdentity?.paint(db,$('participantList'));
 
   const joined=members.some(x=>x.role==='participant'&&x.user_id===me);
   const owner=t.owner_id===me;
@@ -450,7 +467,7 @@ function drawGroups(){
 }
 
 function renderGroups(){
-  $('groupPreview').innerHTML=drawnGroups.map((group,i)=>`<div class="player-row" style="display:block"><div class="player-name" style="color:#00eaf4;margin-bottom:8px">Pulje ${i+1}</div>${group.map((p,j)=>`<div class="status" style="padding:5px 0;color:var(--text)">${p.ai_rival?'Trening: ':j+1+'. '}<span class="da-role-player" data-user-id="${esc(p.user_id)}">${esc(p.ai_rival?('AI Rival – '+(window.DartArenaSelectedAIRival?.name||'Spiller')+' (teller ikke)'):(names[p.user_id]||'Spiller'))}</span></div>`).join('')}</div>`).join('');
+  $('groupPreview').innerHTML=drawnGroups.map((group,i)=>`<div class="player-row" style="display:block"><div class="player-name" style="color:#00eaf4;margin-bottom:8px">Pulje ${i+1}</div>${group.map((p,j)=>`<div class="status" style="padding:5px 0;color:var(--text)">${p.ai_rival?'Trening: ':j+1+'. '}<span class="da-role-player" data-no-i18n data-user-id="${esc(p.user_id)}">${esc(p.ai_rival?('AI Rival – '+(window.DartArenaSelectedAIRival?.name||'Spiller')+' (teller ikke)'):tournamentDisplayName(p.user_id))}</span></div>`).join('')}</div>`).join('');
   window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
 }
 
@@ -557,6 +574,7 @@ async function loadGroupLobby(){
     if(aiConfigError||!aiConfig)return;
     const {data:profile}=await db.from('profiles').select('username').eq('id',aiConfig.model_player_id).maybeSingle();
     names[AI_RIVAL_ID]='AI Rival – '+(profile?.username||'Spiller');
+    if(profile?.username&&window.DartArenaProfileLink?.resolve){const shown=await window.DartArenaProfileLink.resolve(db,[{id:aiConfig.model_player_id,username:profile.username}]);tournamentShownNames[AI_RIVAL_ID]='AI Rival – '+(shown[aiConfig.model_player_id]||profile.username);}
     // Do not register AI as a ranked group player. Fixtures still display below.
     for(const f of aiFixtures){
       matches.push({id:f.id,tournament_id:id,stage:'group',group_id:f.group_id,round_no:f.round_no,match_no:f.match_no,
@@ -589,6 +607,7 @@ async function loadGroupLobby(){
     const {data:p}=await db.from('profiles').select('id,username').in('id',missing);
     Object.assign(names,Object.fromEntries((p||[]).map(x=>[x.id,x.username])));
   }
+  await resolveTournamentNames([...userIds,...matches.flatMap(m=>[m.player1_id,m.player2_id])]);
   const groupAvgs=await groupMatchAverages(matches);
   for(const match of matches){
     match._player1_avg=groupAvgs.get(`${match.id}:${match.player1_id}`)??null;
@@ -619,7 +638,7 @@ async function loadGroupLobby(){
     const rounds=[...new Set(gm.map(m=>m.round_no))];
     const roundHtml=rounds.map(r=>`<div class="round-block"><div class="round-title">Runde ${r}</div>${gm.filter(m=>m.round_no===r).map(matchHtml).join('')}</div>`).join('');
     const trainingHtml=ai.length?`<details class="group-matches-details ai-training-matches" ${collapseArchivedGroups?'':'open'}><summary><span>AI-TRENINGSKAMPER</span><span class="group-match-summary-meta">${ai.length} kamper <span class="group-match-chevron" aria-hidden="true">⌄</span></span></summary><p class="muted compact" style="margin:10px 0">Resultatene teller ikke i puljetabellen og påvirker ikke cup eller seeding.</p><div class="group-rounds">${ai.map(matchHtml).join('')}</div></details>`:'';
-    return `<div class="group-card"><div class="heading"><div><small>PULJE ${g.group_no}</small><h2>${gp.length} spillere</h2></div><div class="status">${tournamentIsChicago()? 'Chicago Style' : `${Number(tournament?.game)||501} • Best av ${g.best_of}`}</div></div><div class="group-standings-scroll" role="region" tabindex="0" aria-label="Pulje ${g.group_no} – tabell"><table class="standings"><thead><tr><th>#</th><th>Spiller</th><th title="Kamper spilt">K</th><th title="Seire">V</th><th title="Tap">T</th><th title="Seiersprosent">V%</th><th>${tournamentIsChicago()?'Games':'Legs'}</th><th title="Differanse">+/−</th></tr></thead><tbody>${table.map((x,i)=>`<tr class="${i<qualify?'qualify':''}"><td>${i+1}</td><td><span class="da-role-player" data-user-id="${esc(x.id)}">${esc(names[x.id]||'Spiller')}</span></td><td>${x.k}</td><td>${x.w}</td><td>${x.k-x.w}</td><td>${x.k?Math.round(x.w/x.k*100):0}%</td><td>${x.lf}–${x.la}</td><td>${x.d>0?'+':''}${x.d}</td></tr>`).join('')}</tbody></table></div><details class="group-matches-details" ${collapseArchivedGroups?'':'open'}><summary><span>Puljekamper</span><span class="group-match-summary-meta">${gm.length} kamper <span class="group-match-chevron" aria-hidden="true">⌄</span></span></summary><div class="group-rounds">${roundHtml}</div></details>${trainingHtml}</div>`;
+    return `<div class="group-card"><div class="heading"><div><small>PULJE ${g.group_no}</small><h2>${gp.length} spillere</h2></div><div class="status">${tournamentIsChicago()? 'Chicago Style' : `${Number(tournament?.game)||501} • Best av ${g.best_of}`}</div></div><div class="group-standings-scroll" role="region" tabindex="0" aria-label="Pulje ${g.group_no} – tabell"><table class="standings"><thead><tr><th>#</th><th>Spiller</th><th title="Kamper spilt">K</th><th title="Seire">V</th><th title="Tap">T</th><th title="Seiersprosent">V%</th><th>${tournamentIsChicago()?'Games':'Legs'}</th><th title="Differanse">+/−</th></tr></thead><tbody>${table.map((x,i)=>`<tr class="${i<qualify?'qualify':''}"><td>${i+1}</td><td><span class="da-role-player" data-no-i18n data-user-id="${esc(x.id)}">${esc(tournamentDisplayName(x.id))}</span></td><td>${x.k}</td><td>${x.w}</td><td>${x.k-x.w}</td><td>${x.k?Math.round(x.w/x.k*100):0}%</td><td>${x.lf}–${x.la}</td><td>${x.d>0?'+':''}${x.d}</td></tr>`).join('')}</tbody></table></div><details class="group-matches-details" ${collapseArchivedGroups?'':'open'}><summary><span>Puljekamper</span><span class="group-match-summary-meta">${gm.length} kamper <span class="group-match-chevron" aria-hidden="true">⌄</span></span></summary><div class="group-rounds">${roundHtml}</div></details>${trainingHtml}</div>`;
   }).join('');
   window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
   if(collapseArchivedGroups){
@@ -633,9 +652,9 @@ async function loadGroupLobby(){
 }
 
 function matchHtml(m){
-  const playerLabel=uid=>'<span class="da-role-player" data-user-id="'+esc(uid||'')+'">'+esc(names[uid]||'Spiller')+'</span>';
-  const p1=m.player1_id===AI_RIVAL_ID?'<span style="color:#00eaf4">'+esc(names[AI_RIVAL_ID]||'AI Rival')+'</span>':playerLabel(m.player1_id);
-  const p2=m.player2_id===AI_RIVAL_ID?'<span style="color:#00eaf4">'+esc(names[AI_RIVAL_ID]||'AI Rival')+'</span>':playerLabel(m.player2_id);
+  const playerLabel=uid=>'<span class="da-role-player" data-no-i18n data-user-id="'+esc(uid||'')+'">'+esc(tournamentDisplayName(uid))+'</span>';
+  const p1=m.player1_id===AI_RIVAL_ID?'<span style="color:#00eaf4">'+esc(tournamentDisplayName(AI_RIVAL_ID,'AI Rival'))+'</span>':playerLabel(m.player1_id);
+  const p2=m.player2_id===AI_RIVAL_ID?'<span style="color:#00eaf4">'+esc(tournamentDisplayName(AI_RIVAL_ID,'AI Rival'))+'</span>':playerLabel(m.player2_id);
   const done=['finished','wo'].includes(m.status);
   const live=m.status==='live';
   const score=live
@@ -653,7 +672,7 @@ function matchHtml(m){
   const middle=archiveResult?`<span class="group-match-result">${score}</span>`:'<span class="muted">vs</span>';
   return `<div class="match-row ${live?'live-match':''} ${canStartAI?'ai-rival-ready':''}" ${m.is_ai_rival?'data-ai-match="'+esc(m.id)+'" data-ai-model="'+esc(m.model_player_id)+'" data-ai-best-of="'+Number(m.best_of)+'" data-ai-status="'+esc(m.status)+'" data-ai-human="'+esc(humanId)+'"':'data-match="'+esc(m.id)+'"'}>
     <div class="match-players"><span class="group-match-player ${p1Winner?'winner':''}"><strong>${p1}</strong>${avg(m._player1_avg)}</span>${middle}<span class="group-match-player ${p2Winner?'winner':''}">${archiveResult?avg(m._player2_avg):''}<strong>${p2}</strong>${archiveResult?'':avg(m._player2_avg)}</span></div>
-    <div class="match-meta"><div class="match-score">${score}</div>${canStartAI?'<button type="button" class="primary ai-rival-start-btn" aria-label="Start AI-kamp mot '+esc(names[AI_RIVAL_ID]||'AI Rival')+'">Start AI-kamp</button>':''}<div class="match-state">${state}</div></div>
+    <div class="match-meta"><div class="match-score">${score}</div>${canStartAI?'<button type="button" class="primary ai-rival-start-btn" aria-label="Start AI-kamp mot '+esc(tournamentDisplayName(AI_RIVAL_ID,'AI Rival'))+'">Start AI-kamp</button>':''}<div class="match-state">${state}</div></div>
   </div>`;
 }
 

@@ -118,7 +118,8 @@
     if(!missing.length)return;
     const {data,error}=await db.from('profiles').select('id,username').in('id',missing);
     if(error)return console.warn('Chat profile lookup failed',error);
-    (data||[]).forEach(p=>names[p.id]=p.username||'Spiller');
+    const shown=tournamentPage&&window.DartArenaProfileLink?.resolve?await window.DartArenaProfileLink.resolve(db,data||[]):null;
+    (data||[]).forEach(p=>names[p.id]=shown?.[p.id]||p.username||'Spiller');
   }
 
   async function ensureRoles(force=false){
@@ -200,6 +201,7 @@
       const sender=document.createElement('strong');
       sender.className='dart-chat-author';
       sender.textContent=names[row.sender_id]||'Spiller';
+      if(tournamentPage)sender.setAttribute('data-no-i18n','');
       left.appendChild(sender);
       if(role==='owner'||role==='admin'){
         const badge=document.createElement('span');

@@ -27,7 +27,8 @@
     const missing=[...new Set(ids.filter(Boolean).filter(id=>!nameCache[id]))];
     if(missing.length){
       const {data}=await client.from('profiles').select('id,username').in('id',missing);
-      (data||[]).forEach(p=>nameCache[p.id]=p.username||'Spiller');
+      const shown=window.DartArenaProfileLink?.resolve?await window.DartArenaProfileLink.resolve(client,data||[]):{};
+      (data||[]).forEach(p=>nameCache[p.id]=shown[p.id]||p.username||'Spiller');
     }
     return ids.map((id,i)=>nameCache[id]||`Spiller ${i+1}`);
   }

@@ -144,7 +144,7 @@
   function cupPlayerHtml(playerId,seedById,{bye=false,avg=null}={}){
     if(!playerId)return bye?'<span class="cup-bye">BYE</span>':'<span class="cup-name muted">Venter</span>';
     const seed=seedById.get(playerId)||'',label=avgLabel(avg);
-    return `${seed?`<span class="cup-seed">${esc(seed)}</span>`:''}<span class="cup-name"><span class="da-role-player" data-user-id="${esc(playerId)}">${esc(names[playerId]||'Spiller')}</span></span>${label?`<span class="cup-avg">${esc(label)}</span>`:''}`;
+    return `${seed?`<span class="cup-seed">${esc(seed)}</span>`:''}<span class="cup-name"><span class="da-role-player" data-no-i18n data-user-id="${esc(playerId)}">${esc(tournamentDisplayName(playerId))}</span></span>${label?`<span class="cup-avg">${esc(label)}</span>`:''}`;
   }
   // Finished cup games are immutable for normal play: cache their averages.
   // Re-fetch only for new or corrected results, never for a routine cup redraw.
@@ -226,6 +226,7 @@
     setup.classList.toggle('hidden',tournament.status!=='cup_setup');lobby.classList.toggle('hidden',!['cup','finished'].includes(tournament.status));
     if(tournament.status==='cup_setup'){const allDone=d.players.length>=2&&d.gm.every(done),q=allDone?qualifiers(d):[];$('cupSetupInfo').textContent=allDone?`${q.length} spillere er klare for sluttspillet. Cupen bruker NDF-oppsett der dette er definert, og viser puljeplassering som 1P1, 2P1 osv.`:'Cupen kan opprettes når alle puljekampene er ferdige.';$('buildCupBtn').disabled=!allDone;if(allDone&&q.length>=2)renderCupFormat(q);return}
     if(!d.cm.length)return;const advancementBlocked=await advanceWinners(d.cm);const ids=[...new Set(d.cm.flatMap(m=>[m.player1_id,m.player2_id]).filter(Boolean))],missing=ids.filter(x=>!names[x]);if(missing.length){const {data:p}=await db.from('profiles').select('id,username').in('id',missing);Object.assign(names,Object.fromEntries((p||[]).map(x=>[x.id,x.username])))}
+    await resolveTournamentNames(ids);
     await loadCupLiveLegs(d.cm);
     const seedById=new Map(qualifiers(d).map(p=>[p.id,p.seedLabel]));
     const matchAverages=await cupMatchAverages(d.cm);
@@ -236,7 +237,7 @@
     syncCupFx(d.cm);
     window.dispatchEvent(new Event('dartarena:roles-content-rendered'));
     if(finalRound.length!==1){$('cupProgress').textContent='Cupoppsettet må kontrolleres: ugyldig finalerunde';return}
-    $('cupProgress').textContent=final?.winner_id?`Vinner: ${names[final.winner_id]||'Spiller'}`:`${d.cm.filter(done).length} / ${d.cm.length} kamper ferdig`;
+    $('cupProgress').textContent=final?.winner_id?`Vinner: ${tournamentDisplayName(final.winner_id)}`:`${d.cm.filter(done).length} / ${d.cm.length} kamper ferdig`;
     if(advancementBlocked)$('cupProgress').textContent+=' • Vinner venter på overføring til neste runde';
     await finishTournamentIfNeeded(final,d.cm);
   }

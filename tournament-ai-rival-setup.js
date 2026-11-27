@@ -34,7 +34,8 @@
   ]);
   if(profiles.error||choice.error){status.textContent='Kunne ikke hente AI Rival-valg: '+(profiles.error||choice.error).message;return;}
   const options=(profiles.data||[]).filter(p=>p.id&&p.username);
-  select.replaceChildren(new Option('Velg spiller…',''),...options.map(p=>new Option(p.username,p.id)));
+  const shown=window.DartArenaProfileLink?.resolve?await window.DartArenaProfileLink.resolve(db,options):{};
+  select.replaceChildren(new Option('Velg spiller…',''),...options.map(p=>new Option(shown[p.id]||p.username,p.id)));
   selected=choice.data?.model_player_id||null;
   if(selected)select.value=selected;
   syncDraw();refresh();

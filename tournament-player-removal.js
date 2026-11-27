@@ -80,7 +80,7 @@
       if(ids.length){
         const {data:profiles,error:pError}=await db.from('profiles').select('id,username').in('id',ids);
         if(pError)throw pError;
-        names=Object.fromEntries((profiles||[]).map(p=>[p.id,p.username]));
+        names=window.DartArenaProfileLink?.resolve?await window.DartArenaProfileLink.resolve(db,profiles||[]):Object.fromEntries((profiles||[]).map(p=>[p.id,p.username]));
       }
 
       const rows=[...participantList.children].filter(el=>el.classList?.contains('player-row'));
