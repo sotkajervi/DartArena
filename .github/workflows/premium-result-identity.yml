@@ -1,0 +1,24 @@
+name: Premium result identity regression
+on:
+  push:
+    branches: ['test/premium-result-identity-20261127']
+  pull_request:
+    branches: [main]
+    paths: ['premium-match-stats.js','premium-heatmap-view.js','match-stats.html','tournament-match-stats.html','tests/premium-result-identity.test.cjs','tests/persistent-heatmaps.test.cjs','.github/workflows/premium-result-identity.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check premium-match-stats.js && node --check premium-heatmap-view.js
+      - run: node --test tests/persistent-heatmaps.test.cjs tests/profile-presentation.test.cjs tests/profile-name-link.test.cjs
+      - run: npm install --prefix "$RUNNER_TEMP/da-result" --no-audit --no-fund playwright@1.58.2
+      - run: '"$RUNNER_TEMP/da-result/node_modules/.bin/playwright" install --with-deps chromium'
+      - run: NODE_PATH="$RUNNER_TEMP/da-result/node_modules" node --test tests/premium-result-identity.test.cjs tests/persistent-heatmap-browser.test.cjs

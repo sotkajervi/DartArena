@@ -23,7 +23,6 @@
       :`Best of ${num(match.legs)||1} legs`;
   }
   function gameLabel(match){return String(match?.game||'X01')}
-  function initial(name){return String(name||'?').trim().slice(0,1).toUpperCase()||'?'}
   function inferredWinner(p1,p2,a,b){if(a===b)return null;return a>b?p1:p2}
   function resultScore(match,tm){
     if(!match)return[tm?.player1_legs??0,tm?.player2_legs??0];
@@ -49,6 +48,13 @@
     const {data,error}=await db.from('profiles').select('id,username').in('id',unique);
     if(error)throw error;
     return Object.fromEntries((data||[]).map(p=>[p.id,p.username]));
+  }
+  async function presentationFor(names){
+    const players=Object.entries(names).map(([id,username])=>({id,username}));
+    return window.DartArenaProfileLink?.resolve?await window.DartArenaProfileLink.resolve(db,players):names;
+  }
+  function setTitle(left,right){
+    const title=$('statsTitle');title.setAttribute('data-no-i18n','');title.textContent=`${left} vs ${right}`;
   }
   async function tournamentFor(id){
     if(!id)return null;
@@ -106,7 +112,7 @@
   function playerCard(id,name,winnerId,stats,hasData){
     const winner=id===winnerId;
     return `<article class="premium-player-card${winner?' winner':''}" data-player-id="${esc(id)}">
-      <div class="premium-player-head"><div class="premium-player-icon">${winner?'♛':esc(initial(name))}</div><div style="min-width:0">${window.DartArenaProfileLink.html(id,name,'premium-player-name')}${winner?'<span class="premium-winner-badge">VINNER</span>':''}</div></div>
+      <div class="premium-player-head">${winner?'<div class="premium-player-icon" aria-hidden="true">♛</div>':''}<div style="min-width:0">${window.DartArenaProfileLink.html(id,name,'premium-player-name')}${winner?'<span class="premium-winner-badge">VINNER</span>':''}</div></div>
       <div class="premium-stat-grid">${statRows(stats,hasData).map(([label,value])=>`<div class="premium-stat"><span>${esc(label)}</span><b>${esc(value)}</b></div>`).join('')}</div>
     </article>`;
   }
@@ -181,11 +187,11 @@
       ['501 SIDO AVG',avg501]
     ];
     return `<article class="premium-player-card${winner?' winner':''}" data-player-id="${esc(id)}">
-      <div class="premium-player-head"><div class="premium-player-icon">${winner?'♛':esc(initial(name))}</div><div style="min-width:0">${window.DartArenaProfileLink.html(id,name,'premium-player-name')}${winner?'<span class="premium-winner-badge">VINNER</span>':''}</div></div>
+      <div class="premium-player-head">${winner?'<div class="premium-player-icon" aria-hidden="true">♛</div>':''}<div style="min-width:0">${window.DartArenaProfileLink.html(id,name,'premium-player-name')}${winner?'<span class="premium-winner-badge">VINNER</span>':''}</div></div>
       <div class="premium-stat-grid">${rows.map(([label,value])=>`<div class="premium-stat"><span>${esc(label)}</span><b>${esc(value)}</b></div>`).join('')}</div>
     </article>`;
   }
-  async function renderChicago(match,tm,tournament,names){
+  async function renderChicago(match,tm,tournament,names,shown){
     const fetchVisits=window.DartArenaTournamentStatsFetch?.fetchAllVisits;
     if(typeof fetchVisits!=='function')throw Error('Match statistics pagination unavailable');
     const [x01Rows,cricketRows]=await Promise.all([
@@ -214,12 +220,12 @@
         <span class="premium-leg-label">${esc(labels[stage]||`GAME ${stage||'?'}`)}</span>
         <span class="premium-leg-score">${left}–${right}</span>
         ${window.DartArenaProfileLink.html(gameWinner,gameWinner?names[gameWinner]||'Vinner':'–','premium-leg-winner'+(gameWinner===winnerId?' match-winner':''))}
-        <span class="premium-leg-meta">${metricLabel} • ${esc(leftName)} ${esc(leftMetric)} • ${esc(rightName)} ${esc(rightMetric)}</span>
+        <span class="premium-leg-meta">${metricLabel} • ${esc(shown[leftId]||leftName)} ${esc(leftMetric)} • ${esc(shown[rightId]||rightName)} ${esc(rightMetric)}</span>
       </div>`;
     }).join('');
 
     const winnerName=winnerId?names[winnerId]||'Vinner':'Kampen';
-    $('statsTitle').textContent=`${leftName} vs ${rightName}`;
+    setTitle(shown[leftId]||leftName,shown[rightId]||rightName);
     $('statsMeta').textContent=contextText(match,tm,tournament);
     $('statsView').innerHTML=`<section class="premium-result-card">
       <div class="premium-result-kicker">KAMP FERDIG</div>
@@ -239,33 +245,33 @@
     else parts.push('Onlinekamp');
     return parts.join(' • ');
   }
-  function renderWo(tm,tournament,names){
+  function renderWo(tm,tournament,names,shown){
     const rawA=num(tm.player1_legs),rawB=num(tm.player2_legs);
     const winnerId=tm.winner_id||inferredWinner(tm.player1_id,tm.player2_id,rawA,rawB);
     const pseudo={player1_id:tm.player1_id,player2_id:tm.player2_id};
     const[leftId,rightId]=displayOrder(pseudo,winnerId),leftName=names[leftId]||'Spiller 1',rightName=names[rightId]||'Spiller 2';
     const winnerName=winnerId?names[winnerId]||'Vinner':'Kampen';
-    $('statsTitle').textContent=`${leftName} vs ${rightName}`;
+    setTitle(shown[leftId]||leftName,shown[rightId]||rightName);
     $('statsMeta').textContent=tournament?`${tournament.name||'Turnering'} • ${tm.stage==='group'?'Puljespill':'Cup'}`:'Turneringskamp';
     $('statsView').innerHTML=`<section class="premium-result-card"><div class="premium-result-kicker">KAMP FERDIG</div><h2 class="premium-result-title">${window.DartArenaProfileLink.html(winnerId,winnerName,'winner-name')}${winnerId?' vant!':' er ferdig'}</h2><div class="premium-result-sub">Kampen ble avgjort uten registrerte kast</div><div class="premium-result-score">WO</div><div class="premium-empty">Det finnes derfor ingen kast- eller legstatistikk for denne kampen.</div></section>`;
   }
   async function render(ctx){
     const {match,tm,tournament}=ctx;
     const ids=match?[match.player1_id,match.player2_id]:[tm?.player1_id,tm?.player2_id];
-    const names=await profilesFor(ids);
-    if(!match){renderWo(tm,tournament,names);return}
+    const names=await profilesFor(ids),shown=await presentationFor(names);
+    if(!match){renderWo(tm,tournament,names,shown);return shown}
     const n1=names[match.player1_id]||'Spiller 1',n2=names[match.player2_id]||'Spiller 2';
     $('statsMeta').textContent=contextText(match,tm,tournament);
     if(String(match?.game_config?.chicago??'false').toLowerCase()==='true'){
-      await renderChicago(match,tm,tournament,names);
-      return;
+      await renderChicago(match,tm,tournament,names,shown);
+      return shown;
     }
     if((match.game_variant||'x01')!=='x01'){
       const[a,b]=resultScore(match,tm),winnerId=tm?.winner_id||match.winner_id||inferredWinner(match.player1_id,match.player2_id,a,b),winnerName=winnerId?names[winnerId]||'Vinner':'Kampen';
       const[leftId,rightId]=displayOrder(match,winnerId),[leftScore,rightScore]=orderedPair(match,winnerId,a,b);
-      $('statsTitle').textContent=`${names[leftId]||n1} vs ${names[rightId]||n2}`;
+      setTitle(shown[leftId]||names[leftId]||n1,shown[rightId]||names[rightId]||n2);
       $('statsView').innerHTML=`<section class="premium-result-card"><div class="premium-result-kicker">KAMP FERDIG</div><h2 class="premium-result-title">${window.DartArenaProfileLink.html(winnerId,winnerName,'winner-name')}${winnerId?' vant!':' er ferdig'}</h2><div class="premium-result-sub">${esc(gameLabel(match))} • ${esc(formatLabel(match))}</div><div class="premium-result-score">${leftScore}<span>–</span>${rightScore}</div><div class="premium-empty">Denne detaljvisningen viser foreløpig full kaststatistikk for X01. Resultatet er lagret.</div></section>`;
-      return;
+      return shown;
     }
     const fetchVisits=window.DartArenaTournamentStatsFetch?.fetchAllVisits;
     if(typeof fetchVisits!=='function')throw Error('Match statistics pagination unavailable');
@@ -284,7 +290,7 @@
     const winnerName=winnerId?names[winnerId]||'Vinner':'Kampen';
     const[leftId,rightId]=displayOrder(match,winnerId),[leftScore,rightScore]=orderedPair(match,winnerId,a,b);
     const leftName=names[leftId]||'Spiller 1',rightName=names[rightId]||'Spiller 2';
-    $('statsTitle').textContent=`${leftName} vs ${rightName}`;
+    setTitle(shown[leftId]||leftName,shown[rightId]||rightName);
     const corrected=tm?.result_corrected_at?'<div class="premium-note">Resultatet er korrigert av turneringsleder. Kast- og legstatistikken viser de registrerte kastene fra kampen.</div>':'';
     const scoreLabel=match.match_mode==='sets'?'<div class="premium-result-score-label">SETS</div>':'';
     $('statsView').innerHTML=`<section class="premium-result-card">
@@ -295,16 +301,17 @@
       <div class="premium-player-grid">${playerCard(leftId,leftName,winnerId,statsById[leftId],hasById[leftId])}${playerCard(rightId,rightName,winnerId,statsById[rightId],hasById[rightId])}</div>
       ${legSection(all,names,match,winnerId)}${corrected}
     </section>`;
+    return shown;
   }
   async function boot(){
     const {data:{session}}=await db.auth.getSession();
     if(!session)return location.replace('./');
     configureBack();
     const ctx=await loadContext();
-    await render(ctx);
+    const shown=await render(ctx);
     void window.DartArenaProfileLink?.paint(db,$('statsView'));
     const match=ctx.match;
-    if(match?.status==='finished'&&(match.game_variant||'x01')==='x01'&&String(match.game_config?.chicago??'false').toLowerCase()!=='true')window.DartArenaPremiumHeatmap?.mount(match.id,db);
+    if(match?.status==='finished'&&(match.game_variant||'x01')==='x01'&&String(match.game_config?.chicago??'false').toLowerCase()!=='true')window.DartArenaPremiumHeatmap?.mount(match.id,db,shown);
   }
   boot().catch(error=>{
     console.error('Premium match stats failed',error);
