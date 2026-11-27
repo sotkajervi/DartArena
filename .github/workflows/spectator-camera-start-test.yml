@@ -1,0 +1,17 @@
+name: Spectator camera startup isolated tests
+on:
+  push:
+    branches: [test/spectator-camera-start-20261127]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check spectate-runtime.js
+          node --test tests/spectator-camera-start.test.cjs tests/spectator-scorecard-parity.test.cjs

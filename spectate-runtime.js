@@ -29,6 +29,8 @@
     }
 
     let match=null,names={},fxVisits=null,timer=null,channel=null,fxTimer=null,fxPolling=false,fxStarted=false,leaving=false,clients=new Map(),publications=new Map();
+    let mediaRequestTimer=null,mediaRequestCount=0,mediaSubscribed=false;
+    const mediaAttempts=new Map();
     if(title)title.textContent='Kobler til kamp…';
 
     const isX01=m=>!['jdc','cricket','half_it','sixty_one'].includes(m?.game_variant||'x01');
@@ -90,7 +92,7 @@
       window.DartArenaSpectatorFX?.snapshot(match);
       window.DartArenaSpectateRolePolish?.apply?.(p1,p2);
     }
-    function stopVideo(){clients.forEach(c=>{try{c.close()}catch{}});clients.clear();publications.clear();if(channel){db.removeChannel(channel).catch(()=>{});channel=null}}
+    function stopVideo(){clearInterval(mediaRequestTimer);mediaRequestTimer=null;mediaSubscribed=false;mediaRequestCount=0;mediaAttempts.clear();clients.forEach(c=>{try{c.close()}catch{}});clients.clear();publications.clear();if(channel){db.removeChannel(channel).catch(()=>{});channel=null}}
     function blockPrivate(){match=null;stopVideo();setText('spectateTitle','Kampen finnes ikke eller er ikke offentlig live');document.querySelectorAll('.spectate-grid,.spectate-meta').forEach(el=>el.style.display='none')}
     async function refresh(){
       if(!matchId){setText('spectateTitle','Mangler kamp-ID');return false}
@@ -113,14 +115,20 @@
       if(!isX01(match)||!playerId||!pub?.sessionId||!window.DartArenaSecureSFU||!window.DARTARENA_SFU)return;
       const index=playerId===match.player1_id?1:playerId===match.player2_id?2:0;if(!index)return;
       const old=publications.get(playerId);if(old===pub.sessionId)return;
+      // The secure publisher uses the fixed camera track name. Spectators are muted.
+      if(!Array.isArray(pub.tracks)||!pub.tracks.includes('camera'))return;
+      const prior=mediaAttempts.get(playerId);
+      const attempts=prior?.sessionId===pub.sessionId?prior.count:0;
+      if(attempts>=3)return;
+      mediaAttempts.set(playerId,{sessionId:pub.sessionId,count:attempts+1});
       publications.set(playerId,pub.sessionId);
       try{clients.get(playerId)?.close()}catch{}
 
       const client=new window.DartArenaSecureSFU(window.DARTARENA_SFU.secureWorkerUrl,{kind:'match',id:matchId},db);clients.set(playerId,client);
       const video=$(`spectateVideo${index}`),placeholder=$(`spectatePlaceholder${index}`);video.srcObject=new MediaStream();hardMuteVideo(video);
       try{
-        await client.subscribe(pub,async event=>{
-          if(leaving)return;
+        await client.subscribe({...pub,tracks:['camera']},async event=>{
+          if(leaving||clients.get(playerId)!==client)return;
           let rs=video.srcObject;if(!(rs instanceof MediaStream)){rs=new MediaStream();video.srcObject=rs}
           const tracks=event.streams?.[0]?.getTracks?.()||[event.track];
           tracks.forEach(track=>{
@@ -134,7 +142,10 @@
           hardMuteVideo(video);await video.play().catch(()=>{});
           if(rs.getVideoTracks().some(t=>t.readyState==='live'))placeholder?.classList.add('hidden');
         });
-      }catch(e){console.warn('Spectator subscribe failed',e);publications.delete(playerId)}
+      }catch(e){
+        console.warn('Spectator subscribe failed',e);
+        if(clients.get(playerId)===client){clients.delete(playerId);publications.delete(playerId);try{client.close()}catch{}}
+      }
     }
     async function pollFxVisits(){
       if(!fxStarted||fxPolling||leaving||document.hidden||!isX01(match))return;
@@ -160,11 +171,25 @@
       // restricted, read-only RPC without opening another Realtime socket.
       fxTimer=setInterval(pollFxVisits,2000);
     }
+    async function requestMissingMedia(){
+      if(leaving||!mediaSubscribed||!channel||match?.status!=='playing'||mediaRequestCount>=8)return;
+      // A known publication is either negotiating or connected. Do not replace it.
+      if([match.player1_id,match.player2_id].every(id=>publications.has(id)))return;
+      mediaRequestCount++;
+      await channel.send({type:'broadcast',event:'spectator-request',payload:{from:'spectator'}}).catch(()=>{});
+    }
     async function setupVideo(){
       if(!isX01(match)||channel)return;
       channel=db.channel(`match-spectator-media-${matchId}`)
         .on('broadcast',{event:'spectator-publication'},({payload})=>{if(payload?.from&&payload?.publication)subscribePlayer(payload.from,payload.publication)})
-        .subscribe(async status=>{if(status==='SUBSCRIBED')await channel.send({type:'broadcast',event:'spectator-request',payload:{from:'spectator'}}).catch(()=>{})});
+        .subscribe(async status=>{
+          mediaSubscribed=status==='SUBSCRIBED';
+          if(!mediaSubscribed)return;
+          mediaRequestCount=0;
+          await requestMissingMedia();
+        });
+      clearInterval(mediaRequestTimer);
+      mediaRequestTimer=setInterval(requestMissingMedia,2500);
     }
     async function boot(){
       const{data:{session},error}=await db.auth.getSession();
@@ -172,7 +197,7 @@
       if(!session){setText('spectateTitle','Du må være innlogget');return}
       hardMuteVideo($('spectateVideo1'));hardMuteVideo($('spectateVideo2'));
       const allowed=await refresh();if(!allowed)return;
-      await window.DartArenaMediaMode?.getMode?.();
+      // This viewer always uses authenticated SFU; no mode lookup is necessary.
       await setupVideo();
       await setupFx();
       timer=setInterval(async()=>{
