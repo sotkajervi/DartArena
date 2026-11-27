@@ -1,0 +1,32 @@
+name: Development dependency audit
+on:
+  pull_request:
+    branches: [main]
+    paths: ['package.json', 'package-lock.json', '.github/workflows/dependency-dev-audit.yml']
+  push:
+    branches: [main]
+    paths: ['package.json', 'package-lock.json', '.github/workflows/dependency-dev-audit.yml']
+  schedule:
+    - cron: '30 4 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dev-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install locked packages and audit
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm audit --audit-level=low
+          npm run typecheck
+          npm run lint
+          npm run test:password-reset
+          git diff --exit-code -- package-lock.json
