@@ -1,7 +1,7 @@
 /* Isolated SEER -> existing local 501 engine input preview. No UI or network writes. */
 (function(root){
 'use strict';
-const Visit=typeof module!=='undefined'&&module.exports?require('./seer-visit.js'):root.SeerVisit;
+const Visit=typeof module!=='undefined'&&module.exports?require('./seer-visit.js'):(typeof SeerVisit!=='undefined'?SeerVisit:root.SeerVisit);
 function preview(state,visit){
   if(!state||state.format!==501||state.status!=='playing'||state.doubleIn||
      ![0,1].includes(state.turn)||!Number.isInteger(state.scores?.[state.turn])||

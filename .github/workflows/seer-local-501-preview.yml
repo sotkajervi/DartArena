@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'seer-x01-preview.js'
+      - 'seer-turn-guard.js'
       - 'seer-visit.js'
       - 'local-h2h-engine.js'
       - 'tests/seer-*.test.cjs'
@@ -23,4 +24,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test tests/seer-visit.test.cjs tests/seer-x01-preview.test.cjs
+      - run: node --test tests/seer-visit.test.cjs tests/seer-x01-preview.test.cjs tests/seer-turn-guard.test.cjs
