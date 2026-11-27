@@ -1,0 +1,33 @@
+name: SEER local 501 isolated preview
+on:
+  push:
+    branches: ['test/seer-local-501-preview-20261127']
+  pull_request:
+    branches: [main]
+    paths:
+      - 'seer-x01-preview.js'
+      - 'seer-turn-guard.js'
+      - 'local-h2h.js'
+      - 'owner-seer-local-501.*'
+      - 'seer-visit.js'
+      - 'local-h2h-engine.js'
+      - 'tests/seer-*.test.cjs'
+      - '.github/workflows/seer-local-501-preview.yml'
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/seer-visit.test.cjs tests/seer-x01-preview.test.cjs tests/seer-turn-guard.test.cjs tests/seer-local-room.test.cjs
+      - run: npm install --prefix "$RUNNER_TEMP/da-seer" --no-audit --no-fund playwright@1.58.2
+      - run: '"$RUNNER_TEMP/da-seer/node_modules/.bin/playwright" install --with-deps chromium'
+      - name: Owner and ordinary room isolation in browser
+        run: NODE_PATH="$RUNNER_TEMP/da-seer/node_modules" node --test tests/seer-local-room-browser.test.cjs
