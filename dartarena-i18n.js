@@ -6,6 +6,11 @@
   if(window.DartArenaI18n)return;
   const KEY='dartarena-language';
   const translations=Object.freeze({
+  "Blokkering og uønsket kontakt": "Blocking and unwanted contact",
+  "Bruk blokkeringsfunksjonen på spillerprofilen for å stoppe direkte utfordringer begge veier. Blokkering endrer ikke turneringskamper eller allerede åpne venterom. Ikke omgå blokkering med andre kontoer eller send gjentatte uønskede utfordringer eller spam. Rapporter alvorlige eller gjentatte hendelser.": "Use the blocking function on a player profile to stop direct challenges in both directions. Blocking does not affect tournament matches or already open waiting rooms. Do not circumvent blocks with other accounts or send repeated unwanted challenges or spam. Report serious or repeated incidents.",
+  "Kamera, lyd og privatliv": "Camera, audio and privacy",
+  "Vis bare det som er nødvendig for kampen. Unngå å vise personer som ikke deltar, private dokumenter eller andre sensitive opplysninger. Ikke publiser eller del opptak eller skjermbilder av andre spillere uten nødvendig tillatelse. Bruk rapporteringsfunksjonen dersom du trenger å dokumentere et regelbrudd.": "Show only what is necessary for the match. Avoid showing people who are not participating, private documents or other sensitive information. Do not publish or share recordings or screenshots of other players without the necessary permission. Use the reporting function if you need to document a rule violation.",
+  "Versjon 1.1 • 27. november 2026": "Version 1.1 • 27 November 2026",
 "Suspensjonsstatus": "Suspension status",
 "Alle spillere": "All players",
 "Ikke suspendert": "Not suspended",
