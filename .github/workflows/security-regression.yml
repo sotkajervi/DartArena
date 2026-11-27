@@ -66,3 +66,22 @@ jobs:
       - run: '"$RUNNER_TEMP/da-security/node_modules/.bin/playwright" install --with-deps chromium'
       - name: Mocked browser security regressions
         run: NODE_PATH="$RUNNER_TEMP/da-security/node_modules" node --test tests/user-text-security-browser.test.cjs tests/security-match-text-browser.test.cjs tests/player-reports-browser.test.cjs tests/player-blocks-browser.test.cjs tests/player-suspensions-browser.test.cjs
+
+  security-gate:
+    name: DartArena security gate
+    if: ${{ always() }}
+    needs: [static-and-client, database, browser]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Require every security suite to pass
+        env:
+          CLIENT_RESULT: ${{ needs.static-and-client.result }}
+          DATABASE_RESULT: ${{ needs.database.result }}
+          BROWSER_RESULT: ${{ needs.browser.result }}
+        run: |
+          printf 'Client: %s\nDatabase: %s\nBrowser: %s\n' "$CLIENT_RESULT" "$DATABASE_RESULT" "$BROWSER_RESULT"
+          test "$CLIENT_RESULT" = success
+          test "$DATABASE_RESULT" = success
+          test "$BROWSER_RESULT" = success
