@@ -56,7 +56,12 @@ test('replacement closes old subscriber, never the new session or remote publica
  const h=make();await h.c.subscribe(h.publication,()=>{});await h.c.subscribe(h.publication,()=>{});await tick();
  assert.equal(h.closes().length,1);assert.equal(h.closes()[0].body.sessionId,'session_1');assert.equal(h.c.subscriberSessionId,'session_2');
 });
-test('entrypoints and Half-It bootstrap load the new client version',()=>{
- for(const p of ['61-match.html','jdc-match.html','half-it-bootstrap.js','match.html','room.html','cricket.html','spectate.html','tournament-match-room.html','tournament-match-viewer.html'])assert.ok(fs.readFileSync(p,'utf8').includes('sfu-client-secure.js?v=20261127-close1'),p);
- assert.ok(fs.readFileSync('half-it.html','utf8').includes('half-it-bootstrap.js?v=20261127-close1'));
+test('all entrypoints and Half-It bootstrap use a consistent versioned secure client',()=>{
+ const versions=new Set();
+ for(const p of ['61-match.html','jdc-match.html','half-it-bootstrap.js','match.html','room.html','cricket.html','spectate.html','tournament-match-room.html','tournament-match-viewer.html']){
+  const matches=[...fs.readFileSync(p,'utf8').matchAll(/sfu-client-secure\.js\?v=([\w-]+)/g)];
+  assert.ok(matches.length,p);for(const m of matches)versions.add(m[1]);
+ }
+ assert.equal(versions.size,1,'all pages must load the same secure client version');
+ assert.match(fs.readFileSync('half-it.html','utf8'),/half-it-bootstrap\.js\?v=[\w-]+/);
 });

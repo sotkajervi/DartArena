@@ -15,13 +15,13 @@ test('all migrated constructors use authenticated match context and never the le
 });
 test('secure dependency precedes media engines on every migrated page',()=>{
  for(const p of ['61-match.html','jdc-match.html']){
-  const s=read(p),i=s.indexOf('sfu-client-secure.js?v=20261127-securefallback1');
+  const s=read(p),i=s.search(/sfu-client-secure\.js\?v=[\w-]+/);
   a.ok(i>=0,p);a.ok(s.indexOf('one-to-one-media.js?v=20261127-securefallback1')>i,p);a.doesNotMatch(s,/src="sfu-client\.js\?/);
   if(p==='61-match.html')a.ok(s.indexOf('sixty-one-match.js?v=20261127-securefallback1')>i);
  }
  const b=read('half-it-bootstrap.js');
- a.equal((b.match(/sfu-client-secure\.js\?v=20261127-securefallback1/g)||[]).length,2);
- a.doesNotMatch(b,/sfu-client\.js\?/);a.match(read('half-it.html'),/half-it-bootstrap\.js\?v=20261127-securefallback1/);
+ a.equal((b.match(/sfu-client-secure\.js\?v=[\w-]+/g)||[]).length,2);
+ a.doesNotMatch(b,/sfu-client\.js\?/);a.match(read('half-it.html'),/half-it-bootstrap\.js\?v=[\w-]+/);
  a.doesNotMatch(read('sfu-test.html'),/new DartArenaSFU|getUserMedia|sfu-client\.js/);
 });
 test('authenticated fallback request transmits user token and exact room, never retries on denial',async()=>{

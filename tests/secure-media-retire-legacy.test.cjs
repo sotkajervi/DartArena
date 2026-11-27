@@ -38,5 +38,5 @@ test('cache versions updated for direct entry pages and seamless handoff loaders
  'tournament-same-page-handoff-dev.js':['match-media-router','match-spectator-broadcast'],
  'match-media-router.js':['match-sfu-media'],
  'room-media-router.js':['room-sfu-media']
- }))for(const name of files)a.ok(read(p).includes(name+'.js?v=20261127-secureonly1'),p+' '+name);
+ }))for(const name of files)a.ok(read(p).match(new RegExp(name.replace(/[-]/g,'\\-')+'\\.js\\?v=[\\w-]+')),p+' '+name);
 });

@@ -1,0 +1,68 @@
+name: Security regression
+on:
+  push:
+    branches: [main, 'test/security-regression-ci-20261127']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: security-regression-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  static-and-client:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node tests/media-secret-scan.cjs
+      - run: npm install --prefix "$RUNNER_TEMP/da-security" --no-save --ignore-scripts --no-audit --no-fund typescript@6.0.2
+      - name: Auth, access and media regression
+        run: |
+          node --check sfu-client-secure.js
+          node --check auth-captcha.js
+          node --test tests/auth-captcha.test.cjs tests/auth-password-policy.test.cjs tests/auth-nickname-guidance.test.cjs tests/least-privilege-rpc.test.cjs tests/secure-media-fallback.test.cjs tests/secure-media-retire-legacy.test.cjs tests/sfu-client-cleanup.test.cjs tests/tournament-realtime-auth-gate.test.cjs
+          NODE_PATH="$RUNNER_TEMP/da-security/node_modules" node --test tests/password-reset.test.cjs
+  database:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [least-privilege-rpc, security-db-text, security-media-auth, player-reports-db, player-blocks-db, player-suspensions-db]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: security_test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Isolated PostgreSQL fixture
+        run: psql -h 127.0.0.1 -U postgres -d security_test -v ON_ERROR_STOP=1 -f "tests/${{ matrix.suite }}.sql"
+        env:
+          PGPASSWORD: test
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --prefix "$RUNNER_TEMP/da-security" --no-audit --no-fund playwright@1.58.2
+      - run: '"$RUNNER_TEMP/da-security/node_modules/.bin/playwright" install --with-deps chromium'
+      - name: Mocked browser security regressions
+        run: NODE_PATH="$RUNNER_TEMP/da-security/node_modules" node --test tests/user-text-security-browser.test.cjs tests/security-match-text-browser.test.cjs tests/player-reports-browser.test.cjs tests/player-blocks-browser.test.cjs tests/player-suspensions-browser.test.cjs
