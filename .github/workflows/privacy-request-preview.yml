@@ -4,7 +4,7 @@ on:
     branches: ['test/privacy-account-lifecycle-20261127']
   pull_request:
     branches: [main]
-    paths: ['owner-privacy-preview.*','privacy-request-model.js','tests/privacy-request-preview.test.cjs','.github/workflows/privacy-request-preview.yml']
+    paths: ['owner-privacy-preview.*','privacy-request-model.js','tests/privacy-request-preview.test.cjs','tests/privacy-request-preview-browser.test.cjs','.github/workflows/privacy-request-preview.yml']
 permissions:
   contents: read
 jobs:
@@ -18,3 +18,7 @@ jobs:
         with:
           node-version: '22'
       - run: node --test tests/privacy-request-preview.test.cjs
+      - run: npm install --prefix "$RUNNER_TEMP/da-privacy" --no-audit --no-fund playwright@1.58.2
+      - run: '"$RUNNER_TEMP/da-privacy/node_modules/.bin/playwright" install --with-deps chromium'
+      - name: Test isolated Owner panel in Chromium
+        run: NODE_PATH="$RUNNER_TEMP/da-privacy/node_modules" node --test tests/privacy-request-preview-browser.test.cjs
