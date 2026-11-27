@@ -292,6 +292,44 @@ async function closeMedia(env,id){
   // An HTTP 200 alone is insufficient; verify each requested mid.
   return mids.every(mid=>result.sfu.tracks.some(t=>t.mid===mid&&(!t.errorCode||t.errorCode==="close_track_error")));
 }
+// Count outstanding allocations, not actual provider connections.
+const SLOT_LIMITS=Object.freeze({perUser:16,global:384});
+const SLOT_GRACE_MS=120000;
+const SLOT_KEY="cost:slots:v1";
+async function reserveSlot(storage,userId,room,slot,now=Date.now()){
+  return storage.transaction(async tx=>{
+    const slots=await tx.get(SLOT_KEY)||{};
+    const entries=Object.entries(slots);
+    const mine=entries.filter(([,v])=>v.userId===userId);
+    const ownFull=mine.length>=SLOT_LIMITS.perUser;
+    if(ownFull||entries.length>=SLOT_LIMITS.global){
+      const candidates=(ownFull?mine:entries).filter(([,v])=>now-v.createdAt>=SLOT_GRACE_MS&&(!v.checkedAt||now-v.checkedAt>=60000)).sort((a,b)=>a[1].createdAt-b[1].createdAt).slice(0,4);
+      for(const [id,v] of candidates)slots[id]={...v,checkedAt:now};
+      if(candidates.length)await tx.put(SLOT_KEY,slots);
+      return {allowed:false,candidates:candidates.map(([id,v])=>({slot:id,room:v.room}))};
+    }
+    if(slots[slot])return {allowed:false,candidates:[]};
+    slots[slot]={userId,room,createdAt:now};
+    await tx.put(SLOT_KEY,slots);
+    return {allowed:true,warning:entries.length+1===Math.ceil(SLOT_LIMITS.global*.8)};
+  });
+}
+async function releaseSlot(storage,slot,room){
+  return storage.transaction(async tx=>{
+    const slots=await tx.get(SLOT_KEY)||{};
+    if(slots[slot]?.room!==room)return false;
+    delete slots[slot];await tx.put(SLOT_KEY,slots);return true;
+  });
+}
+async function slotControl(env,path,data){
+  const r=await env.SFU_ROOMS.getByName("cost-guard:v1").fetch("https://internal/"+path,{method:"POST",body:JSON.stringify(data)});
+  if(!r.ok)throw Error("SFU slot control failed");
+  return r.json();
+}
+async function inactiveMedia(env,id){
+  const result=await callSfu(env,"/sessions/"+encodeURIComponent(id),"GET");
+  return result.ok&&Array.isArray(result.sfu?.tracks)&&result.sfu.tracks.every(t=>t?.status==="inactive")&&(!result.sfu.dataChannels||Array.isArray(result.sfu.dataChannels)&&result.sfu.dataChannels.every(t=>t?.status==="inactive"));
+}
 var SfuRoom = class extends DurableObject {
   sessionQueues=new Map();
   async serialSession(id,fn){
@@ -314,7 +352,32 @@ var SfuRoom = class extends DurableObject {
     return session;
   }
   async fetch(request) {
-    const { userId, path, method, body, intent } = await request.json();
+    const { userId, path, method, body, intent, slot, room } = await request.json();
+    const internalPath=new URL(request.url).pathname;
+    if(internalPath==="/reserve-slot"||internalPath==="/release-slot"){
+      if(!validId(slot)||typeof room!=="string"||! /^(challenge|match|tournament_match):[0-9a-f-]{36}$/i.test(room))return json({ok:false},400);
+      if(internalPath==="/release-slot")return json({ok:true,released:await releaseSlot(this.ctx.storage,slot,room)});
+      if(!validId(userId))return json({ok:false},400);
+      const result=await reserveSlot(this.ctx.storage,userId,room,slot);
+      if(result.warning)console.warn("[SFU COST] Outstanding session reservations reached 80% of global cap");
+      return json(result);
+    }
+    if(internalPath==="/reap-slot"){
+      if(!validId(slot)||typeof room!=="string")return json({ok:false},400);
+      const key="slot:"+slot;
+      const record=await this.ctx.storage.get(key);
+      if(!record||!validSfuSession(record.id))return json({ok:true,released:false});
+      return this.serialSession(record.id,async()=>{
+        const owned=await this.ctx.storage.get("s:"+record.id);
+        if(!owned||owned.slot!==slot||owned.room!==room||Date.now()-owned.createdAt<SLOT_GRACE_MS||Date.now()-(owned.lastMutationAt||owned.createdAt)<SLOT_GRACE_MS)return json({ok:true,released:false});
+        if(!await inactiveMedia(this.env,record.id))return json({ok:true,released:false});
+        await this.ctx.storage.put("s:"+record.id,{...owned,closing:true});
+        const released=await slotControl(this.env,"release-slot",{slot,room});
+        await this.ctx.storage.delete("s:"+record.id);
+        await this.ctx.storage.delete(key);
+        return json({ok:true,released:released.released});
+      });
+    }
     // Internal-only endpoint on the dedicated named object; no public route.
     if (new URL(request.url).pathname === "/admit-session") {
       if (!validId(userId)) return json({ok:false,error:"Invalid user"},401);
@@ -343,8 +406,10 @@ var SfuRoom = class extends DurableObject {
   createdAt: Date.now(),
   published: [],
   trackAttempts: 0,
+  ...(validId(slot)?{slot,room}:{}),
   intent: intent === "subscribe" ? "subscribe" : "publish"
 });
+      if(validId(slot))await this.ctx.storage.put("slot:"+slot,{id:id2});
       return result.ok ? json(result, result.status) : json({ ok: false, error: "Cloudflare SFU rejected request", stage: "sfu-upstream", upstreamStatus: result.status }, result.status);
     }
     const id = body?.sessionId;
@@ -356,6 +421,10 @@ var SfuRoom = class extends DurableObject {
       if(!owned||owned.owner!==userId)return json({ok:false,error:"SFU session not owned by user in this room"},403);
       await this.ctx.storage.put("s:"+id,{...owned,closing:true});
       if(!await closeMedia(env,id))return json({ok:false,error:"SFU media cleanup incomplete; retry"},502);
+      if(owned.slot){
+        await slotControl(env,"release-slot",{slot:owned.slot,room:owned.room});
+        await this.ctx.storage.delete("slot:"+owned.slot);
+      }
       await this.ctx.storage.delete("s:"+id);
       return json({ok:true,closed:true});
     }
@@ -366,6 +435,7 @@ var SfuRoom = class extends DurableObject {
       const used=Number.isInteger(session.trackAttempts)?session.trackAttempts:session.published.length;
       if(used+n>MAX_TRACK_ADDITIONS)return false;
       session.trackAttempts=used+n;
+      session.lastMutationAt=Date.now();
       await this.ctx.storage.put("s:"+id,session);
       return true;
     };
@@ -398,6 +468,8 @@ var SfuRoom = class extends DurableObject {
     }
     if (path === "/api/sfu/renegotiate" && method === "PUT") {
       if (!validSdp(body?.sessionDescription)) return json({ ok: false, error: "Invalid renegotiation request" }, 400);
+      session.lastMutationAt=Date.now();
+      await this.ctx.storage.put("s:"+id,session);
       const result = await callSfu(env, suffix + "/renegotiate", "PUT", { sessionDescription: body.sessionDescription });
       return json(result, result.status);
     }
@@ -482,9 +554,24 @@ const action =
         return json({ok:false,error:"SFU admission service unavailable"},503,cors);
       }
     }
+    const room=kind+":"+roomId;
+    let slot;
+    if(path==="/api/sfu/session"&&env.SFU_CONCURRENT_GUARD_ENABLED==="true"){
+      slot=crypto.randomUUID();
+      try{
+        const data={userId:user.id,room,slot};
+        let decision=await slotControl(env,"reserve-slot",data);
+        if(!decision.allowed&&Array.isArray(decision.candidates)&&decision.candidates.length){
+          // At capacity only: inspect up to four stale reservations. No routine polling.
+          await Promise.allSettled(decision.candidates.slice(0,4).map(c=>env.SFU_ROOMS.getByName(c.room).fetch("https://internal/reap-slot",{method:"POST",body:JSON.stringify(c)})));
+          decision=await slotControl(env,"reserve-slot",data);
+        }
+        if(!decision.allowed)return new Response(JSON.stringify({ok:false,error:"SFU concurrent allocation limit",retryAfter:60}),{status:429,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store","Retry-After":"60","Access-Control-Expose-Headers":"Retry-After"}});
+      }catch{return json({ok:false,error:"SFU allocation service unavailable"},503,cors);}
+    }
     let result;
     try {
-      const stub = env.SFU_ROOMS.getByName(kind + ":" + roomId);
+      const stub = env.SFU_ROOMS.getByName(room);
       result = await stub.fetch("https://internal/sfu", {
   method: "POST",
   body: JSON.stringify({
@@ -492,12 +579,16 @@ const action =
     path,
     method,
     body,
-    intent: action
+    intent: action,
+    slot,room
   })
 });
     } catch {
+      // No session ID was delivered to the browser; no media can be attached.
+      if(slot)try{await slotControl(env,"release-slot",{slot,room})}catch{}
       return json({ ok: false, error: "Session service unavailable" }, 503, cors);
     }
+    if(slot&&!result.ok)try{await slotControl(env,"release-slot",{slot,room})}catch{}
     return new Response(result.body, { status: result.status, headers: { ...cors, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
   }
 };

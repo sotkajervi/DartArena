@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const raw=fs.readFileSync(require('node:path').join(__dirname,'..','cloudflare','dartarena-realtime-cost-guard.js'),'utf8');
-const script=raw.replace('import { DurableObject } from "cloudflare:workers";','').replace(/export\s*\{[\s\S]*?\};\s*$/,'')+'\nthis.api={admitNewSession,COST_LIMITS,SfuRoom,worker:dartarena_realtime_staging_default};';
+const script=raw.replace('import { DurableObject } from "cloudflare:workers";','').replace(/export\s*\{[\s\S]*?\};\s*$/,'')+'\nthis.api={admitNewSession,COST_LIMITS,reserveSlot,releaseSlot,SLOT_LIMITS,SfuRoom,worker:dartarena_realtime_staging_default};';
 const user=n=>'00000000-0000-4000-8000-'+n.toString(16).padStart(12,'0');
 function storage(){
  const map=new Map();let tail=Promise.resolve();
@@ -9,7 +9,7 @@ function storage(){
  return {...tx,map,transaction(fn){const p=tail.then(()=>fn(tx));tail=p.catch(()=>{});return p;}};
 }
 function load(fetch=async()=>{throw Error('Unexpected network');}){
- const ctx={DurableObject:class{constructor(ctx,env){this.ctx=ctx;this.env=env}},Response,Request,URL,TextDecoder,Uint8Array,console:{warn(){}},fetch};
+ const ctx={DurableObject:class{constructor(ctx,env){this.ctx=ctx;this.env=env}},Response,Request,URL,TextDecoder,Uint8Array,crypto:require('node:crypto').webcrypto,console:{warn(){}},fetch};
  vm.runInNewContext(script,ctx);return ctx.api;
 }
 test('user limit across rooms and independent users',async()=>{
@@ -114,4 +114,67 @@ test('missing close results never release ownership',async()=>{
 test('close reaches room even after membership ends, still requires authentication',async()=>{
  const h=harness({authorized:false});assert.equal((await h.run('/api/sfu/close')).status,200);assert.deepEqual(h.counts(),{upstream:1,guards:0,auth:1});
  const unauth=harness({allowed:false});assert.equal((await unauth.run('/api/sfu/close')).status,401);assert.equal(unauth.counts().upstream,0);
+});
+
+const roomName=n=>'match:'+user(n);
+test('16 reservations per user across different rooms, with atomic parallel admission',async()=>{
+ const {reserveSlot}=load(),s=storage();
+ const results=await Promise.all(Array.from({length:24},(_,i)=>reserveSlot(s,user(1),roomName(i+10),user(i+100),1000)));
+ assert.equal(results.filter(x=>x.allowed).length,16);
+ assert.equal((await reserveSlot(s,user(2),roomName(99),user(999),1000)).allowed,true);
+});
+test('global allocation cap cannot overshoot and releases only match original room',async()=>{
+ const {reserveSlot,releaseSlot,SLOT_LIMITS}=load(),s=storage();
+ const results=await Promise.all(Array.from({length:400},(_,i)=>reserveSlot(s,user(i+1),roomName(i+1000),user(i+2000),1000)));
+ assert.equal(results.filter(x=>x.allowed).length,SLOT_LIMITS.global);
+ assert.equal(await releaseSlot(s,user(2000),roomName(1001)),false);
+ assert.equal(await releaseSlot(s,user(2000),roomName(1000)),true);
+ assert.equal(await releaseSlot(s,user(2000),roomName(1000)),false);
+ assert.equal((await reserveSlot(s,user(999),roomName(999),user(999),1001)).allowed,true);
+});
+test('no blind age expiry, pressure inspection bounded and throttled',async()=>{
+ const {reserveSlot}=load(),s=storage();
+ for(let i=0;i<16;i++)await reserveSlot(s,user(1),roomName(i+1),user(i+100),1000);
+ const early=await reserveSlot(s,user(1),roomName(1),user(999),120999);
+ assert.equal(early.allowed,false);assert.equal(early.candidates.length,0);
+ const late=await reserveSlot(s,user(1),roomName(1),user(999),121000);
+ assert.equal(late.allowed,false);assert.equal(late.candidates.length,4);
+ const next=await reserveSlot(s,user(1),roomName(1),user(999),121001);
+ assert.equal(next.allowed,false);assert.equal(next.candidates.length,4);
+ assert.notEqual(next.candidates[0].slot,late.candidates[0].slot);
+});
+test('pressure reaper preserves active media and releases only confirmed inactive allocations',async()=>{
+ let active=true;const h=roomHarness(()=>Response.json({tracks:[{mid:'0',status:active?'active':'inactive'}]}));
+ const slot=user(999),room=roomName(2);let released=0;
+ h.room.env.SFU_ROOMS={getByName:()=>({fetch:async()=>{released++;return Response.json({released:true})}})};
+ await h.seed({slot,room,createdAt:Date.now()-180000});await h.st.put('slot:'+slot,{id:h.session});
+ const reap=()=>h.room.fetch(new Request('https://internal/reap-slot',{method:'POST',body:JSON.stringify({slot,room})}));
+ assert.equal((await (await reap()).json()).released,false);assert.equal(released,0);
+ active=false;
+ assert.equal((await (await reap()).json()).released,true);assert.equal(released,1);
+ assert.equal(await h.st.get('s:'+h.session),undefined);
+});
+test('reaper will not retire a recently mutated session or an ambiguous upstream response',async()=>{
+ const h=roomHarness(()=>Response.json({tracks:[{mid:'0',status:'unknown'}]}));
+ const slot=user(999),room=roomName(2);
+ await h.seed({slot,room,createdAt:Date.now()-180000,lastMutationAt:Date.now()});
+ await h.st.put('slot:'+slot,{id:h.session});
+ const reap=()=>h.room.fetch(new Request('https://internal/reap-slot',{method:'POST',body:JSON.stringify({slot,room})}));
+ assert.equal((await (await reap()).json()).released,false);assert.equal(h.calls.length,0);
+ await h.seed({slot,room,createdAt:Date.now()-180000});
+ assert.equal((await (await reap()).json()).released,false);assert.equal(h.calls.length,1);
+ assert.ok(await h.st.get('s:'+h.session));
+});
+test('confirmed owner close releases slot; failed close keeps reservation',async()=>{
+ let fail=true;const h=roomHarness(c=>c.method==='GET'?Response.json({tracks:[{mid:'0',status:'active'}]}):Response.json({tracks:[{mid:'0',...(fail?{errorCode:'internal_error'}:{})}]}));
+ let released=0;h.room.env.SFU_ROOMS={getByName:()=>({fetch:async()=>{released++;return Response.json({released:true})}})};
+ const slot=user(999),room=roomName(2);
+ await h.seed({slot,room});await h.st.put('slot:'+slot,{id:h.session});
+ assert.equal((await h.run('/api/sfu/close',{})).status,502);assert.equal(released,0);
+ fail=false;assert.equal((await h.run('/api/sfu/close',{})).status,200);assert.equal(released,1);
+ assert.equal(await h.st.get('slot:'+slot),undefined);
+});
+test('public callers cannot access slot registry or pressure reaper',async()=>{
+ const h=harness();for(const path of ['/reserve-slot','/release-slot','/reap-slot'])assert.equal((await h.run(path)).status,404);
+ assert.deepEqual(h.counts(),{upstream:0,guards:0,auth:0});
 });
