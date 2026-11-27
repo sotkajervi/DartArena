@@ -30,6 +30,7 @@ begin
     if v_count >= 100 then raise exception 'Challenge rate limit reached. Try again later.'; end if;
 
   elsif tg_table_name='challenge_match_proposals' then
+    perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('dartarena:insert-rate:' || tg_table_name || ':' || v_uid::text, 0));
     if new.proposer_id is distinct from v_uid then raise exception 'Invalid proposal owner'; end if;
     new.created_at := now();
     select count(*) into v_count from public.challenge_match_proposals where proposer_id=v_uid and created_at > now()-interval '1 minute';
@@ -45,6 +46,7 @@ begin
     if v_count >= 200 then raise exception 'Chat rate limit reached. Try again later.'; end if;
 
   elsif tg_table_name='tournaments' then
+    perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('dartarena:insert-rate:' || tg_table_name || ':' || v_uid::text, 0));
     if new.owner_id is distinct from v_uid then raise exception 'Invalid tournament owner'; end if;
     new.created_at := now();
     new.updated_at := now();
@@ -54,6 +56,7 @@ begin
     if v_count >= 30 then raise exception 'Daily tournament limit reached.'; end if;
 
   elsif tg_table_name='client_error_logs' then
+    perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('dartarena:insert-rate:' || tg_table_name || ':' || v_uid::text, 0));
     if new.user_id is distinct from v_uid then raise exception 'Invalid error-log owner'; end if;
     new.created_at := now();
     select count(*) into v_count from public.client_error_logs where user_id=v_uid and created_at > now()-interval '1 minute';
@@ -66,6 +69,7 @@ begin
     if v_count >= 300 then raise exception 'Telemetry rate limit reached.'; end if;
 
   elsif tg_table_name='jdc_challenge_results' then
+    perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('dartarena:insert-rate:' || tg_table_name || ':' || v_uid::text, 0));
     if new.user_id is distinct from v_uid then raise exception 'Invalid JDC result owner'; end if;
     new.created_at := now();
     select count(*) into v_count from public.jdc_challenge_results where user_id=v_uid and created_at > now()-interval '1 minute';

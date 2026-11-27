@@ -4,3 +4,6 @@ Repository baseline: 6d8532a805fd2e05f5d830bd992b48c094505c14. No live database 
 
 ## Baseline result and candidate
 Run 45938642993 reproduced the concurrency overshoot in both minimal fixtures. Candidate adds transaction-scoped per-user/per-table advisory locks only to challenges and lobby_messages, preserving all thresholds, owner checks, admin bypass and all other branches including media. Local PG16 test requires second transaction to wait on advisory lock, permits a separate actor during the wait, and requires rejection after first transaction commits. This does not test alternative isolation levels, deletion/timestamp mutation, live policies, or direct production configuration. Candidate is not a migration or deployment.
+
+## Expanded non-media candidate
+Run 45938793396 confirmed the original two candidate protections. Extend identical per-user/per-table lock semantics to challenge_match_proposals, tournaments, client_error_logs and jdc_challenge_results. The fixture now tests all six shortest-window thresholds and concurrent rejection after waiting, with independent actor acceptance. Longer-window thresholds, alternative isolation levels, administrative bypass and live schema compatibility remain separate checks. No changes to match_media_telemetry or match_signals branches. No production database access.

@@ -32,12 +32,24 @@ as $$ select 'authenticated'::text $$;
 create function public.is_admin() returns boolean language sql stable as $$ select false $$;
 create table public.lobby_messages(sender_id uuid not null, created_at timestamptz default now());
 create table public.challenges(challenger_id uuid not null, created_at timestamptz default now());
+create table public.challenge_match_proposals(proposer_id uuid not null, created_at timestamptz default now());
+create table public.tournaments(owner_id uuid not null, created_at timestamptz default now(), updated_at timestamptz default now());
+create table public.client_error_logs(user_id uuid not null, created_at timestamptz default now());
+create table public.jdc_challenge_results(user_id uuid not null, created_at timestamptz default now());
 grant usage on schema auth to authenticated;
-grant insert,select on public.lobby_messages,public.challenges to authenticated;
+grant insert,select on public.lobby_messages,public.challenges,public.challenge_match_proposals,public.tournaments,public.client_error_logs,public.jdc_challenge_results to authenticated;
 """ + match.group(0) + """
 create trigger lobby_guard before insert on public.lobby_messages
 for each row execute function public.guard_dartarena_insert_rate();
 create trigger challenge_guard before insert on public.challenges
+for each row execute function public.guard_dartarena_insert_rate();
+create trigger challenge_match_proposals_guard before insert on public.challenge_match_proposals
+for each row execute function public.guard_dartarena_insert_rate();
+create trigger tournaments_guard before insert on public.tournaments
+for each row execute function public.guard_dartarena_insert_rate();
+create trigger client_error_logs_guard before insert on public.client_error_logs
+for each row execute function public.guard_dartarena_insert_rate();
+create trigger jdc_challenge_results_guard before insert on public.jdc_challenge_results
 for each row execute function public.guard_dartarena_insert_rate();
 """)
 
@@ -47,24 +59,28 @@ if CANDIDATE:
 def actor_sql(actor):
     return "set role authenticated; set test.actor = '" + actor + "';\n"
 
-for table, field, error in [
-    ("lobby_messages", "sender_id", "Chat rate limit reached"),
-    ("challenges", "challenger_id", "Too many challenges"),
+for table, field, limit, error in [
+    ("lobby_messages", "sender_id", 20, "Chat rate limit reached"),
+    ("challenges", "challenger_id", 20, "Too many challenges"),
+    ("challenge_match_proposals", "proposer_id", 30, "Too many match proposals"),
+    ("tournaments", "owner_id", 10, "Tournament rate limit reached"),
+    ("client_error_logs", "user_id", 60, "Error log rate limit reached"),
+    ("jdc_challenge_results", "user_id", 12, "JDC result rate limit reached"),
 ]:
     def insert(actor, count=1):
         return f"insert into public.{table}({field}) select '{actor}'::uuid from generate_series(1,{count});\n"
     def total(actor):
         return int(query(f"select count(*) from public.{table} where {field}='{actor}';").stdout.strip())
 
-    query(actor_sql(ACTOR) + insert(ACTOR, 20))
+    query(actor_sql(ACTOR) + insert(ACTOR, limit))
     rejected = query(actor_sql(ACTOR) + insert(ACTOR), ok=False)
     assert rejected.returncode and error in rejected.stderr, rejected.stderr
     query(actor_sql(OTHER) + insert(OTHER))
-    assert total(ACTOR) == 20 and total(OTHER) == 1
+    assert total(ACTOR) == limit and total(OTHER) == 1
     print(f"{table}: sequential boundary enforced, independent actor accepted", flush=True)
 
     query(f"truncate public.{table};")
-    query(actor_sql(ACTOR) + insert(ACTOR, 19))
+    query(actor_sql(ACTOR) + insert(ACTOR, limit - 1))
     # One uncommitted insert and one concurrent transaction, both against local fixture.
     a = subprocess.Popen(PSQL, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, text=True, bufsize=1)
@@ -96,7 +112,7 @@ for table, field, error in [
                 assert a.wait(timeout=10) == 0, a.stderr.read()
                 out, err = bproc.communicate(timeout=12)
                 assert bproc.returncode and error in err, err
-                assert total(ACTOR) == 20
+                assert total(ACTOR) == limit
                 print(f"{table}: candidate serialized concurrent writes; second rejected, independent actor accepted", flush=True)
             finally:
                 if bproc.poll() is None:
@@ -108,10 +124,10 @@ for table, field, error in [
         a.stdin.flush()
         assert a.wait(timeout=10) == 0, a.stderr.read()
         count = total(ACTOR)
-        assert count in (20, 21), count
-        print(f"{table}: concurrent baseline rows={count}, configured limit=20, "
+        assert count in (limit, limit + 1), count
+        print(f"{table}: concurrent baseline rows={count}, configured limit={limit}, "
               f"second accepted={b.returncode == 0}", flush=True)
-        if count == 21:
+        if count == limit + 1:
             print("OBSERVED: concurrency can exceed rate limit in isolated source fixture", flush=True)
         else:
             print("OBSERVED: limit not exceeded in this run", flush=True)
