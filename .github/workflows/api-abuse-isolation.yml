@@ -2,6 +2,13 @@ name: API abuse isolation
 on:
   push:
     branches: ['test/security-api-abuse-20261127']
+  pull_request:
+    branches: [main]
+    paths:
+      - 'db/api-rate-guard-*.sql'
+      - 'tests/api-abuse-baseline.py'
+      - '.github/workflows/api-abuse-isolation.yml'
+      - 'supabase-security-hardening-20261004.sql'
   workflow_dispatch:
 permissions:
   contents: read

@@ -184,4 +184,25 @@ if CANDIDATE:
     assert query("select count(*) from public.challenges;").stdout.strip() == '1'
     print("Rollback releases transaction lock and does not consume a row", flush=True)
 
+if CANDIDATE:
+    # Confirm the candidate changes only the six intended branches.
+    candidate_source = pathlib.Path("db/api-rate-guard-candidate.sql").read_text()
+    rollback_source = pathlib.Path("db/api-rate-guard-rollback.sql").read_text()
+    candidate_body = re.search(r"create or replace function public\.guard_dartarena_insert_rate\(\).*?\n\$\$;", candidate_source, re.S | re.I).group(0)
+    rollback_body = re.search(r"create or replace function public\.guard_dartarena_insert_rate\(\).*?\n\$\$;", rollback_source, re.S | re.I).group(0)
+    lock_line = "    perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('dartarena:insert-rate:' || tg_table_name || ':' || v_uid::text, 0));\n"
+    assert candidate_body.count(lock_line) == 6
+    assert candidate_body.replace(lock_line, "") == match.group(0) == rollback_body
+    assert query("select not has_function_privilege('anon','public.guard_dartarena_insert_rate()','execute') and not has_function_privilege('authenticated','public.guard_dartarena_insert_rate()','execute');").stdout.strip() == 't'
+    before_rollback = query("select prosrc from pg_proc where oid='public.guard_dartarena_insert_rate()'::regprocedure;").stdout
+    query(rollback_source)
+    after_rollback = query("select prosrc from pg_proc where oid='public.guard_dartarena_insert_rate()'::regprocedure;").stdout
+    assert before_rollback.replace(lock_line, "") == after_rollback
+    assert query("select not has_function_privilege('anon','public.guard_dartarena_insert_rate()','execute') and not has_function_privilege('authenticated','public.guard_dartarena_insert_rate()','execute');").stdout.strip() == 't'
+    query("truncate public.challenges;")
+    query(actor_sql(ACTOR) + "insert into public.challenges(challenger_id) select '" + ACTOR + "'::uuid from generate_series(1,20);")
+    denied = query(actor_sql(ACTOR) + "insert into public.challenges(challenger_id) values ('" + ACTOR + "');", ok=False)
+    assert denied.returncode and "Too many challenges" in denied.stderr
+    print("Rollback restores original guard and restricted execution privileges; normal rate limit remains active", flush=True)
+
 print("Candidate assertions passed." if CANDIDATE else "Diagnostic completed. Green means diagnostic executed, not that the current guard is race-safe.")
