@@ -105,10 +105,16 @@ test('both chat pages bust caching for fixed timestamps, moderation and styles',
  const tournament=fs.readFileSync(path.join(__dirname,'../tournament.html'),'utf8');
  const chat=fs.readFileSync(path.join(__dirname,'../lobby-chat.js'),'utf8');
  const social=fs.readFileSync(path.join(__dirname,'../lobby-social.js'),'utf8');
+ // Later releases can change the cache key without reverting the timestamp fix.
+ const recent=(source,pattern)=>{
+   const version=source.match(pattern);
+   assert.ok(version,'Missing versioned asset: '+pattern);
+   assert.ok(Number(version[1])>=20261027,'Stale cache version: '+version[0]);
+ };
  for(const html of [index,tournament]){
-   assert.match(html,/lobby-chat\.js\?v=20261027-chatclock1/);
-   assert.match(html,/admin-ui\.js\?v=20261027-chatclock1/);
+   recent(html,/lobby-chat\.js\?v=(\d{8})-[\w-]+/);
+   recent(html,/admin-ui\.js\?v=(\d{8})-[\w-]+/);
  }
- assert.match(chat,/lobby-chat\.css\?v=20261027-chatclock1/);
- assert.match(social,/lobby-social\.css\?v=20261027-chatclock1/);
+ recent(chat,/lobby-chat\.css\?v=(\d{8})-[\w-]+/);
+ recent(social,/lobby-social\.css\?v=(\d{8})-[\w-]+/);
 });
