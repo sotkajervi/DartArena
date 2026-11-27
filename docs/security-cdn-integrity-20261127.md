@@ -1,3 +1,6 @@
 # CDN integrity inventory
 
 Isolated first step: enumerate tracked HTML scripts/styles and verify bytes of the currently pinned Supabase browser SDK 2.117.2 against the npm tarball. No app pages executed and no database, video or inference requests. No production code changes. Only npm/CDN downloads on the runner. CORS and SHA-384 are reported for later SRI markup changes. Dynamic imports, script injection, and assets require additional inventory. A successful byte comparison alone does not verify real browser SRI loading or application compatibility. Do not change library versions in this step.
+
+## Verified Supabase pilot
+Run 45934403913 confirmed the explicit versioned UMD file exactly matches the npm tarball and permits cross-origin loading. The package-root URL differed and is not approved by that comparison. Pilot updates index.html and tournament-results.html only; the latter previously used the floating @2 alias and is pinned to the same 2.117.2 already used by the other 36 pages. The browser test executes only the extracted SDK tag in an isolated local page, verifies valid/invalid integrity values, and blocks other network requests. This is not an end-to-end login, tournament or live video test. All changes remain on the test branch. The other 35 pinned references and TensorFlow/SEER scripts still require separate review.

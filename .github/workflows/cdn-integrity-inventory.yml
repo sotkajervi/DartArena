@@ -48,3 +48,10 @@ jobs:
           printf 'Supabase verified SRI: sha384-'
           openssl dgst -sha384 -binary explicit.js | openssl base64 -A
           printf '\n'
+          test "sha384-$(openssl dgst -sha384 -binary explicit.js | openssl base64 -A)" = 'sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok'
+      - name: Install isolated browser test tools
+        run: |
+          npm install --prefix "$RUNNER_TEMP/da-sri" --no-audit --no-fund --ignore-scripts playwright@1.58.2
+          "$RUNNER_TEMP/da-sri/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Browser SRI verification using extracted script tags
+        run: NODE_PATH="$RUNNER_TEMP/da-sri/node_modules" node --test tests/cdn-sri-browser.test.cjs
