@@ -1,0 +1,20 @@
+name: Lobby display name regression
+on:
+  push:
+    branches: ['test/lobby-display-names-20261127']
+  pull_request:
+    branches: [main]
+    paths: ['app.js','lobby-welcome.js','role-visuals.js','profile-name-link.js','tournaments.js','tournament-finish-summary.js','index.html','tournament.html','tests/lobby-display-names.test.cjs','.github/workflows/lobby-display-names.yml']
+permissions:
+  contents: read
+jobs:
+  names:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/lobby-display-names.test.cjs tests/profile-name-link.test.cjs tests/profile-presentation.test.cjs

@@ -58,6 +58,7 @@ async function enterLobby(s=session){
  profile=data;
  lobbyStarted=true;
  setSessionView('lobby');
+ $('welcomeName').dataset.userId=profile.id;$('welcomeName').dataset.nickname=profile.username;
  $('welcomeName').textContent='Hei, '+profile.username;
  $('headerStatus').innerHTML='<i></i> Pålogget';
  window.dispatchEvent(new CustomEvent('dartarena:lobby-entered',{detail:{userId:profile.id}}));

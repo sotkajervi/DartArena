@@ -1,7 +1,7 @@
 (()=>{
   const $=id=>document.getElementById(id);
   let db,me,profile,channel,viewMonth,selectedDate,selectedTime='19:00',loading=false;
-  let authBound=false,bound=false,bootRetry=null,startedUser=null,startingUser=null;
+  let authBound=false,bound=false,bootRetry=null,startedUser=null,startingUser=null,winnerIdsForRefresh=[];
 
   function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
   function fmt(d){try{return new Intl.DateTimeFormat('nb-NO',{dateStyle:'short',timeStyle:'short'}).format(new Date(d))}catch{return ''}}
@@ -37,7 +37,7 @@
   }
 
   function resetSession(){
-    startedUser=null;startingUser=null;me=null;profile=null;loading=false;
+    startedUser=null;startingUser=null;me=null;profile=null;loading=false;winnerIdsForRefresh=[];
     if(channel){const old=channel;channel=null;try{db?.removeChannel(old)}catch{}}
     window.dispatchEvent(new CustomEvent('dartarena:tournament-lobby-snapshot',{detail:{userId:null,tournaments:[]}}));
   }
@@ -121,6 +121,7 @@
   }
 
   async function archiveWinners(past){
+    winnerIdsForRefresh=[];
     if(!past.length)return {};
     const ids=past.map(x=>x.id);
     const {data:cupMatches,error}=await db.from('tournament_matches')
@@ -137,10 +138,11 @@
       if(!current||Number(m.round_no||0)>Number(current.round_no||0))finals[m.tournament_id]=m;
     }
     const winnerIds=[...new Set(Object.values(finals).map(x=>x.winner_id).filter(Boolean))];
+    winnerIdsForRefresh=winnerIds;
     if(!winnerIds.length)return {};
     const {data:profiles,error:pErr}=await db.from('profiles').select('id,username').in('id',winnerIds);
     if(pErr)throw pErr;
-    const names=Object.fromEntries((profiles||[]).map(p=>[p.id,p.username]));
+    const names=window.DartArenaProfileLink?.resolve?await window.DartArenaProfileLink.resolve(db,profiles||[]):Object.fromEntries((profiles||[]).map(p=>[p.id,p.username]));
     return Object.fromEntries(Object.entries(finals).map(([tid,m])=>[tid,names[m.winner_id]||'Spiller']));
   }
 
@@ -183,6 +185,7 @@
   async function join(id){const {error}=await db.from('tournament_members').insert({tournament_id:id,user_id:me,role:'participant'});if(error){alert(error.message);return;}location.href=`tournament.html?id=${encodeURIComponent(id)}`;}
   async function leave(id){const {error}=await db.from('tournament_members').delete().eq('tournament_id',id).eq('user_id',me);if(error)alert(error.message);else load()}
 
+  window.addEventListener('focus',()=>{if(!startedUser||!profile)return;winnerIdsForRefresh.forEach(id=>window.DartArenaProfileLink?.invalidate(id));void load()});
   // Realtime is primary. Low-frequency foreground refresh catches missed
   // transitions if the socket reconnects while players wait in the lobby.
   setInterval(()=>{
