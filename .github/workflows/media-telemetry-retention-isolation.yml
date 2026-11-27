@@ -1,0 +1,30 @@
+name: Media telemetry retention isolation
+on:
+  push:
+    branches: ['test/media-telemetry-retention-20261127']
+permissions:
+  contents: read
+jobs:
+  retention:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: [16, 17]
+    services:
+      postgres:
+        image: postgres:${{ matrix.pg }}
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: retention_test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Test isolated retention batch
+        env:
+          PGPASSWORD: test
+        run: psql -X -h 127.0.0.1 -U postgres -d retention_test -v ON_ERROR_STOP=1 -f tests/media-telemetry-retention-db.sql
