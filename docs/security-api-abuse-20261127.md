@@ -7,3 +7,6 @@ Run 45938642993 reproduced the concurrency overshoot in both minimal fixtures. C
 
 ## Expanded non-media candidate
 Run 45938793396 confirmed the original two candidate protections. Extend identical per-user/per-table lock semantics to challenge_match_proposals, tournaments, client_error_logs and jdc_challenge_results. The fixture now tests all six shortest-window thresholds and concurrent rejection after waiting, with independent actor acceptance. Longer-window thresholds, alternative isolation levels, administrative bypass and live schema compatibility remain separate checks. No changes to match_media_telemetry or match_signals branches. No production database access.
+
+## Boundary and behavior verification
+Run 45938936868 passed the six non-media concurrency fixtures. This extension tests existing longer windows (100/hour challenges, 200/10 minutes lobby chat, 30/day tournaments), rejection of mismatched actor IDs, normalization of insert timestamps, the existing administrator exception with a fixture-only mock, and rollback lock release. No candidate SQL changes. These are minimal PG16 fixtures, not verification of live RLS, admin role derivation, UPDATE/DELETE privileges, alternative isolation levels or production behavior. Admin bypass remains an existing policy decision to review separately.

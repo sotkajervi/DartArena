@@ -29,7 +29,7 @@ create function auth.uid() returns uuid language sql stable
 as $$ select nullif(current_setting('test.actor', true), '')::uuid $$;
 create function auth.role() returns text language sql stable
 as $$ select 'authenticated'::text $$;
-create function public.is_admin() returns boolean language sql stable as $$ select false $$;
+create function public.is_admin() returns boolean language sql stable as $ select coalesce(current_setting('test.admin', true) = 'yes', false) $;
 create table public.lobby_messages(sender_id uuid not null, created_at timestamptz default now());
 create table public.challenges(challenger_id uuid not null, created_at timestamptz default now());
 create table public.challenge_match_proposals(proposer_id uuid not null, created_at timestamptz default now());
@@ -135,4 +135,53 @@ for table, field, limit, error in [
         if a.poll() is None:
             a.kill()
             a.wait()
+if CANDIDATE:
+    # Privileged fixture seeding only: exercise long-window boundaries without waiting.
+    for table, field, limit, age, error in [
+        ("challenges", "challenger_id", 100, "5 minutes", "Challenge rate limit reached"),
+        ("lobby_messages", "sender_id", 200, "2 minutes", "Chat rate limit reached"),
+        ("tournaments", "owner_id", 30, "2 hours", "Daily tournament limit reached"),
+    ]:
+        query(f"""truncate public.{table};
+        alter table public.{table} disable trigger user;
+        insert into public.{table}({field},created_at)
+          select '{ACTOR}'::uuid,now()-interval '{age}' from generate_series(1,{limit-1});
+        alter table public.{table} enable trigger user;""")
+        statement = f"insert into public.{table}({field}) values ('{ACTOR}');"
+        query(actor_sql(ACTOR) + statement)
+        denied = query(actor_sql(ACTOR) + statement, ok=False)
+        assert denied.returncode and error in denied.stderr, denied.stderr
+        assert int(query(f"select count(*) from public.{table} where {field}='{ACTOR}';").stdout.strip()) == limit
+        print(f"{table}: long-window boundary enforced", flush=True)
+
+    for table, field in [
+        ("lobby_messages", "sender_id"), ("challenges", "challenger_id"),
+        ("challenge_match_proposals", "proposer_id"), ("tournaments", "owner_id"),
+        ("client_error_logs", "user_id"), ("jdc_challenge_results", "user_id"),
+    ]:
+        query(f"truncate public.{table};")
+        denied = query(actor_sql(ACTOR) + f"insert into public.{table}({field}) values ('{OTHER}');", ok=False)
+        assert denied.returncode and "Invalid" in denied.stderr, denied.stderr
+        # Existing trigger overwrites client-provided timestamps on normal inserts.
+        query(actor_sql(ACTOR) + f"insert into public.{table}({field},created_at) values ('{ACTOR}',now()-interval '10 days');")
+        assert query(f"select created_at between now()-interval '10 seconds' and now() from public.{table};").stdout.strip() == 't'
+        if table == "tournaments":
+            assert query("select updated_at between now()-interval '10 seconds' and now() from public.tournaments;").stdout.strip() == 't'
+        print(f"{table}: actor mismatch denied; insert timestamp assigned by server", flush=True)
+
+    # Confirm the pre-existing administrator exception without changing production auth.
+    query("truncate public.lobby_messages;")
+    query(actor_sql(ACTOR) + "set test.admin='yes'; insert into public.lobby_messages(sender_id) select '" + ACTOR + "'::uuid from generate_series(1,21);")
+    assert query("select count(*) from public.lobby_messages;").stdout.strip() == '21'
+    denied = query(actor_sql(ACTOR) + "insert into public.lobby_messages(sender_id) values ('" + ACTOR + "');", ok=False)
+    assert denied.returncode and "Chat rate limit reached" in denied.stderr, denied.stderr
+    print("Existing administrator exception preserved; regular actor remains limited", flush=True)
+
+    # Verify a rejected transaction leaves the lock available to subsequent requests.
+    query("truncate public.challenges;")
+    query(actor_sql(ACTOR) + "begin; insert into public.challenges(challenger_id) values ('" + ACTOR + "'); rollback;")
+    query(actor_sql(ACTOR) + "set statement_timeout='2s'; insert into public.challenges(challenger_id) values ('" + ACTOR + "');")
+    assert query("select count(*) from public.challenges;").stdout.strip() == '1'
+    print("Rollback releases transaction lock and does not consume a row", flush=True)
+
 print("Candidate assertions passed." if CANDIDATE else "Diagnostic completed. Green means diagnostic executed, not that the current guard is race-safe.")
