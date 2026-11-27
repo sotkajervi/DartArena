@@ -1,0 +1,26 @@
+name: SEER local 501 isolated preview
+on:
+  push:
+    branches: ['test/seer-local-501-preview-20261127']
+  pull_request:
+    branches: [main]
+    paths:
+      - 'seer-x01-preview.js'
+      - 'seer-visit.js'
+      - 'local-h2h-engine.js'
+      - 'tests/seer-*.test.cjs'
+      - '.github/workflows/seer-local-501-preview.yml'
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/seer-visit.test.cjs tests/seer-x01-preview.test.cjs
