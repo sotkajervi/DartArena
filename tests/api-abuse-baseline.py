@@ -29,7 +29,7 @@ create function auth.uid() returns uuid language sql stable
 as $$ select nullif(current_setting('test.actor', true), '')::uuid $$;
 create function auth.role() returns text language sql stable
 as $$ select 'authenticated'::text $$;
-create function public.is_admin() returns boolean language sql stable as $ select coalesce(current_setting('test.admin', true) = 'yes', false) $;
+create function public.is_admin() returns boolean language sql stable as $$ select coalesce(current_setting('test.admin', true) = 'yes', false) $$;
 create table public.lobby_messages(sender_id uuid not null, created_at timestamptz default now());
 create table public.challenges(challenger_id uuid not null, created_at timestamptz default now());
 create table public.challenge_match_proposals(proposer_id uuid not null, created_at timestamptz default now());
