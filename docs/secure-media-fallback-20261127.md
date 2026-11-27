@@ -1,0 +1,3 @@
+# Stage 1 — retire unauthenticated SFU dependencies
+
+Migrate 61, JDC and both Half-It implementations (including peer fallback and older direct SFU code) to existing secure SFU with explicit match ID and authenticated client. Disable old public standalone video test. No changes to peer signaling, scoring, secure SFU engine, database or Cloudflare. The remaining legacy transport selection paths (X01 waiting/match, tournament room and spectator) are not retired by this stage. Do not disable old Worker until those paths are migrated and practical two-account tests pass. Existing secure API only allows playing matches; reconnect after match completion may be denied. No real video or network load in CI.

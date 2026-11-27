@@ -1,0 +1,17 @@
+name: Secure fallback media offline checks
+on:
+  push:
+    branches: [test/secure-media-fallback-20261127]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          for f in one-to-one-media.js jdc-match-media.js sixty-one-match.js half-it.js half-it-standard.js half-it-bootstrap.js; do node --check "$f"; done
+          node --test tests/secure-media-fallback.test.cjs tests/post-match-media-lifecycle.test.cjs tests/owner-sfu-rollback.test.cjs

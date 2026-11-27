@@ -71,8 +71,8 @@
 
   function ensureSfu(){
     if(sfu)return sfu;
-    if(!window.DartArenaSFU||!window.DARTARENA_SFU?.workerUrl)return null;
-    sfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
+    if(!window.DartArenaSecureSFU||!window.DARTARENA_SFU?.secureWorkerUrl)return null;
+    sfu=new window.DartArenaSecureSFU(window.DARTARENA_SFU.secureWorkerUrl,{kind:'match',id:matchId},db);
     return sfu;
   }
 

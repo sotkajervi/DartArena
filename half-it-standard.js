@@ -69,7 +69,7 @@ async function subscribeRemote(pub){
   remotePublicationId=pub.sessionId;
   try{
     try{subscriberSfu?.close()}catch{}
-    subscriberSfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
+    subscriberSfu=new window.DartArenaSecureSFU(window.DARTARENA_SFU.secureWorkerUrl,{kind:'match',id:matchId},db);
     remoteStream=new MediaStream();
     const v=$('remoteVideo');
     v.srcObject=remoteStream;
@@ -129,7 +129,7 @@ async function startCamera(){
     if($('micBtn'))$('micBtn').textContent=a?.enabled?'Mikrofon på':'Mikrofon av';
 
     try{publisherSfu?.close()}catch{}
-    publisherSfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
+    publisherSfu=new window.DartArenaSecureSFU(window.DARTARENA_SFU.secureWorkerUrl,{kind:'match',id:matchId},db);
     publication=await publisherSfu.publish(stream);
     localReady=true;
     await send('half-it-standard-publication',{publication});

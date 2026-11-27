@@ -309,8 +309,8 @@
 
   function ensureFallbackClient(){
     if(fallbackSfu)return fallbackSfu;
-    if(!window.DartArenaSFU||!window.DARTARENA_SFU?.workerUrl)return null;
-    fallbackSfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
+    if(!window.DartArenaSecureSFU||!window.DARTARENA_SFU?.secureWorkerUrl)return null;
+    fallbackSfu=new window.DartArenaSecureSFU(window.DARTARENA_SFU.secureWorkerUrl,{kind:'match',id:matchId},db);
     return fallbackSfu;
   }
 
