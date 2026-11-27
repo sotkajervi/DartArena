@@ -1,0 +1,36 @@
+name: Tournament creation timestamp isolation
+on:
+  push:
+    branches: ['test/security-tournament-timestamp-20261127']
+  pull_request:
+    branches: [main]
+    paths:
+      - 'db/tournament-created-at-*.sql'
+      - 'tests/tournament-created-at.sql'
+      - '.github/workflows/tournament-created-at-isolation.yml'
+permissions:
+  contents: read
+jobs:
+  timestamp:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: [16, 17]
+    services:
+      postgres:
+        image: postgres:${{ matrix.pg }}
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: timestamp_test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify column privilege, RLS, normal updates and rollback
+        env:
+          PGPASSWORD: test
+        run: psql -X -h 127.0.0.1 -U postgres -d timestamp_test -v ON_ERROR_STOP=1 -f tests/tournament-created-at.sql
