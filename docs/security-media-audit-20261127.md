@@ -1,0 +1,7 @@
+# Phase 6 — first media audit (2026-11-27)
+
+Live database read-only review: media mode sfu; owner-only switch; can_access_sfu_room is invoker, anon execution denied, authenticates participant and explicit live spectator subscribe. Explicit NULL intent not currently rejected for participants because SQL NOT IN returns NULL; staged a narrow fix without altering permitted actions. Offline tests only.
+
+Current frontend still contains legacy unauthenticated SFU client and legacy endpoint; no claim about deployed Worker response or current exposure without inspecting actual Cloudflare source/settings. No request sent to create live media sessions. The public Realtime broadcast/presence channels lack realtime.messages policies; settings and exact channel authorization need separate review. Do not switch off legacy or change Realtime settings without testing fallback and spectator behavior.
+
+Historical Worker source in PR #85 and saved Nov 2 export shows token validation, room RPC, room-bound session storage and 120 operations/user/min/room. Historical code does not establish currently deployed version; verify both Worker sources and current bindings/quotas before changes. Repository scan covers selected current tracked text and known secret patterns, not full Git history or all possible credentials. No secret values are printed. Supabase publishable keys and Turnstile site keys are intentionally public.
