@@ -1,0 +1,3 @@
+# CDN integrity inventory
+
+Isolated first step: enumerate tracked HTML scripts/styles and verify bytes of the currently pinned Supabase browser SDK 2.117.2 against the npm tarball. No app pages executed and no database, video or inference requests. No production code changes. Only npm/CDN downloads on the runner. CORS and SHA-384 are reported for later SRI markup changes. Dynamic imports, script injection, and assets require additional inventory. A successful byte comparison alone does not verify real browser SRI loading or application compatibility. Do not change library versions in this step.
