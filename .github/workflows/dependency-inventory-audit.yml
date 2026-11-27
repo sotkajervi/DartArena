@@ -84,11 +84,21 @@ jobs:
           node-version: '22'
       - name: Install and verify actual development manifest
         run: |
-          npm install --ignore-scripts --no-audit --no-fund
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          fi
+          npm ci --ignore-scripts --no-audit --no-fund
           npm audit --audit-level=low
           npm run typecheck
           npm run lint
           npm run test:password-reset
+      - name: Export verified public npm lockfile for review
+        run: |
+          node -e 'const l=require("./package-lock.json"); for(const p of Object.values(l.packages)){if(p.resolved && !p.resolved.startsWith("https://registry.npmjs.org/"))throw Error("Unexpected registry");}'
+          sha256sum package-lock.json
+          echo DA_LOCKFILE_BEGIN
+          cat package-lock.json
+          echo DA_LOCKFILE_END
       - name: Test Edge Function against real SDK and mocked transports
         run: |
           npm install --prefix "$RUNNER_TEMP/da-edge" --no-save --ignore-scripts --no-audit --no-fund @supabase/supabase-js@2.119.2
