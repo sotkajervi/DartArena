@@ -2,6 +2,9 @@ name: CDN integrity inventory
 on:
   push:
     branches: ['test/security-cdn-integrity-20261127']
+  pull_request:
+    branches: [main]
+    paths: ['**/*.html', 'tests/cdn-sri-browser.test.cjs', '.github/workflows/cdn-integrity-inventory.yml']
   workflow_dispatch:
 permissions:
   contents: read
