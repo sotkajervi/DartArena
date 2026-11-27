@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { createClient } from "npm:@supabase/supabase-js@2.119.2";
 
 // DartArena Autoscoring Lab only. All Roboflow credentials stay in Supabase secrets.
 const MODEL_ID = "dart-tip-detection-6d3mw/17";

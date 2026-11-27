@@ -11,3 +11,6 @@ The audit workflow resolves temporary npm dependency graphs with scripts disable
 - Edge Supabase 2.49.1: two low severity findings related to GHSA-8r88-6cj9-9fh5. Development toolchain: eight moderate findings related to minimatch GHSA-g3hv-75wg-m249. High-severity threshold did not fail these jobs; these findings remain open.
 - TensorFlow: ERESOLVE because TFLite alpha.10 requires core 4.9.0 while the page uses 4.22.0. Audit the two supported npm graphs independently. Mixed CDN runtime remains a known compatibility issue, not a passed compatibility test. No forced resolution or runtime version change.
 - SEER: package/CDN comparison and four visit tests passed. Added the verified SHA-384 integrity attribute; verify exact bytes and markup again. Actual hardware connection remains unverified.
+
+## Candidate audit (45933038130)
+Both proposed SDK and development updates returned zero findings at the low threshold. The actual manifests and Edge Function import are now staged on the test branch. The compatibility job checks TypeScript/lint and exercises the real candidate SDK against mocked Auth, RPC and inference responses. This does not test the deployed Deno gateway or SEER hardware; no production deployment. Lockfile, complete dependency inventory and mixed TF compatibility remain open.

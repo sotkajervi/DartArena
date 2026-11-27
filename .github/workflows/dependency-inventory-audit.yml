@@ -2,7 +2,7 @@ name: Dependency inventory audit
 on:
   push:
     branches: ['test/security-regression-ci-20261127']
-    paths: ['.github/workflows/dependency-inventory-audit.yml', 'owner-seer-test.html', 'package.json']
+    paths: ['.github/workflows/dependency-inventory-audit.yml', 'owner-seer-test.html', 'package.json', 'supabase/functions/autoscoring-roboflow/**', 'tests/roboflow-edge-sdk.test.cjs']
   workflow_dispatch:
 permissions:
   contents: read
@@ -14,11 +14,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {name: dev, packages: dev}
-          - {name: dev-candidate, packages: dev-candidate, threshold: low}
+          - {name: dev, packages: dev, threshold: low}
           - {name: supabase-browser, packages: '@supabase/supabase-js@2.117.2'}
-          - {name: supabase-edge, packages: '@supabase/supabase-js@2.49.1'}
-          - {name: supabase-edge-candidate, packages: '@supabase/supabase-js@2.119.2', threshold: low}
+          - {name: supabase-edge, packages: '@supabase/supabase-js@2.119.2', threshold: low}
           - {name: socket-io, packages: 'socket.io-client@4.8.4'}
           - {name: tensorflow-core, packages: '@tensorflow/tfjs-core@4.22.0 @tensorflow/tfjs-backend-cpu@4.22.0'}
           # TFLite requires core 4.9.0. Audit the supported peer graph separately;
@@ -38,16 +36,13 @@ jobs:
           AUDIT_LEVEL: ${{ matrix.threshold || 'high' }}
         run: |
           mkdir -p "$RUNNER_TEMP/da-audit"
-          if [ "$PACKAGES" = dev ] || [ "$PACKAGES" = dev-candidate ]; then
+          if [ "$PACKAGES" = dev ]; then
             cp package.json "$RUNNER_TEMP/da-audit/package.json"
           else
             printf '{"name":"da-audit","version":"1.0.0","private":true}\n' > "$RUNNER_TEMP/da-audit/package.json"
           fi
           cd "$RUNNER_TEMP/da-audit"
-          if [ "$PACKAGES" = dev-candidate ]; then
-            npm pkg set devDependencies.typescript-eslint=8.74.0 devDependencies.eslint=10.15.0
-          fi
-          if [ "$PACKAGES" = dev ] || [ "$PACKAGES" = dev-candidate ]; then
+          if [ "$PACKAGES" = dev ]; then
             npm install --package-lock-only --ignore-scripts --no-audit --no-fund
           else
             npm install --package-lock-only --ignore-scripts --no-audit --no-fund --save-exact $PACKAGES
@@ -77,3 +72,25 @@ jobs:
           grep -F 'src="https://cdn.jsdelivr.net/npm/socket.io-client@4.8.4/dist/socket.io.min.js" integrity="sha384-fBrXvbDtHoeKWJ/hcA6M+YGueiDW+h45I7V6F2kD1S8bOkrF9rZYPLVkCR6BLR/1" crossorigin="anonymous"' owner-seer-test.html
           node --check owner-seer-test.js
           node --test tests/seer-visit.test.cjs
+  compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install and verify actual development manifest
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm audit --audit-level=low
+          npm run typecheck
+          npm run lint
+          npm run test:password-reset
+      - name: Test Edge Function against real SDK and mocked transports
+        run: |
+          npm install --prefix "$RUNNER_TEMP/da-edge" --no-save --ignore-scripts --no-audit --no-fund @supabase/supabase-js@2.119.2
+          NODE_PATH="$RUNNER_TEMP/da-edge/node_modules" node --test tests/roboflow-edge-sdk.test.cjs
+          node --test autoscoring/roboflow-provider.test.cjs autoscoring/roboflow.test.cjs
