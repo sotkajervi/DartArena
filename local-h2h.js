@@ -15,7 +15,8 @@ const BOT_PERSONAS={
 };
 const $=id=>document.getElementById(id);
 if(!E||!$('localSetupForm'))return;
-const KEY='dartarena-local-h2h-state-v1';
+const simulation=document.body.dataset.seerSimulation==='true';
+ const KEY='dartarena-local-h2h-state-v1';
 let state=null,pendingCheckout=null,editingIndex=null,betweenTimer=null,botTimer=null,coinBusy=false,
   botConfig=null,botRecorded=false,message='Skriv score og trykk Enter.',isError=false;
 let fx=null,fxMatchId=null;
@@ -38,9 +39,10 @@ const ui={
   correctionContext:$('localCorrectionContext'),correctionError:$('localCorrectionError'),
   correctionCheckout:$('localCorrectionCheckout'),correctionDarts:$('localCorrectionDarts')
 };
-window.DartArenaLocalNameHistory?.attach(['localName1','localName2']);
+if(!simulation)window.DartArenaLocalNameHistory?.attach(['localName1','localName2']);
 function showMessage(text,error=false){message=text;isError=error;ui.message.textContent=text;ui.message.classList.toggle('is-error',error)}
 function safeSave(){
+  if(simulation)return;
   try{
     if(state)localStorage.setItem(KEY,JSON.stringify(state));else localStorage.removeItem(KEY);
     if(state&&botConfig)localStorage.setItem(BOT_SESSION_KEY,JSON.stringify({id:state.id,config:botConfig,recorded:botRecorded}));
@@ -191,6 +193,7 @@ function scheduleBot(){
   },700);
 }
 function recordAdaptiveMatch(){
+  if(simulation)return;
   if(!botConfig||botRecorded||state?.status!=='finished')return;
   botRecorded=true;
   if(botConfig.mode==='adaptive'){
@@ -217,6 +220,7 @@ ui.mode.addEventListener('change',updateSetsField);
 updateSetsField();
 function statValue(id,value){$(id).textContent=String(value)}
 function render(){
+  renderSeer();
   ui.setup.hidden=!!state;ui.game.hidden=!state;
   document.body.classList.toggle('local-match-active',!!state);
   document.body.classList.toggle('local-match-finished',state?.status==='finished');
@@ -419,6 +423,7 @@ function closeCheckout(){
   focusScore();
 }
 function openCheckout(score){
+  resetSeer();
   const available=E.checkoutOptions(score);
   if(!available.length){
     showMessage('Dette er ikke en mulig utsjekk. Bruk BUST hvis turen ble ugyldig.',true);
@@ -461,7 +466,7 @@ ui.setupForm.addEventListener('submit',async event=>{
     if(useCoin&&!window.DartArenaLocalCoin)throw Error('Myntkastet er ikke tilgjengelig. Oppdater siden.');
     const starter=useCoin?window.DartArenaLocalCoin.winner():Number(ui.starter.value);
     if(![0,1].includes(starter))throw Error('Velg hvem som starter første leg.');
-    const selectedBot=ui.opponentType.value==='bot';
+    const selectedBot=!simulation&&ui.opponentType.value==='bot';
     const profile=ui.botProfile.value,botMode=ui.botMode.value,level=Number(ui.botAverage.value);
     if(selectedBot&&(!B||!B.profiles.includes(profile)||!['standard','adaptive'].includes(botMode)||
       !Number.isInteger(level)||level<20||level>120))throw Error('Velg botnivå 20–120 og en gyldig spillestil.');
@@ -472,7 +477,7 @@ ui.setupForm.addEventListener('submit',async event=>{
     if(selectedBot&&!BOT_PERSONAS[context]?.includes(persona))throw Error('Velg et botnavn fra listen.');
     const opponent=selectedBot?persona+' BOT ('+Math.round(selectedLevel)+')':ui.name2.value;
     const created=E.setup({name1:ui.name1.value,name2:opponent,
-      format:ui.format.value,mode:ui.mode.value,bestOf:ui.bestOf.value,
+      format:simulation?501:ui.format.value,mode:ui.mode.value,bestOf:ui.bestOf.value,
       bestOfSets:ui.bestOfSets.value,starter});
     let coinAnimationFailed=false;
     if(useCoin){
@@ -491,7 +496,7 @@ ui.setupForm.addEventListener('submit',async event=>{
     state=created;botRecorded=false;
     botConfig=selectedBot?{mode:botMode,profile,name:persona,average:selectedLevel,format:state.format,
       sigma:B.calibrate(selectedLevel,profile,state.format)}:null;
-    window.DartArenaLocalNameHistory?.remember(selectedBot?[state.players[0]]:state.players);
+    if(!simulation)window.DartArenaLocalNameHistory?.remember(selectedBot?[state.players[0]]:state.players);
     ui.setupError.hidden=true;
     message=(useCoin?(coinAnimationFailed?'Myntkast trukket, men animasjonen kunne ikke vises. ':''):'')+
       created.players[starter]+' starter første leg.';
@@ -597,7 +602,7 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){
   else if(!ui.correction.hidden){event.preventDefault();closeCorrection()}
   else if(!ui.checkout.hidden){event.preventDefault();closeCheckout()}
 }});
-try{state=E.restore(JSON.parse(localStorage.getItem(KEY)||'null'))}catch{state=null}
+if(!simulation){try{state=E.restore(JSON.parse(localStorage.getItem(KEY)||'null'))}catch{state=null}}
 if(state){
   try{
     const saved=JSON.parse(localStorage.getItem(BOT_SESSION_KEY)||'null');
@@ -608,10 +613,63 @@ if(state){
       ui.botProfile.value=botConfig.profile;ui.botAverage.value=String(Math.round(botConfig.average));
     }
   }catch{}
-  window.DartArenaLocalNameHistory?.remember(botConfig?[state.players[0]]:state.players);
+  if(!simulation)window.DartArenaLocalNameHistory?.remember(botConfig?[state.players[0]]:state.players);
   message='Lokal kamp gjenopprettet fra denne nettleseren.';isError=false;
 }
-if(!state&&/(?:[?&])opponent=bot(?:&|$)/.test(window.location?.search||''))ui.opponentType.value='bot';
+let seerGuard=null,seerProposal=null,seerState=null,seerEpoch=0;
+function resetSeer(){
+ if(!seerGuard)return;
+ seerGuard.manual();seerProposal=null;
+ $('seerLocalConfirm').disabled=true;
+ $('seerLocalStatus').textContent='Velg opptil tre piler.';
+}
+function renderSeer(){
+ if(!seerGuard)return;
+ $('seerLocalPanel').hidden=!state||state.status!=='playing'||!!botConfig;
+ if(seerState!==state){resetSeer();seerState=state;for(let i=1;i<=3;i++)$('seerLocalDart'+i).value='';}
+}
+function bindSeer(){
+ if(!simulation||!window.DartArenaSeerTurnGuard||!$('seerLocalPanel'))return;
+ seerGuard=new window.DartArenaSeerTurnGuard();
+ for(let i=1;i<=3;i++){
+  const select=$('seerLocalDart'+i);
+  for(const hit of ['', 'MISS','S25','D25',...Array.from({length:20},(_,n)=>n+1).flatMap(n=>['S'+n,'D'+n,'T'+n])]){
+   const o=document.createElement('option');o.value=hit;o.textContent=hit||'—';select.append(o);
+  }
+  select.addEventListener('change',resetSeer);
+ }
+ $('seerLocalManual').addEventListener('click',()=>{resetSeer();ui.score.focus();});
+ $('seerLocalPreview').addEventListener('click',()=>{
+  if(!canEnterHumanScore())return;
+  resetSeer();
+  const epoch='simulation-'+(++seerEpoch);
+  if(!seerGuard.begin(state,{sourceEpoch:epoch,boardClearConfirmed:true}))return;
+  const observations=[];
+  for(let i=1;i<=3;i++){
+   const hit=$('seerLocalDart'+i).value;
+   if(!hit)continue;
+   const multiplier=({S:1,D:2,T:3})[hit[0]]||0,base=hit==='MISS'?0:Number(hit.slice(1));
+   observations.push({darts:i,base_score:base,multiplier,score:base*multiplier,dx:10,dy:10});
+  }
+  seerGuard.receive(state,{sourceEpoch:epoch,throwId:epoch+'-frame',observations});
+  seerProposal=seerGuard.proposal(state);
+  $('seerLocalConfirm').disabled=seerProposal.status!=='ready';
+  $('seerLocalStatus').textContent=seerProposal.status==='ready'?
+   (seerProposal.kind==='bust'?'BUST':seerProposal.kind==='checkout'?'Utsjekk: '+seerProposal.score+' ('+seerProposal.darts+' piler)':seerProposal.score+' poeng') :
+   'Ikke klar: '+seerProposal.reason;
+ });
+ $('seerLocalConfirm').addEventListener('click',()=>{
+  if(!canEnterHumanScore()||!seerProposal)return;
+  try{
+   const proposal=seerProposal,next=seerGuard.confirm(state,proposal,E);
+   resetSeer();
+   if(next)commit(()=>next,proposal.kind==='bust'?'SEER: BUST':'SEER: '+proposal.score+' poeng.','submit');
+  }catch(e){resetSeer();showMessage(e?.message||'SEER-feil',true);}
+ });
+}
+
+if(!simulation&&!state&&/(?:[?&])opponent=bot(?:&|$)/.test(window.location?.search||''))ui.opponentType.value='bot';
 updateBotFields();
+bindSeer();
 render();
 })();
