@@ -102,7 +102,7 @@
     host.innerHTML=[...visits].reverse().map(v=>{
       const editable=canCorrect(v);
       const text=summary(expand(v.darts)),points=Number(v.points_scored||0),name=esc(names[v.player_id]||'Spiller');
-      return `<div class="cricket-history-row${v.corrected_at?' corrected':''}"><span class="cricket-history-meta">L${v.leg_no} · #${v.visit_no}</span><span class="cricket-history-player">${name}</span><span class="cricket-history-marks">${esc(text)}${v.corrected_at?' · korrigert':''}</span><span class="cricket-history-points">${points?`+${points}`:'—'}</span><span>${editable?`<button class="outline cricket-history-edit" data-edit-visit="${v.id}">Korriger</button>`:''}</span></div>`;
+      return `<div class="cricket-history-row${v.corrected_at?' corrected':''}"><span class="cricket-history-meta">L${esc(v.leg_no)} · #${esc(v.visit_no)}</span><span class="cricket-history-player">${name}</span><span class="cricket-history-marks">${esc(text)}${v.corrected_at?' · korrigert':''}</span><span class="cricket-history-points">${points?`+${points}`:'—'}</span><span>${editable?`<button class="outline cricket-history-edit" data-edit-visit="${esc(v.id)}">Korriger</button>`:''}</span></div>`;
     }).join('');
     host.querySelectorAll('[data-edit-visit]').forEach(b=>b.onclick=()=>startCorrection(Number(b.dataset.editVisit)));
   }

@@ -1,0 +1,20 @@
+name: Match and spectator text security checks
+on:
+  push:
+    branches: [test/security-match-text-20261127]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --prefix "$RUNNER_TEMP/security-test" --no-audit --no-fund playwright@1.58.2
+      - run: |
+          "$RUNNER_TEMP/security-test/node_modules/.bin/playwright" install --with-deps chromium
+      - run: node --check sixty-one-match.js && node --check cricket-keyboard-log.js
+      - run: NODE_PATH="$RUNNER_TEMP/security-test/node_modules" node --test tests/security-match-text-browser.test.cjs tests/user-text-security-browser.test.cjs tests/spectator-scorecard-parity.test.cjs tests/match-room-i18n.test.cjs
