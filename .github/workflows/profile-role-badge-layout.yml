@@ -1,0 +1,23 @@
+name: Player profile role badge layout
+on:
+  push:
+    branches: ['test/profile-role-badge-layout-20261127']
+  pull_request:
+    branches: [main]
+    paths: ['player.html','tests/profile-role-badge-layout.test.cjs','.github/workflows/profile-role-badge-layout.yml']
+permissions:
+  contents: read
+jobs:
+  layout:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/player-details.test.cjs tests/profile-name-link.test.cjs
+      - run: npm install --prefix "$RUNNER_TEMP/da-profile" --no-audit --no-fund playwright@1.58.2
+      - run: '"$RUNNER_TEMP/da-profile/node_modules/.bin/playwright" install --with-deps chromium'
+      - run: NODE_PATH="$RUNNER_TEMP/da-profile/node_modules" node --test tests/profile-role-badge-layout.test.cjs
