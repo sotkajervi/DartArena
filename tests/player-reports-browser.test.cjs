@@ -19,7 +19,7 @@ test('Player report dialog, evidence failure/retry, private staff tab and dispos
  await p.evaluate(()=>mock.failCapture=false);await modal.getByRole('button',{name:'Submit report'}).click();await modal.getByText('Report submitted. Thank you!').waitFor();a.equal(await p.evaluate(()=>mock.rows[0].avatar_evidence),'/9j/AA==');a.equal(await p.evaluate(()=>mock.rows[0].target_id),target);
  await modal.getByRole('button',{name:'Close'}).click();a.equal(await p.locator('#daIssueAdminBtn').count(),0);
  await p.evaluate(()=>{mock.staff=true;mock.listener()});await p.locator('#daIssueAdminBtn').click();await modal.getByRole('button',{name:'Player reports'}).click();
- const row=modal.locator('.da-issue-row');await row.getByText('Reported player: OldNick · Original Name').waitFor();await row.getByRole('button',{name:'Open'}).click();await row.getByText(/not independently verified/).waitFor();a.equal(await row.locator('img').count(),1);
+ const row=modal.locator('.da-issue-row');await row.getByText('Reported player: OldNick · Original Name').waitFor();await row.getByText('<img src=x> evidence',{exact:true}).waitFor();a.equal(await row.locator('img').count(),0);await row.getByRole('button',{name:'Open'}).click();await row.getByText(/not independently verified/).waitFor();a.equal(await row.locator('img').count(),1);
  await row.getByRole('combobox').selectOption('dismissed');await row.getByRole('textbox').fill('Reviewed');await row.getByRole('button',{name:'Save'}).click();await row.getByText('Inappropriate profile picture · dismissed').waitFor();a.equal(await p.evaluate(()=>mock.rows[0].internal_note),'Reviewed');
  }finally{await b.close()}
 });

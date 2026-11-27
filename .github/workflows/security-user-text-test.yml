@@ -1,0 +1,19 @@
+name: User text security checks
+on:
+  push:
+    branches: [test/security-user-text-20261127]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --prefix "$RUNNER_TEMP/security-test" --no-audit --no-fund playwright@1.58.2
+      - run: "$RUNNER_TEMP/security-test/node_modules/.bin/playwright" install --with-deps chromium
+      - run: node --check tournaments.js && node --check match-history-export.js
+      - run: NODE_PATH="$RUNNER_TEMP/security-test/node_modules" node --test tests/user-text-security-browser.test.cjs tests/player-reports-browser.test.cjs tests/profile-name-link-browser.test.cjs tests/profile-name-link.test.cjs tests/lobby-chat-feed.test.cjs

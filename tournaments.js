@@ -4,7 +4,7 @@
   let authBound=false,bound=false,bootRetry=null,startedUser=null,startingUser=null;
 
   function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-  function fmt(d){try{return new Intl.DateTimeFormat('nb-NO',{dateStyle:'short',timeStyle:'short'}).format(new Date(d))}catch{return d}}
+  function fmt(d){try{return new Intl.DateTimeFormat('nb-NO',{dateStyle:'short',timeStyle:'short'}).format(new Date(d))}catch{return ''}}
   function pad(n){return String(n).padStart(2,'0')}
   function localValue(d,time){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${time}`}
   function pretty(d,time){if(!d)return'Velg dato og klokkeslett';const day=new Intl.DateTimeFormat('nb-NO',{weekday:'short',day:'2-digit',month:'short'}).format(d).replace('.','').toUpperCase();return `${day} · ${time}`}
@@ -117,7 +117,7 @@
       ?`${x.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup'} • ${formatLabel} • Ferdig ${fmt(x.finished_at||x.updated_at||x.starts_at)} • ${n} deltakere • Vinner: ${esc(winnerName||'–')}`
       :`${x.tournament_type==='groups_cup'?'Puljer + cup':'Ren cup'} • ${formatLabel} • ${fmt(x.starts_at)} • ${n} påmeldt`;
     const statsBadge=`<span class="form-stats-badge${statsOn?'':' off'}" title="${statsOn?'501-kamper teller i Form stats':'Ingen 501 X01-kamper teller i Form stats'}">${statsOn?'FORM STATS':'FORM STATS AV'}</span>`;
-    return `<article class="tournament-row"><div><div class="tournament-title-line"><div class="player-name">${esc(x.name)}</div>${statsBadge}</div><div class="status">${meta}</div></div><div class="challenge-actions">${archive?`<button class="small-btn" data-history-open="${x.id}">Se turnering</button><button class="small-btn" data-history-stats="${x.id}">Sluttstatistikk</button>`:`<button class="small-btn" data-open="${x.id}">Åpne</button>${x.registration_open?`<button class="small-btn ${joined?'decline':'accept'}" data-${joined?'leave':'join'}="${x.id}">${joined?'Avmeld':'Meld på'}</button>`:''}`}</div></article>`;
+    return `<article class="tournament-row"><div><div class="tournament-title-line"><div class="player-name">${esc(x.name)}</div>${statsBadge}</div><div class="status">${meta}</div></div><div class="challenge-actions">${archive?`<button class="small-btn" data-history-open="${esc(x.id)}">Se turnering</button><button class="small-btn" data-history-stats="${esc(x.id)}">Sluttstatistikk</button>`:`<button class="small-btn" data-open="${esc(x.id)}">Åpne</button>${x.registration_open?`<button class="small-btn ${joined?'decline':'accept'}" data-${joined?'leave':'join'}="${esc(x.id)}">${joined?'Avmeld':'Meld på'}</button>`:''}`}</div></article>`;
   }
 
   async function archiveWinners(past){

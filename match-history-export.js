@@ -1,7 +1,7 @@
 (()=>{
   if(window.__dartArenaHistoryExport)return;
   window.__dartArenaHistoryExport=true;
-  const csv=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+  const csv=v=>{const text=String(v??'');const safe=typeof v!=='number'&&/^(?:[\t\r\n]|\s*[=+\-@＝＋－＠])/.test(text)?"'"+text:text;return '"'+safe.replace(/"/g,'""')+'"'};
   function boot(){
     const host=document.querySelector('.history-options');if(!host||document.getElementById('historyExportBtn'))return;
     const btn=document.createElement('button');btn.id='historyExportBtn';btn.type='button';btn.className='outline history-filter';btn.textContent='Eksporter CSV';
