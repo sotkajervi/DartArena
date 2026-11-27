@@ -25,3 +25,12 @@ jobs:
         env:
           PGPASSWORD: test
         run: python3 tests/api-abuse-baseline.py
+      - name: Reset local fixture database and roles
+        env:
+          PGPASSWORD: test
+        run: |
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 -c 'DROP DATABASE abuse_test' -c 'DROP ROLE authenticated, anon' -c 'CREATE DATABASE abuse_test'
+      - name: Require candidate concurrency protection
+        env:
+          PGPASSWORD: test
+        run: python3 tests/api-abuse-baseline.py --candidate

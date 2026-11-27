@@ -2,6 +2,10 @@
 import pathlib
 import re
 import subprocess
+import sys
+import time
+
+CANDIDATE = '--candidate' in sys.argv
 
 PSQL = ["psql", "-X", "-h", "127.0.0.1", "-p", "5432", "-U", "postgres",
         "-d", "abuse_test", "-qAt", "-v", "ON_ERROR_STOP=1"]
@@ -20,6 +24,7 @@ def query(sql, ok=True):
 query("""
 create schema auth;
 create role authenticated;
+create role anon;
 create function auth.uid() returns uuid language sql stable
 as $$ select nullif(current_setting('test.actor', true), '')::uuid $$;
 create function auth.role() returns text language sql stable
@@ -35,6 +40,9 @@ for each row execute function public.guard_dartarena_insert_rate();
 create trigger challenge_guard before insert on public.challenges
 for each row execute function public.guard_dartarena_insert_rate();
 """)
+
+if CANDIDATE:
+    query(pathlib.Path("db/api-rate-guard-candidate.sql").read_text())
 
 def actor_sql(actor):
     return "set role authenticated; set test.actor = '" + actor + "';\n"
@@ -64,6 +72,37 @@ for table, field, error in [
         a.stdin.write(actor_sql(ACTOR) + "begin;\n" + insert(ACTOR) + "\\echo A_READY\n")
         a.stdin.flush()
         assert a.stdout.readline().strip() == "A_READY", "first transaction failed"
+        if CANDIDATE:
+            bproc = subprocess.Popen(PSQL, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE, text=True)
+            try:
+                bproc.stdin.write("set application_name='da_rate_waiter'; set statement_timeout='10s';\n"
+                                 + actor_sql(ACTOR) + insert(ACTOR))
+                bproc.stdin.close()
+                bproc.stdin = None
+                deadline = time.monotonic() + 5
+                while time.monotonic() < deadline:
+                    waiting = query("select count(*) from pg_stat_activity where application_name='da_rate_waiter' and wait_event_type='Lock' and wait_event='advisory';").stdout.strip()
+                    if waiting == '1':
+                        break
+                    assert bproc.poll() is None, "second transaction did not wait for lock"
+                    time.sleep(0.05)
+                else:
+                    raise AssertionError("second transaction never waited for advisory lock")
+                query(actor_sql(OTHER) + insert(OTHER))
+                assert total(OTHER) == 1, "independent actor was blocked"
+                a.stdin.write("commit;\n\\q\n")
+                a.stdin.flush()
+                assert a.wait(timeout=10) == 0, a.stderr.read()
+                out, err = bproc.communicate(timeout=12)
+                assert bproc.returncode and error in err, err
+                assert total(ACTOR) == 20
+                print(f"{table}: candidate serialized concurrent writes; second rejected, independent actor accepted", flush=True)
+            finally:
+                if bproc.poll() is None:
+                    bproc.kill()
+                    bproc.wait()
+            continue
         b = query(actor_sql(ACTOR) + insert(ACTOR), ok=False)
         a.stdin.write("commit;\n\\q\n")
         a.stdin.flush()
@@ -80,4 +119,4 @@ for table, field, error in [
         if a.poll() is None:
             a.kill()
             a.wait()
-print("Diagnostic completed. Green means diagnostic executed, not that the current guard is race-safe.")
+print("Candidate assertions passed." if CANDIDATE else "Diagnostic completed. Green means diagnostic executed, not that the current guard is race-safe.")
