@@ -1,0 +1,16 @@
+name: Zoom-cam background compositor checks
+on:
+  push:
+    branches: [test/zoomcam-background-20261127]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check autozoom/zoom-cam.js
+      - run: node --test autozoom/zoom-cam.test.cjs autozoom/tracker.test.cjs tests/zoomcam-turn-transition.test.cjs camera-picture.test.cjs

@@ -116,7 +116,22 @@ function create(raw,config,{fps=25,video=null,
   const visualFilter=picture!==false&&P?P.cssFilter(picture||P.load(root.localStorage,deviceId)):'none';
   const setDrawFilter=value=>{if('filter' in ctx)ctx.filter=value};
   let out=null,loop=0,clock=0,stopped=false,prev=null,ref=null,still=0,target=null,current=null,lastRawHit=null;
-  let trackingPaused=false,lastFrameAt=0,watchdog=null;
+  let trackingPaused=false,lastFrameAt=0,watchdog=null,backgroundTimer=null;
+  const hidden=()=>typeof document!=='undefined'&&document.visibilityState==='hidden';
+  function cancelDraw(){
+    if(loop)cancelAnimationFrame(loop);loop=0;
+    if(backgroundTimer!==null)clearTimeout(backgroundTimer);backgroundTimer=null;
+  }
+  function scheduleDraw(){
+    if(stopped)return;
+    if(hidden())backgroundTimer=setTimeout(()=>{backgroundTimer=null;tick(performance.now())},250);
+    else loop=requestAnimationFrame(now=>{loop=0;tick(now)});
+  }
+  function visibilityChanged(){
+    if(stopped)return;
+    cancelDraw();
+    scheduleDraw();
+  }
   const speed=tracker.speedPreset('fast');
   const gate=tracker.createChangeGate({stableFrames:speed.stableFrames,motionWindowMs:4000,cooldownMs:speed.cooldownMs});
   const sampled=document.createElement('canvas'),sampleCtx=sampled.getContext('2d',{willReadFrequently:true});
@@ -241,6 +256,7 @@ function create(raw,config,{fps=25,video=null,
       }
       setDrawFilter('none');
       ctx.strokeStyle='#00eaf4';ctx.lineWidth=Math.max(2,w/450);ctx.strokeRect(ix-2,iy-2,insetW+4,insetH+4);
+      if(hidden())out?.requestFrame?.();
     }
     }catch(error){
       setDrawFilter('none');
@@ -249,7 +265,7 @@ function create(raw,config,{fps=25,video=null,
         lastRenderErrorAt=now;
       }
     }finally{
-      if(!stopped)loop=requestAnimationFrame(tick);
+      if(!stopped)scheduleDraw();
     }
   }
   let capture;
@@ -259,25 +275,27 @@ function create(raw,config,{fps=25,video=null,
     out=capture.getVideoTracks()[0];
     if(!out)throw Error('Ingen Zoom-cam videotrack');
     video.play().catch(()=>{});
-    loop=requestAnimationFrame(tick);
+    document.addEventListener?.('visibilitychange',visibilityChanged);
+    scheduleDraw();
     // A visible tab should never be left with a stalled animation callback.
     // Re-arm only this canvas compositor: do not replace WebRTC tracks.
     watchdog=setInterval(()=>{
       if(stopped||typeof document==='undefined'||document.visibilityState==='hidden')return;
       const now=typeof performance!=='undefined'?performance.now():0;
       if(lastFrameAt&&now-lastFrameAt<3500)return;
-      if(loop)cancelAnimationFrame(loop);
+      cancelDraw();
       lastFrameAt=now;
-      loop=requestAnimationFrame(tick);
+      scheduleDraw();
     },1500);
-  }catch(error){out?.stop();video.srcObject=null;throw error}
+  }catch(error){cancelDraw();document.removeEventListener?.('visibilitychange',visibilityChanged);if(watchdog)clearInterval(watchdog);out?.stop();video.srcObject=null;throw error}
   return{
     track:out,sourceTrack,stream:new MediaStream([out,...raw.getAudioTracks()]),
     resetToT20,pauseTracking,setHitOffset,setFraming,showCalibrationSample,
     stop(){
       if(stopped)return;stopped=true;
       if(watchdog)clearInterval(watchdog);
-      if(loop)cancelAnimationFrame(loop);
+      cancelDraw();
+      document.removeEventListener?.('visibilitychange',visibilityChanged);
       out?.stop();
       video.pause();video.srcObject=null;
       // Caller owns raw source track and must stop it when no longer needed.

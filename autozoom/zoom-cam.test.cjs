@@ -97,13 +97,13 @@ test('Zoom-cam has fallback when captureStream is unsupported',()=>{
 test('main lobby Cam-test includes calibration code and the physical camera selector',()=>{
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
   assert.match(html,/autozoom\/camera-calibration\.js\?v=20261126-fastonly1/);
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261126-fastonly1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261127-background1/);
   assert.match(html,/id="cameraTestCameraSelect"/);
 });
 test('waiting room includes calibrated Zoom-cam selection and real sender.replaceTrack',()=>{
   const html=fs.readFileSync(path.join(root,'room.html'),'utf8');
   const js=fs.readFileSync(path.join(root,'room-device-selector.js'),'utf8');
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261126-fastonly1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261127-background1/);
   assert.match(js,/ZOOM_VALUE/);
   assert.match(js,/option\.textContent='Zoom-cam \(kalibrert\)'/);
   assert.match(js,/sender\.replaceTrack\(next\.track\)/);
@@ -113,7 +113,7 @@ test('waiting room includes calibrated Zoom-cam selection and real sender.replac
 test('X01 match reloads physical input and composes actual outbound video',()=>{
   const html=fs.readFileSync(path.join(root,'match.html'),'utf8');
   const js=fs.readFileSync(path.join(root,'match.js'),'utf8');
-  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261126-fastonly1/);
+  assert.match(html,/autozoom\/zoom-cam\.js\?v=20261127-background1/);
   assert.match(js,/Z\.create\(raw,config\)/);
   assert.match(js,/stream=zoomCamSession\.stream/);
   assert.match(js,/deviceId:\{exact:config\.deviceId\}/);
@@ -266,7 +266,7 @@ test('Cam-test offers zoom, draggable positioning, reset and optional inset guid
   assert.match(ui,/pointermove/);
   assert.match(ui,/\.\.\.settings,\.\.\.framing/);
   const match=fs.readFileSync(path.join(root,'match.html'),'utf8');
-  assert.match(match,/autozoom\/zoom-cam\.js\?v=20261126-fastonly1/);
+  assert.match(match,/autozoom\/zoom-cam\.js\?v=20261127-background1/);
 });
 
 test('Cam-test picture controls load after calibration and stay separate from detection',()=>{
@@ -518,4 +518,37 @@ test('legacy and new speed settings always resolve to fast without losing calibr
  }
  assert.match(fs.readFileSync(path.join(root,'autozoom/zoom-cam.js'),'utf8'),/tracker\.speedPreset\('fast'\)/);
  assert.doesNotMatch(fs.readFileSync(path.join(root,'autozoom/camera-calibration.js'),'utf8'),/camZoomSpeed|speedSelect/);
+});
+
+test('hidden Zoom-cam schedules limited canvas draws; visible mode and stop cancel the old schedule',()=>{
+ const old={media:global.MediaStream,raf:global.requestAnimationFrame,cancel:global.cancelAnimationFrame,doc:global.document,timeout:global.setTimeout,clear:global.clearTimeout};
+ const rafs=new Map(),timers=new Map(),listeners=new Map();let seq=0,draws=0,requests=0;
+ const src={kind:'video',readyState:'live',getSettings:()=>({deviceId:'webcam-1',width:1280,height:720})};
+ const out={kind:'video',readyState:'live',requestFrame(){requests++},stop(){this.stopped=true}};
+ class Stream{constructor(tracks){this.tracks=tracks}getVideoTracks(){return this.tracks.filter(t=>t.kind==='video')}getAudioTracks(){return this.tracks.filter(t=>t.kind==='audio')}}
+ const ctx=()=>({fillRect(){},drawImage(){draws++},strokeRect(){},getImageData(){return{data:new Uint8ClampedArray(480*270*4)}}});
+ let session;
+ try{
+  global.MediaStream=Stream;
+  global.requestAnimationFrame=fn=>{rafs.set(++seq,fn);return seq};
+  global.cancelAnimationFrame=id=>rafs.delete(id);
+  global.setTimeout=(fn,ms)=>{timers.set(++seq,{fn,ms});return seq};
+  global.clearTimeout=id=>timers.delete(id);
+  global.document={visibilityState:'visible',createElement:()=>({getContext:ctx}),addEventListener:(n,fn)=>listeners.set(n,fn),removeEventListener:(n,fn)=>{if(listeners.get(n)===fn)listeners.delete(n)}};
+  const canvas={getContext:ctx,captureStream:()=>new Stream([out])};
+  const video={videoWidth:1280,videoHeight:720,readyState:2,play:async()=>{},pause(){},srcObject:null};
+  session=Z.create(new Stream([src]),{...sample},{canvas,video,tracker:T});
+  assert.equal(rafs.size,1);
+  document.visibilityState='hidden';listeners.get('visibilitychange')();
+  assert.equal(rafs.size,0);assert.equal(timers.size,1);
+  const [id,pending]=[...timers][0];assert.equal(pending.ms,250);timers.delete(id);pending.fn();
+  assert.ok(draws>=2);assert.equal(requests,1);assert.equal(timers.size,1);
+  document.visibilityState='visible';listeners.get('visibilitychange')();
+  assert.equal(timers.size,0);assert.equal(rafs.size,1);
+  assert.equal(session.track,out);
+  session.stop();assert.equal(rafs.size,0);assert.equal(timers.size,0);assert.equal(listeners.size,0);assert.equal(out.stopped,true);
+ }finally{
+  session?.stop();
+  global.MediaStream=old.media;global.requestAnimationFrame=old.raf;global.cancelAnimationFrame=old.cancel;global.document=old.doc;global.setTimeout=old.timeout;global.clearTimeout=old.clear;
+ }
 });
