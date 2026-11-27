@@ -1,0 +1,7 @@
+# Dependency review 2026-11-27
+
+Partial repository inventory at 0e32c2ac: root package.json has exact direct dev versions but no tracked lockfile. Sampled primary HTML pages load Supabase JS 2.117.2 without SRI; Roboflow Edge Function imports 2.49.1. SEER owner test used Socket.IO client 4.8.1. Owner calibration uses TFJS 4.22.0 and TFLite alpha. No production runtime changes authorized by this audit.
+
+Socket.IO parser advisories GHSA-677m-j7p3-52f9 and GHSA-2m8v-j782-fhvr affect older parser releases; fixed in 4.2.7 for v4. Candidate update to socket.io-client 4.8.4 is confined to test branch; real SEER connection remains untested. Official package/CDN bytes comparison and visit tests do not establish hardware compatibility. Sources: https://github.com/advisories/GHSA-2m8v-j782-fhvr and https://github.com/advisories/GHSA-677m-j7p3-52f9 .
+
+The audit workflow resolves temporary npm dependency graphs with scripts disabled. This does not establish the exact contents of already-built browser bundles, deployed Workers, or Deno runtime. Review audit findings and generate reviewed lockfiles before enforcing dependency audits. No credentials or live API calls are needed; npm and CDN only. Next: full source inventory, validated SRI/local vendoring plan, lockfiles, review current deployed Edge Function and pin its dependencies, then staged tests. Do not merge the SEER candidate before review.

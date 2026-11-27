@@ -1,0 +1,71 @@
+name: Dependency inventory audit
+on:
+  push:
+    branches: ['test/security-regression-ci-20261127']
+    paths: ['.github/workflows/dependency-inventory-audit.yml', 'owner-seer-test.html', 'package.json']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  npm-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: dev, packages: dev}
+          - {name: supabase-browser, packages: '@supabase/supabase-js@2.117.2'}
+          - {name: supabase-edge, packages: '@supabase/supabase-js@2.49.1'}
+          - {name: socket-io, packages: 'socket.io-client@4.8.4'}
+          - {name: tensorflow, packages: '@tensorflow/tfjs-core@4.22.0 @tensorflow/tfjs-backend-cpu@4.22.0 @tensorflow/tfjs-tflite@0.0.1-alpha.10'}
+    name: Audit ${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Resolve and audit without lifecycle scripts
+        env:
+          PACKAGES: ${{ matrix.packages }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/da-audit"
+          if [ "$PACKAGES" = dev ]; then
+            cp package.json "$RUNNER_TEMP/da-audit/package.json"
+          else
+            printf '{"name":"da-audit","version":"1.0.0","private":true}\n' > "$RUNNER_TEMP/da-audit/package.json"
+          fi
+          cd "$RUNNER_TEMP/da-audit"
+          if [ "$PACKAGES" = dev ]; then
+            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          else
+            npm install --package-lock-only --ignore-scripts --no-audit --no-fund --save-exact $PACKAGES
+          fi
+          npm audit --audit-level=high
+  seer-bundle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Compare CDN with package and check SEER visit tests
+        run: |
+          mkdir -p "$RUNNER_TEMP/da-seer"
+          cd "$RUNNER_TEMP/da-seer"
+          npm pack socket.io-client@4.8.4 --ignore-scripts --silent
+          tar -xzf socket.io-client-4.8.4.tgz package/dist/socket.io.min.js
+          curl --fail --silent --show-error --location --max-time 30 https://cdn.jsdelivr.net/npm/socket.io-client@4.8.4/dist/socket.io.min.js -o cdn.js
+          cmp package/dist/socket.io.min.js cdn.js
+          printf 'SRI candidate: sha384-'
+          openssl dgst -sha384 -binary cdn.js | openssl base64 -A
+          printf '\n'
+          cd "$GITHUB_WORKSPACE"
+          grep -F 'socket.io-client@4.8.4/dist/socket.io.min.js' owner-seer-test.html
+          node --check owner-seer-test.js
+          node --test tests/seer-visit.test.cjs
