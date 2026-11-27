@@ -15,7 +15,7 @@ test('Personal density counts more than 600 darts and does not distort relative 
 test('Tournament and normal history use the real live match ID and same read-only viewer',()=>{
  for(const p of ['match-stats.html','tournament-match-stats.html']){const html=fs.readFileSync(p,'utf8');a.match(html,/heatmap-storage\.js\?v=20261125-persistent2/);a.ok(html.indexOf('premium-heatmap-view.js')<html.indexOf('premium-match-stats.js'))}
  const c=fs.readFileSync('online-heatmap-result.js','utf8');a.doesNotMatch(c,/\.has\('tournamentMatch'\)/);a.match(c,/S.writer\(db,matchId,\(\)=>data\[userId\]\)/);a.match(c,/setInterval\(saveCloud,10000\)/);a.doesNotMatch(c,/getUserMedia|\.rpc\(|\.insert\(|\.update\(/);
- a.match(fs.readFileSync('premium-match-stats.js','utf8'),/DartArenaPremiumHeatmap\?\.mount\(match.id,db\)/);
+ a.match(fs.readFileSync('premium-match-stats.js','utf8'),/DartArenaPremiumHeatmap\?\.mount\(match.id,db,shown\)/);
  const sql=fs.readFileSync('supabase-match-heatmaps.sql','utf8');a.match(sql,/enable row level security/);a.match(sql,/security invoker/);a.match(sql,/values\(p_match_id,auth.uid\(\),p_points\)/);a.doesNotMatch(sql,/security definer/i);
 });
 

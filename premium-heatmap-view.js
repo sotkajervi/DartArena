@@ -66,7 +66,7 @@
     }
   }
 
-  function mount(id,client){
+  function mount(id,client,shown={}){
     if(cards.length||!id||!client)return;
     matchId=id;db=client;cacheKey='dartarena-x01-heatmap-result-v1:'+id;
     // Only the completed X01 view has exactly these two player cards.
@@ -86,10 +86,10 @@
     maps.className='premium-hm-grid';
     for(const player of players){
       const id=player.dataset.playerId;
-      const name=player.querySelector('.premium-player-name')?.textContent||'Spiller';
+      const name=shown[id]||player.querySelector('.premium-player-name .da-display-label')?.textContent||player.querySelector('.premium-player-name')?.textContent||'Spiller';
       const card=document.createElement('article');
       card.className='premium-hm-player';
-      const title=document.createElement('strong');title.textContent=name;
+      const title=document.createElement('strong');title.textContent=name;title.setAttribute('data-no-i18n','');
       const canvas=document.createElement('canvas');
       canvas.width=340;canvas.height=340;
       canvas.setAttribute('aria-label','Heatmap for '+name);
