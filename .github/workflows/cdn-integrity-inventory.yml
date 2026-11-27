@@ -29,9 +29,22 @@ jobs:
           node -e 'const p=require("./package/package.json"); console.log(JSON.stringify({jsdelivr:p.jsdelivr,unpkg:p.unpkg,main:p.main,version:p.version})); if(p.version!=="2.117.2")process.exit(1)'
           bundle=$(node -e 'const p=require("./package/package.json"); process.stdout.write(p.jsdelivr || p.unpkg || "dist/umd/supabase.js")')
           test -f "package/$bundle"
-          curl --fail --silent --show-error --location --proto '=https' --max-time 40 -D headers.txt https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2 -o cdn.js
-          cmp "package/$bundle" cdn.js
-          grep -i '^access-control-allow-origin:' headers.txt
+          # The package-root CDN URL may resolve to a generated/minified variant.
+          # Keep the original byte comparison and verify a new, explicit URL independently.
+          root=https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2
+          curl --fail --silent --show-error --location --proto '=https' --max-time 40 "$root" -o default.js
+          sha256sum "package/$bundle" default.js
+          if cmp -s "package/$bundle" default.js; then
+            echo 'Default CDN URL matches npm bytes'
+          else
+            echo 'Default CDN URL differs from npm bytes; not approved for SRI rollout by this comparison'
+          fi
+          explicit="$root/$bundle"
+          curl --fail --silent --show-error --location --proto '=https' --max-time 40 -H 'Origin: https://example.invalid' -D headers.txt "$explicit" -o explicit.js
+          sha256sum "package/$bundle" explicit.js
+          cmp "package/$bundle" explicit.js
+          grep -Ei '^access-control-allow-origin:[[:space:]]*(\*|https://example\.invalid)[[:space:]]*$' headers.txt
+          printf 'Verified explicit URL: %s\n' "$explicit"
           printf 'Supabase verified SRI: sha384-'
-          openssl dgst -sha384 -binary cdn.js | openssl base64 -A
+          openssl dgst -sha384 -binary explicit.js | openssl base64 -A
           printf '\n'
