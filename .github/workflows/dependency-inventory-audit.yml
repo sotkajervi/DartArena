@@ -2,7 +2,7 @@ name: Dependency inventory audit
 on:
   push:
     branches: ['test/security-regression-ci-20261127']
-    paths: ['.github/workflows/dependency-inventory-audit.yml', 'owner-seer-test.html', 'package.json', 'supabase/functions/autoscoring-roboflow/**', 'tests/roboflow-edge-sdk.test.cjs']
+    paths: ['.github/workflows/dependency-inventory-audit.yml', 'owner-seer-test.html', 'package.json', 'package-lock.json', 'supabase/functions/autoscoring-roboflow/**', 'tests/roboflow-edge-sdk.test.cjs']
   workflow_dispatch:
 permissions:
   contents: read
@@ -37,13 +37,13 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/da-audit"
           if [ "$PACKAGES" = dev ]; then
-            cp package.json "$RUNNER_TEMP/da-audit/package.json"
+            cp package.json package-lock.json "$RUNNER_TEMP/da-audit/"
           else
             printf '{"name":"da-audit","version":"1.0.0","private":true}\n' > "$RUNNER_TEMP/da-audit/package.json"
           fi
           cd "$RUNNER_TEMP/da-audit"
           if [ "$PACKAGES" = dev ]; then
-            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+            npm ci --ignore-scripts --no-audit --no-fund
           else
             npm install --package-lock-only --ignore-scripts --no-audit --no-fund --save-exact $PACKAGES
           fi
@@ -84,21 +84,13 @@ jobs:
           node-version: '22'
       - name: Install and verify actual development manifest
         run: |
-          if [ ! -f package-lock.json ]; then
-            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          fi
           npm ci --ignore-scripts --no-audit --no-fund
           npm audit --audit-level=low
           npm run typecheck
           npm run lint
           npm run test:password-reset
-      - name: Export verified public npm lockfile for review
-        run: |
-          node -e 'const l=require("./package-lock.json"); for(const p of Object.values(l.packages)){if(p.resolved && !p.resolved.startsWith("https://registry.npmjs.org/"))throw Error("Unexpected registry");}'
-          sha256sum package-lock.json
-          echo DA_LOCKFILE_BEGIN
-          cat package-lock.json
-          echo DA_LOCKFILE_END
+      - name: Verify committed lockfile is unchanged
+        run: git diff --exit-code -- package-lock.json
       - name: Test Edge Function against real SDK and mocked transports
         run: |
           npm install --prefix "$RUNNER_TEMP/da-edge" --no-save --ignore-scripts --no-audit --no-fund @supabase/supabase-js@2.119.2

@@ -14,3 +14,6 @@ The audit workflow resolves temporary npm dependency graphs with scripts disable
 
 ## Candidate audit (45933038130)
 Both proposed SDK and development updates returned zero findings at the low threshold. The actual manifests and Edge Function import are now staged on the test branch. The compatibility job checks TypeScript/lint and exercises the real candidate SDK against mocked Auth, RPC and inference responses. This does not test the deployed Deno gateway or SEER hardware; no production deployment. Lockfile, complete dependency inventory and mixed TF compatibility remain open.
+
+## Reproducible dev lockfile (run 45933489608)
+Captured the exact npm lockfile from the passing CI job and verified its SHA-256 (1011c4a583d3f0379243ead4154e00ea68133d82c91015a9769aa17deaeb134d), manifest versions and public npm registry integrity entries. Subsequent dev audits and compatibility tests use npm ci against the committed lockfile. Edge and CDN dependency graphs are not covered by this root lockfile. No runtime deployment.
