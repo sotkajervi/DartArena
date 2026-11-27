@@ -113,7 +113,7 @@
          await script('dartarena-dialog.js?v=20261027-correction2');
          await script('cancelled-match-modal.js?v=20261103-tournament-return3');
          await script('throw-log.js?v=20261125-score-roll1');
-         await script('match-media-router.js?v=20261104-preserve-challenge1');
+         await script('match-media-router.js?v=20261127-secureonly1');
          const test=window.DartArenaPentathlonMatchTest;
          if(typeof test?.enter!=='function')throw Error('Pentathlon-spillmotoren er ikke lastet');
          await test.enter({matchId:liveMatchId,resuming,mediaManaged:true});
@@ -142,7 +142,7 @@
          'autozoom/heatmap-math.js?v=20261023-final2',
          'online-heatmap-chart.js?v=20261023-shareheat1',
          'online-heatmap-result.js?v=20261104-shared-auth1',
-         'match-media-router.js?v=20261104-preserve-challenge1',
+         'match-media-router.js?v=20261127-secureonly1',
          'match-controls.js?v=20261123-action-label25',
          'opponent-focus.js?v=20261026-owncam-pip1',
           'x01-stable-sidebar.js?v=20261104-measure1',
@@ -159,7 +159,7 @@
          'live-avg.js?v=20261102-live-id-fix3',
          'stats-engine.js?v=20261102-stats-button4',
          'spectator-presence.js?v=20261104-shared-auth1',
-         'match-spectator-broadcast.js?v=20261104-shared-auth1',
+         'match-spectator-broadcast.js?v=20261127-secureonly1',
          'match-media-telemetry.js?v=20261121-telemetry10s1',
          'ui-feedback.js?v=20260930-cam2',
          'shared-results.js?v=20261105-single-return1',

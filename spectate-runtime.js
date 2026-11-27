@@ -110,13 +110,13 @@
       return true;
     }
     async function subscribePlayer(playerId,pub){
-      if(!isX01(match)||!playerId||!pub?.sessionId||!window.DartArenaSFU||!window.DARTARENA_SFU)return;
+      if(!isX01(match)||!playerId||!pub?.sessionId||!window.DartArenaSecureSFU||!window.DARTARENA_SFU)return;
       const index=playerId===match.player1_id?1:playerId===match.player2_id?2:0;if(!index)return;
       const old=publications.get(playerId);if(old===pub.sessionId)return;
       publications.set(playerId,pub.sessionId);
       try{clients.get(playerId)?.close()}catch{}
-      const secure=window.DartArenaMediaMode?.current?.()==='sfu';
-      const client=secure?new window.DartArenaSecureSFU(window.DARTARENA_SFU.secureWorkerUrl,{kind:'match',id:matchId},db):new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);clients.set(playerId,client);
+
+      const client=new window.DartArenaSecureSFU(window.DARTARENA_SFU.secureWorkerUrl,{kind:'match',id:matchId},db);clients.set(playerId,client);
       const video=$(`spectateVideo${index}`),placeholder=$(`spectatePlaceholder${index}`);video.srcObject=new MediaStream();hardMuteVideo(video);
       try{
         await client.subscribe(pub,async event=>{

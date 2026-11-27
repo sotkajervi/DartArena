@@ -22,7 +22,7 @@
       }
       return;
     }
-    if(stopped||!spectatorRequested||publishing||!window.DartArenaSFU||!window.DARTARENA_SFU)return;
+    if(stopped||!spectatorRequested||publishing||!window.DartArenaSecureSFU||!window.DARTARENA_SFU)return;
     if(typeof stream==='undefined'||typeof profile==='undefined'||typeof m==='undefined'||!profile?.id||!m?.id||!stream?.active)return;
     const video=stream.getVideoTracks().find(t=>t.readyState==='live');
     if(!video)return;
@@ -30,7 +30,7 @@
     publishing=true;
     try{
       sfu?.close();
-      sfu=new window.DartArenaSFU(window.DARTARENA_SFU.workerUrl);
+      sfu=new window.DartArenaSecureSFU(window.DARTARENA_SFU.secureWorkerUrl,{kind:'match',id:liveMatchId},client);
       publication=await sfu.publish(new MediaStream([video]));
       publishedTrackId=video.id;
       await announce();

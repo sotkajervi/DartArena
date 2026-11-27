@@ -99,10 +99,10 @@ test('new transports use the authenticated separate SFU gateway and room-level a
  assert.match(match,/DartArenaSecureSFU/);
  assert.match(waiting,/DartArenaSecureSFU/);
 });
-test('tournament waiting room selects legacy or secure client with exact tournament match context',()=>{
+test('tournament waiting room always selects secure SFU with exact tournament match context',()=>{
  for(const path of ['tournament-match-room.js','tournament-room-preferred-media.js']){
    const source=read(path);
-   assert.match(source,/secure\?window\.DartArenaSecureSFU:window\.DartArenaSFU/);
+   assert.match(source,/const SfuClient=window\.DartArenaSecureSFU;/);
    if(path==='tournament-match-room.js')assert.match(source,/kind:'tournament_match',id:tournamentMatchId/);
    else {assert.match(source,/kind:'tournament_match',id:state\(\)\?\.tournamentMatchId\?\.\(\)/);assert.match(read('tournament-match-room.js'),/tournamentMatchId:\(\)=>tournamentMatchId/)}
  }
@@ -120,7 +120,7 @@ test('tournament readiness refuses different mode versions and unsupported secur
  assert.match(secure[1],/await announce\(\)/);
  assert.match(secure[1],/return;\s*$/);
  assert.doesNotMatch(secure[1],/new window\.DartArenaSFU|\.publish\(/);
- assert.ok(broadcast.indexOf('new window.DartArenaSFU')>secure.index,'Legacy publication follows the secure early return');
+ assert.ok(broadcast.indexOf('new window.DartArenaSecureSFU')>secure.index,'Peer-first spectator publication uses secure SFU');
 });
 test('SQL stores one global legacy-default setting and Owner-only update with RLS',()=>{
  const sql=read('supabase-media-transport-owner-switch-20261031.sql');

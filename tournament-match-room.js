@@ -486,10 +486,9 @@ async function startCamera(){
     const selected=await window.DartArenaMediaMode?.getMode?.()||'legacy';
     if(roomHandoffStarted)return; // Match status may change during async mode lookup.
     sfu?.close();
-    const secure=selected==='sfu';
-    const SfuClient=secure?window.DartArenaSecureSFU:window.DartArenaSFU;
+    const SfuClient=window.DartArenaSecureSFU;
     if(!SfuClient)throw Error('Valgt videosystem er ikke tilgjengelig');
-    sfu=new SfuClient(secure?window.DARTARENA_SFU.secureWorkerUrl:window.DARTARENA_SFU.workerUrl,
+    sfu=new SfuClient(window.DARTARENA_SFU.secureWorkerUrl,
       {kind:'tournament_match',id:tournamentMatchId},db);
     publication=await sfu.publish(stream);
     setReadyUi();

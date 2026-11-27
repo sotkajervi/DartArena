@@ -1,0 +1,17 @@
+name: Retire legacy SFU offline checks
+on:
+  push:
+    branches: [test/secure-media-retire-legacy-20261127]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          for f in room-sfu-media.js match-sfu-media.js match-spectator-broadcast.js tournament-match-room.js tournament-room-preferred-media.js spectate-runtime.js tournament-match-viewer.js match-media-router.js room-media-router.js challenge-same-page-handoff-dev.js tournament-same-page-handoff-dev.js; do node --check "$f"; done
+          node --test tests/secure-media-retire-legacy.test.cjs tests/secure-media-fallback.test.cjs tests/owner-sfu-rollback.test.cjs tests/post-match-media-lifecycle.test.cjs
