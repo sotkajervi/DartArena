@@ -24,6 +24,12 @@ async function fetchNames(db,ids){
  }
  await Promise.all([...new Set(ids.map(id=>inflight.get(id)).filter(Boolean))]);
 }
+async function resolve(db,players,{fresh=false}={}){
+ const ids=players.map(p=>p.id).filter(valid);
+ if(fresh)ids.forEach(invalidate);
+ if(db)await fetchNames(db,ids);
+ return Object.fromEntries(players.map(p=>{const row=names.get(p.id)?.row;return [p.id,display(p.username,row?.full_name,row?.display_mode)]}));
+}
 async function paint(db,host,options={}){
  if(!db||!host)return;
  const nodes=[...host.querySelectorAll('a.da-profile-link[data-user-id],[data-da-display-id]')];if(!nodes.length)return;
@@ -42,5 +48,5 @@ async function paint(db,host,options={}){
  await root.DartArenaIdentity?.paint(db,host);
  root.DartArenaRoleVisuals?.scan?.(host);
 }
-const api={valid,html,display,paint,invalidate};if(typeof module==='object'&&module.exports)module.exports=api;else root.DartArenaProfileLink=api;
+const api={valid,html,display,paint,invalidate,resolve};if(typeof module==='object'&&module.exports)module.exports=api;else root.DartArenaProfileLink=api;
 })(typeof window!=='undefined'?window:globalThis);

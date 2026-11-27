@@ -2,7 +2,7 @@
 (function(){
   const $=id=>document.getElementById(id),esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const tournamentId=new URLSearchParams(location.search).get('id');
-  let loading=false,timer=null;
+  let loading=false,timer=null,podiumIds=[];
 
   function ensure(){
     if($('tournamentFinishSummary'))return;
@@ -19,8 +19,10 @@
       const {data:m}=await db.from('tournament_matches').select('*').eq('tournament_id',id).eq('stage','cup').order('round_no').order('match_no');if(!m?.length)return;
       const max=Math.max(...m.map(x=>Number(x.round_no||0))),final=m.find(x=>Number(x.round_no||0)===max);if(!final?.winner_id){$('tournamentFinishSummary')?.classList.add('hidden');return}
       const semi=m.filter(x=>Number(x.round_no||0)===max-1),ids=[...new Set(m.flatMap(x=>[x.player1_id,x.player2_id,x.winner_id]).filter(Boolean))],{data:p}=await db.from('profiles').select('id,username').in('id',ids),nm=Object.fromEntries((p||[]).map(x=>[x.id,x.username])),runner=final.player1_id===final.winner_id?final.player2_id:final.player1_id,semis=semi.map(x=>x.winner_id?(x.player1_id===x.winner_id?x.player2_id:x.player1_id):null).filter(Boolean);
+      podiumIds=ids;
+      const shown=window.DartArenaProfileLink?.resolve?await window.DartArenaProfileLink.resolve(db,(p||[])):nm;
       $('tournamentFinishSummary').classList.remove('hidden');$('finishMeta').textContent='Finale avgjort';
-      $('finishBody').innerHTML=`<div class="result-podium"><div class="player-row"><div><small>VINNER</small><h2 style="color:#00eaf4;margin:3px 0">${esc(nm[final.winner_id]||'Spiller')}</h2></div></div><div class="player-row"><div><small>2. PLASS</small><strong>${esc(nm[runner]||'Spiller')}</strong></div></div>${semis.length?`<div class="player-row"><div><small>SEMIFINALISTER</small><strong>${semis.map(x=>esc(nm[x]||'Spiller')).join(' • ')}</strong></div></div>`:''}<button id="openTournamentResultsBtn" class="primary wide" style="margin-top:12px">Se full resultat- og statistikkside</button></div>`;
+      $('finishBody').innerHTML=`<div class="result-podium"><div class="player-row"><div><small>VINNER</small><h2 style="color:#00eaf4;margin:3px 0">${esc(shown[final.winner_id]||'Spiller')}</h2></div></div><div class="player-row"><div><small>2. PLASS</small><strong>${esc(shown[runner]||'Spiller')}</strong></div></div>${semis.length?`<div class="player-row"><div><small>SEMIFINALISTER</small><strong>${semis.map(x=>esc(shown[x]||'Spiller')).join(' • ')}</strong></div></div>`:''}<button id="openTournamentResultsBtn" class="primary wide" style="margin-top:12px">Se full resultat- og statistikkside</button></div>`;
       $('openTournamentResultsBtn').onclick=()=>location.href=`tournament-results.html?id=${encodeURIComponent(id)}`;
     }finally{loading=false}
   }
@@ -28,7 +30,7 @@
   function refreshSoon(){clearTimeout(timer);timer=setTimeout(()=>loadSummary().catch(e=>console.error('Final summary refresh failed',e)),80)}
   window.dartArenaLoadFinishSummary=loadSummary;
   window.addEventListener('dartarena:tournament-loaded',refreshSoon);
-  window.addEventListener('focus',refreshSoon);
+  window.addEventListener('focus',()=>{podiumIds.forEach(id=>window.DartArenaProfileLink?.invalidate(id));refreshSoon()});
   if(tournamentId&&typeof db!=='undefined'){
     // The shared tournament client may still be restoring its auth session.
     // A premature anonymous Realtime filter is rejected by the database.

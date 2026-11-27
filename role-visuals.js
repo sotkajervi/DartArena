@@ -136,7 +136,7 @@
     if(!text||text==='Lobby')return false;
 
     const user=ensureWelcomeParts(title);
-    const role=roleFor(user?.textContent||text);
+    const role=title.dataset.userId?(roleById.get(title.dataset.userId)||null):roleFor(user?.textContent||text);
     title.classList.toggle('da-role-owner',role==='owner');
     title.classList.toggle('da-role-admin',role==='admin');
     title.classList.toggle('da-role-leader',role==='leader');
