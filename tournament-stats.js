@@ -196,7 +196,7 @@
 
   function highlight(label,row,value){
     if(!row)return`<div class="tournament-stat-highlight"><small>${esc(label)}</small><strong>–</strong><span>Ingen data ennå</span></div>`;
-    return`<div class="tournament-stat-highlight"><small>${esc(label)}</small><strong>${esc(value)}</strong><span><span class="da-role-player" data-user-id="${esc(row.id)}">${esc(row.name)}</span></span></div>`;
+    return`<div class="tournament-stat-highlight"><small>${esc(label)}</small><strong>${esc(value)}</strong><span><span class="da-role-player" data-no-i18n data-user-id="${esc(row.id)}">${esc(row.displayName)}</span></span></div>`;
   }
 
   function renderHighlights(rows,{chicago=false}={}){
@@ -268,6 +268,7 @@
       ]);
       if(profileError)throw profileError;
       const names=Object.fromEntries((profiles||[]).map(p=>[p.id,p.username]));
+      const shown=window.DartArenaProfileLink?.resolve?await window.DartArenaProfileLink.resolve(db,profiles||[]):names;
       const matchByLive=Object.fromEntries(playedMatches.filter(m=>m.live_match_id).map(m=>[m.live_match_id,m]));
       const rows=playerIds.map(pid=>{
         const pm=playedMatches.filter(m=>m.player1_id===pid||m.player2_id===pid);
@@ -285,6 +286,7 @@
         return{
           id:pid,
           name:names[pid]||'Spiller',
+          displayName:shown[pid]||names[pid]||'Spiller',
           matches:pm.length,
           wins,
           losses,
@@ -318,7 +320,7 @@
           ?'Chicago Style: X01-snitt beregnes fra 301 DIDO og 501 SIDO. MPR beregnes fra Cricket. WO påvirker kampseire, mens BYE/frirunde ikke teller som kamp.'
           :'Snitt beregnes fra registrerte kast i ferdigspilte kamper. WO påvirker kampseire, mens BYE/frirunde ikke teller som kamp.';
       renderHighlights(rows,{chicago});
-      body.innerHTML=`<table class="tournament-stats-table"><thead><tr><th>#</th><th>Spiller</th><th>K</th><th>V</th><th>T</th><th>V%</th><th>${unitLabel}</th><th>+/−</th><th>${chicago?'X01 snitt':'Snitt'}</th><th>First 9</th>${chicago?'<th>MPR</th>':''}<th title="Beste kampsnitt">Beste AVG</th><th title="Høyeste registrerte kast">Maks kast</th><th>Checkout</th><th title="Raskeste vunne leg">${chicago?'Rask X01':'Rask leg'}</th><th title="Gjennomsnittlig antall piler per vunnet leg">Ø piler/leg</th><th>60+</th><th>100+</th><th>140+</th><th>170+</th><th>180</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td class="stats-rank">${i+1}</td><td class="stats-player" title="${esc(r.name)}"><span class="da-role-player" data-user-id="${esc(r.id)}">${esc(r.name)}</span></td><td>${r.matches}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.winPct.toFixed(0)}%</td><td>${r.legsFor}–${r.legsAgainst}</td><td class="${r.legDiff>0?'stats-positive':r.legDiff<0?'stats-negative':''}">${r.legDiff>0?'+':''}${r.legDiff}</td><td>${r.avg?r.avg.toFixed(2):'–'}</td><td>${r.firstNine?r.firstNine.toFixed(2):'–'}</td>${chicago?`<td>${r.mpr?r.mpr.toFixed(2):'–'}</td>`:''}<td>${r.bestAvg?r.bestAvg.toFixed(2):'–'}</td><td>${r.highVisit||'–'}</td><td>${r.highCheckout||'–'}</td><td>${r.fast?`${r.fast} piler`:'–'}</td><td>${r.avgWinningLegDarts?r.avgWinningLegDarts.toFixed(1):'–'}</td><td>${r.c60}</td><td>${r.c100}</td><td>${r.c140}</td><td>${r.c170}</td><td>${r.c180}</td></tr>`).join('')}</tbody></table>`;
+      body.innerHTML=`<table class="tournament-stats-table"><thead><tr><th>#</th><th>Spiller</th><th>K</th><th>V</th><th>T</th><th>V%</th><th>${unitLabel}</th><th>+/−</th><th>${chicago?'X01 snitt':'Snitt'}</th><th>First 9</th>${chicago?'<th>MPR</th>':''}<th title="Beste kampsnitt">Beste AVG</th><th title="Høyeste registrerte kast">Maks kast</th><th>Checkout</th><th title="Raskeste vunne leg">${chicago?'Rask X01':'Rask leg'}</th><th title="Gjennomsnittlig antall piler per vunnet leg">Ø piler/leg</th><th>60+</th><th>100+</th><th>140+</th><th>170+</th><th>180</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td class="stats-rank">${i+1}</td><td class="stats-player" title="${esc(r.displayName)}"><span class="da-role-player" data-no-i18n data-user-id="${esc(r.id)}">${esc(r.displayName)}</span></td><td>${r.matches}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.winPct.toFixed(0)}%</td><td>${r.legsFor}–${r.legsAgainst}</td><td class="${r.legDiff>0?'stats-positive':r.legDiff<0?'stats-negative':''}">${r.legDiff>0?'+':''}${r.legDiff}</td><td>${r.avg?r.avg.toFixed(2):'–'}</td><td>${r.firstNine?r.firstNine.toFixed(2):'–'}</td>${chicago?`<td>${r.mpr?r.mpr.toFixed(2):'–'}</td>`:''}<td>${r.bestAvg?r.bestAvg.toFixed(2):'–'}</td><td>${r.highVisit||'–'}</td><td>${r.highCheckout||'–'}</td><td>${r.fast?`${r.fast} piler`:'–'}</td><td>${r.avgWinningLegDarts?r.avgWinningLegDarts.toFixed(1):'–'}</td><td>${r.c60}</td><td>${r.c100}</td><td>${r.c140}</td><td>${r.c170}</td><td>${r.c180}</td></tr>`).join('')}</tbody></table>`;
     }catch(error){
       console.error('Tournament stats failed',error);
       meta.textContent='Kunne ikke laste';

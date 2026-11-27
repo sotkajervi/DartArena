@@ -1,0 +1,24 @@
+name: Tournament presentation regression
+on:
+  push:
+    branches: ['test/tournament-presentation-20261127']
+  pull_request:
+    branches: [main]
+    paths: ['tournament*.js','tournament.html','lobby-chat.js','tests/tournament-presentation.test.cjs','.github/workflows/tournament-presentation.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: for file in tournament*.js lobby-chat.js; do node --check "$file" || exit 1; done
+      - run: node --test tests/tournament-performance-regression.test.cjs tests/tournament-live-scores.test.cjs tests/tournament-group-results-layout.test.cjs tests/tournament-stats-fetch.test.cjs tests/tournament-lobby-navigation.test.cjs tests/tournament-realtime-auth-gate.test.cjs tests/lobby-chat-feed.test.cjs tests/profile-presentation.test.cjs tests/profile-name-link.test.cjs
+      - run: npm install --prefix "$RUNNER_TEMP/da-tournament" --no-audit --no-fund playwright@1.58.2
+      - run: '"$RUNNER_TEMP/da-tournament/node_modules/.bin/playwright" install --with-deps chromium'
+      - run: NODE_PATH="$RUNNER_TEMP/da-tournament/node_modules" node --test tests/tournament-presentation.test.cjs

@@ -115,11 +115,11 @@
       cur.forEach((m,i)=>{if(!m.winner)return;const t=next[Math.floor(i/2)];if(!t)return;if(i%2===0)t.a=m.winner;else t.b=m.winner;if(t.a&&t.b&&t.status==='waiting')t.status='pending'});
     }
   }
-  function simPlayer(p,{bye=false}={}){if(!p)return bye?'<span class="cup-bye">BYE</span>':'<span class="cup-name muted">Venter</span>';return `<span class="cup-name">${esc(p.name)}</span>`}
+  function simPlayer(p,{bye=false}={}){if(!p)return bye?'<span class="cup-bye">BYE</span>':'<span class="cup-name muted">Venter</span>';return `<span class="cup-name">${esc(tournamentDisplayName(p.id,p.name))}</span>`}
   function renderSim(scroll=false){
     if(!simCup)return;advanceSim();$('cupSetup')?.classList.add('hidden');$('cupLobby')?.classList.remove('hidden');
     const final=simCup.matches.find(m=>m.round===simCup.totalRounds),done=simCup.matches.filter(m=>m.status==='finished').length;
-    $('cupProgress').textContent=final?.winner?`Vinner: ${final.winner.name}`:`${done} / ${simCup.matches.length} cupkamper ferdig • TESTMODUS`;
+    $('cupProgress').textContent=final?.winner?`Vinner: ${tournamentDisplayName(final.winner.id,final.winner.name)}`:`${done} / ${simCup.matches.length} cupkamper ferdig • TESTMODUS`;
     let controls=$('cupSimulationControls');if(!controls){controls=document.createElement('div');controls.id='cupSimulationControls';controls.style.cssText='display:flex;gap:10px;flex-wrap:wrap;margin:12px 0';$('cupBracket')?.insertAdjacentElement('beforebegin',controls)}
     controls.innerHTML='<button id="simulatePureCupBtn" class="primary">Simuler resterende cup</button><button id="resetPureCupBtn" class="outline">Trekk cup på nytt</button><span class="status" style="align-self:center">3× tilfeldig trekning • kun lokal test</span>';
     $('cupBracket').innerHTML=Array.from({length:simCup.totalRounds},(_,i)=>i+1).map(r=>{const rm=simCup.matches.filter(m=>m.round===r).sort((a,b)=>a.index-b.index),bo=rm[0]?.best;return `<div class="cup-round"><div class="cup-round-title">${roundName(r,simCup.totalRounds)} • ${isChicagoTournament()?'Chicago Style':`Bo${bo}`}</div>${rm.map(m=>{const score=m.wo?'WO':m.status==='finished'?`${m.p1}–${m.p2}`:'vs',aBye=m.round===1&&m.wo&&!m.a,bBye=m.round===1&&m.wo&&!m.b;return `<div class="cup-match simulation-cup-match pure-cup-sim-match" role="button" tabindex="0" data-pure-sim-id="${m.id}"><div class="cup-player ${m.winner&&m.a&&m.winner.id===m.a.id?'winner':''}">${simPlayer(m.a,{bye:aBye})}</div><div class="cup-score">${score}</div><div class="cup-player ${m.winner&&m.b&&m.winner.id===m.b.id?'winner':''}">${simPlayer(m.b,{bye:bBye})}</div></div>`}).join('')}</div>`}).join('');

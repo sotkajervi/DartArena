@@ -42,6 +42,7 @@ function simulate(search, hasButton = true) {
       }
     },
     window: {
+      addEventListener() {},
       supabase: {
         createClient() { clientCreations++; return client; }
       }
@@ -87,8 +88,12 @@ test('tournament match startup tolerates a missing optional lobby button', async
   assert.equal(view.clientCreations, 1);
 });
 
-test('tournament room still routes to a live match in the same tab', () => {
+test('tournament room uses same-page handoff with same-tab fallback', () => {
   const room = fs.readFileSync(path.join(root, 'tournament-match-room.js'), 'utf8');
-  assert.match(room, /function goToMatch\(liveId\)\{cleanup\(\);location\.href=matchUrl\(liveId\);\}/);
+  const transition=room.match(/async function goToMatch\(liveId\)\{[\s\S]*?\n\}/)?.[0];
+  assert.ok(transition);
+  assert.match(transition,/await bridge\.enter\(/);
+  assert.match(transition,/cleanup\(\);\s*location\.href=matchUrl\(liveId\);/);
+  assert.ok(transition.indexOf('await bridge.enter(')<transition.indexOf('location.href=matchUrl('));
   assert.match(room, /tournamentMatch=\$\{encodeURIComponent\(tournamentMatchId\)\}/);
 });
