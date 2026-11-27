@@ -120,12 +120,15 @@
       const prior=mediaAttempts.get(playerId);
       const attempts=prior?.sessionId===pub.sessionId?prior.count:0;
       if(attempts>=3)return;
-      mediaAttempts.set(playerId,{sessionId:pub.sessionId,count:attempts+1});
+      const attempt={sessionId:pub.sessionId,count:attempts+1,pub,startedAt:Date.now(),firstFrame:false};
+      mediaAttempts.set(playerId,attempt);
+      console.debug('[SPECTATE VIDEO] camera',index,'subscribe attempt',attempt.count);
       publications.set(playerId,pub.sessionId);
       try{clients.get(playerId)?.close()}catch{}
 
       const client=new window.DartArenaSecureSFU(window.DARTARENA_SFU.secureWorkerUrl,{kind:'match',id:matchId},db);clients.set(playerId,client);
       const video=$(`spectateVideo${index}`),placeholder=$(`spectatePlaceholder${index}`);video.srcObject=new MediaStream();hardMuteVideo(video);
+      if(placeholder){placeholder.textContent='Kobler til kamera…';placeholder.classList.remove('hidden');}
       try{
         await client.subscribe({...pub,tracks:['camera']},async event=>{
           if(leaving||clients.get(playerId)!==client)return;
@@ -140,11 +143,40 @@
             if(track.kind==='video'&&!rs.getTracks().some(t=>t.id===track.id))rs.addTrack(track);
           });
           hardMuteVideo(video);await video.play().catch(()=>{});
-          if(rs.getVideoTracks().some(t=>t.readyState==='live'))placeholder?.classList.add('hidden');
+          if(clients.get(playerId)===client)markFirstFrame(playerId,index);
         });
+        if(clients.get(playerId)===client)console.debug('[SPECTATE VIDEO] camera',index,'negotiated',Date.now()-attempt.startedAt,'ms');
       }catch(e){
         console.warn('Spectator subscribe failed',e);
         if(clients.get(playerId)===client){clients.delete(playerId);publications.delete(playerId);try{client.close()}catch{}}
+      }
+    }
+    function markFirstFrame(playerId,index){
+      const attempt=mediaAttempts.get(playerId);
+      const video=$(`spectateVideo${index}`);
+      if(!attempt||attempt.firstFrame||!video||video.readyState<2||!(video.videoWidth>0))return;
+      if(!video.srcObject?.getVideoTracks?.().some(t=>t.readyState==='live'&&!t.muted))return;
+      attempt.firstFrame=true;
+      $(`spectatePlaceholder${index}`)?.classList.add('hidden');
+      console.debug('[SPECTATE VIDEO] camera',index,'first frame',Date.now()-attempt.startedAt,'ms');
+    }
+    function checkStalledMedia(){
+      if(leaving||match?.status!=='playing')return;
+      for(const [index,playerId] of [[1,match.player1_id],[2,match.player2_id]]){
+        const attempt=mediaAttempts.get(playerId),client=clients.get(playerId);
+        if(!attempt||!client)continue;
+        markFirstFrame(playerId,index);
+        if(attempt.firstFrame||Date.now()-attempt.startedAt<12000)continue;
+        // Do not recycle an already working camera, or retry beyond three attempts.
+        if(attempt.count>=3){
+          if(!attempt.reported){attempt.reported=true;console.warn('[SPECTATE VIDEO] camera',index,'no first frame after three attempts');}
+          const placeholder=$(`spectatePlaceholder${index}`);
+          if(placeholder)placeholder.textContent='Venter fortsatt på kamera…';
+          continue;
+        }
+        console.debug('[SPECTATE VIDEO] camera',index,'first-frame timeout; retry');
+        clients.delete(playerId);publications.delete(playerId);try{client.close()}catch{}
+        void subscribePlayer(playerId,attempt.pub);
       }
     }
     async function pollFxVisits(){
@@ -172,7 +204,9 @@
       fxTimer=setInterval(pollFxVisits,2000);
     }
     async function requestMissingMedia(){
-      if(leaving||!mediaSubscribed||!channel||match?.status!=='playing'||mediaRequestCount>=8)return;
+      if(leaving||!mediaSubscribed||!channel||match?.status!=='playing')return;
+      checkStalledMedia();
+      if(mediaRequestCount>=8)return;
       // A known publication is either negotiating or connected. Do not replace it.
       if([match.player1_id,match.player2_id].every(id=>publications.has(id)))return;
       mediaRequestCount++;
