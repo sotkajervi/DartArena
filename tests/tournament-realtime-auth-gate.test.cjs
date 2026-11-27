@@ -55,6 +55,8 @@ test('Stats and cup-permission modules gate subscriptions on authenticated sessi
 test('Tournament page cache versions invalidate every affected Realtime module',()=>{
   const html=read('tournament.html');
   for(const name of ['tournament-live-refresh','tournament-finish-summary','tournament-stats','tournament-cup-permissions']){
-    assert.ok(html.includes(name+'.js?v=20261027-authfilter1'),name);
+    const version=html.match(new RegExp('src="(?:\\./)?'+name+'\\.js\\?v=(\\d{8})-[\\w-]+"'));
+    assert.ok(version,name+' must have a dated cache version');
+    assert.ok(version[1]>='20261027',name+' must not predate the auth gate');
   }
 });

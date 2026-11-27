@@ -8,7 +8,7 @@ const els={},calls=[];
 function $(id){return els[id]??=( {value:'',classList:{toggle(){}},removeAttribute(n){if(n==='minlength')delete this.minLength}});}
 const db={auth:{async signUp(x){calls.push({type:'signup',...x});return {data:{session:null}}},async signInWithPassword(x){calls.push({type:'login',...x});return {data:{}}}}};
 const identity=require('../profile-avatars.js');
-const ctx=vm.createContext({$,db,mode:'login',window:{DartArenaIdentity:identity}});
+const ctx=vm.createContext({$,db,mode:'login',window:{DartArenaIdentity:identity,DartArenaAuthCaptcha:{token:async()=>null,message:()=>null}}});
 vm.runInContext(app.slice(start,end),ctx);
 assert(!Object.hasOwn($('password'),'minLength'));
 assert.equal($('password').autocomplete,'current-password');
