@@ -1,0 +1,4 @@
+# Temporary SFU client incident rollback — 2026-11-28
+Owner approved restoring the authenticated client from eb4625edb9100484f2e17d13146e6bcc53b81853. Root cause not established.
+The active client intentionally no longer explicitly closes remote SFU sessions and lacks newer publish supersession and failed-setup cleanup safeguards from 404188d50ebfeddffe9ef9ed8de148843fa15dbd. Remote sessions may persist longer and connection lifecycle races may recur; not a permanent fix.
+Security gate still requires every suite to pass. Active byte-identical rollback client is tested for repeated local lifecycle and authentication; the newer cleanup suite runs separately against the pinned original client. No database, Worker, access policy or branch protection changes. Restore active cleanup tests when corrected cleanup code is ready. No production load tests. Real two-player validation required.
