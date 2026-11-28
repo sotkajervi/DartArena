@@ -18,6 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -27,7 +28,12 @@ jobs:
         run: |
           node --check sfu-client-secure.js
           node --check auth-captcha.js
-          node --test tests/auth-captcha.test.cjs tests/auth-password-policy.test.cjs tests/auth-nickname-guidance.test.cjs tests/least-privilege-rpc.test.cjs tests/secure-media-fallback.test.cjs tests/secure-media-retire-legacy.test.cjs tests/sfu-client-cleanup.test.cjs tests/tournament-realtime-auth-gate.test.cjs
+          node --test tests/auth-captcha.test.cjs tests/auth-password-policy.test.cjs tests/auth-nickname-guidance.test.cjs tests/least-privilege-rpc.test.cjs tests/secure-media-fallback.test.cjs tests/secure-media-retire-legacy.test.cjs tests/sfu-client-rollback.test.cjs tests/tournament-realtime-auth-gate.test.cjs
+          # Temporary incident rollback: exercise both active and pinned cleanup clients.
+          git show eb4625edb9100484f2e17d13146e6bcc53b81853:sfu-client-secure.js > "$RUNNER_TEMP/pre-cleanup-sfu.js"
+          cmp "$RUNNER_TEMP/pre-cleanup-sfu.js" sfu-client-secure.js
+          git show 404188d50ebfeddffe9ef9ed8de148843fa15dbd:sfu-client-secure.js > "$RUNNER_TEMP/cleanup-candidate-sfu.js"
+          DA_SFU_CLEANUP_REFERENCE="$RUNNER_TEMP/cleanup-candidate-sfu.js" node --test tests/sfu-client-cleanup.test.cjs
           NODE_PATH="$RUNNER_TEMP/da-security/node_modules" node --test tests/password-reset.test.cjs
   database:
     runs-on: ubuntu-24.04

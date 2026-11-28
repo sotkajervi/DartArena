@@ -1,6 +1,7 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const src=fs.readFileSync('sfu-client-secure.js','utf8');
+// During incident rollback, CI exercises the pinned cleanup candidate separately.
+const src=fs.readFileSync(process.env.DA_SFU_CLEANUP_REFERENCE||'sfu-client-secure.js','utf8');
 const offer={type:'offer',sdp:'v=0'},answer={type:'answer',sdp:'v=0'};
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve}};
 const tick=()=>new Promise(r=>setImmediate(r));

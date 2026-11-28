@@ -1,0 +1,22 @@
+name: SFU client rollback offline
+on:
+  push:
+    branches: [test/sfu-client-rollback-20261128]
+  pull_request:
+    branches: [main]
+    paths: ['sfu-client-secure.js','tests/sfu-client-rollback.test.cjs','.github/workflows/sfu-client-rollback-test.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: git show eb4625edb9100484f2e17d13146e6bcc53b81853:sfu-client-secure.js > /tmp/pre-cleanup.js && cmp /tmp/pre-cleanup.js sfu-client-secure.js
+      - run: node --check sfu-client-secure.js && node --test tests/sfu-client-rollback.test.cjs tests/secure-media-fallback.test.cjs tests/secure-media-retire-legacy.test.cjs tests/owner-sfu-rollback.test.cjs
