@@ -11,7 +11,7 @@
     if(mode==='standard'){
       document.body.dataset.halfItMode='standard';
       await loadScript('sfu-config.js?v=20261006-device2');
-      await loadScript('sfu-client-secure.js?v=20261127-close1');
+      await loadScript('sfu-client-secure.js?v=20261128-rollback1');
       await loadScript('half-it-standard.js?v=20261127-securefallback1');
       await loadScript('match-media-telemetry.js?v=20261002-peer3');
       await loadScript('half-it-standard-41-buttons.js?v=20261125-starter41');
@@ -23,7 +23,7 @@
     }
     document.body.dataset.halfItMode='dartcounter';
     await loadScript('sfu-config.js?v=20261006-device2');
-    await loadScript('sfu-client-secure.js?v=20261127-close1');
+    await loadScript('sfu-client-secure.js?v=20261128-rollback1');
     await loadScript('half-it.js?v=20261127-securefallback1');
     await loadScript('one-to-one-media.js?v=20261127-securefallback1');
     await loadScript('match-media-telemetry.js?v=20261002-peer3');
